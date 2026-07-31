@@ -7,6 +7,29 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### Balance pass: core damage repriced, the close reversal removed, HP ×1.5 (2026-07-31)
+Player brief: *"dmg to core: missile to 10, mine blast to 20, contact to 30 / Emitter second pressure dash also available at Epoch II / delete close reversal dmg for anormaly, only removing neutral dots / make ring grind dmg 1, charger dash 5, and buff anomaly HP 1.5x."*
+
+**What it costs you**, now ranked by how much warning the hit carries: **missile 14 → 10** (the thing you eat most often, so the cheapest), **mine blast 12 → 20** (it announces itself twice — it arms, and it draws its own blast radius — so standing in one is a decision, and at 12 it was the one hit you could ignore), **body contact 34 → 30** (the most expensive and the least excusable: a 44px object that walks at you slowly and audibly).
+
+**The close reversal is gone.** A charged reversal used to chip the Anomaly if its Shockwave reached the body. It shipped at **2**, measured *dominant* — solo-killed an Epoch I Anomaly in 26s for 5 HP — was cut to **1**, and is now removed outright. Every repricing was answering the same objection at a smaller scale: it let you park in the band and spam the flip. The argument that kept it was always the weakest one on the page — *a player with no rings needs something* — and the answer to having no rings is to gather more, which is the loop. **The Shockwave's job is Neutrals and repositioning.** Verified: 12 fully-charged flips at point-blank take the boss from full to full, **0 damage**.
+
+**Erosion repriced around that**: ring grind **0.5 → 1**, baited charge **4 → 5** (since the close reversal went, it is now the *only* erosion needing neither ammunition nor Capacitor). **Boss HP ×1.5** — `round((13 + Epoch×5) × 1.5)`, so Epoch I–VI is **27 / 35 / 42 / 50 / 57 / 65**, Pulsar **20 / 26 / 32 / 38 / 43 / 49**. Raising the pool rather than holding the prices down: the grind at 1 against 18 HP is what the 0.5 repricing was avoiding, and against 27 it pays about a third of a fight instead of most of one.
+
+**The Emitter's dash arrives at Epoch II, not III.** The tip on the integrity bar switches on the same epoch, so the bar and the behaviour cannot disagree.
+
+**Measured, same 12-seed bot both sides** (fixed 150px orbit, flips on cooldown, no dodging):
+
+|  | before, kills/12 | after, kills/12 | before, deaths | after, deaths |
+|---|---|---|---|---|
+| Emitter | 0 | 1 | 12 | 11 |
+| Sentinel | 3 | 10 | 9 | 2 |
+| Pulsar | 3 | 7 | 9 | 5 |
+
+Net **6/36 → 18/36** kills and **30/36 → 18/36** deaths: despite +50% HP the pass made boss fights markedly *more survivable*, because cutting the missile — the hit you take dozens of times a fight — from 14 to 10 outweighs everything else. The mine going 12 → 20 did not reverse that for the Pulsar; there are 2–3 mines a cycle against 13 ring shots.
+
+**The Emitter is the outlier in both builds** and should be read as a bot artifact before a balance signal: this bot holds a fixed 150px orbit and never dodges, which is exactly the worst way to fight the kind that hovers and shoots you point-blank. Worth one human playtest before acting on it. Logged on the watch-list.
+
 ### The Sentinel's hunt becomes a walk like the others (2026-07-31)
 Player brief: *"hunt of sentinel is too fast."*
 
@@ -515,8 +538,12 @@ and keystone power — most of those systems no longer exist.
   nothing else heals. Disengaging is the entire healing verb; watch that a bad Epoch is still recoverable.
 - **Boss balance is bot-derived** — every TTK number in this ledger comes from a scripted pilot, not a
   human. The Sentinel measures hardest. Confirm against a real player before trusting that ordering.
-- **Ring grind at 0.5** — priced so a grind-only bot solo-kills 0–1 fights in 6. If hoarding turns out to
-  make the Volley optional in real play, this is the lever.
+- **Ring grind at 1, against HP ×1.5** — these two were repriced in the same pass and only mean anything
+  together. If hoarding turns out to make the Volley optional in real play, read both before moving either.
+- **The Emitter kills the test bot 11 times in 12** — and did 12/12 before the balance pass, so it is not
+  new. The bot holds a fixed 150px orbit and never dodges, which is the worst possible way to fight the
+  kind that hovers and shoots point-blank, so this is probably an artifact. Needs one human playtest to
+  say whether the Emitter is genuinely the hardest kind or just the least bot-legible.
 - **Bomber spawn weight vs. its damage** — `['bomber',9]` and `['bomber',7+a]` were both priced for a body
   you could walk through. Each one now touches for 26 (36.4 by Epoch VI). Damage and weight were
   deliberately not changed in the same pass so the playtest stays readable: measure Epoch IV–VI, then

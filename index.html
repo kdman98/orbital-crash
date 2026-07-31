@@ -385,14 +385,13 @@ const FLING_V0=10.8, FLING_VCHG=7.2;
 const FLING_HOLD=0.8;           // 1.6 → 0.8s: the reach was already right, only the pace was wrong.
 // (FLING_DMG_T removed with FLING_DMG — a flung body is not a shot. See the two-channel rule in the
 // boss-contact block: only a VOLLEY and a RING GRIND erode an Anomaly.)
-// A charged reversal detonated inside the Anomaly's skin. Priced against the Volley's 2-per-body: this
-// needs no ammunition at all, so it is worth less per use and costs you the one thing the Volley does
-// not — standing in melee range of a body that does 34 on contact and is never consumed.
-// Started at 2 and measured as DOMINANT: alone, with no rings and no volleys, it killed an Epoch I
-// Anomaly in 26s for 5 HP, which makes "stand at 120px and spam the hungry flip" strictly better than
-// the loop it was meant to supplement. At 1 the same solo strategy runs past the 45s destabilize, so it
-// pays as a top-up — and as the answer when you have been stripped of rings — without being the plan.
-const CLOSE_REVERSAL_DMG=1;
+// THE CLOSE REVERSAL IS GONE (2026-07-31). A charged reversal used to chip the Anomaly for 1 if its
+// shockwave reached the body. It shipped at 2, measured DOMINANT (solo-killed an Epoch I Anomaly in 26s
+// for 5 HP), was cut to 1 — and then removed outright, because the argument that kept it was always the
+// weakest one on the page: it existed as a consolation for having no rings. The Shockwave's job is
+// Neutrals and repositioning; erosion belongs to matter you gathered or aimed. A player stripped of
+// rings gathers more — that IS the loop — or spends a Collapse. Removing it also ends the standing
+// temptation to park at 150px and spam the flip, which every repricing only slowed down.
 // (FLING_DMG and the Brute's BARGE_DMG both removed — see the two-channel rule in the boss-contact
 // block. Both were latent "contact = damage" holes, and once the Hunt began walking the Anomaly across
 // the arena a boss could farm them off its own travel. Measured over 6 idle fights before removal:
@@ -417,19 +416,23 @@ const RING_GRACE=0.8, RING_GRACE_R=2.4;
 // until you spent it. The body is consumed on contact (the shared `d>0` branch), which bounds a grind
 // to the size of the hoard you actually built.
 //
-// 2 → 1 → 0.5, and the second cut was the one that mattered. At 2 a hoarded ring dumped 24-34 in a
-// single pass — an outright kill on an 18 HP Epoch I boss. Halving to 1 fixed the burst but left the
-// SUSTAINED rate too high, which a single trial had hidden: repeated six times per kind, a bot that
-// orbited at 130px and **never fired a volley at all** still took the Anomaly down in 2-4 fights out of
-// 6, median damage **11 / 17 / 14**. A supplement that solo-kills the boss two thirds of the time is not
-// a supplement — it makes the Volley, the intended main line, optional. At 0.5 the grind pays about a
-// third of a boss over a long fight: real pressure, and still something you have to finish with a volley.
-const RING_GRIND_DMG=0.5;
+// 2 → 1 → 0.5 → 1. At 2 a hoarded ring dumped 24-34 in a single pass — an outright kill on an 18 HP
+// Epoch I boss. Halving to 1 fixed the burst but left the SUSTAINED rate too high against 18 HP, which a
+// single trial had hidden: repeated six times per kind, a bot orbiting at 130px that **never fired a
+// volley at all** still took the Anomaly down in 2-4 fights out of 6, median damage **11 / 17 / 14**.
+// That is what drove it to 0.5.
+//
+// Back to 1 (2026-07-31) — the objection was never the number on its own, it was the number against the
+// health pool. Boss HP is now ×1.5, so the same 11/17/14 lands against 27 rather than 18, and the grind
+// pays roughly a third of a fight instead of most of one. Watch this pair together: if the grind is ever
+// repriced again, check it against the CURRENT HP curve rather than the numbers above.
+const RING_GRIND_DMG=1;
 // A COMMITTED CHARGE driven into the Anomaly. Above a volley body on purpose: a volley is one of a dozen
 // you fire from a hoard, while this is a single body you had to keep alive, read, and then stand in front
-// of so its locked lane ran through the boss. It is also the only erosion that costs you no ammunition
-// and no Capacitor — the answer for a player stripped of everything.
-const CHARGE_DMG=4;
+// of so its locked lane ran through the boss. Since the close reversal was removed it is also the ONLY
+// erosion that costs you no ammunition and no Capacitor — the whole of the answer for a player stripped
+// of everything — which is why it went 4 → 5 in the same pass.
+const CHARGE_DMG=5;
 // NO PER-KIND BONUS — and the "runner" bonus that seemed obvious was measurably backwards. The idea was
 // that the Sentinel spends the fight circling, so a ring you finally land on it should be worth more.
 // Measured, closing on the Sentinel is the CHEAPEST of the three: hoard a ring, walk in and hold contact
@@ -910,11 +913,11 @@ const bossOpp=c=>c==='red'?'cyan':'red';   // the colour that erodes an Anomaly 
 // -read text in the fight and they must describe something the code can actually produce. Twice now
 // they have not: they said REFLECT TO ERODE after Reflect was removed, and then BAIT ITS FLARES INTO
 // IT after every missile moved to launching from the boss's own body — which is precisely the change
-// that makes baiting impossible. Erosion is the Volley, the close reversal, and Collapse;
+// that makes baiting impossible. Erosion is the Volley, the ring grind, the baited charge and Collapse;
 // a tip may name a movement answer or the Volley, never a bait.
 const ANOM={
   // EMITTER — the teacher, and always the first Anomaly of a run, so its tip carries the loop itself.
-  // Hovers, alternates a hexagon crossfire BURST and a sweeping spiral STREAM. From Epoch III it also
+  // Hovers, alternates a hexagon crossfire BURST and a sweeping spiral STREAM. From Epoch II it also
   // LUNGES: the boss you learned first grows up, instead of being replaced by a near-copy of itself.
   emitter:{tip:'◆ EMITTER — CROSS ITS BURSTS · VOLLEY YOUR RINGS',
            tip3:'◆ EMITTER — CROSS ITS BURSTS · DODGE THE DASH'},
@@ -932,7 +935,7 @@ function pickAnomalyVariant(){
   if(bossN===0) return 'emitter';             // the first Anomaly always teaches the loop (its tip names the Volley)
   const pool=['emitter','sentinel'];
   if(act>=2) pool.push('pulsar');             // Epoch II+: the bullet-hell kind joins
-  let v=pool[irand(0,pool.length-1)];         // Epoch III+ escalation now lives INSIDE the Emitter (it lunges)
+  let v=pool[irand(0,pool.length-1)];         // Epoch II+ escalation now lives INSIDE the Emitter (it lunges)
   if(v===lastVariant && pool.length>1) v=pool[(pool.indexOf(v)+1)%pool.length]; // avoid back-to-back repeats
   lastVariant=v; return v;
 }
@@ -956,15 +959,19 @@ function testPick(i){                          // 1-3 → jump to a specific kin
 function spawnBoss(forceVariant){
   const col=Math.random()<0.5?'red':'cyan';
   const variant = forceVariant || pickAnomalyVariant();
-  let hp=13+act*5;
+  // ×1.5 (2026-07-31). The pool had not moved since the erosion channels were repriced around it: the
+  // grind doubled to 1 and the baited charge went to 5 in the same pass, so an unchanged 18 HP Epoch I
+  // boss would have fallen to a hoard alone. Raise the pool, not the prices — a fight should be long
+  // enough to ask the loop for more than one answer.
+  let hp=Math.round((13+act*5)*1.5);
   if(variant==='pulsar') hp=Math.round(hp*0.75); // the kind that moves you rather than out-damaging you — footwork is its answer, so it should not also be the longest fight
   bossN++;
-  boss={ type:'boss', color:col, r:44, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0, dmg:34,
+  boss={ type:'boss', color:col, r:44, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0, dmg:30,
     x:W/2, y:-60, vx:0, vy:0, dead:false, queued:false, ph:0, hexRot:rand(0,TAU), variant, spiral:null,
     fireT:2.2, emitMode:true,                 // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
     orbA:-Math.PI/2,                          // sentinel: start at the top of its circle
     novaT:rand(2.4,3.4), novaCharge:0,        // pulsar: telegraphed radial bursts
-    lungeT:rand(4,6), lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch III+): wind-up then dash
+    lungeT:rand(4,6), lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
     seedT:rand(2.6,3.8),                       // sentinel: swarmers shed along its orbit
     hunt:0, huntT:rand(6,10), huntBreak:0, huntR:undefined };   // every kind: periodically leaves station and walks onto your core
   enemies.push(boss);
@@ -1050,7 +1057,7 @@ function firePincer(b){                                        // SENTINEL: two 
   spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*1.9); bossFlash=0.35; sfx.lance();
 }
 const SPEAR_N=3, SPEAR_SPREAD=0.20;                            // three bullets, 0.20 rad apart
-function fireSpear(b){                                         // EMITTER (Epoch III): the dash, announced
+function fireSpear(b){                                         // EMITTER (Epoch II): the dash, announced
   // THREE spears, not one. The dash is heavily telegraphed now (LUNGE_TEL) and drives straight past you,
   // so its punctuation has to cover the angles you might leave BY rather than the single point you are
   // standing ON — the same logic as the hex burst, where one arm leads you and the rest close the exits.
@@ -1113,7 +1120,7 @@ function mineBlast(L){
   spawnBurst(L.x,L.y,COL[L.color],18,4.4);
   trauma=Math.min(1,trauma+0.18);
   if(typeof sfx!=='undefined') sfx.lance();
-  if(P && Math.hypot(L.x-P.x,L.y-P.y) < L.blast+P.r) coreHit(12,'Anomaly Mine');
+  if(P && Math.hypot(L.x-P.x,L.y-P.y) < L.blast+P.r) coreHit(20,'Anomaly Mine');
   // The blast touches YOU and nothing else. A mine is a missile, and missiles do not interact with
   // matter — see stepLances. It used to delete every non-matching body inside the radius, then briefly
   // scattered them instead; both were the same category error, and a blast that shoves the swarm around
@@ -1128,7 +1135,7 @@ function mineBlast(L){
 // committed thing, and there should only be one of those.
 //
 // IT NOW GOES FOR THE CORE. It used to halt at `b.r + P.r + 58` = 117px and merely crowd you, on the
-// reasoning that its touch is 34 and it is never consumed, so a boss parked on your skin would be an
+// reasoning that its touch is 30 and it is never consumed, so a boss parked on your skin would be an
 // unanswerable hit. That reasoning was sound about *parking* and wrong about *arriving* — and the
 // standoff had two costs. It made the Hunt a non-event you could ignore (a player who had put hours in
 // did not know the behaviour existed), and 117px is almost exactly the ring radius (`fieldR*0.6` = 114),
@@ -1274,9 +1281,9 @@ function updateBoss(dt){
     else { b.novaT-=dt; if(b.novaT<=0) b.novaCharge=0.9; } // telegraphed wind-up before the ring
     b.fireT-=dt; if(b.fireT<=0){ fireMines(b, 2+(act>=3?1:0)); b.fireT=rand(2.6,3.6)*fast; }
   } else {   // EMITTER (default / teaching): ALTERNATES a hexagon crossfire BURST and a sweeping spiral
-             // STREAM — and from Epoch III it LUNGES too (this absorbed the old separate 'lunger' kind,
+             // STREAM — and from Epoch II it LUNGES too (this absorbed the old separate 'lunger' kind,
              // which was this exact boss with a dash bolted on). Boss Rush always shows the grown-up one.
-    const canLunge = act>=3 || testMode;
+    const canLunge = act>=2 || testMode;   // Epoch II, not III — the grown-up Emitter arrives a run sooner
     if(b.lunging>0){ b.lunging-=dt; }                          // dashing (bossMove drives the position)
     else if(b.telegraph>0){ b.telegraph-=dt;
       // NOTE: tx/ty are NOT set here — `aimLunge` locked them when the wind-up began. Re-aiming on
@@ -1366,7 +1373,7 @@ function stepLances(dt){
     if(!gone){
       const dx=L.x-P.x, dy=L.y-P.y, rr=L.r+P.r;
       if(dx*dx+dy*dy<rr*rr){
-        if(coreHit(14, MSLNAME[L.kind]||'Anomaly Missile')) return;
+        if(coreHit(10, MSLNAME[L.kind]||'Anomaly Missile')) return;
         gone=true;
       }
     }
@@ -1868,8 +1875,8 @@ function stepPlayerContact(){
       if(e.type!=='boss') queueKill(e,true); // boss is not consumed on contact
       else if(e.hunt>0 || e.huntBreak>0){
         // A HUNT LANDS ONCE, THEN BREAKS OFF. This is the whole reason the Anomaly is now allowed to
-        // reach the core at all. Its touch is 34 and it is never consumed, so a boss that simply stopped
-        // on your skin would deal 34 every 0.55s of i-frames — about 62 dps, an unanswerable hit rather
+        // reach the core at all. Its touch is 30 and it is never consumed, so a boss that simply stopped
+        // on your skin would deal 30 every 0.55s of i-frames — about 55 dps, an unanswerable hit rather
         // than a threat. That was the original justification for halting it 117px out; the standoff was
         // the wrong cure for a real disease. Recoiling on contact treats the disease directly: the hunt
         // is one big readable hit you could have walked away from, never a grinder parked on the core.
@@ -2230,25 +2237,9 @@ function flipShockwave(hc){
     const R=Math.min(310, 104*amp);
     spawnRing(P.x,P.y,COL[P.polarity],R);
     if(hc>0.4){ spawnRing(P.x,P.y,'#fff',R*0.7); trauma=Math.min(1,trauma+hc*0.12); }
-    // THE CLOSE REVERSAL — a third way at the Anomaly, and the only one that needs no ammunition.
-    // A *charged* reversal detonated inside its skin chips it directly. This is deliberately the
-    // dangerous option: the shockwave reaches 130-156px on the charged reversals that can chip at all
-    // (the chip is gated at hc>=0.5, so amp is never below 1.25), the Anomaly's body does 34 on contact and is
-    // never consumed, and it hunts and (as an Emitter, from Epoch III) lunges. So the window is a narrow
-    // band of "close enough to hurt it, not close enough to be hit", held under its own point-blank fire.
-    // It exists because the Volley depends on having gathered matter, and a player who has just been
-    // stripped of their rings needs SOME way to keep hurting the thing.
-    if(boss && !boss.dead && hc>=RING_FIRE_HC){
-      // capture the geometry BEFORE damaging it — a lethal chip runs killBoss, which nulls the global
-      const bx=boss.x, by=boss.y, br=boss.r;
-      const bd=Math.hypot(bx-P.x, by-P.y);
-      if(bd < R+br){
-        damageBoss(boss, CLOSE_REVERSAL_DMG);
-        pushText(bx,by-br-8,'-'+CLOSE_REVERSAL_DMG,COL[P.polarity],0.5,16);
-        spawnRing(bx,by,COL[P.polarity],br*1.8);
-        if(typeof sfx!=='undefined') sfx.bosshit();
-      }
-    }
+    // The Shockwave does NOT touch the Anomaly. It repels matter and pops a Neutral outright; that is
+    // the whole of it. The close-reversal chip that used to live here is gone — see CLOSE_REVERSAL_DMG's
+    // tombstone above. Erosion is matter you gathered or aimed, and nothing else.
     const force=Math.min(15, 4.6*amp);
     for(const o of enemies){ if(o.dead||o.type==='boss')continue;
       const dx=o.x-P.x,dy=o.y-P.y,d=Math.hypot(dx,dy)||1;
@@ -2263,11 +2254,12 @@ function flipShockwave(hc){
       }
     }
     // NOTE: the *swarm* loop above skips the boss on purpose (`o.type==='boss'` is filtered out) — the
-    // Anomaly shrugs off the shockwave's push and its Neutral-pop. The one thing a flip does to it is
-    // the CLOSE REVERSAL chip handled above, which is deliberately its own branch. (This comment used
-    // to read "flipping does NOT damage the anomaly — bait its own lances into it instead", which was
-    // wrong twice over: the close reversal had already been added right above it, and baiting stopped
-    // existing when every missile moved to launching from the boss's own body.)
+    // Anomaly shrugs off the shockwave's push and its Neutral-pop, and since the close reversal was
+    // removed a flip now does NOTHING to it at all. The hungry flip still hurts it, but as the VOLLEY:
+    // it is the rings that erode the Anomaly, never the reversal itself. (This comment once read
+    // "flipping does NOT damage the anomaly — bait its own lances into it instead", which was wrong
+    // twice over even then: the close reversal existed, and baiting stopped existing when every missile
+    // moved to launching from the boss's own body.)
     // FLIP-VACUUM: the Shockwave sweeps up every mote it touches, whatever its colour
     for(const m of motes){ const mdx=m.x-P.x,mdy=m.y-P.y; if(mdx*mdx+mdy*mdy<R*R) m.vac=0.9; }
     P.iframe=Math.max(P.iframe,0.12);
@@ -3007,7 +2999,7 @@ function updateHUD(){
   const bb=el('bossbar');
   if(boss){ bb.classList.remove('hidden'); bb.querySelector('i').style.transform=`scaleX(${clamp(boss.hp/boss.maxHp,0,1)})`;
     const ak=ANOM[boss.variant]||ANOM.emitter;
-    const tip=(ak.tip3 && (act>=3||testMode)) ? ak.tip3 : ak.tip;   // the Emitter's tip grows with it
+    const tip=(ak.tip3 && (act>=2||testMode)) ? ak.tip3 : ak.tip;   // the Emitter's tip grows with it, on the epoch the dash arrives
     // The hunt outranks the standing tip: it is the only time the Anomaly is actively walking onto your
     // core, it is over in a few seconds, and the answer is a movement answer — which is exactly what
     // this line is allowed to name. Destabilize still outranks both; it is the end of the fight.
@@ -3192,8 +3184,8 @@ function openCodex(){
   <div class="cxs"><h3>The Anomaly</h3>
     <p>The Anomaly ignores your reversals entirely, and <b>its own fire cannot be turned against it</b>: every <b>missile</b> launches from its own body, so there is nothing to walk back through it. <b>Missiles and matter never touch each other</b> — a missile flies straight through every body on the field, killing none of them and stopped by none of them. <b>Nothing is cover.</b> A missile <b>hurts you whatever your own polarity</b>, so you dodge it, you never match it: positioning is the whole defence.</p>
     <p><b>The loop.</b> <b>Dodge</b> its patterns · <b>scavenge</b> your own colour into your <b>Rings</b> · <b>evade</b> the other colour · then <b>hungry-flip to VOLLEY</b> those Rings at it. Hold the colour <i>opposite</i> the Anomaly's and everything you gather becomes the thing that erodes it. A loaded ring also <b>grinds</b> it on contact, so closing the distance pays twice. Matter hurts it only if you <b>fired</b> it or <b>carried</b> it — drifting into it, or being flung past it, pays <b>nothing</b>, however thick the field gets.</p>
-    <p><b>Ways in.</b> Matter erodes it <b>two ways only</b>: a <b>Volley</b> you fired — <span class="gold">3</span> per body that connects, the main line — and a <b>Ring grind</b>, <span class="gold">½</span> per body, for carrying a loaded ring into it; each one is spent doing it, so a grind is steady pressure rather than a burst — you still finish with a volley. One exception: a <b>Charger in its committed dash</b> driven into the Anomaly is worth <span class="gold">4</span> — you cannot aim it, but you can stand so its locked lane runs through the boss. <b>Anything else that merely touches it bounces off for nothing</b>, because the Anomaly walks the arena and a rule that paid for contact would let it damage itself by moving. <b>Close reversal</b> — a <i>charged</i> reversal whose Shockwave reaches it chips <span class="gold">1</span>, needing no matter at all; the band is narrow and you are standing next to a body that touches for <b>34</b>, which is the price. <b>Collapse</b> — <span class="gold">15%</span>, flat, no matter what the field looks like. Past 45s it <b>DESTABILIZES</b> and fires faster; at 60s it flees. Purging it <b>drops a powerup cache</b>, +30 Integrity and +40% charge.</p>
-    <p>Every Anomaly is a different <b>kind</b>, and you can read which one you drew <b>from its silhouette</b> before it fires — the shape is the mechanic. <b>Emitter</b> (the teacher — a faceted <b>hexagon</b> turning on the same value that aims it; alternates a six-shot <b>burst</b>, one arm leading you and the other five closing your escape angles, with a sweeping <b>stream</b> of leading fans; from <b>Epoch III</b> it also <b>dashes</b>, firing a spear as it commits). <b>Sentinel</b> (a hollow <b>ring</b> with two pincer wings — it orbits the arena throwing <b>seekers</b> that out-turn you but cannot out-run you, so <b>run, do not juke</b>; it sheds swarmers as it goes, so its trail is half threat and half volley ammo). <b>Pulsar</b> (a core in a crown of <b>rays</b> that lengthen as it winds up — erupts a <b>radial wall of 13 with one seam</b>, so find the seam; between rings it lobs <b>mines</b> onto the ground around you, each drawing its own blast). Every kind also <b>hunts</b>: roughly every 9–14s it breaks station — audibly, trailing a bright wake and a line drawn to your core — and <b>walks onto the core itself</b>. It is slow enough to stroll away from, it lands <b>one</b> hit and recoils rather than parking on you, and it has to cross your <b>rings</b> to reach you, which cut it on the way in.</p></div>
+    <p><b>Ways in.</b> Matter erodes it <b>two ways only</b>: a <b>Volley</b> you fired — <span class="gold">3</span> per body that connects, the main line — and a <b>Ring grind</b>, <span class="gold">1</span> per body, for carrying a loaded ring into it; each one is spent doing it, so a grind is steady pressure rather than a burst — you still finish with a volley. One exception: a <b>Charger in its committed dash</b> driven into the Anomaly is worth <span class="gold">5</span> — you cannot aim it, but you can stand so its locked lane runs through the boss. <b>Anything else that merely touches it bounces off for nothing</b>, because the Anomaly walks the arena and a rule that paid for contact would let it damage itself by moving. <b>Your reversal does not touch it</b> — the Shockwave repels matter and pops Neutrals, and that is all it does; erosion is matter you gathered or aimed. <b>Collapse</b> — <span class="gold">15%</span>, flat, no matter what the field looks like. Past 45s it <b>DESTABILIZES</b> and fires faster; at 60s it flees. Purging it <b>drops a powerup cache</b>, +30 Integrity and +40% charge.</p>
+    <p>Every Anomaly is a different <b>kind</b>, and you can read which one you drew <b>from its silhouette</b> before it fires — the shape is the mechanic. <b>Emitter</b> (the teacher — a faceted <b>hexagon</b> turning on the same value that aims it; alternates a six-shot <b>burst</b>, one arm leading you and the other five closing your escape angles, with a sweeping <b>stream</b> of leading fans; from <b>Epoch II</b> it also <b>dashes</b>, firing a spear as it commits). <b>Sentinel</b> (a hollow <b>ring</b> with two pincer wings — it orbits the arena throwing <b>seekers</b> that out-turn you but cannot out-run you, so <b>run, do not juke</b>; it sheds swarmers as it goes, so its trail is half threat and half volley ammo). <b>Pulsar</b> (a core in a crown of <b>rays</b> that lengthen as it winds up — erupts a <b>radial wall of 13 with one seam</b>, so find the seam; between rings it lobs <b>mines</b> onto the ground around you, each drawing its own blast). Every kind also <b>hunts</b>: roughly every 9–14s it breaks station — audibly, trailing a bright wake and a line drawn to your core — and <b>walks onto the core itself</b>. It is slow enough to stroll away from, it lands <b>one</b> hit and recoils rather than parking on you, and it has to cross your <b>rings</b> to reach you, which cut it on the way in.</p></div>
   <div class="cxs"><h3>Powerups</h3>
     <p>There are <b>no level-ups and no permanent upgrades</b> — the game is vanilla survival. Instead, annihilations occasionally shed a glowing <b>powerup orb</b> (and a purged Anomaly always drops a cache). <b>Steer your world into it</b> to collect — the effect is <b>instant and temporary</b>. Grab another of the same to refresh its timer.</p>
     ${powRows}</div>
