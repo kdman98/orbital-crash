@@ -167,7 +167,7 @@
   <div class="stat" id="mult"><div class="k">Multiplier</div><div class="v">x1</div></div>
   <div id="combo"></div>
   <div id="center"><div id="actlab">EPOCH I · DRIFT</div><div id="time">0:00</div></div>
-  <div id="bossbar" class="hidden"><span class="bl" id="bosslabel">◆ Anomaly</span><i></i></div>
+  <div id="bossbar" class="hidden"><span class="bl">◆ Anomaly</span><i></i></div>
 
   <div id="bottom">
     <div class="bar" id="hpbar"><div class="barlabel">Core Integrity</div><i></i></div>
@@ -273,7 +273,6 @@ function wchoice(list){ // list of [item, weight]
   return list[list.length-1][0];
 }
 const COL={ red:'#ff3f6c', cyan:'#38e0ff', neutral:'#c7b8ff', gold:'#ffcf4d', violet:'#9b6bff', lime:'#8dff6b' };
-const COLd={ red:'#7a1030', cyan:'#0d5a78', neutral:'#4a3f78' };
 
 // ---------- persistence ----------
 // Storage is HOSTILE: merely touching window.localStorage throws SecurityError when site data is
@@ -312,7 +311,6 @@ const ACHV=[
   // renders as "???" in the Codex until earned).
   {id:'lancegild', nm:'Skeet Shooter',    ds:'Volley your Gilded Bounty into an Anomaly', hid:true},
 ];
-const achvDone=id=>store.achv.has(id);
 function grantAchv(id){
   if(store.achv.has(id))return;
   store.achv.add(id);
@@ -329,9 +327,9 @@ let state='menu'; // menu | play | ready | paused | dead
 let P=null;       // player / run stats
 let enemies=[], parts=[], texts=[], sats=[];
 let killQ=[];
-let spawnTimer=0, elapsed=0, surgeTimer=0;
+let spawnTimer=0, elapsed=0;
 let spawnBias='cyan', biasTimer=0; // enemies arrive in shifting colour waves
-let combo=0, comboTimer=0, peakCombo=0;
+let combo=0, peakCombo=0;
 let streakTier=0;                      // next streak-milestone index (25/50/100/200)
 let pbT=0;                             // POINT BLANK text throttle
 let grazeN=0, grazeT=0;                // near-miss ladder (pitch rises, decays after 1.5s)
@@ -347,7 +345,6 @@ let hole=null;  // Singularity black hole {x,y,life,ext} — the inverted Collap
 let zaps=[]; let aftPending=false, aftT=0; // Arc zaps + Aftershock timer
 let afterimageT=0; // polarity-mastery: window where both colours repel
 let resumeT=0; const READY_DUR=1.2; // brief breather after picking a perk
-let camX=0, camY=0;
 let pointer={x:W/2,y:H/2,has:false};
 let settleT=0; // brief speed cap after a resume so the core glides instead of teleporting
 let keys={};
@@ -523,14 +520,14 @@ function dropOrb(x,y,forceId){
     id=bag[Math.floor(Math.random()*bag.length)].id;
   }
   const a=rand(0,TAU), s=rand(0.6,1.6);
-  orbs.push({id, x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:11, ph:rand(0,TAU), born:0});
+  orbs.push({id, x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:11, ph:rand(0,TAU)});
   if(orbs.length>12) orbs.shift(); // never let the field silt up with pickups
 }
 function stepOrbs(dt){
   orbTimer-=dt;
   if(orbTimer<=0){ orbTimer=rand(ORB_SAFETY_MIN,ORB_SAFETY_MAX); if(orbs.length===0) dropOrb(P.x+rand(-260,260), P.y+rand(-200,200)); }
   for(let i=orbs.length-1;i>=0;i--){
-    const o=orbs[i]; o.life-=dt; o.born+=dt;
+    const o=orbs[i]; o.life-=dt;
     if(o.life<=0){ orbs.splice(i,1); continue; }
     const dx=P.x-o.x, dy=P.y-o.y, d=Math.hypot(dx,dy)||1;
     if(d<P.fieldR*1.15){ const t=1-d/(P.fieldR*1.15); o.vx+=dx/d*(0.5+t*1.4); o.vy+=dy/d*(0.5+t*1.4); } // gentle draw toward the world
@@ -583,8 +580,8 @@ const ACTS=[
   {name:'Tide',  bg1:'#07181a', bg2:'#03080b', tint:'#3fffc2'},
 ];
 const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
-let act=1, actTime=0, wavePhase='calm', phaseT=6, intensity=0.14, intensityTarget=0.14;
-let boss=null, bossPulseT=0, bossFlash=0, bossTime=0;
+let act=1, wavePhase='calm', phaseT=6, intensity=0.14, intensityTarget=0.14;
+let boss=null, bossFlash=0, bossTime=0;
 let bossN=0;  // Anomalies faced this run — the first always fires the teaching hexagon
 let lances=[]; // anomaly's outer-screen projectiles: opposite-colour, hurt the core AND the anomaly
 function actInfo(){ return ACTS[(act-1)%ACTS.length]; }
@@ -597,11 +594,11 @@ function freshRun(){
     x:W/2, y:H/2, r:15,
     polarity:'cyan',
     maxHp:100, hp:100,
-    fieldR:190, fieldK:3.2, pullMul:1, ringMul:1,
+    fieldR:190, fieldK:3.2, ringMul:1,
     seekMult:1,
     moveMult:1, chargeGain:1, scoreMult:1,
     charge:0, iframe:0, flipCd:0, pulseCd:0, hurtT:99, regen:2.6,
-    blastR:0, blastDmg:1, volN:0, vamp:0, vampCap:0, vampBudget:0, pulse:0, sats:0, rupture:false, decay:0, armor:1,
+    blastR:0, blastDmg:1, vamp:0, vampCap:0, vampBudget:0, pulse:0, sats:0, rupture:false, decay:0, armor:1,
     shield:0, shieldMax:0, shieldT:0, shieldCd:8,
     arc:0, aftershock:0,   // unlockable-perk state
     holdT:0, holdMax:1.5, conduitAmp:0.5, discharge:0, afterimage:0, // polarity mastery
@@ -653,7 +650,7 @@ function biasedColor(){ return Math.random()<0.74 ? spawnBias : (spawnBias==='re
 
 // ---- pacing: each act is calm → build → storm → boss, then release into the next act ----
 function beginRun(){
-  act=1; actTime=0; boss=null; bossTime=0;
+  act=1; boss=null; bossTime=0;
   palCur.bg1=hx(ACTS[0].bg1); palCur.bg2=hx(ACTS[0].bg2); palCur.tint=hx(ACTS[0].tint);
   enterCalm(true);
 }
@@ -775,14 +772,14 @@ function advancePhase(){
   else if(wavePhase==='storm') enterBoss();
 }
 function onBossCleared(){
-  act++; actTime=0;
+  act++;
   const info=actInfo();
   if(act>=3) grantAchv('act3');
   if(P) P.charge=Math.min(1,P.charge+0.15); // clearing an Epoch tops the Capacitor a little
   enterCalm(false);
 }
 function director(dt){
-  elapsed+=dt; actTime+=dt;
+  elapsed+=dt;
   intensity += (intensityTarget-intensity)*Math.min(1,dt*1.4);
   // BOSS RUSH: no Epoch phases — keep one Anomaly alive over a LIVE ambient field (dots still spawn, like a
   // real Epoch fight), and cycle to the next kind on kill. The colour bias still shifts so there's ammo.
@@ -945,7 +942,7 @@ function pickAnomalyVariant(){
 let testMode=false, lastWasTest=false, testIdx=0;
 const TEST_ORDER=['emitter','sentinel','pulsar'];
 function beginTestRun(){
-  act=2; actTime=0; boss=null; bossTime=0; testIdx=0; wavePhase='boss';
+  act=2; boss=null; bossTime=0; testIdx=0; wavePhase='boss';
   palCur.bg1=hx(ACTS[2].bg1); palCur.bg2=hx(ACTS[2].bg2); palCur.tint=hx(ACTS[2].tint);
   spawnBoss(TEST_ORDER[0]);
 }
@@ -1089,7 +1086,6 @@ function bossNovaRing(b){                                      // PULSAR: a wall
 }
 // keep the old name as a thin alias (debug seam + any callers): a plain hex burst
 function fireLanceVolley(){ fireHexVolley(boss); }
-function fireOneLance(a){ if(boss) fireMissile(boss, a, 'volley'); }   // legacy shim
 // death-cause names, so the run summary says which missile actually got you
 const MSLNAME={volley:'Anomaly Volley', seeker:'Anomaly Seeker', ring:'Anomaly Ring',
                mine:'Anomaly Mine', spear:'Anomaly Spear'};
@@ -1804,7 +1800,7 @@ function step(){
   if(motes.length) stepMotes(dt);
 
   // ----- enemy vs enemy annihilation (spatial grid) -----
-  const cell=64, cols=Math.ceil(W/cell)+2, grid=new Map();
+  const cell=64, grid=new Map();
   const key=(cx,cy)=>cx+cy*10000;
   for(let i=0;i<enemies.length;i++){
     const e=enemies[i]; if(e.dead)continue;
@@ -2115,11 +2111,10 @@ function onKill(e){
   }
   // scoring / combo
   if(unstable>0) collapseKills++;
-  combo++; comboTimer=2.2; if(combo>peakCombo)peakCombo=combo;
+  combo++; if(combo>peakCombo)peakCombo=combo;
   if(combo>=60) grantAchv('combo60');
   // streak milestones: named ranks, big capacitor chunks, escalating fanfare
   const MILES=[25,50,100,200], MCHG=[0.08,0.12,0.18,0.25];
-  const MNAME=['AWAKENING','MAGNETIC','UNSTOPPABLE','TRANSCENDENT'];
   const MCOL=[COL.cyan,COL.gold,COL.violet,'#ffffff'];
   if(streakTier<MILES.length && combo>=MILES[streakTier]){
     const chunk=Math.min(1-P.charge, MCHG[streakTier]*P.chargeGain);
@@ -2591,7 +2586,7 @@ function bossBody(b,R,c,oc){
   if(b.variant==='sentinel'){
     ctx.strokeStyle=c; ctx.lineWidth=R*0.30;
     ctx.beginPath(); ctx.arc(b.x,b.y,R*0.74,0,TAU); ctx.stroke();            // the hollow band
-    ctx.strokeStyle=hexA('#fff',0.5); ctx.lineWidth=2;
+    ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(b.x,b.y,R*0.90,0,TAU); ctx.stroke();
     ctx.beginPath(); ctx.arc(b.x,b.y,R*0.58,0,TAU); ctx.stroke();
     for(const s of [0,Math.PI]){                                             // the two pincer wings
@@ -2620,7 +2615,7 @@ function bossBody(b,R,c,oc){
       i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
     ctx.closePath(); };
   hex(R,b.hexRot); ctx.fillStyle=c; ctx.fill();
-  ctx.strokeStyle=hexA('#fff',0.5); ctx.lineWidth=2; ctx.stroke();
+  ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2; ctx.stroke();
   hex(R*0.52,-b.hexRot*1.4); ctx.strokeStyle=hexA(oc,0.8); ctx.lineWidth=2.5; ctx.stroke();
   for(let i=0;i<6;i++){ const a=b.hexRot+i/6*TAU;                            // the six muzzles
     ctx.fillStyle=hexA(oc,0.95);
@@ -2654,7 +2649,7 @@ function drawBoss(){
     ctx.save(); ctx.globalCompositeOperation='lighter';
     ctx.strokeStyle=hexA(oc,0.35+0.55*g); ctx.lineWidth=2+3*g;
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(3.4-2.2*g),0,TAU); ctx.stroke();
-    ctx.strokeStyle=hexA('#fff',0.5*g); ctx.lineWidth=2;
+    ctx.strokeStyle=hexA('#ffffff',0.5*g); ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.05+0.12*Math.sin(elapsed*26)),0,TAU); ctx.stroke();
     ctx.restore();
   }
@@ -3139,6 +3134,9 @@ function drawReady(){
   ctx.fillStyle=hexA(COL[P.polarity],0.7); ctx.font='800 11px -apple-system,system-ui,sans-serif';
   ctx.fillText('tap to skip', P.x, P.y + P.r + 44);
 }
+// SIX-DIGIT HEX ONLY. '#fff' parses to 4095 and comes out rgb(0,15,255) — saturated blue, silently, with
+// no error. Three boss strokes shipped that way (the Sentinel's rings, the Emitter's hex outline, the
+// Pulsar's telegraph) and painted blue for weeks while the bestiary drew the same shapes white.
 function hexA(hex,a){
   const n=parseInt(hex.slice(1),16);
   return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
@@ -3270,8 +3268,8 @@ function startRun(test){
   audioInit();
   testMode=!!test; lastWasTest=!!test;
   enemies=[];parts=[];texts=[];sats=[];killQ=[];
-  spawnTimer=0;elapsed=0;surgeTimer=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
-  combo=0;comboTimer=0;peakCombo=0;streakTier=0;
+  spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
+  combo=0;peakCombo=0;streakTier=0;
   pbT=0;grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
   motes.length=0;motesBank=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   inhaleT=0;collapseKills=0;chargeFull=false;deathRevealT=0;deadCountT=0;
@@ -3350,7 +3348,7 @@ function openCodex(){
   const powRows=POW.map(p=>`<div class="cxa"><span class="st" style="color:${p.col}">${p.ic}</span><span><b>${p.nm}</b> — ${p.ds}${p.kind==='timed'?` <span class="rw">· ${p.dur}s</span>`:` <span class="rw">· instant</span>`}</span></div>`).join('');
   el('codexBody').innerHTML=`
   <div class="cxs"><h3>The Charge Law</h3>
-    <p>You are a magnetic world. <b>Opposite-charge matter drifts toward you</b> and annihilates on contact (threat and ammo) — your world <b>never sucks another charge in</b>, so you <b>steer into</b> it. <b>Like-charge is caught into your rings</b> (your armor — orbiting matter that never harms you, and a shell that annihilates opposite matter it touches). When <b>red meets cyan, both annihilate</b>. The law has no exceptions: an Anomaly's <b>missiles</b> are stopped by the first body in their path, and a dashing Charger plows through opposite matter. Every body is also a weapon — if you position it.</p></div>
+    <p>You are a magnetic world. <b>Opposite-charge matter drifts toward you</b> and annihilates on contact (threat and ammo) — your world <b>never sucks another charge in</b>, so you <b>steer into</b> it. <b>Like-charge is caught into your rings</b> (your armor — orbiting matter that never harms you, and a shell that annihilates opposite matter it touches). When <b>red meets cyan, both annihilate</b>. The law has one exception, and it belongs to the Anomaly: a dashing Charger plows through opposite matter instead of dying to it. Its <b>missiles</b> sit outside the law entirely — they pass through every body, so nothing is cover. Every body is also a weapon — if you position it.</p></div>
   <div class="cxs"><h3>Score</h3>
     <p><b>Point-Blank:</b> annihilations inside your Field score <span class="gold">×2</span>, deep inside <span class="gold">×3</span>. Matter that crashes into you pays ×1 — courage counts, collisions don't.</p>
     <p><b>Multiplier = banked Motes.</b> Annihilations drop twinkling ✦ Motes: your charge hoovers in on its own, the opposite charge waits for a <b>reversal-vacuum</b>. Each banked Mote is <span class="gold">+0.1×</span> (cap ×15) — and the bank is <b>cut in half when you get hit</b>. Each banked Mote also pays out directly at your current multiplier.</p>
@@ -3501,7 +3499,6 @@ function noise(dur,vol){
   const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1200;
   s.connect(f); f.connect(g); g.connect(master); s.start();
 }
-let lastKillT=0;
 const sfx={
   flip(hc){ const c=hc||0; beep(320+c*260,0.08+c*0.05,'triangle',0.12,520+c*520); if(c>0.55) beep(900,0.1,'sine',0.08,1500); },
   kill(c){ const f=380+Math.min(c,40)*22; beep(f,0.06,'square',0.06); },
