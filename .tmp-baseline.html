@@ -250,26 +250,13 @@
 // =====================================================================
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-// WORLD SCALE. Every length and every speed in this file is in DESIGN UNITS, measured against a
-// reference short axis of 800px — the desktop viewport all of the balance was tuned in. A phone is
-// roughly half that (375x812), which made BASE_FIELDR=190 come out at 101% of the screen WIDTH: the
-// gravity well was wider than the display.
-//   The fix is not to rescale forty tuned constants. It is to scale the RENDER and leave the world in
-// design units: W and H are the viewport MEASURED IN those units, so everything already written as
-// `Math.max(W,H)*0.6` or `W/2` adapts for free, and every constant that was measured in-engine this
-// month keeps exactly the meaning it was measured with.
-//   S is clamped at 1, so any display at or above the reference short axis is EXACTLY today's game.
-// Desktop is unchanged by construction rather than by hope — the oracle's fingerprints still match.
-const REF_SHORT=800;
-let W=0,H=0,DPR=1,S=1;
+let W=0,H=0,DPR=1;
 function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);
-  const vw=window.innerWidth, vh=window.innerHeight;   // the real viewport, in CSS pixels
-  S=Math.min(1, Math.min(vw,vh)/REF_SHORT);
-  W=vw/S; H=vh/S;                                      // the same viewport, in design units
-  canvas.width=vw*DPR; canvas.height=vh*DPR;
-  canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
-  ctx.setTransform(S*DPR,0,0,S*DPR,0,0);               // one transform carries both scales
+  W=window.innerWidth; H=window.innerHeight;
+  canvas.width=W*DPR; canvas.height=H*DPR;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
 }
 window.addEventListener('resize',resize); resize();
 
@@ -3230,56 +3217,18 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.co
 // =====================================================================
 //  INPUT
 // =====================================================================
-// Events arrive in CSS pixels; the world is in design units. One divide, here, so no call site can
-// forget it.
-function setPointer(x,y){ pointer.x=x/S; pointer.y=y/S; pointer.has=true; }
+function setPointer(x,y){ pointer.x=x; pointer.y=y; pointer.has=true; }
 // on resume: hold the target on the core and briefly cap follow speed, so re-engaging
 // the (possibly far) cursor glides smoothly rather than snapping/teleporting
 function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; }
-
-// TOUCH. A mouse reports a position without being pressed; a finger does not. So on touch, steering and
-// flipping arrive through the SAME gesture, and firing flip() on pointerdown reversed your poles every
-// time you reached for the stick — measured, not guessed: the first touch of a drag flipped cyan→red.
-//   They are split by intent instead. A finger that MOVES is steering and never flips. A finger that
-// presses and lifts without travelling is a tap, and taps flip. A tap deliberately does NOT move the
-// steer target: you flip constantly in this game, and having every flip also yank the core toward your
-// fingertip would make the two mechanics fight each other.
-const TAP_SLOP=12;     // CSS px of travel still counted as "held still" — a finger is never truly still
-const TAP_TIME=300;    // ms; hold longer than this and you meant to steer, even having not moved
-// The core is 15 design units ≈ 7 CSS px on a phone, and a fingertip covers ~40. Parked under your own
-// thumb you cannot read the colour arriving at the core, which is the one thing the whole game asks you
-// to read. So the target rides above the contact point. The core clamps to the arena, so pushing this
-// off the top of the screen still reaches the top edge.
-const TOUCH_LIFT=55;   // CSS px
-let touchId=null, tapX=0, tapY=0, tapT=0, tapMoved=false;
-const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
-
-canvas.addEventListener('pointermove',e=>{
-  if(!isTouch(e)){ setPointer(e.clientX,e.clientY); return; }
-  if(e.pointerId!==touchId) return;                       // ignore every finger but the steering one
-  if(!tapMoved && Math.hypot(e.clientX-tapX,e.clientY-tapY)>TAP_SLOP) tapMoved=true;
-  if(tapMoved) setPointer(e.clientX,e.clientY-TOUCH_LIFT); // a drag steers; a jitter does not
-});
+canvas.addEventListener('pointermove',e=>setPointer(e.clientX,e.clientY));
 canvas.addEventListener('pointerdown',e=>{
   audioInit();
-  if(isTouch(e)){
-    if(touchId===null){ touchId=e.pointerId; tapX=e.clientX; tapY=e.clientY; tapT=performance.now(); tapMoved=false; }
-    else if(state==='play'){ collapse(); }                // a second finger while steering: Collapse
-    if(state==='ready') skipReady();
-    return;                                               // touch decides on RELEASE, not on press
-  }
   setPointer(e.clientX,e.clientY);
   if(state==='ready'){ skipReady(); return; }
   if(e.button===2){ collapse(); return; }
   if(state==='play') flip(); // a pure tap now — reverse poles (the black hole is a powerup, not a hold)
 });
-function endTouch(e){
-  if(e.pointerId!==touchId) return;
-  touchId=null;
-  if(!tapMoved && performance.now()-tapT<TAP_TIME && state==='play') flip();
-}
-canvas.addEventListener('pointerup',endTouch);
-canvas.addEventListener('pointercancel',endTouch);
 canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); if(state==='play') collapse(); });
 window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
