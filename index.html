@@ -449,11 +449,18 @@ const NEUTRAL_POP=2;            // one Shockwave pops a Neutral outright — its
 // for a moment. This is the answer to the old projectile problem recorded in flip(): firing rings in a
 // radial spray "exported" them off-screen and paid nothing, because they had no target. Aimed at
 // something, the same act becomes the reason you were hoarding matter in the first place.
-const VOLLEY_SPD=7.2;    // px/frame (~430px/s) — crosses the arena before the Anomaly can relocate
-// How long fired matter holds its launch vector: un-clamped, 0.985 friction, seek suppressed. At 7.2
-// px/frame that is ~640px of dead-straight travel, so a shot aimed by POSITION still reaches the far
-// side of the arena. There is deliberately no steering term — see flip().
-const VOLLEY_HOLD=1.5;
+// 7.2 → 8.4 px/frame (~504px/s). Speed is the half of this that fights the Anomaly's MOVEMENT: a volley
+// is aimed by where you stand, and the longer it is in the air the more of its lane the boss can have
+// left. The Sentinel orbits, so it was the one that most often stepped out of a shot already fired.
+const VOLLEY_SPD=8.4;
+// How long fired matter holds its launch vector: un-clamped, 0.985 friction, seek suppressed. Straight
+// travel is `v0·(1-0.985^N)/0.015` with `N = VOLLEY_HOLD·60`, so 1.5s at 7.2 was 357px of dead-straight
+// flight and a measured **449px** peak reach once the shockwave's own push is added. 1.5 → 1.75s, which
+// with the faster launch puts the peak at **560px**. (The comment here used to claim "~640px of
+// dead-straight travel" at the OLD values, which was never true — it was reading the asymptote of the
+// friction series rather than its 90-frame sum. Measured, not derived, this time.)
+// There is deliberately no steering term — see flip().
+const VOLLEY_HOLD=1.75;
 // EROSION PRICES (2026-07-29). The two deliberate channels were worth 2 and 1 against a boss of
 // 13+act*5 HP, so an Epoch IV Anomaly cost 17 connecting bodies — the fight read as a chip-damage
 // slog, and the only thing that actually killed bosses was the Collapse cascade bug fixed below.
