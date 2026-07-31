@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#060814" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Orbital Crash" />
+<link rel="manifest" href="manifest.webmanifest" />
 <title>ORBITAL CRASH</title>
 <style>
   :root{
@@ -270,6 +276,67 @@ function resize(){
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
   ctx.setTransform(S*DPR,0,0,S*DPR,0,0);               // one transform carries both scales
+  initStars();
+}
+
+// ---------- the starfield ----------
+// The background used to be a radial gradient, three nebula blobs and a 54px SQUARE GRID. The grid was
+// the most structured thing on screen and it read as arcade playfield — a Cartesian lattice is the
+// visual language of a scoreboard, not of space — and there were no stars anywhere in the file.
+//
+// Three depth layers, offset against the World's position so moving shifts the near layer further than
+// the far one. That parallax is the whole trick: it is what makes the sky read as something you are
+// moving THROUGH rather than a backdrop painted behind a box, and it costs nothing in rules.
+//
+// Generated from a LOCAL PRNG, never `Math.random`. Star layout must not consume global entropy, or a
+// resize mid-run would shift every spawn after it and the oracle's fingerprints would stop meaning
+// anything. Same seed every time, so the sky is also stable across reloads.
+const STAR_LAYERS=[
+  {n:150, r:[0.5,1.1], a:[0.20,0.45], par:0.012},   // far: dust, barely moves
+  {n:78,  r:[0.9,1.7], a:[0.35,0.70], par:0.032},
+  {n:30,  r:[1.4,2.5], a:[0.55,0.95], par:0.075},   // near: the ones that sell the motion
+];
+let stars=[];
+function initStars(){
+  let s=0x9e3779b9;                                  // fixed seed — a stable sky, and zero global entropy
+  const rnd=()=>{ s^=s<<13; s>>>=0; s^=s>>>17; s^=s<<5; s>>>=0; return s/4294967296; };
+  const pad=260;                                     // wrap margin, so parallax never exposes an edge
+  stars=STAR_LAYERS.map(L=>{
+    const fw=W+pad, fh=H+pad, out=[];
+    for(let i=0;i<L.n;i++) out.push({
+      x:rnd()*fw, y:rnd()*fh,
+      r:L.r[0]+rnd()*(L.r[1]-L.r[0]),
+      a:L.a[0]+rnd()*(L.a[1]-L.a[0]),
+      tw:rnd()*Math.PI*2,                            // twinkle phase (NOT `TAU` — this runs from the
+                                                     // boot-time resize(), before that const exists)
+      sp:0.5+rnd()*1.6,                              // twinkle rate
+      warm:rnd()<0.22,                               // a few carry the biome tint instead of white
+    });
+    return {cfg:L, fw, fh, list:out};
+  });
+}
+function drawStars(){
+  if(!stars.length) return;
+  // Parallax is driven by where the World is, so it only moves when YOU do. Comfort mode keeps the
+  // depth but takes most of the travel out.
+  const px=P?P.x:W/2, py=P?P.y:H/2;
+  const damp=store.reduceMotion?0.3:1;
+  ctx.globalCompositeOperation='lighter';
+  for(const layer of stars){
+    const off=layer.cfg.par*damp;
+    const ox=-(px-W/2)*off, oy=-(py-H/2)*off;
+    for(const st of layer.list){
+      // wrap into the padded field, then draw at the offset position
+      let x=(st.x+ox)%layer.fw; if(x<0)x+=layer.fw;
+      let y=(st.y+oy)%layer.fh; if(y<0)y+=layer.fh;
+      x-=130; y-=130;
+      if(x<-4||x>W+4||y<-4||y>H+4) continue;
+      const tw=0.72+0.28*Math.sin(elapsed*st.sp+st.tw);
+      ctx.fillStyle=st.warm?rgbStr(palCur.tint,st.a*tw):`rgba(255,255,255,${(st.a*tw).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(x,y,st.r,0,TAU); ctx.fill();
+    }
+  }
+  ctx.globalCompositeOperation='source-over';
 }
 window.addEventListener('resize',resize); resize();
 
@@ -2396,11 +2463,14 @@ function showAchvToast(txt){
 //  RENDER
 // =====================================================================
 function render(){
-  // background — biome palette eases per act; a nebula breathes with intensity
+  // background — biome palette eases per act; stars sit behind the gas, and the nebula breathes with
+  // intensity. Deliberately drawn OUTSIDE the shake transform below: a starfield that shakes with the
+  // arena reads as a painted backdrop wobbling, not as distance.
   easePalette();
   const g=ctx.createRadialGradient(W/2,H*0.42,0,W/2,H*0.42,Math.max(W,H)*0.78);
   g.addColorStop(0,rgbStr(palCur.bg1,1)); g.addColorStop(1,rgbStr(palCur.bg2,1));
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  drawStars();
   drawNebula();
 
   ctx.save();
@@ -2413,7 +2483,6 @@ function render(){
   }
 
   if(state==='play'||state==='dead'||state==='ready'||state==='paused'){
-    drawGrid();
     drawField();
     // parts under enemies (rings) / over (sparks) — draw all with additive
     ctx.globalCompositeOperation='lighter';
@@ -2447,32 +2516,37 @@ function render(){
     ctx.globalAlpha=(store.reduceMotion?0.05:0.07)+0.03*Math.sin(elapsed*8); ctx.fillStyle=COL.cyan; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
   }
 }
-function drawGrid(){
-  ctx.save();
-  ctx.strokeStyle=rgbStr(palCur.tint, 0.035+0.05*intensity); ctx.lineWidth=1;
-  const gs=54;
-  ctx.beginPath();
-  for(let x=0;x<W;x+=gs){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
-  for(let y=0;y<H;y+=gs){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
-  ctx.stroke();
-  ctx.restore();
-}
+// (drawGrid removed 2026-07-31. A 54px Cartesian lattice at 0.035–0.085 alpha was the most structured
+// thing on screen, and a square grid is the visual language of a scoreboard — it read as arcade
+// playfield laid over a nebula. It did carry one real job, giving you something fixed to judge your own
+// motion against; the parallax starfield does that job better, because the layers move at different
+// rates and so encode distance as well as movement.)
 function easeArr(a,b,e){ for(let i=0;i<3;i++) a[i]+=(b[i]-a[i])*e; }
 function easePalette(){
   const inMenu=(state==='menu'); // 'ready' and 'paused' are IN-RUN — the biome must not lurch back to Act I
   const t=inMenu?ACTS[0]:actInfo(), e=0.03;
   easeArr(palCur.bg1,hx(t.bg1),e); easeArr(palCur.bg2,hx(t.bg2),e); easeArr(palCur.tint,hx(t.tint),e);
 }
+// The gas. Sits between the starfield and the play layer, and takes a small parallax of its own so the
+// background reads as three distinct depths rather than one flat plate: stars far, gas nearer, arena at
+// your feet. Five clouds instead of three, drifting slower, and one of them carries a cooler cast so
+// the sky has some colour variation instead of a single flat wash of the biome tint.
+// Kept deliberately dim: this is the layer that would cost readability first if it were pushed, and the
+// bodies you have to see are drawn over it under 'lighter'.
 function drawNebula(){
   ctx.globalCompositeOperation='lighter';
   const inten=(state==='play')?intensity:0.12;
-  const br=0.05*(0.55+0.6*inten)*(0.9+0.15*Math.sin(elapsed*0.6));
-  for(let i=0;i<3;i++){
-    const x=W*(0.5+0.34*Math.sin(elapsed*0.05+i*2.1));
-    const y=H*(0.5+0.30*Math.cos(elapsed*0.043+i*2.7));
-    const R=Math.max(W,H)*(0.36+0.12*i);
+  const br=0.062*(0.55+0.6*inten)*(0.9+0.15*Math.sin(elapsed*0.6));
+  const px=P?P.x:W/2, py=P?P.y:H/2, damp=store.reduceMotion?0.3:1;
+  const ox=-(px-W/2)*0.02*damp, oy=-(py-H/2)*0.02*damp;
+  for(let i=0;i<5;i++){
+    const x=W*(0.5+0.34*Math.sin(elapsed*0.034+i*2.1))+ox;
+    const y=H*(0.5+0.30*Math.cos(elapsed*0.029+i*2.7))+oy;
+    const R=Math.max(W,H)*(0.30+0.11*i);
+    const col=(i===3)?palCur.bg1:palCur.tint;      // one cloud in the deep biome colour, not the accent
+    const a=br*(i===3?1.9:1)*(1-i*0.09);           // the near clouds are the faint ones
     const g=ctx.createRadialGradient(x,y,0,x,y,R);
-    g.addColorStop(0,rgbStr(palCur.tint,br)); g.addColorStop(1,rgbStr(palCur.tint,0));
+    g.addColorStop(0,rgbStr(col,a)); g.addColorStop(0.55,rgbStr(col,a*0.42)); g.addColorStop(1,rgbStr(col,0));
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.fill();
   }
   ctx.globalCompositeOperation='source-over';
@@ -3434,6 +3508,10 @@ el('best').querySelector('.v').textContent=store.best.toLocaleString();
 window.__orbital=window.__polaris=window.__flux={
   start:startRun,
   tick(n){ for(let i=0;i<(n||1);i++) step(); return this.diag(); },
+  // Draw one frame on demand. The harness runs in a HIDDEN tab, where the browser never fires
+  // requestAnimationFrame — so without this the canvas stays blank forever and no visual change can be
+  // verified at all (every pixel sample this session read pure black until it was added).
+  render(){ render(); },
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     const fx={}; for(const k in FX) if(FX[k]>0) fx[k]=+FX[k].toFixed(2);
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,

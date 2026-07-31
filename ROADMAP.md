@@ -7,6 +7,24 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The sky becomes a sky: parallax starfield in, the square grid out (2026-07-31)
+Player brief: *"i'm planning to make our game to have more cosmic feeling in game overall."* — presentation layer, with the fight held exactly as measured.
+
+**The game had no stars.** Not one: all 32 matches for "star" in the file were inside `start` or `starburst`. The background was a radial gradient, three nebula blobs, and **a 54px square grid** — and that grid was the most structured element on screen. A Cartesian lattice is the visual language of a scoreboard, so the most legible thing behind the arena was actively saying *arcade playfield* over the top of a nebula.
+
+Now three depths, all drawn outside the shake transform (a starfield that shakes with the arena reads as a painted backdrop wobbling, not as distance):
+- **Stars** — three layers, 150 / 78 / 30 bodies, parallax 0.012 / 0.032 / 0.075 against the World's position, so the near layer travels six times further than the far one when you move. Twinkle on a per-star phase; about a fifth carry the biome tint instead of white.
+- **Gas** — five clouds instead of three, drifting slower, one of them in the deep biome colour rather than the accent so the sky has some variation instead of a flat wash, on its own 0.02 parallax between the stars and the arena.
+- `reduceMotion` keeps the depth and removes 70% of the travel.
+
+The grid is gone. It did carry one real job — something fixed to judge your own motion against — and the parallax does that job better, because layers moving at different rates encode distance as well as movement.
+
+**Generated from a local fixed-seed PRNG, never `Math.random`.** `initStars()` runs from `resize()`, and a resize mid-run that consumed global entropy would shift every spawn after it and silently invalidate the oracle. Side benefit: the sky is identical across reloads.
+
+**Two things this pass had to fix in itself.** `initStars` first used `TAU`, which is declared *below* the boot-time `resize()` call — a temporal dead zone throw at load, and exactly the class `node --check` cannot see. And the harness could not verify any of this: the Browser pane runs with `document.hidden === true`, so `requestAnimationFrame` never fires and the canvas had been blank for every pixel sample taken this session. The seam now exposes `render()`, which is how this change was measured and looked at at all.
+
+**Verified presentation-only**: 97 fingerprints across the six seeded traces, **identical** with and without the whole pass. Readability held — the core measures 248 brightness against an 18 background, and the starfield lifts the background by 0.2 (17.8 → 18.0) while the brightest pixel in a clean frame is still a star, not gas.
+
 ### The volley flies further and faster — and that turns out not to be the constraint (2026-07-31)
 Player brief: *"volley velocity and range should be little stronger."*
 

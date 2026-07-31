@@ -1,0 +1,13 @@
+{
+  "name": "Orbital Crash",
+  "short_name": "Orbital Crash",
+  "description": "Pure arcade survival — steer your world, annihilate opposite charge, survive the Anomalies.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#060814",
+  "theme_color": "#060814",
+  "categories": ["games"]
+}
