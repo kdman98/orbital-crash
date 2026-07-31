@@ -455,10 +455,16 @@ const NEUTRAL_POP=2;            // one Shockwave pops a Neutral outright — its
 const VOLLEY_SPD=8.4;
 // How long fired matter holds its launch vector: un-clamped, 0.985 friction, seek suppressed. Straight
 // travel is `v0·(1-0.985^N)/0.015` with `N = VOLLEY_HOLD·60`, so 1.5s at 7.2 was 357px of dead-straight
-// flight and a measured **449px** peak reach once the shockwave's own push is added. 1.5 → 1.75s, which
-// with the faster launch puts the peak at **560px**. (The comment here used to claim "~640px of
-// dead-straight travel" at the OLD values, which was never true — it was reading the asymptote of the
-// friction series rather than its 90-frame sum. Measured, not derived, this time.)
+// flight and a measured **449px** peak reach once the shockwave's own push on the same flip is added.
+// 1.5 → 1.75s, which with the faster launch measures a **542px** peak (launch 9.05 → 10.25 px/frame,
+// and it is still un-clamped at 1.5s, where before it was already being reeled home).
+// (The comment here used to claim "~640px of dead-straight travel" at the OLD values, which was never
+// true — it read the asymptote of the friction series instead of its 90-frame sum. Measured this time.)
+//
+// WHAT THIS DOES NOT DO: it does not make long-range fighting work. Measured across 8 seeded fights per
+// kind at 150 / 300 / 400px, before and after, the outcomes are IDENTICAL at every range — because the
+// binding constraint out there was never reach, it is that ring fire is radial and the Anomaly subtends
+// ~4.6% of the circle at 300px. More reach delivers more shots to where you were already not aiming.
 // There is deliberately no steering term — see flip().
 const VOLLEY_HOLD=1.75;
 // EROSION PRICES (2026-07-29). The two deliberate channels were worth 2 and 1 against a boss of

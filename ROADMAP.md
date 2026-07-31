@@ -7,6 +7,15 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The volley flies further and faster — and that turns out not to be the constraint (2026-07-31)
+Player brief: *"volley velocity and range should be little stronger."*
+
+`VOLLEY_SPD` **7.2 → 8.4** px/frame and `VOLLEY_HOLD` **1.5 → 1.75s**. Measured on a single tracked body, boss and player 950px apart with the colours forced so the shot is genuinely a volley: launch **9.05 → 10.25 px/frame** (the extra over `VOLLEY_SPD` is the same flip's Shockwave pushing the body it just fired), peak reach **449 → 542px**, and it is still un-clamped at the 1.5s mark where it used to already be reeled home by seek.
+
+**The old comment was wrong and is now corrected.** It claimed "~640px of dead-straight travel"; straight travel is `v0·(1-0.985^N)/0.015` with `N = hold·60`, which at 7.2 / 1.5s is **357px**, not 640 — the figure had read the *asymptote* of the friction series rather than its 90-frame sum. Both numbers in that comment are now measured rather than derived.
+
+**What it does not buy — worth recording, because it is the interesting half.** Across 8 seeded fights per kind at **150 / 300 / 400px**, before and after, the outcomes are **identical at every range**: 1 / 7 / 4 kills at 150px, 0 / 0 / 2 at 300px, 0 / 0 / 0 at 400px, both builds. Reach was never what stopped long-range fighting. Ring fire is **radial**, and at 300px the Anomaly subtends ~4.6% of the circle — so a longer shot delivers more matter to where you were already not aiming. The buff is felt as *shots landing that used to stall and be dragged back*, not as a new way to fight from safety, and the "Why range is the skill" row still holds unchanged.
+
 ### Balance pass: core damage repriced, the close reversal removed, HP ×1.5 (2026-07-31)
 Player brief: *"dmg to core: missile to 10, mine blast to 20, contact to 30 / Emitter second pressure dash also available at Epoch II / delete close reversal dmg for anormaly, only removing neutral dots / make ring grind dmg 1, charger dash 5, and buff anomaly HP 1.5x."*
 
