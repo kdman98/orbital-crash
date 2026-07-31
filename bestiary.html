@@ -83,8 +83,8 @@
   const FORMS=[
     {kind:'form',key:'wall', name:'The Wall',  col:'cyan', meta:'marches across · returns once',
      tag:'A solid line spans the arena with <b>one gap</b> — and the gap <b>shuts</b> as the line advances, so it is widest the moment it arrives. Reaching the far edge it <b>turns around</b> and comes back. Colour alternates every body: no polarity is safe anywhere along it.'},
-    {kind:'form',key:'noose',name:'The Noose', col:'red',  meta:'closes on you · seam rotates',
-     tag:'A ring closes on wherever you are standing, and its <b>seam rotates</b> as it comes in, so the way out is never where you last looked. It travels <b>past</b> the centre — standing still is not an option.'},
+    {kind:'form',key:'noose',name:'The Noose', col:'red',  meta:'cages you · then bites',
+     tag:'A ring shuts on wherever you are standing, its <b>seam rotating</b> as it comes in, so the way out is never where you last looked. It <b>locks</b> just wide enough to stay solid — and then <b>five strands keep going</b> and land on your core. Leaving costs precision: one open seam, four needles where the strands peeled out, and wall everywhere else.'},
   ];
 
   const renders=[];
@@ -305,13 +305,18 @@
       ctx.beginPath(); ctx.moveTo(x+ox+38,y); ctx.lineTo(x+ox+31,y-5); ctx.lineTo(x+ox+31,y+5); ctx.closePath();
       ctx.fillStyle=hexA('#ffffff',0.34); ctx.fill();
     } else {
-      // a ring contracting onto the centre while its seam rotates around
-      const cyc=(t*0.3)%1, R=80-cyc*62, spin=cyc*0.9;
+      // a ring contracting to its LOCK radius while the seam rotates, then five strands carrying on
+      // into the core. Deliberately not to scale — the real lock is 106px of a 742px spawn and the
+      // bite ends at 24, which at card size would be three indistinguishable dots.
+      const cyc=(t*0.3)%1, spin=cyc*0.9, R0=80, LOCK=34, BITE=10, PART=0.72;
+      const R=R0-(R0-LOCK)*Math.min(1,cyc/PART);               // the ring stops at PART of the cycle
+      const br=LOCK-(LOCK-BITE)*Math.max(0,(cyc-PART)/(1-PART));// the bite parts on that same beat
+      const bite=new Set([0,4,9,13,18]);
       for(let i=0;i<22;i++){
         if(i===0||i===1) continue;                              // the seam — it turns with `spin`
-        const a=i/22*TAU+spin;
+        const a=i/22*TAU+spin, rr=bite.has(i)?br:R;
         ctx.fillStyle=hexA(i%2?COL.red:COL.cyan,0.92);
-        ctx.beginPath(); ctx.arc(x+Math.cos(a)*R,y+Math.sin(a)*R,4.2,0,TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+Math.cos(a)*rr,y+Math.sin(a)*rr,4.2,0,TAU); ctx.fill();
       }
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
     }

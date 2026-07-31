@@ -7,6 +7,48 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Noose stops eating itself (2026-07-31)
+Player brief: *"noose result in colliding each other"*
+
+**The bug was real and total.** The ring closed on the centre while keeping all 20 bodies, so its own spacing ran out before it arrived: at `R=77` every body crossed the 22px self-contact threshold **in the same frame** — uniform spacing means it is not a gradual fray but a simultaneous wipe. Measured against a player pinned motionless at the centre, the shape's closest approach was **77.6px**, and **zero** bodies ever touched them. Both the code comment and GLOSSARY claimed it "travels past the centre, so standing still is not an option." Neither half had ever been true.
+
+**It cannot be tuned into a crusher, and that is a geometric result, not an opinion.** A ring of N converging bodies self-annihilates at `22/(2·sin(π/N))` and only touches you at 26 — the two cross only for **N<8**, and a 7-body ring is a picket fence at every radius worth arriving at. Any ring dense enough to be a wall deletes itself before it lands.
+
+**So: a wall that stops, plus a bite that is under the bound.** The ring locks at `NOOSE_MIN_R=106` (30px spacing — 8px clear of self-contact, well inside the 52px walkable limit) and holds with the seam still turning, while **five strands keep going to 24px** and land on the core. The bite needs no scheduling: it closes at the same rate with a lower floor, so it parts from the ring on the exact frame the ring stops — one continuous motion.
+
+**Peeling the bite out costs the cage five one-slot doors, and that is the good half of the trade.** Locked, it measures one **88.1px seam** (36.1px clear), four **59.7px needles** whose midpoints sit 29.9px from each flank against a 26px contact — a **7.7px thread** — and eleven 30.2px spans that are simply wall.
+
+**Measured, with a no-noose control to separate the shape from ambient traffic:**
+
+| | noose fired | control | cost of the shape |
+|---|---|---|---|
+| player stands still | 11.3 | 3.8 | **7.5** |
+| player circles at r=180 | 7.5 | 2.5 | **5.0** |
+
+A bot bolting blind on each of 24 bearings at the moment of the lock was stopped on **22 of 24** — 8% clean, against the seam's 13% share of the circumference. The cage is a wall in practice; you have to run *at the door*. During flight `minPair` now holds at exactly the designed **30.2px** and all 20 bodies arrive.
+
+**One rejected intermediate, recorded because it measured worse than the bug.** Stopping the ring *alone* left a still player untouched at **104.4px** — 27px further out than the broken version managed. A cage you can park in the middle of is not a noose either.
+
+Regression: Pulse still expands (83→371px in 2s — it shares `holdOrbit` and the new `rmin` clamp is inert for `vr<0`), all five Lab shapes fire at unchanged counts (29/20/99/36/1), Boss Rush unaffected, 301s soak with zero non-finite state.
+
+#### …and how it lets go (same day)
+Player follow-up: *"still, noose sometimes dies at the end — can we finish pattern before getting too tight, giving them free will? will this help?"*
+
+Right instinct, wrong lever — and the measurement is worth keeping because **two plausible fixes were built and both failed.**
+
+The end-of-shape die-off is the release, not the tightness. Dropped as one synchronised shell a body-gap apart, the cage funnels back down the polarity field onto the core; rule 2 makes every neighbour *opposite*, and the field moves the two colours at wildly different speeds (same-colour is hauled in and captured into rings, opposite only drifts at 1.35px/frame). They interleave and detonate **within five frames** — 12 of 20, in pairs, at the cage radius.
+
+- **Rejected: finish the pattern earlier, at a wide radius.** Swept over release radii 106/150/200/300 × stagger 0/0.6/1.5s. A cut at **300px left as few survivors as one at 106**. Chord scales with radius, so a converging ring always meets itself at R=77 wherever it was set free.
+- **Rejected: bloom outward on release** (112px of `flung` travel). It separated the ring exactly as designed — peak radius 223 — and still lost **7.4** bodies to each other, because the field simply re-converged them. Worse, it threw them out through the player's ring orbit and back, so *more* died to the grind (6.4 vs 4.4) and *fewer* ever reached the player (2.8 vs 4.8). Built, measured, deleted.
+
+**What worked came from the colour law, not geometry: same-colour matter cannot annihilate itself.** The cage now releases in **two polarity waves 0.8s apart** (`NOOSE_WAVE`), so adjacent bodies are never in the field together. Of ~15.5 cage bodies, mutual kills fall **9.7 → 4.0** standing still and 6.5 → 5.3 moving; bodies that reach the player rise **0.7 → 2.3**. One line, keyed off `gapAt` parity so it varies per noose without spending another `rand()`.
+
+**The control that reframes the whole complaint.** Sixteen *ordinary* bodies simply placed on the same 106px ring around a still player — no formation, no flight, no script — annihilate **16 of 16**. A dense alternating group near the core always eats itself; that is the game's physics, not this shape's bug. The Noose cannot beat the field, only be less bad than it, and it now loses 4 of 15.5 where raw matter in the same place loses everything. Closing the rest would mean breaking rule 2 or the colour law, so it is deliberately left here.
+
+Deaths that read as "other" turned out to be the **player's own rings** — median radius at death 114px, exactly the ring orbit. That is armour eating the shape, which is the player earning it, not the pattern failing.
+
+Re-verified after the change: bite still lands at 24px with 1–2 bodies touching a still player, `minPair` on rails 26px+, blind bolt at cage-lock stopped on 18 of 24 bearings, all five Lab shapes fire, 301s soak and Boss Rush clean, zero non-finite state, console clean.
+
 ### The comet gets rare, Point-Blank goes, and a Pattern Lab (2026-07-31)
 Player brief: *"make comet rarer / remove point blank x3 feature / where can i test patterns?"*
 
