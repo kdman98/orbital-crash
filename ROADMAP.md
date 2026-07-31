@@ -7,6 +7,28 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Sentinel's hunt becomes a walk like the others (2026-07-31)
+Player brief: *"hunt of sentinel is too fast."*
+
+Correct, and the cause was not the hunt speed constant — `HUNT_SPD.sentinel` is 1.3 against the Emitter's 1.15, and all three kinds already **arrived in the same ~4s**. The Sentinel spirals rather than walks, and that shape hid two separate ways for the body to move much faster than a walk.
+
+**`orbA` was never seeded.** `huntR` was initialised from the boss's real distance, but the angle was left wherever the arena orbit had got to — so a hunt handed the boss a point somewhere else on its circle and it sprinted sideways to reach it. Frame 1 of a hunt measured **10.71 px/frame**, decaying over about twelve frames. That is nine times the Emitter's walk, at the exact moment the telegraph is asking you to read the threat.
+
+**The angular rate was fixed, so the sweep speed scaled with radius.** `orbA += dt*0.85` runs a tangential **4.96 px/frame at 350px** and 2.13 at 150 — fastest when furthest, which is backwards for something closing on you: it whipped in and then slowed down as it arrived.
+
+Measured from a 350px station against a still player — median **2.68 px/frame**, peak **10.71**, and **825px of ground travelled** to close 350 — against the Emitter's flat 1.15 / 1.15 / 273.
+
+Three changes, all shape rather than speed:
+- **Seed `orbA` from the bearing the boss is already on**, so the spiral starts where the body actually is and there is nothing to sprint to.
+- **Cap the tangential speed (`HUNT_TANG` 1.1 px/frame) instead of the angular rate**, with the old 0.85 rad/s left as an upper bound it only reaches close in. The spiral now reads as one steady pace at every radius.
+- **Cap the per-frame step (`HUNT_STEP` 2.0)** instead of following 10% of the gap. That follow was a proportion, not a speed: a 400px player flick would have moved the boss 40px in a single frame. The cap has to stay above the target point's own speed (radial 1.17 + tangential 1.1 ≈ 1.6) or the body trails its own target and never arrives — the failure a `dt*2.2` follow produced once already.
+
+After, from the same station: median **1.37**, peak **2.0**, path **402**. Arrival **4.15s** against the Emitter's 3.95 and the Pulsar's 4.33 — unchanged, so the threat timing is untouched and the spiral simply costs it the extra distance it travels. Against a moving player all three land together (5.28 / 5.32 / 5.33s), and against a player strolling away **none of the three make contact**, which is the promise the Hunt row makes.
+
+**It is not more dangerous for being slower**, which was worth checking because a straighter approach could easily connect more often: **62.5% → 54.2%** of hunts land, over 24 hunts apiece across 15 seeded 120s fights. One seeded oracle trace did flip from surviving at 90 HP to dying at 13s — a fixed script that does not dodge, and exactly the single-trial swing this ledger has been caught by before. The 24-hunt sample is the answer, not that trace.
+
+Scoped, per the oracle: five of the six traces are **byte-identical**, and `boss-sentinel` diverges at exactly the fingerprint where its first hunt begins.
+
 ### Cleanup pass — 12-agent audit, 83 findings, and a behaviour oracle (2026-07-31)
 Player brief: *"time to refactor / clean up codes and documents?"*
 
