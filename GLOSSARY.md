@@ -1,0 +1,292 @@
+# ORBITAL CRASH — Shared Glossary
+
+A shared vocabulary so we can talk about the game precisely. **Bold** = the canonical
+term to use in conversation. `code` = the identifier in `index.html`, for cross-reference.
+If you want to rename anything, just say so and I'll update this file — it's the source of
+truth for how we name things.
+
+> **Rewritten 2026-07-28** to match the game as it actually is. Everything describing the old
+> POLARIS meta — Offer, level-ups, augments, keystones, Specials, Arsenal, shards, XP, rarity,
+> cards — has been **deleted**, not just flagged: none of it exists. Progression is powerup
+> drops only. See §11 for mechanics that are still *written* but switched off.
+
+---
+
+## 1. The World & its Field (you)
+
+| Term | Meaning | Code |
+|---|---|---|
+| **World** | The planet you steer with the mouse. Your avatar (your world). | `P` |
+| **Polarity** | The World's current charge — **Red** or **Cyan**. | `P.polarity` |
+| **Field** | The circular magnetic field around the World. **Like-charge** matter is caught into your orbital **Rings** (and leans toward you from outside the Field too — see **Core gravity**); **opposite-charge** matter gets no magnetic pull at all, ever — it only drifts in under its own chase, and annihilates against you. | `P.fieldR`, `P.fieldK` |
+| **Ring hysteresis** | Once a body is in your ring it **stays yours for 0.8s** after a move outruns it, and the spring keeps reeling it back the whole time. Beyond **2.4× the Field** it is genuinely gone rather than lagging. Membership used to be re-decided from scratch every frame — `d < fieldR` or you are not in the ring — which punished the exact input dodging is made of. | `RING_GRACE`, `RING_GRACE_R`, `e.ringGrace` |
+| **…and the measurement that nearly missed it** | The first pass concluded retention was *fine* — "100% kept at every speed up to 13 px/frame" — and that was a badly scoped test, not a finding. **Sustained speed is not what sheds a ring**: strafing at 13 / 25 / 45 / 80 px/frame keeps **93–100%**, because bodies settle into a steady lag and stay inside the Field. **Direction reversal is.** The follow is `(pointer − P) × 0.185` with no cap outside the brief post-resume window, so a real corner-to-corner flick peaks at **135 px/frame** and leaves the whole ring hundreds of px behind on the wrong side — measured, **only 36% survived**. Testing smooth strafing at a third of the top speed could not see the thing being complained about. With hysteresis: flick every 0.75s → **93%**, every 0.42s and 0.25s → **100%**, sustained 45/80 → 100%. A 300px displacement (a dodge) keeps 10/10; a 600px one drops to 4. | — |
+| **Gathering while you move** | The other half of the same problem. Core gravity was tuned for a **stationary** World: a Drifter's ceiling of `3.4×1.9` ≈ 6.5 px/frame is under half the 13+ a steering World reaches, so a dodging player outran their own ammunition — measured avg ring **3.2 dodging vs 4.3 still**. Pull **0.16 → 0.30**, reach **1.5× → 1.8×** the Field, and like-charge closing under that pull gets **ring-grade speed headroom (2.9)**. Now **3.3 dodging vs 2.6 still** over 8 trials each. Approach still settles cleanly (272→227→154→111→**114px**, no overshoot, no re-exits). | `LIKE_GRAV`, `LIKE_GRAV_R`, `closing` |
+| **Core gravity** | The World's pull on its **own colour**, and only outside the Field. Before it existed, holding a pole exerted no claim at all on the matter it was supposed to gather: the magnetic loop skips like-charge (it is ring-captured instead) and ring capture is gated on `d < fieldR`, so the two colours approached at rates **identical to the frame** — from 300 / 260 / 220px, same *and* opposite both entered the Field at 1.47 / 0.97 / 0.48s. Now like-charge gets a gentle inward term, full at the rim and fading to zero at **1.5× the Field**: **1.23 / 0.73 / 0.35s**, 16–27% faster. Small on purpose next to a Drifter's own 0.22 seek — your colour should lean toward you, not be vacuumed. **The hostile side is untouched** (still 1.47 / 0.97 / 0.48 — the World never sucks in another charge), and so is the ring equilibrium inside. | `LIKE_GRAV`, `LIKE_GRAV_R` |
+| **Rings** | Like-charge matter held in orbit around the World. Simultaneously **armour** (it annihilates opposite-charge matter before it reaches you — it does *not* stop Anomaly missiles, which pass through everything), **fuel**, and — since the grind (§7) — a **weapon on contact**, so a loaded ring is dangerous to an Anomaly before you ever spend it. Against the swarm a charged Reverse spends the ring to *widen the Fling* — and then flings the ring itself. Against an **Anomaly** the same act **volleys** it (§7) — the one place rings still become projectiles, because there they finally have something to be aimed at. | `e.ring`, `P.ringMul` |
+| **Ring spin** | The ring orbits at **4.8 px/frame — one revolution every 2.49s** at `fieldR·0.6` (114px). Steady state is `spin/(1-0.80)`, where `0.80` is the extra velocity bleed rings carry so they hold their radius. **`reduceMotion` takes another 30% off** → 3.4 px/frame, 3.44s per revolution. Under **Overdrive/Eddy** it goes wide *and* fast, where a **Brute clamps** against its own ceiling while a Drifter does not — mass shows in the ring, but only once the ring out-paces the slowest bodies in it. | `spin` in the ring block, `DOTSPD` |
+> **Nerfed, over-corrected, then settled.** Rings sat at **3.6 px/frame / 3.2s per revolution** from the day they were made to "firmly HOLD" their radius — the fix added *extra velocity bleed* (`0.80` vs `0.86` for ordinary matter), and since steady state is `spin/(1-bleed)`, halving the headroom halved the whirl. That was never a speed decision, so 2026-07-29 raised the **spin** term instead of the bleed (0.9→1.6), leaving the grip intact. **1.6 overshot**: at a measured 6.4 px/frame / 2.05s a ring whipping round a core you are also steering is a comfort problem, not a taste one. Now **1.2** (Eddy 2.1), which sits between the two — and the existing `reduceMotion` toggle scales it further, so the players who need a calm ring get one without flattening it for everyone.
+| **Integrity** | Your health. Regenerates `2.6/s`, but only after **3.8s without a hit** — and since Cryo was removed there is no way around that lockout. **Disengaging is the only heal.** | `P.hp`, `P.maxHp`, `P.hurtT` |
+
+**The central rule, stated once:** same-colour matter is **harmless** and passes through your core; opposite-colour matter **damages you** on contact. So a wall of one colour is defused by matching it — that is why **Patterns** (§6) alternate colour on *every body*.
+
+---
+
+## 2. Player verbs (things you do)
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Reverse (poles)** | Switch Polarity — a **pole reversal** (click / space). Short cooldown (0.28s) — deliberate, not spammable. | `flip()` |
+| **Shockwave** | The outward push every reversal emits (repels matter, **pops a Neutral outright** — one reversal, not two). 0.5s cooldown — a tool, not a constant shield. | `P.pulseCd`, `NEUTRAL_POP` |
+| **Hold-charge** | Charge that accrues while you *hold* a Polarity. It builds on **time since your last flip**, not on holding a button. Past ~0.75s the Rings are **loaded**. | `P.holdT`, `P.holdMax` |
+| **Hungry flip** | A reversal made while **loaded**. It does two things at once: **flings** the matter that just turned hostile away from you, and **volleys** your Rings at any Anomaly on the field. See below. This, not body contact, is the game's real weapon. | in `flip()`, `RING_FIRE_HC` |
+| **Annihilation** | The core kill event: two opposite-charge things touch → both destroyed. | `queueKill`, `processKills` |
+
+### The Fling (the hungry flip)
+
+A quick **tap** just reverses poles. A reversal made past `RING_FIRE_HC` **flings**: every body that is opposite-charge *after the flip resolves* and inside the burst is **thrown outward, alive**.
+
+Why that framing matters: a tap already turns the swarm harmless, because matching its colour is what safety means here. What makes reversing dangerous under pressure is that **your own Rings and your own gathered matter turn hostile the instant you flip** — and they are in close orbit. The Fling throws exactly that off you.
+
+> **It used to annihilate them** (the *Purge*), until 2026-07-29. Three reasons it changed, in order of severity:
+> 1. **It was eating your own ammunition.** The Purge ran *before* the Volley and spared only bodies matching your **new** polarity — but Rings are the **old** colour, so they were killed and the Volley then skipped them as `queued`. Measured: **10 Rings gathered → 10 popped → 0 volleyed.** The boss fight's erosion path was barely firing.
+> 2. **It was the game's fifth "everything near me dies" effect**, which is the same crowding that left Collapse without an identity. Repulsion is a verb nothing else here owns.
+> 3. **A fling has to survive contact with the seek.** First attempt read as a nudge: 12 bodies thrown from 120px reached only 163px before their own seek (0.22/frame → ~12px/frame inward across the 0.9s window) cancelled a 10.6px/frame impulse and dragged them back onto the core. Seek is now zeroed while thrown, and the throw runs dead straight.
+>
+> ⚠️ **And then it did not fire at all (fixed 2026-07-29).** For a while the Fling was, in practice, unreachable code. Ring capture is `d < P.fieldR` — **the whole 190px Field**, not a band near the ring radius — while the fling radius topped out at **170px** and the fling loop skips anything ring-flagged. So every body the Fling existed for had already been claimed by the ring branch, which gave it a 3→8 px/frame nudge (**~107px**, then friction and seek pulled it straight home). Measured on a full-charge flip with 30 bodies around the core: **25 ringed, 0 flung.** The headline verb of the game's headline move was running at roughly a seventh of its own strength. Two changes fixed it: the radius now reaches **past** the Field (210px), and spent rings with no Anomaly to volley at take **the full fling** instead of a nudge. Same test now: **30 of 30 thrown.**
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Fling radius** | `80 + charge·70 + min(rings,10)·6` → **80px to 210px**. Charge sets the floor; **matter you actually gathered sets the ceiling**, so Rings are armour on the way in and reach on the way out. A full burst reaches just **past** your 190px Field, so the circle you can see is the promise. | `PURGE_R0`, `PURGE_RCHG`, `PURGE_RPER` |
+| **Fling impulse** | `10.8 → 18.0 px/frame`, scaled by proximity — hardest point-blank, and never below **65%** out at the rim (at 45% the bodies furthest away, the ones a wide push exists for, were thrown the least). For **0.8s** the body skips the speed clamp, runs on 0.985 friction and has **seek at zero** — dead straight. Nothing dies. | `FLING_V0`, `FLING_VCHG`, `FLING_HOLD` |
+| **Speed ×1.5 at the same reach** | The reach was right and the *pace* was wrong — matter drifted away rather than being thrown. Impulse went up half again and the hold was solved back down to hold distance constant, not left to multiply it: throw distance is `v0·(1-0.985^N)/0.015`, so a 1.5× impulse needs that sum cut to two-thirds → `N ≈ 47` frames. Launch speed **10.5 → 15.8 px/frame** at full charge; **time to peak 1.7s → 0.96s**. It leaves half again as fast and gets there in half the time; where it lands does not move. | `FLING_V0`, `FLING_HOLD` |
+| **What a flip actually clears** | Measured with 30 bodies packed around the core, by hold-charge, and unchanged by the speed-up. **Minimum hungry (0.55):** peak **441px** (was 442). **0.75:** **508px** (was 558). **Full:** **689px** (was 706). The Field is swept clean in **0.17–0.27s** in every case, and *nothing is lost* — every body flies out, decelerates and comes home. Hold longer, breathe longer. | `FLING_HOLD` |
+| **What it costs you** | Against an Anomaly a hungry flip spends your **Rings** — the ammunition you held a pole to gather — so flinging for safety and volleying for damage draw on the same pot. *(It no longer costs you cover: nothing is cover any more, since missiles pass through all matter — §7.)* | — |
+| **Never flung** | **Neutrals** (uncharged — the Shockwave's job), and **Rings while an Anomaly is alive** (they are the Volley's business instead). Everything else is ordinary flingable matter, Bombers included. | in `flip()` |
+| **Spent rings** | With an Anomaly alive they are **volleyed** at it (§7). With none, they take **the full fling** — they are not ammunition any more, they are 20-odd bodies that just turned hostile in close orbit. | in `flip()` |
+
+> **Removed 2026-07-29: Deflect and Reflect.** Both worked, neither was reachable. The Reflect window measured a flat **4 frames (66.7ms)** across 19 consecutive samples — shorter than human reaction time, and **4.25x shorter than the 280ms flip cooldown** that gates it. Deflect's only feedback was a white ring and a sound already owned by the ring discharge, so a parry was indistinguishable from an ordinary charged flip. The verb set is now exactly two: **reverse**, and **reverse-while-loaded**.
+
+### Collapse
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Collapse** | Spend a full **Capacitor** (Shift / R-click). A **0.45s inhale** under 0.2x slow-motion, then an arena-sweeping **blast wave: 2 damage, one hit per wave** — trash dies, Brutes crawl out burned and flung. Chips the Anomaly **15%, flat** — the wave itself never touches the boss, and neither do the chain-blasts its kills set off (see below). | `collapse()`, `detonateCollapse()`, `cwave` |
+| **…against an Anomaly** | **15% and nothing more, whatever the field looks like.** Until 2026-07-29 the wave's own kills laundered themselves back into boss damage: each Dot dying during `unstable` fired a 78px/3 blast that chipped the boss with no dedupe and **no decay on the damage** (only the radius decayed by `0.7^gen`), and drift-in contact secretly paid **2** for the same 2.4s. Measured against an 18 HP Epoch I Anomaly whose intended loss was 3 — *12 Dots on its skin → 33 damage (purged in one frame); 24 Dots → 95*. Density, not skill, was killing bosses. | `processKills()`, `unstable` |
+| **Tally** | A Collapse of **8+ kills** pays a bonus of **N²×4**. 40+ in one is a feat. | `collapseKills` |
+
+> **Open design question — narrowed.** Collapse is now one of **three** "everything near me dies" effects (with Singularity and Nova) — removing Corona on 2026-07-29 *advances* this question rather than just decrementing it, since Corona was the passive, no-input member of the set. The most-earned action in the game still has among the least distinct identity, and its inhale is a dead pause. It got one competitor back on 2026-07-29 when the **Purge became the Fling** — the hungry flip no longer kills anything, so it is no longer a free, repeatable version of the thing Collapse charges a full Capacitor for. A "flip mid-breath to invert it" variant was built and reverted on 2026-07-28 for being a flavour of the same idea rather than a new one. Still looking for the right answer.
+
+---
+
+## 3. Meters & resources
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Capacitor** | The meter that fills toward a Collapse. Fed by kills, Motes, streak milestones and Epoch clears. Chimes when full. | `P.charge`, `chgbar` |
+| **Streak** | A **no-hit** combo — resets only on real damage. Named tiers at 25/50/100/200: **AWAKENING / MAGNETIC / UNSTOPPABLE / TRANSCENDENT**, each paying a Capacitor chunk. On loss a 25+ streak **bursts** into Capacitor instead of vanishing. | `combo`, `streakTier`, `breakStreak` |
+| **Mote** | Annihilation loot carrying the popped body's colour. Same-polarity Motes hoover to the World; opposite ones lie inert until a reversal **vacuums** them. Banking Motes drives the **Mult** (+0.1× each, cap ×15). The bank is **halved on a hit** — Streak carries perfection, the bank carries greed. | `motes`, `motesBank` |
+| **Mult** | The score multiplier = 1 + 0.1 × banked Motes. | `mult` |
+| **Graze** | A dangerous body that skims the World and leaves without touching — score crumb + sfx only. Pays **no** Capacitor: charge income should be chosen, not lucked into. | `e.grz`, `grazeN` |
+| **Point-Blank** | Kills inside your Field score ×2; deep inside (45% radius) ×3. | `prox` in `onKill` |
+| **Gilded Bounty** | Every 12–18s one body arrives gold-ringed; pop it within 6s for a jackpot. Suppressed in Boss Rush. | `e.gild`, `gildTimer` |
+| **Achievement** | An in-run feat, recorded in the Codex. **Flavour only** — they unlock nothing (there is no meta economy). **Six** exist; **one** is **secret**, shown as "???" until discovered. (`reflector` was retired with Reflect, and `goldberg` with the Bomber payload, both 2026-07-29 — an unobtainable "???" is worse than no entry.) | `ACHV`, `store.achv` |
+
+---
+
+## 4. Powerups (the only progression)
+
+Any annihilation can shed a glowing **orb**; steer into it to collect. The effect is **instant and temporary** — grabbing the same type again refreshes its timer. A purged Anomaly always drops one **cache**, and a safety orb floats in if the field has been empty a while. Never duplicates something already active or already waiting.
+
+| Term | Effect | Code |
+|---|---|---|
+| **Orb** | The floating pickup itself. Max 2 on the field; ~0.8% per kill; safety drop every 22–34s when the field is bare. | `orbs`, `dropOrb`, `ORB_DROP_CHANCE` |
+| **◉ Singularity** | 5s black hole that devours nearby matter (and eats the Anomaly's missiles). While a body is held it **cannot touch you** — the well is armour as much as a weapon. **It never touches your own colour** (below). The last **2s** are **The Strain** (below). | `FX.blackhole`, `P.ehorizon`, `ehStrain` |
+| **…and it spares your hoard** | The well captures and devours everything that is **not your polarity**; like-charge matter is skipped entirely, so your Rings keep orbiting straight through it. Same-charge matter is not a threat — it cannot reach your skin anyway — it is your armour and, with an Anomaly alive, your whole ammunition supply. Seizing it made the best powerup in the roster hostile during the one fight where matter is worth something: you hold a pole to gather rings to volley, the Singularity lands, and the hoard is gone. Only the boss was exempt, and the boss is immune to the well, so the sole thing it reliably destroyed in that fight was **yours**. Skipping *capture* rather than just sparing them at the horizon also stops `blackholeCollapse()` flinging your rings across the arena when the well lets go. Verified: with the well running, **14/14 ring bodies alive, 14 still ringed, 0 frames seized, radius unchanged at 114px** — identical to no Singularity at all — while it still devoured **12/12** hostiles and **6/6** Neutrals. | the `P.ehorizon` capture gate |
+| **🛡 Aegis** | 6s shield, 3 hits. The only shield source. | `FX.aegis`, `P.shield` |
+| **⚡ Overdrive** | 6s — faster world, wide whirling rings. | `FX.overdrive`, `P.eddy` |
+| **✺ Nova** | Instant free Collapse wave (no charge cost). Rarer roll. | `fireNova()` |
+
+### The Strain (why Singularity ends loudly)
+
+The well's real gift is **immunity**: a held body can't reach your skin. So the dangerous moment isn't the black hole running — it's the frame it stops, with a packed crowd already standing on you. For the last **2.0 s** the Singularity announces that.
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Strain** | Ramps `0→1` over the final 2 s (`1 − FX.blackhole/EH_CLOSE`). Read **only** by the renderer, the captives' shudder and the audio latch. | `ehStrain`, `EH_CLOSE` |
+| **The rim heaves** | Horizon pulse steps **1.75 Hz → 3.5 Hz** and doubles amplitude; radius, colour and line width never move. Accretion rings run 3.3× faster and pile on the rim under `lighter`, so it brightens as it closes. | `drawEHorizon()` |
+| **The hoard rattles** | Captives shudder at 5.4 Hz on a per-body phase, and the swirl whips from 46→176 px/s. The warning sits on *the crowd*, because the crowd is the threat. `reduceMotion` skips the shudder. | devour block |
+| **It lets go** | `blackholeCollapse()` flings every captive outward at ~11 px/frame; screen kick and ring size scale with hoard size. | `blackholeCollapse()` |
+
+> **Why the grip never weakens.** Telegraphing by *shrinking* the well is the obvious move and it is wrong: `else if(e.eh) e.eh=0` drops a body the instant it falls outside `reach`, so a contracting well leaks its hoard out early, at zero velocity, and `blackholeCollapse()` then finds nothing to throw — deleting the exact moment being announced. Grip stays pinned at full; only the *appearance* of coping degrades. Keeping `reach` at 230 also preserves its coincidence with the hardcoded `230` in the charger-suppression test, which a wind-down would desync into a dead annulus.
+
+> **Cryo and Corona were both removed (2026-07-29).** The roster was six; it is now **four**. Cryo had been reworked twice — a 0.34 slow, then a 0.14 near-freeze, then the game's only in-combat heal (the Mend, its Shatter cascade and the overheal-into-Capacitor) — and every pass was answering the same complaint from a different direction. **There is no longer any healing that beats the lockout:** Integrity regenerates only after 3.8s untouched, so disengaging is the entire healing verb. Removed with it: `enemySlow` (Cryo was its only writer), the ×0.4 missile slow in `stepLances`, and the pattern-flight freeze.
+>
+> **Corona** (6s, `1.1` hp/s to all opposite matter inside the Field) went the same day. It was the roster's only *passive* effect — nothing to aim, nothing to time — which is also why it barely registered: it had no VFX of its own in 3,200 lines. Its `hzn` term shared one damage block with the dormant `P.decay` corrosion; **that block was kept** and only the Corona half removed, so §11's `P.decay` row stays true.
+
+---
+
+## 5. Matter (the regular enemies)
+
+**Matter** (a **body**) = any regular (non-boss) enemy. Each carries a charge; opposite-charge bodies are your threat *and* your ammo. To **pop** a body = destroy it.
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Drifter** | Baseline body, steady approach. | `drift` |
+| **Dart** | Small, very fast, low damage. | `fast` |
+| **Brute** | Big, slow, tanky (3 hp), heavy hit. The only body that walks out of a **Collapse** (2 dmg) at 1 hp, burned. Since the Purge became the **Fling** nothing about a hungry flip damages it — it just gets thrown like everything else. The Singularity's horizon still erases it. It briefly had a **barge** (2 damage to an Anomaly just for arriving); that was removed with the two-channel rule (§7) — a Brute hurts an Anomaly the same way anything else does, by riding your rings into it. | `heavy` |
+| **Splitter** | Drawn as a **binary** — two overlapping lobes with two nuclei, the only divided silhouette in the sky. Bursts into exactly **2 Minis** when destroyed (unless killed during a Collapse, which leaves no fragments). | `split` |
+| **Mini** | Tiny fast fragment spawned by a Splitter. | `mini` |
+| **Orbiter** | Curves *around* the World instead of beelining. (Distinct from the **Sentinel** Anomaly.) | `orbiter` |
+| **Bomber** | Big, slow, and the **hardest contact hit in the sky** — **26**, against a Brute's 22. Its death payload is gone (2026-07-29): there is no trick and no reward for herding it, only the hit. **1 hp**, so anything deletes it, and same-colour it rings up as armour and volleys like any other body. | `bomber` |
+| **Charger** | Ignores your Field — **the only body your magnetism does not own**, so it is drawn as an **arrowhead** pointed along its heading rather than a soft disc. Every other body is something you gather or annihilate; this one travels on a line of its own and will never join your ring, and the silhouette now says so before you wait for it. A **committed dash** driven into an Anomaly is worth **4** (see the two-channel rule) — bait the lane across the boss. Winds up **0.9s** → dashes 250px. It **locks its lane the instant the wind-up starts** and draws that lane in full, to a fixed reticle collapsing on the end point — so the line is a promise, and stepping off it is the answer. A dashing Charger **plows through opposite-charge matter** — bait its dash across the swarm. Verified: standing still is hit **8/8**; stepping perpendicular off the lane, **0/8** (126px clear). | `charger`, `CHG_WIND`, `CHG_REACH` |
+| **…and why it was unreadable** | Three separate defects, all measured. The aim was **rewritten every frame** of the wind-up and only froze on commit — the same defect the Anomaly's dash had, so the line was never a commitment and moving during the wind-up did nothing. The drawn line ran **40→100px** while the wind-up triggered at up to **330px**, under a third of the gap. And the trigger was *outside its own reach* (dash ≈ 250px), so a Charger that wound up at range spent its whole cycle on a lunge that stopped short — a telegraph resolving into nothing. Two follow-ons surfaced only under measurement: locking a *direction* is not enough (the body drifts while winding, so the dash ran **parallel** to the lane and missed a stationary target by 2px), and the dash ended on a **clock** that expired 30px before the drawn reticle. It now locks the **end point**, re-derives its heading from where it actually is, and ends on **distance covered**. | `e.tgx`, `e.dleft` |
+| **Neutral** | The body that **wears both poles** — half red, half cyan, split down a turning seam. It is the one body the colour law does not reach: the Field ignores it, the **Fling ignores it** (it is uncharged, not "the other colour"), and no polarity you can hold makes it safe or makes it ammunition — so it carries both charges instead of a colour of its own. A flat violet disc said "some third colour"; two halves say the true thing. **One Shockwave pops it.** It is **not** cover — nothing is; missiles pass through every body (§7). | `neutral` |
+
+---
+
+## 6. Patterns (irregular waves)
+
+Ambient spawning is edge-random, so it reads as weather. Every so often the field instead does something with obvious **intent** — you get a beat of "…what?" before you read the shape. Every pattern flies in from off-screen, which telegraphs it without a word of text.
+
+**Three rules make a pattern a pattern**, and a shape that breaks any one of them is decorative:
+
+1. **Spacing under 52px.** Contact happens at core `r15` + body `r11` = **26px** centre-to-centre, so any two bodies spaced wider than 52 have a walkable midpoint between them. `FORM_STEP=44` keeps every line genuinely solid.
+2. **Alternate every body.** Same-colour matter passes through the core untouched (§1), so *any* run of two same-colour bodies is a free door costing one keypress. Per-body alternation means you always straddle two opposites — **no polarity is ever safe**.
+3. **Never end on a timer alone.** A shape that just crosses and dissolves is beaten by standing still. The Wall's gap *shuts* and it *returns*; the Noose's seam *rotates* and it *overshoots the centre*.
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Pattern** | A hand-placed wave. First lands ~42s in, then every 30–46s. **Paused during a boss**, skipped above 200 bodies. | `spawnFormation()`, `formT`, `FORMS` |
+| **Linear flight** | While `hold` runs, a body flies its assigned vector and ignores seek *and* the polarity field — otherwise every shape converges on the core and dissolves into ordinary drizzle. `turnT` reverses it; `lvx/lvy` + `latT` drive the closing door. Cryo freezes patterns too. | `e.hold`, `e.fvx/fvy`, `e.turnT`, `e.latT` |
+| **Polar flight** | The Noose's mode: the body holds an *angle and radius* about a centre and both are stepped each frame. Needed because a constant-velocity tangent travels a straight line and would miss the centre by `R·sin(atan(va/vr))` — the ring would never actually shut. | `holdOrbit()`, `e.orb` |
+| **The Wall** | A solid line spans the arena and marches across. **One gap**, and the gap *shuts* as it advances (the flanking bodies slide inward), so it is widest the moment it arrives. At the far edge the whole line **turns around** and comes back once. | `formWall` |
+| **The Noose** | A ring closes on where you are standing and its **seam rotates** as it comes in, so the way out is never where you last looked. It travels **past** the centre — standing still is not an option. | `formNoose` |
+
+> **Merged (2026-07-29):** four shapes were two ideas. **Gate** and **Comb** were both "a line marches across with holes in it" (13 dense slots vs 4 sparse lanes) → **The Wall**. **Vice** was a Noose flattened onto one axis that stopped ~200px short of closing → folded into **The Noose**.
+
+---
+
+## 7. The Anomaly (boss)
+
+> ### ⚠️ THE TWO-CHANNEL RULE — do not add a third
+>
+> **A body erodes the Anomaly if and only if it is (a) a VOLLEY you fired at it, or (b) a RING you gathered and carried into it.** Everything else that touches it pays **zero** and bounces off. Not drifting matter, not flung matter, not heavy matter. Two branches, and the expression in the boss-contact block should stay two branches.
+>
+> **The reason is that the Anomaly moves.** Since the Hunt began committing to the core it walks the length of the arena through a field full of matter, so *any* rule shaped like "opposite-charge contact hurts it" means **the boss damages itself by travelling** and the player need do nothing. The damage list therefore cannot be about what touches it — it has to be about what **you aimed** or **what you carried**. A volley you fired and a ring you gathered and steered are both things you did; drifting into it, being flung past it, and being heavy are things that merely happen.
+>
+> **This rule has had to be re-tightened four times**, which is why it is written at the top of the section rather than buried in a row:
+>
+> 1. A flat **1-per-contact** chip let ambient traffic take an Epoch I Anomaly from **18 → 12 HP in 15s** with the player standing still.
+> 2. An `unstable>0 ? 2 : 0` in the last slot paid drift-in matter **double a deliberate hit** for the 2.4s of a Collapse, stacked on the flat 15% chip — *12 Dots on its skin → 33 damage in one frame; 24 Dots → 95*.
+> 3. The **Brute barge** (2 for arriving) was priced when the Hunt still halted 117px short and Brutes measurably never reached the boss on their own. Once the Hunt crossed the whole arena, that became a boss walking into free damage.
+> 4. The **Fling** carried a 1.4s "still counts as your shot" window (`e.fdmg`), so matter you shoved *away from yourself* chipped anything it happened to hit.
+>
+> Both 3 and 4 were removed 2026-07-29, and measurement said the removal cost nothing: over 6 idle 45s fights the self-inflicted contacts were **13 grind, 0 barge, 0 fling**. They were paying nothing and risking everything. Verified after removal — damage by channel: **volley 4 · grind 18 · fling 0 · barge 0 · drift-in 0**, TTK unchanged within noise (emitter 15.8→14.3s, sentinel 11.5→13.0, pulsar 12.8→11.8), idle self-damage **1.5 HP average** and the player dead in all six.
+>
+> **Contact is not achievement.** If a future channel is proposed, the test is: *could the Anomaly earn this by moving?* If yes, it does not belong.
+>
+> **One sanctioned exception — the baited charge — because it passes that test.** A **Charger in its committed dash** that strikes the Anomaly deals **4**. You cannot aim a Charger, but you *can* stand so its locked lane runs through the boss, which is real positioning under fire and the same bait the Charger already rewards against the swarm. Gated on `cst==='dash'`, so one merely drifting into the boss pays nothing like anything else. Measured before shipping: **0 accidental hits across 8 idle 45s fights** — the boss cannot walk into it — while a deliberate line-up lands **4** and consumes the Charger, and the same setup off the line lands **0**.
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Anomaly** | The boss. **Immune to your pole reversal** — you cannot flip it to death. Position-controlled (it never merely chases). | `boss` |
+| **Kind** | Which Anomaly you drew. **Three**, one per verb — **volleys · chase · ground denial**: **Emitter · Sentinel · Pulsar**. The first of a run is always the **Emitter**, which opens with the readable hex burst. The Pulsar joins at Epoch II. Each has its own **silhouette** (below), so you know which fight you are in before it fires. | `boss.variant`, `ANOM`, `bossBody()`, `pickAnomalyVariant()` |
+| **Silhouette** | Every kind draws a different body, and the shape *is* the mechanic: the Emitter a faceted **hexagon** turning on `hexRot` (the same value that aims its crossfire), the Sentinel a hollow **ring** with two opposed pincer wings on its firing axis, the Pulsar a dense core in a crown of **rays** that lengthen as the nova winds up. Drawn `source-over` inside the otherwise-additive enemy pass — layered shapes blow out to white under `lighter`. | `bossBody()` |
+| **The Hunt** | Every ~9–14s an Anomaly **leaves its station and walks onto your core**, for 6–8s. A walk, not a dash — measured **~5s to cross ~400px**, so strolling away is always possible. **It lands one 34-damage hit and immediately breaks off** (recoiling for 1.1s); it never parks. The Sentinel expresses it by re-centring its **orbit on your core** and spiralling in to contact. Never starts mid-dash or mid-charge, and the Emitter will not wind up a lunge while hunting. | `b.hunt`, `b.huntBreak`, `HUNT_SPD`, `HUNT_BREAK` |
+| **…and why it stopped short before** | It used to halt at `b.r+P.r+58` = **117px** and merely crowd you, reasoning that its touch is 34 and it is never consumed, so a boss on your skin would be an unanswerable hit — **34 per 0.55s of i-frames ≈ 62 dps**. Sound about *parking*, wrong about *arriving*, and it cost twice over: the Hunt became a non-event (a player with hours in the game did not know the behaviour existed), and 117px is almost exactly the ring radius (114), so once rings began grinding the Anomaly would have sat *inside the grinder* for free. Committing to the core fixes both, and the parking problem is solved where it lives — recoil on contact. Verified: **exactly one 34 hit, 1 frame in contact**, then a clean retreat (106 → 388px). | `HUNT_BREAK` |
+| **Telegraphed** | It was three echo rings at 0.34 alpha and one Codex line — far too quiet for the moment the Anomaly is closest. Now: a **brighter, longer wake** (0.62 alpha, four rings), a **dashed lane drawn to your core** in the same grammar as the dash telegraph, a **descending tone** as it breaks station (`sfx.closing`, shared with the dash wind-up), a ring-flash on departure, and the integrity bar switching to **"IT IS COMING FOR THE CORE — MOVE"** in red. That bar names a movement answer, which is the rule for that line. | `drawBoss`, `syncHud` |
+| **Emitter** *(volleys)* | Hovers and **alternates two patterns**: a 6-shot hexagon **burst**, oriented so one arm leads you and the other five close your escape angles, and a sweeping **stream** of leading fans. From **Epoch III** it also **dashes**, launching a **spear** on the commit. | `b.emitMode`, `fireHexVolley`, `lunging` |
+| **The Dash** | The Emitter's one committed, unavoidable-once-launched move, so its warning has to be information. **It locks its lane when the wind-up begins**, draws *that* lane, and drives **150px past** the locked point — the threat is the **lane**, not the dot, so backing straight down it does not save you; you have to leave it. **1.3s** of warning under a descending tone, plus a reticle collapsing onto the lock so *when* reads as clearly as *where*. It never winds up while hunting. | `LUNGE_TEL`, `LUNGE_OVER`, `aimLunge()` |
+| **…and three bullets on the commit** | The dash throws **three spears**, 0.20 rad apart, not one. A move this heavily announced cannot also be answered by one sidestep, so its punctuation covers the angles you might leave **by** rather than the point you were standing **on** — the hex burst's logic, applied to the dash. Each spear carries its own angular offset through the muzzle re-aim (`aoff`), or all three would converge on the same player-facing angle mid-charge and land as one; verified holding a constant 0.4 rad spread across the full 0.55s charge and launching on three distinct headings. Measured against a bot that steps off the lane: **0 body hits**, but still 14–29 HP off the dash and its fan. Stepping aside is no longer the whole answer. | `SPEAR_N`, `SPEAR_SPREAD`, `fireSpear()`, `L.aoff` |
+| **…and why it was unreadable** | `tx,ty` used to be snapshotted when the wind-up **expired**, while the warning line was drawn to your **live** position. So the line tracked you for 0.5s and then locked wherever you happened to be standing: moving during the wind-up did *nothing*, and the only dodge was to move after the lock. Measured: the dash covers **63% of its run in 0.15s** and reaches contact in **0.17s** — a ~0.17s window, on a warning that carried no actionable information. It was a coin flip with a red line drawn on it. Total warning-to-contact went **0.69s → 1.02s → 1.42s**, and stepping perpendicular off the drawn lane now works: **0 body hits dodging, hit every time standing still**, clearing 103–169px against a 59px contact radius. *(The render was also normalising against a stale `0.65` while the timer ran `0.5`, so the warning opened at 23% lit and never reached full — it **appeared** rather than wound up.)* | `LUNGE_TEL` |
+| **Sentinel** *(chase)* | Circles the arena firing pincers **and sheds swarmers as it goes**, so its orbit leaves a **trail**. Chasing it means running that trail down. | `orbA`, `seedT` |
+| **Pulsar** *(ground denial)* | Telegraphs a collapsing charge-ring, then erupts a **radial wall of 13 with one seam** — be in the seam. Between rings it lobs **mines** onto the ground around *you*. 25% less HP: it is the kind that moves you rather than out-damages you. | `novaCharge`, `fireMines` |
+| **Missile** | Everything the Anomaly throws. All of them launch from its **own body**, so none can be walked back through it — its fire no longer erodes it at all. It **hurts you regardless of your own polarity**: you dodge a missile, you never match it. | `lances`, `fireMissile()`, `MSL` |
+| **NO INTERACTION** | **Missiles and matter do not touch each other. At all.** A missile passes straight through every Dot on the field: it does not kill them, it is not stopped by them, and *nothing is drawn* when it crosses one. Missiles are aimed at you and answered by **moving**; matter is answered by **colour**. Two systems sharing one arena with zero overlap. Verified: 28 sampled missile-through-body crossings, **28 survived (100%)**, travelling a median **70px past** the body 12 frames later, every Dot still alive. | in `stepLances()` |
+| **…and why the collision loop is gone for good** | Not a physics problem — a *reading* problem, and it survived three fixes. **v1 annihilated** on a colour rule backwards twice over: a missile is `bossOpp(boss.color)`, the colour you HOLD, so it killed precisely the matter about to hurt you — the Anomaly's fire was clearing your threats for free, invisibly, since missiles wear neutral livery. **v2 absorbed**, killing nothing, and was measured killing nothing (**lance deaths 0 / 0 / 0** across the three kinds with nothing stripped from the arena) — and still read as annihilation, because a bolt vanishing on a Dot looks like the Dot did it. Two separate attempts at fixing the *effect* (a white spark; then a white shell hugging the blocker) did not change that read. A missile that simply flies through cannot be misread. **The cost was accepted knowingly: Rings are no longer armour against the Anomaly's fire, and a Neutral is no longer cover. Nothing on the field blocks a missile — positioning is the whole defence.** | — |
+| **Mine blasts too** | A mine is a missile, so its detonation touches **you and nothing else**. It once deleted every non-matching body inside 104px, then briefly scattered them instead; both were the same category error — a blast that shoves the swarm around is still the Anomaly's fire reaching into the matter economy. Verified: **0 bodies kicked, 14 of 14 untouched** across a 30s pulsar fight. | `mineBlast()` |
+| **The body is the exception, and it is not fire** | The Anomaly *itself* still consumes matter that actually chips it (a flung body left sitting inside the skin would otherwise chip every frame). Matter that pays **0** — ordinary drift-in — **bounces off**: it is a solid object rather than a vacuum. It used to be consumed even at 0 damage, quietly deleting the ammunition you were about to use. | enemy-vs-boss contact |
+| **What still deletes matter near an Anomaly** | Worth naming, because none of it is the Anomaly's fire and all of it gets blamed on the Anomaly's fire. **Ambient opposite-colour traffic** is overwhelmingly the answer — measured against a pinned wall with the player parked 500px away: 7, 10 and 3 losses per 40s across the three kinds, **all** of it ordinary matter meeting matter. The **Sentinel's swarmers** are the only boss-emitted eraser left, and they are matter rather than shots, so the colour law applies to them like anything else: **1 of 20** bodies over 40s. Your own **Collapse** (2 damage sweeping the arena) takes the rest. | — |
+| **The five kinds** | Each has a different answer, so a fight asks more than one question. **Volley** — a spread that leads your motion; cross it. **Seeker** — turns toward you ~0.85s then commits; it out-turns you but cannot out-run you, so run. **Ring** — an expanding wall with one seam; be in the seam. **Mine** — lobbed at the ground around *you*, arms, then detonates; it draws its exact blast, so leave. The blast touches **you and nothing else**. **Spear** — telegraphs a line and tracks you along it, then fires; leave the line. They come **three at a time**, fanned, on the Emitter's dash. | `MSL`, `L.kind` |
+| **The loop** | **Dodge** the missiles · **scavenge** same-colour matter into your Rings · **evade** opposite-colour matter · **position so the Anomaly is downrange of your rings** · then **hungry-flip** and they fire straight through it. A loaded ring also **grinds** it on contact, so closing pays twice. Matter only erodes it if you *sent* it or *carried* it; drifting into it pays **nothing**. | — |
+| **Volley** | With an Anomaly alive, a hungry flip launches every gathered body that is not its colour **straight away from the core**, along the radius it already sat on, at 7.2px/frame — for **1.5s** it is un-clamped, seek-suppressed and **dead straight** (measured angular drift: **0.000°**). **3 damage** each. There is **no homing**: a ring reaches the Anomaly only if you put it between yourself and the Anomaly. | `VOLLEY_SPD`, `VOLLEY_HOLD`, `VOLLEY_DMG`, `e.vdmg` |
+| **The ring grinds** | A body **whirling in your rings** that sweeps through an Anomaly cuts it for **0.5**. You did not aim it, but you spent a hold gathering that ring and you have to carry it into contact range — that is what makes it yours rather than an accident. Before this the spin was the one thing rings could *not* do; a loaded ring was inert until you spent it. Contact **consumes** the body, which bounds a grind to the hoard you actually built. | `RING_GRIND_DMG` |
+| **…and why it is only a half** | It shipped at **2** and was cut twice. At 2 a hoarded ring dumped **18–20** in one pass — an outright kill on an 18 HP Epoch I boss. Halving to 1 fixed the burst but left the *sustained* rate too high, which a single trial had hidden: run six times per kind, a bot orbiting at 130px that **never fired a single volley** still solo-killed the Anomaly in 2–4 fights of 6, median **11 / 17 / 14**. A supplement that solo-kills two thirds of the time makes the Volley optional. At **0.5**: grind-only medians **5 / 4.5 / 11** with **0 / 0 / 1** solo kills in 6, and a 12-body hoard burst of **6 / 7 / 6**. Full-fight TTK returns to the pre-grind baseline — 15.1 / 13.5 / 12.8 against 15.2 / 13.7 / 11.2. | `RING_GRIND_DMG` |
+| **No per-kind bonus — and the obvious one was backwards** | A bonus for the kind you have to *chase* looks right and measured wrong. Closing on the **Sentinel** is the **cheapest** of the three: hoard a ring, walk in and hold contact 5s and you pay **−27 HP** (you regenerate — its orbit carries it away rather than parking on you and firing), against **82** for the Emitter and **66** for the Pulsar, which sit still and shoot you point-blank. At ×2 that was a free 18-damage kill for less than no cost. **Hard to catch and dangerous to stand next to are different axes**, and the grind is priced on the second. | `GRIND_MULT` (empty) |
+| **The prices** | **Volley 3** (you fired it) · **Baited charge 4** (you stood so its lane crossed the boss) · **Ring grind 0.5** (you carried it). **Everything else 0.** Boss HP is `13 + Epoch×5` (Pulsar ×0.75) — **6 connecting volleys at Epoch I, 11 at Epoch IV**. Note *connecting*: ring fire is radial, so most of a discharge misses and a fight costs far more than six rings. See the two-channel rule above for why the list is closed. | `VOLLEY_DMG`, `RING_GRIND_DMG` |
+| **Ways in** | Two from **matter** — **Volley** (3/body, the main line) and **Ring grind** (2/body, for carrying a loaded ring into it) — plus two that use no matter at all: **Close reversal** (1, but you must be inside the burst of a thing that does 34 on contact) and **Collapse** (flat 15%). The grind is the only one that needs neither a flip nor a Capacitor, which makes it the fallback when you have been stripped of everything else. *(The Bomber blast went with the payload, and the Fling and Brute barge were removed as damage channels — see the two-channel rule.)* | — |
+| **Why range is the skill** | Ring fire is **radial**, so what fraction of a discharge connects is set by the angle the Anomaly subtends from where you stand: at 300px its 44px body covers ~4.6% of the circle, at 150px ~9%, at 100px ~13%. Closing the range is the *only* way to raise your hit rate, and it walks you into its point-blank fire. Measured across 15 fights: orbiting at **270px → 8 kills / 7 deaths**, closing to **150px → 11 / 4**. | `VOLLEY_SPD`, `bossBody()` |
+| **Close reversal** | A *charged* reversal whose Shockwave reaches the Anomaly chips it for **1**, no matter needed. The band is narrow: the Shockwave reaches ~104px, so with its 44px body you must be inside ~148px of a thing that touches for **34**, hunts you, and lunges. It exists so a player stripped of Rings still has a way to keep hurting it. Measured at 2 it was **dominant** — alone it killed an Epoch I Anomaly in 26s for 5 HP — so it is priced to top up, never to be the plan. | `CLOSE_REVERSAL_DMG`, in `flip()` |
+| **The Fling never erodes** | Not "rarely" — **never**, by rule. It looks like it should be a way to shove matter into the Anomaly and it is not: a body you pushed *away from yourself* is not a shot you took at something. It carried a 1.4s "still counts as your shot" window until 2026-07-29; that went with the two-channel rule above. **The Fling is defence, and only defence.** Verified: rings **opposite** to the Anomaly → 20 volleyed / 0 flung; rings **matching** it → 20 flung / 0 volleyed / **0 damage**; and a flung body driven into the boss now does **0**. | in `flip()` |
+| **Destabilize** | Past 45s the Anomaly fires faster under a "DESTABILIZING" label; at 60s it **flees**. | `bossTime` |
+| **Purge (an Anomaly)** | Destroying the boss. Pays score, a heal, and a powerup **cache**. | `killBoss` |
+
+> ✅ **Name collision resolved (2026-07-29).** "Purge" briefly meant two things — the hungry flip's burst and killing the Anomaly. It resolved itself when the flip's burst stopped annihilating anything and became the **Fling**: a word that no longer describes it. **Purge** now means only the boss sense, as the achievement **"Purge an Anomaly"** always did.
+
+---
+
+## 8. Run structure & pacing
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Run** | One playthrough, start to death. | — |
+| **Epoch** | A major stage with its own name & palette: **Drift → Ember → Bloom → Tide** (then loops, in Roman numerals). Each Epoch ups pressure: same-species matter gains **+8% contact damage and +4% speed**, the mix shifts toward positioning-demanding species, and the arena holds more bodies. HP is deliberately never scaled — annihilation is binary. | `act`, `ACTS`, `doSpawns` |
+| **Phase** | The beat inside an Epoch, in order: **Calm → Build → Storm → Boss**, then release into the next Epoch. | `wavePhase` |
+| **Storm** | A colour-themed surge. **Storm Shift**: halfway through, the colour swaps — re-decide your polarity mid-wave. | `enterStorm`, `stormShiftT` |
+| **Intensity** | The internal 0–1 pacing dial that scales spawn rate. | `intensity` |
+| **Director** | The system that advances Phases, drives spawns and schedules Formations. | `director()` |
+| **GET READY** | The short countdown breather after un-pausing, before control resumes. | `state==='ready'` |
+| **Boss Rush** | The practice mode (menu → ◆). One Anomaly always present over a **live ambient field**, cycling kinds on kill; **1–3** jumps to a kind (the key range and the HUD label both derive from `TEST_ORDER.length`). Epoch is pinned at II. Its score **never touches your survival best**. | `testMode`, `TEST_ORDER` |
+
+### The silent world
+
+There is **no centre banner**. Storms, Epochs, the Anomaly's arrival, Collapse and streak tiers are announced by **matter, colour, ring, shake and sound** — never by text across the middle of the screen, which pulled the eyes off the field at exactly the wrong moment. Two text channels survive, both out of the play area:
+
+- **Pickup pill** (left, by the chips) — a powerup's *effect* is the one thing you genuinely can't read off the screen.
+- **Achievement toast** (top centre, gold).
+
+> **Removed 2026-07-29: the reversal's `VOLLEY ×n` / `FLUNG ×n` counters.** They were a third text channel that this section had never sanctioned, and they broke the rule for the same reason a centre banner does — they printed a tally *of the thing you had just watched happen*, on the exact frame your eyes should have been on the matter you threw. The reversal already announces itself with a ring drawn at the burst's true radius, the bodies visibly launching, a screen kick and a sound; the number added nothing you could act on. The counters still exist as variables, because they gate that feedback — they are simply never rendered.
+
+---
+
+## 9. Game states
+
+`menu` · `play` · `ready` (GET READY) · `paused` · `dead`
+
+---
+
+## 10. Feedback / "juice"
+
+| Term | Meaning | Code |
+|---|---|---|
+| **Trauma** | Screen-shake amount. | `trauma` |
+| **Flash** | Full-screen colour flash. | `flash` |
+| **Hitstop** | Brief freeze-frame on big hits. | `hitstop` |
+| **Floating text** | Small rising labels near the core ("-26", "POINT BLANK", "STREAK 25"). | `pushText` |
+| **Ring / Burst** | Expanding ring & particle spray effects. | `spawnRing`, `spawnBurst` |
+| **Moment Engine** | Global slow-motion dips (`slowmo(scale, hold)`) — the Collapse breath is the big one. | `timeScale` |
+| **The Spheres** | The celestial harp arpeggio: **orb pickup** (`harp(5)`) and the Collapse black hole's **evaporation** (`harp(6)`). Achievements do *not* use it — they ring `sfx.level()`. | `sfx.harp` |
+| **Core Fault** | The crash screen. A bad frame is dropped and the loop survives; 8 consecutive faults halt it with a reload prompt rather than a silent freeze. | `crashHalt()` |
+
+---
+
+## 11. Dormant mechanics (written, tuned, switched off)
+
+Left over from the POLARIS arsenal. Each is **fully implemented and rendered** but never enabled — every one is read each frame against a flag that nothing writes. They are the cheapest content in the codebase (~1 line each to wake) and the obvious source for future powerups.
+
+| Flag | What it does if switched on |
+|---|---|
+| `P.congreg` | Same-colour bodies **kneel into orbit** as devotees (max 4) instead of being repelled. |
+| `P.arc` | Kills **chain-lightning** to neighbours (`zaps` renders it). |
+| `P.sats` | **Satellite moons** orbit the World with their own annihilating fields (field rendering exists). |
+| `P.ferro` | Unbanked Motes become **armed mines** with visible trigger rings; more Motes, longer-lived. |
+| `P.pulse` | Scales the Shockwave's radius and force above base. |
+| `P.aftershock` | Collapse fires a **second wave**. |
+| `P.rupture` | You **detonate** when hit. |
+| `P.afterimage` | A window where **both** colours repel. |
+| `P.vamp` | Lifesteal on point-blank pops, against a refilling budget. |
+| `P.decay` | Damage-over-time to Brutes & Neutrals inside the Field. |
+| `P.armor`, `P.seekMult`, `P.chargeGain`, `P.conduitAmp` | Straight multipliers. |
+| `P.discharge` | Not a multiplier — a **gate**: with it set, a Shockwave thrown at `hc>=0.55` *annihilates* everything in its radius instead of merely shoving it. |
+| `P.singularity` | Turns Collapse inside out: instead of a blast wave, a **black hole** opens where you stood — accretion spiral, devours regardless of toughness, banks a Mote per body, feeds itself (+0.2s each, cap +3s), full `drawHole` rendering and a harp on evaporation. Complete and unreachable. |

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ORBITAL CRASH · Bestiary</title>
+<style>
+  :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#8f9bb2;--ink:#e7ecf5;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{background:radial-gradient(130% 100% at 50% 0%,#0d1730 0%,#060812 62%,#04060f 100%);
+    color:var(--ink);min-height:100vh;padding:30px 20px 52px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;}
+  header{text-align:center;margin-bottom:8px;}
+  .logo{font-size:clamp(40px,10vw,72px);font-weight:900;line-height:.85;letter-spacing:.02em;
+    background:linear-gradient(180deg,#fff 0%,var(--cyan) 48%,var(--violet) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 26px rgba(80,200,255,.4));}
+  .sub{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-top:4px;}
+  .legend{font-size:12.5px;line-height:1.55;color:#aeb8c8;margin:16px auto 18px;max-width:640px;text-align:center;}
+  .legend b{font-weight:700;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:11px;}
+  .card{background:#0a0f1c;border:1px solid rgba(120,140,180,.16);border-radius:14px;padding:9px 8px 11px;text-align:center;}
+  .card canvas{display:block;margin:0 auto;width:100%;max-width:150px;height:auto;}
+  .nm{font-weight:800;font-size:14px;margin-top:5px;letter-spacing:.01em;}
+  .meta{font-size:10px;color:#8f9bb2;margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  .tag{font-size:11px;color:#c3ccdb;margin-top:4px;line-height:1.35;min-height:30px;}
+  .wide{grid-column:1 / -1;background:#0a0f1c;border:1px solid rgba(155,107,255,.28);border-radius:16px;
+    padding:14px 18px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:2px;}
+  .wide canvas{flex:0 0 auto;width:230px;height:190px;}
+  .wide .info{flex:1;min-width:180px;text-align:left;}
+  .wide .nm{font-size:19px;margin-top:0;}
+  .wide .tag{text-align:left;min-height:0;margin-top:6px;font-size:12.5px;color:#c3ccdb;}
+  .wide .meta{text-align:left;font-size:11px;}
+  .foot{text-align:center;font-size:11px;color:#5f6b82;margin-top:22px;letter-spacing:.04em;}
+  .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--violet);
+    font-weight:800;text-align:center;margin:18px 0 2px;}
+  .card.anom{border-color:rgba(155,107,255,.28);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">ORBITAL CRASH</div>
+      <div class="sub">Bestiary</div>
+    </header>
+    <p class="legend">Every body carries a charge — <b style="color:#ff3f6c">Red</b> or <b style="color:#38e0ff">Cyan</b>. Opposite charge → drifts toward you &amp; annihilates on contact (<b>danger &amp; ammo</b>); your world never sucks it in — you steer into it. Like charge → caught into your rings (<b>safe</b>). <b style="color:#c7b8ff">Neutral</b> is uncharged. Charges shown are just examples.</p>
+    <div class="grid" id="fbGrid"></div>
+    <p class="foot">Rendered live with ORBITAL CRASH's own draw code · sizes, health &amp; damage are the real values.</p>
+  </div>
+<script>
+(function(){
+  const COL={red:'#ff3f6c',cyan:'#38e0ff',neutral:'#c7b8ff'};
+  const TAU=Math.PI*2;
+  const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
+
+  const CORE={kind:'core',name:'The World',tag:'You — a magnetic world. Steer with the mouse; reverse your poles to turn your own rings against the sky.'};
+  const DOTS=[
+    {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,hp:1,dmg:10,tag:'Steady approach — the baseline body.'},
+    {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, hp:1,dmg:8, tag:'Small and very fast; light hit.'},
+    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'Big, slow, tanky — heavy hit. <b>3 hp</b>, so it is the one body that walks out of a Collapse burned instead of dead. Against an Anomaly it is no different from anything else: gather it into your rings and grind, or volley it.'},
+    {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,hp:1,dmg:12,tag:'The binary — two lobes, two nuclei, already coming apart. Popping it bursts those nuclei out as <b>2 Minis</b>, so it is the one body that leaves the sky fuller than it found it. A <b>Collapse kills it clean</b>, with no fragments.'},
+    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Fast fragment from a Splitter.'},
+    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Curves around your world instead of charging.'},
+    {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:26,
+     tag:'The <b>hardest contact hit in the sky</b> — <b>26</b>, where a Brute is 22. Four touches from full and the run is over. Its death payload is gone: there is no trick left and no reward for herding it, only the hit. It is also the most fragile body in the game at <b>1 hp</b>, so anything at all deletes it — and while you hold its colour it rings up as armour and volleys like any other matter.'},
+    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism does not own. It will never join your ring; it travels on a line of its own, which is why it is the only shape in the sky with a direction. It <b>locks that lane the moment it winds up</b> and draws the whole thing, out to a reticle on the spot where the dash ends, so the line is a promise it has already made. Step <b>off</b> it — or stand so it runs through an <b>Anomaly</b>, because a committed dash into one is worth <b>4 dmg</b>.'},
+    {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'The uncharged body, and it <b>wears both poles</b> — half red, half cyan on a turning seam, because no polarity you can hold makes it safe or makes it ammunition. Immune to the Field; pop it with a reversal. It is <b>not</b> cover: nothing is. An Anomaly\'s missiles pass straight through every body on the field.'},
+  ];
+  const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:44,hp:'13+epoch·5',dmg:34,
+    tag:'The boss, at the end of each Epoch. Immune to your reversals, and its body hurts (34 dmg). Every missile it throws launches from its <b>own body</b>, so none can be turned back against it — <b>its own fire cannot erode it, and neither can matter that merely drifts into it</b>. You bring it down with the loop: <b>dodge</b> its patterns, <b>scavenge</b> your colour into your Rings, <b>evade</b> the other colour, then <b>hungry-flip to VOLLEY</b> those rings at it (<b>3 dmg</b> each). A loaded ring also <b>grinds</b> it just by touching — <b>½ dmg</b> per body, each spent doing it — steady pressure for holding the range, not a burst that ends the fight. Those are the <b>only two</b> ways matter can hurt it: anything that merely drifts or is flung into it bounces off for nothing, because the Anomaly walks the arena and a rule that paid for contact would let it damage itself just by moving. If you have been stripped of your Rings, a <b>charged reversal inside its skin</b> still chips it for <b>1</b> with no ammunition at all — priced to top you up, not to be the plan, because standing that close to a body that touches for 34 is the cost. Every kind also <b>hunts</b>: roughly every 9–14s it breaks station and <b>walks onto your core</b>, slowly and loudly. It lands <b>one</b> hit and recoils rather than parking on you — and it has to cross your rings to get there. A Collapse chips <b>15%, flat</b> — packing the field around it changes nothing. Purging it drops a powerup, +30 HP and +40% charge. Three KINDS below.'};
+  // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
+  const ANOMS=[
+    {kind:'anom',key:'emitter', name:'Emitter', col:'cyan', meta:'volleys · hovers · burst & stream',
+     tag:'The teacher. Alternates a hexagon <b>burst</b> — six shots, one arm leading you and the other five closing the angles you might run to — and a sweeping <b>stream</b> of leading fans. Cross them; do not back away in a straight line. From <b>Epoch III</b> it also <b>dashes</b>, throwing <b>three fanned spears</b> as it commits. The dash <b>locks its lane when the wind-up starts</b> and drives straight past you — so the dashed line is a promise it has already made, and the answer is to step <b>off the line</b>, not to back away down it. One sidestep is not the whole answer: the fan covers the angles you leave by.'},
+    {kind:'anom',key:'sentinel',name:'Sentinel',col:'cyan', meta:'chase · circles · seeds a trail',
+     tag:'Orbits the arena firing <b>seekers</b> in pincer pairs — they turn onto you for a moment, then commit. They out-turn you but cannot out-run you, so <b>run, do not juke</b>. It also sheds swarmers as it goes, leaving a <b>trail</b> that is part threat and part volley ammo.'},
+    {kind:'anom',key:'pulsar',  name:'Pulsar',  col:'red',  meta:'ground denial · rings & mines',
+     tag:'Charges, then erupts a <b>radial wall of 13 with one seam</b> — find the seam and be in it. Between rings it lobs <b>mines</b> onto the ground around you; each draws its exact blast, so the answer is simply to not be there. The blast touches <b>you and nothing else</b> — a mine is a missile, and missiles never interact with matter. Carries 25% less HP: it is the kind that moves you rather than out-damages you.'},
+  ];
+  // the two Patterns — irregular waves that arrive between the drizzle, from ~0:42 onward
+  const FORMS=[
+    {kind:'form',key:'wall', name:'The Wall',  col:'cyan', meta:'marches across · returns once',
+     tag:'A solid line spans the arena with <b>one gap</b> — and the gap <b>shuts</b> as the line advances, so it is widest the moment it arrives. Reaching the far edge it <b>turns around</b> and comes back. Colour alternates every body: no polarity is safe anywhere along it.'},
+    {kind:'form',key:'noose',name:'The Noose', col:'red',  meta:'closes on you · seam rotates',
+     tag:'A ring closes on wherever you are standing, and its <b>seam rotates</b> as it comes in, so the way out is never where you last looked. It travels <b>past</b> the centre — standing still is not an option.'},
+  ];
+
+  const renders=[];
+  const grid=document.getElementById('fbGrid');
+
+  function makeCard(spec,wide){
+    const card=document.createElement('div');
+    card.className=wide?'wide':'card';
+    const cw=wide?230:140, ch=wide?190:104;
+    const cv=document.createElement('canvas');
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    cv.width=cw*dpr; cv.height=ch*dpr; cv.style.width=cw+'px'; if(!wide)cv.style.maxWidth=cw+'px'; cv.style.height=ch+'px';
+    const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+    const info=document.createElement('div'); info.className='info';
+    const meta = spec.kind==='core' ? '' : spec.meta ? spec.meta : ('r '+spec.r+' · hp '+spec.hp+' · '+spec.dmg+' dmg');
+    info.innerHTML='<div class="nm">'+spec.name+'</div>'+(meta?'<div class="meta">'+meta+'</div>':'')+'<div class="tag">'+spec.tag+'</div>';
+    card.appendChild(cv); card.appendChild(info);
+    grid.appendChild(card);
+    renders.push({ctx,cw,ch,spec});
+  }
+
+  function drawDot(ctx,x,y,s,t){
+    const c = s.col==='neutral'?COL.neutral:COL[s.col];
+    y += Math.sin(t*1.6 + s.r)*2;
+    const r=s.r;
+    ctx.globalCompositeOperation='lighter';
+    ctx.fillStyle=hexA(c,0.28); ctx.beginPath(); ctx.arc(x,y,r*1.9,0,TAU); ctx.fill();
+    if(s.type==='split'){ // the binary — two lobes, two nuclei, exactly as in the game
+      const a=t*0.55, ca=Math.cos(a), sa=Math.sin(a), off=r*(0.30+0.05*Math.sin(t*3.4));
+      ctx.fillStyle=c;
+      ctx.beginPath(); ctx.arc(x-sa*off,y+ca*off,r*0.72,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+sa*off,y-ca*off,r*0.72,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)';
+      ctx.beginPath(); ctx.arc(x-sa*off,y+ca*off,r*0.26,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+sa*off,y-ca*off,r*0.26,0,TAU); ctx.fill();
+    } else if(s.type==='neutral'){ // both poles at once, on a turning seam — exactly as in the game
+      const na=t*0.5;
+      ctx.fillStyle=COL.red;  ctx.beginPath(); ctx.arc(x,y,r, na, na+Math.PI); ctx.fill();
+      ctx.fillStyle=COL.cyan; ctx.beginPath(); ctx.arc(x,y,r, na+Math.PI, na+TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.24,0,TAU); ctx.fill();
+    } else if(s.type==='charger'){ // the arrowhead — the one body the Field does not own, as in the game
+      const ha=Math.sin(t*0.6)*0.5, ca=Math.cos(ha), sa=Math.sin(ha), R=r*1.25;
+      ctx.fillStyle=c; ctx.beginPath();
+      ctx.moveTo(x+ca*R, y+sa*R);
+      ctx.lineTo(x-ca*R*0.72-sa*R*0.78, y-sa*R*0.72+ca*R*0.78);
+      ctx.lineTo(x-ca*R*0.34, y-sa*R*0.34);
+      ctx.lineTo(x-ca*R*0.72+sa*R*0.78, y-sa*R*0.72-ca*R*0.78);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.28,0,TAU); ctx.fill();
+    } else {
+      ctx.fillStyle=c;            ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
+    }
+    if(s.type==='neutral'){ // the seam between the two charges, not another concentric ring
+      const na=t*0.5;
+      ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5; ctx.beginPath();
+      ctx.moveTo(x+Math.cos(na)*r, y+Math.sin(na)*r); ctx.lineTo(x-Math.cos(na)*r, y-Math.sin(na)*r); ctx.stroke();
+    } else if(s.type==='orbiter'){
+      const a0=t*1.5; ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,r*1.5,a0,a0+Math.PI*1.2); ctx.stroke();
+    } else if(s.type==='bomber'){
+      // mirrors index.html: the dashed 1.55r standoff ring went with the death payload — it was a
+      // scale model of the 108px blast and promises a radius the Bomber no longer has.
+      const pr=1+0.18*Math.sin(t*7); ctx.strokeStyle=hexA('#ffffff',0.5+0.3*Math.sin(t*7)); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(x,y,r*0.7*pr,0,TAU); ctx.stroke();
+    } else if(s.type==='charger'){
+      const tt=Math.sin(t*3)*0.5+0.5;
+      ctx.strokeStyle=hexA('#ffffff',0.4+0.5*tt); ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,r+4+6*tt,0,TAU); ctx.stroke();
+      ctx.strokeStyle=hexA(c,0.35+0.4*tt); ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-(30+18*tt),y); ctx.stroke();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawCore(ctx,x,y,s,t){
+    const c=COL.cyan, r=20;
+    ctx.globalCompositeOperation='lighter';
+    // atmosphere (two soft layers)
+    ctx.fillStyle=hexA(c,0.40); ctx.beginPath(); ctx.arc(x,y,r*2.4,0,TAU); ctx.fill();
+    ctx.fillStyle=hexA(c,0.30); ctx.beginPath(); ctx.arc(x,y,r*1.45,0,TAU); ctx.fill();
+    // body
+    ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,r*0.82,0,TAU); ctx.fill();
+    // lit hemisphere — fakes a sphere under additive blending
+    ctx.fillStyle=hexA('#ffffff',0.45); ctx.beginPath(); ctx.arc(x-r*0.26,y-r*0.26,r*0.42,0,TAU); ctx.fill();
+    // atmosphere rim
+    ctx.strokeStyle=hexA('#ffffff',0.85); ctx.lineWidth=2.2; ctx.beginPath(); ctx.arc(x,y,r*0.86,0,TAU); ctx.stroke();
+    // tilted ring halo
+    ctx.save(); ctx.translate(x,y); ctx.rotate(-0.22); ctx.scale(1,0.36);
+    ctx.strokeStyle=hexA(c,0.55); ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(0,0,r*1.95,0,TAU); ctx.stroke();
+    ctx.strokeStyle=hexA('#ffffff',0.16); ctx.lineWidth=1; ctx.beginPath(); ctx.arc(0,0,r*2.35,0,TAU); ctx.stroke();
+    ctx.restore();
+    ctx.globalCompositeOperation='source-over';
+    // no pole glyph — colour carries the polarity, here as in the game
+  }
+
+  function drawBoss(ctx,x,y,s,t){
+    const c=COL[s.col], r=28;
+    const lc=COL[s.col==='red'?'cyan':'red'];
+    const prog=(t*0.45)%1, rr=r+18 + (1-prog)*66;
+    ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<6;i++){ const a=i/6*TAU + t*0.25; const lx=x+Math.cos(a)*rr, ly=y+Math.sin(a)*rr;
+      ctx.strokeStyle=hexA(lc,0.35); ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(x+Math.cos(a)*(rr+15),y+Math.sin(a)*(rr+15)); ctx.stroke();
+      ctx.fillStyle=hexA(lc,0.95); ctx.beginPath(); ctx.arc(lx,ly,4.5,0,TAU); ctx.fill();
+    }
+    const pulse=1+0.06*Math.sin(t*4);
+    ctx.fillStyle=hexA(c,0.28); ctx.beginPath(); ctx.arc(x,y,r*2.1*pulse,0,TAU); ctx.fill();
+    ctx.globalCompositeOperation='source-over';
+    // draws the EMITTER silhouette on purpose: there is no generic Anomaly body any more, and the
+    // first Anomaly of every run is always the Emitter, so this is the one you actually meet first.
+    anomBody(ctx,x,y,r*pulse,'emitter',c,lc,t);
+    const frac=0.68;
+    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x,y,r+11,0,TAU); ctx.stroke();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x,y,r+11,-Math.PI/2,-Math.PI/2+frac*TAU); ctx.stroke();
+  }
+
+  // The per-kind silhouette, mirroring bossBody() in index.html. Each shape IS the mechanic:
+  //   emitter  — a faceted HEXAGON that turns (the crossfire pattern it throws)
+  //   sentinel — a hollow RING with two opposed pincer wings on its firing axis
+  //   pulsar   — a dense core inside a crown of RAYS (the nova wind-up, made of body)
+  function anomBody(ctx,x,y,R,key,c,oc,t){
+    if(key==='sentinel'){
+      const rot=t*0.9;
+      ctx.strokeStyle=c; ctx.lineWidth=R*0.30;
+      ctx.beginPath(); ctx.arc(x,y,R*0.74,0,TAU); ctx.stroke();
+      ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(x,y,R*0.90,0,TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x,y,R*0.58,0,TAU); ctx.stroke();
+      for(const s2 of [0,Math.PI]){
+        ctx.strokeStyle=hexA(oc,0.9); ctx.lineWidth=R*0.17;
+        ctx.beginPath(); ctx.arc(x,y,R*0.74,rot+s2-0.42,rot+s2+0.42); ctx.stroke();
+      }
+      ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(x,y,R*0.25,0,TAU); ctx.fill();
+      return;
+    }
+    if(key==='pulsar'){
+      const ch=0.5+0.5*Math.sin(t*1.9);                         // breathe the wind-up
+      const n=14, inner=R*0.54, outer=R*(1.02+0.44*ch);
+      ctx.strokeStyle=hexA(oc,0.5+0.45*ch); ctx.lineWidth=3;
+      for(let i=0;i<n;i++){ const a=i/n*TAU + t*0.5;
+        ctx.beginPath();
+        ctx.moveTo(x+Math.cos(a)*inner, y+Math.sin(a)*inner);
+        ctx.lineTo(x+Math.cos(a)*outer, y+Math.sin(a)*outer); ctx.stroke(); }
+      ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,R*0.60,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(x,y,R*0.30,0,TAU); ctx.fill();
+      return;
+    }
+    const rot=t*0.5;
+    const hex=(rad,rr)=>{ ctx.beginPath();
+      for(let i=0;i<6;i++){ const a=rr+i/6*TAU, px=x+Math.cos(a)*rad, py=y+Math.sin(a)*rad;
+        i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+      ctx.closePath(); };
+    hex(R,rot); ctx.fillStyle=c; ctx.fill();
+    ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2; ctx.stroke();
+    hex(R*0.52,-rot*1.4); ctx.strokeStyle=hexA(oc,0.8); ctx.lineWidth=2.5; ctx.stroke();
+    for(let i=0;i<6;i++){ const a=rot+i/6*TAU;
+      ctx.fillStyle=hexA(oc,0.95);
+      ctx.beginPath(); ctx.arc(x+Math.cos(a)*R, y+Math.sin(a)*R, 3.2,0,TAU); ctx.fill(); }
+    ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(x,y,R*0.24,0,TAU); ctx.fill();
+  }
+
+  // a compact Anomaly-kind portrait: the boss body + a live cue of its signature attack
+  function drawAnomMini(ctx,x,y,s,t){
+    const c=COL[s.col], lc=COL[s.col==='red'?'cyan':'red'], r=17;
+    ctx.globalCompositeOperation='lighter';
+    if(s.key==='emitter'){                                   // 6 Flares radiating out...
+      const prog=(t*0.5)%1, rr=r+12+(1-prog)*30;
+      for(let i=0;i<6;i++){ const a=i/6*TAU+t*0.2, lx=x+Math.cos(a)*rr, ly=y+Math.sin(a)*rr;
+        ctx.fillStyle=hexA(lc,0.9*prog); ctx.beginPath(); ctx.arc(lx,ly,3.4,0,TAU); ctx.fill(); }
+      const aa=1.3+Math.sin(t*0.8)*0.45;                     // ...plus the Epoch III dash telegraph
+      ctx.strokeStyle=hexA('#ff3b6c',0.4+0.3*Math.sin(t*10)); ctx.lineWidth=2; ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(aa)*44,y+Math.sin(aa)*44); ctx.stroke(); ctx.setLineDash([]);
+    } else if(s.key==='sentinel'){                            // a marker circling an orbit path, laying a trail
+      ctx.strokeStyle=hexA(c,0.22); ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,r+22,0,TAU); ctx.stroke();
+      const ma=t*1.5;
+      for(let i=1;i<=5;i++){                                  // the swarmer trail it leaves behind itself
+        const a=ma-i*0.34, tx2=x+Math.cos(a)*(r+22), ty2=y+Math.sin(a)*(r+22);
+        ctx.fillStyle=hexA(i%2?COL.red:COL.cyan,0.5-i*0.07); ctx.beginPath(); ctx.arc(tx2,ty2,2.4,0,TAU); ctx.fill(); }
+      const lx=x+Math.cos(ma)*(r+22), ly=y+Math.sin(ma)*(r+22);
+      ctx.fillStyle=hexA(lc,0.95); ctx.beginPath(); ctx.arc(lx,ly,4,0,TAU); ctx.fill();
+    } else if(s.key==='pulsar'){                              // charge ring collapsing in, then a burst out
+      const prog=(t*0.6)%1;
+      ctx.strokeStyle=hexA(lc,0.2+0.6*(1-prog)); ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,r+6+(1-prog)*26,0,TAU); ctx.stroke();
+      for(let i=0;i<10;i++){ const a=i/10*TAU, rr=r+8+prog*30, lx=x+Math.cos(a)*rr, ly=y+Math.sin(a)*rr;
+        ctx.fillStyle=hexA(lc,0.85*(1-prog*0.5)); ctx.beginPath(); ctx.arc(lx,ly,2.5,0,TAU); ctx.fill(); }
+    }
+    const pulse=1+0.06*Math.sin(t*4);
+    ctx.fillStyle=hexA(c,0.28); ctx.beginPath(); ctx.arc(x,y,r*2.0*pulse,0,TAU); ctx.fill();
+    // the SAME silhouette the game draws — the whole point of these portraits is that you can name the
+    // Anomaly on sight once you have seen the card, so the shapes must match exactly. Composited
+    // source-over for the same reason as in-game: layered shapes blow out to white under `lighter`.
+    ctx.globalCompositeOperation='source-over';
+    anomBody(ctx,x,y,r*pulse,s.key,c,lc,t);
+  }
+
+  // a Pattern portrait: the shape's own geometry, animating through its one idea
+  function drawForm(ctx,x,y,s,t){
+    ctx.globalCompositeOperation='lighter';
+    if(s.key==='wall'){
+      // a line of alternating bodies marching right, with a gap that narrows as it goes
+      const N=13, sp=13.4, gapAt=5;
+      const cyc=(t*0.34)%1, ox=-72+cyc*144, shut=cyc;           // door closes across the sweep
+      for(let i=0;i<N;i++){
+        if(i===gapAt||i===gapAt+1) continue;
+        const near = i===gapAt-1 ? 1 : (i===gapAt+2 ? -1 : 0);
+        const yy=y-(N-1)*sp/2+i*sp + near*shut*sp*0.85;
+        ctx.fillStyle=hexA(i%2?COL.red:COL.cyan,0.92);
+        ctx.beginPath(); ctx.arc(x+ox,yy,4.6,0,TAU); ctx.fill();
+      }
+      ctx.strokeStyle=hexA('#ffffff',0.34); ctx.lineWidth=2;     // travel arrow
+      ctx.beginPath(); ctx.moveTo(x+ox+16,y); ctx.lineTo(x+ox+38,y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+ox+38,y); ctx.lineTo(x+ox+31,y-5); ctx.lineTo(x+ox+31,y+5); ctx.closePath();
+      ctx.fillStyle=hexA('#ffffff',0.34); ctx.fill();
+    } else {
+      // a ring contracting onto the centre while its seam rotates around
+      const cyc=(t*0.3)%1, R=80-cyc*62, spin=cyc*0.9;
+      for(let i=0;i<22;i++){
+        if(i===0||i===1) continue;                              // the seam — it turns with `spin`
+        const a=i/22*TAU+spin;
+        ctx.fillStyle=hexA(i%2?COL.red:COL.cyan,0.92);
+        ctx.beginPath(); ctx.arc(x+Math.cos(a)*R,y+Math.sin(a)*R,4.2,0,TAU); ctx.fill();
+      }
+      ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function addSection(label){
+    const h=document.createElement('div'); h.className='section'; h.textContent=label; grid.appendChild(h);
+  }
+  makeCard(CORE,false);
+  DOTS.forEach(d=>makeCard(d,false));
+  addSection('Patterns');
+  FORMS.forEach(f=>makeCard(f,true));
+  addSection('The Anomaly');
+  makeCard(BOSS,true);
+  addSection('Anomaly kinds');
+  ANOMS.forEach(a=>makeCard(a,false));
+
+  function draw(t){
+    for(const rd of renders){
+      const {ctx,cw,ch,spec}=rd;
+      ctx.clearRect(0,0,cw,ch);
+      const x=cw/2, y=ch/2;
+      if(spec.kind==='core') drawCore(ctx,x,y,spec,t);
+      else if(spec.kind==='boss') drawBoss(ctx,x,y,spec,t);
+      else if(spec.kind==='anom') drawAnomMini(ctx,x,y,spec,t);
+      else if(spec.kind==='form') drawForm(ctx,x,y,spec,t);
+      else drawDot(ctx,x,y,spec,t);
+    }
+  }
+  function loop(now){ draw(now/1000); requestAnimationFrame(loop); }
+  draw(0);                        // immediate first paint (no blank frame if rAF is slow to start)
+  requestAnimationFrame(loop);    // then animate
+})();
+</script>
+</body>
+</html>
