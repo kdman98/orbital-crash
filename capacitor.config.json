@@ -1,0 +1,11 @@
+{
+  "appId": "com.orbitalcrash.game",
+  "appName": "Orbital Crash",
+  "webDir": "www",
+  "backgroundColor": "#070b16",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#070b16",
+    "scrollEnabled": false
+  }
+}
