@@ -1414,7 +1414,44 @@ function step(){
   stepOrbs(dt);    // float / draw-in / collect powerup pickups
   director(dt);
 
+  stepPlayer(dt);
+
+  stepEnemyForces(dt);
+
+  if(cwave) stepCollapseWave();
+
+  // ----- anomaly lances: fly across, hurt the core, erode the anomaly -----
+  if(lances.length){ stepLances(dt); if(state!=='play') return; }
+
+  // ----- flux motes: hoover, vacuum, bank -----
+  if(motes.length) stepMotes(dt);
+
+  stepAnnihilation();
+
+  if(stepPlayerContact()) return;   // the core died this frame
+
+  // ----- process kill queue (chains) -----
+  processKills();
+
+  // ----- cleanup dead -----
+  if(enemies.length){
+    let w=0;
+    for(let i=0;i<enemies.length;i++){ if(!enemies[i].dead) enemies[w++]=enemies[i]; }
+    enemies.length=w;
+  }
+
+  stepRunTimers(dt);
+  stepDecay(dt);
+}
+
+// ---------------------------------------------------------------------
+//  step() phases. Pure moves out of one 471-line function, split along the
+//  seam banners that were already there. Order of calls in step() is the
+//  order these ran in; nothing else changed.
+// ---------------------------------------------------------------------
+
   // ----- player follow pointer (speed-capped briefly after a resume: glide, never teleport) -----
+function stepPlayer(dt){
   if(pointer.has){
     const mm=P.moveMult;
     const lf=clamp(0.185*mm,0,0.62);
@@ -1451,10 +1488,12 @@ function step(){
   // out-of-combat regen: recover after a few seconds without a hit
   P.hurtT+=dt;
   if(P.hurtT>3.8 && P.hp<P.maxHp) P.hp=Math.min(P.maxHp,P.hp+P.regen*dt);
+}
 
   // ----- forces on enemies -----
   // (Hungry Hold no longer reels opposite matter in — the world has no inward pull on another charge.
   //  Holding a pole still amplifies the reversal shockwave; see `hc` in flip().)
+function stepEnemyForces(dt){
   const attractors=[[P.x,P.y,P.fieldR,P.fieldK,1]];
   for(const e of enemies){
     if(e.dead)continue;
@@ -1634,33 +1673,29 @@ function step(){
   // keep the Anomaly clear of the top HUD strip once its entrance dive is done — its integrity bar
   // lives up there. Clamp AFTER the force loop (updateBoss ran at the top of step, before this).
   if(boss && !boss.dead && bossTime>1.6) boss.y=Math.max(boss.y, 138);
+}
 
   // ----- collapse shockwave: a BLAST, not an eraser — 2 damage as it sweeps. Trash dies;
   // Brutes (3hp) crawl out burned and flung. The Singularity's horizon is the true eraser. -----
-  if(cwave){
-    cwave.r+=42;
-    const r2=cwave.r*cwave.r;
-    for(const e of enemies){
-      if(e.dead||e.queued||e.type==='boss')continue;
-      if(e._cw===cwave.id)continue;             // each wave hits a Dot once
-      const dx=e.x-cwave.x, dy=e.y-cwave.y;
-      if(dx*dx+dy*dy<r2){
-        e._cw=cwave.id;
-        e.hp-=2;
-        if(e.hp<=0) queueKill(e);
-        else { const d=Math.hypot(dx,dy)||1; e.vx+=dx/d*9; e.vy+=dy/d*9; spawnBurst(e.x,e.y,'#fff',4,2.2); }
-      }
+function stepCollapseWave(){
+  cwave.r+=42;
+  const r2=cwave.r*cwave.r;
+  for(const e of enemies){
+    if(e.dead||e.queued||e.type==='boss')continue;
+    if(e._cw===cwave.id)continue;             // each wave hits a Dot once
+    const dx=e.x-cwave.x, dy=e.y-cwave.y;
+    if(dx*dx+dy*dy<r2){
+      e._cw=cwave.id;
+      e.hp-=2;
+      if(e.hp<=0) queueKill(e);
+      else { const d=Math.hypot(dx,dy)||1; e.vx+=dx/d*9; e.vy+=dy/d*9; spawnBurst(e.x,e.y,'#fff',4,2.2); }
     }
-    if(cwave.r>Math.hypot(W,H)+120) cwave=null;
   }
-
-  // ----- anomaly lances: fly across, hurt the core, erode the anomaly -----
-  if(lances.length){ stepLances(dt); if(state!=='play') return; }
-
-  // ----- flux motes: hoover, vacuum, bank -----
-  if(motes.length) stepMotes(dt);
+  if(cwave.r>Math.hypot(W,H)+120) cwave=null;
+}
 
   // ----- enemy vs enemy annihilation (spatial grid) -----
+function stepAnnihilation(){
   const cell=64, grid=new Map();
   const key=(cx,cy)=>cx+cy*10000;
   for(let i=0;i<enemies.length;i++){
@@ -1757,8 +1792,10 @@ function step(){
       }
     }
   }
+}
 
   // ----- player contact -----
+function stepPlayerContact(){
   for(const e of enemies){
     if(e.dead||e.queued)continue; // a Dot already claimed by the wave/a lance/decay this frame can't also hit you
     if(e.eh && P.ehorizon)continue; // Event Horizon captives are held off your skin while you hold
@@ -1800,7 +1837,7 @@ function step(){
           // where a 26 Bomber and an 8 Dart now have to be told apart by the number alone.
           pushText(P.x,P.y-P.r-18,'-'+Math.round(dmg),COL.red,0.9,16);
           spawnBurst(P.x,P.y,COL.red,14,3.2);
-          if(P.hp<=0){ P.hp=0; die(); return; }
+          if(P.hp<=0){ P.hp=0; die(); return true; }
           if(e.type==='bomber') grantAchv('bomberPoint'); // took the hardest hit in the sky and lived
         }
       }
@@ -1816,17 +1853,10 @@ function step(){
       }
     }
   }
+  return false;
+}
 
-  // ----- process kill queue (chains) -----
-  processKills();
-
-  // ----- cleanup dead -----
-  if(enemies.length){
-    let w=0;
-    for(let i=0;i<enemies.length;i++){ if(!enemies[i].dead) enemies[w++]=enemies[i]; }
-    enemies.length=w;
-  }
-
+function stepRunTimers(dt){
   // combo is now a NO-HIT streak — it only resets when you take damage (see contact)
   if(combo===0) streakTier=0;
   // maintaining a streak slowly feeds the capacitor (faster the longer it holds)
@@ -1866,7 +1896,10 @@ function step(){
     }
   }
   for(const e of enemies){ if(e.gild>0){ e.gild-=dt; if(e.gild<=0){ e.gild=0; spawnRing(e.x,e.y,'#888',26); } } }
+}
+
   // ----- particles / texts -----
+function stepDecay(dt){
   for(const p of parts){
     p.vx*=0.9; p.vy*=0.9; p.x+=p.vx; p.y+=p.vy; p.life-=dt;
   }
