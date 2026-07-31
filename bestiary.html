@@ -107,7 +107,7 @@
   }
 
   function drawDot(ctx,x,y,s,t){
-    const c = s.col==='neutral'?COL.neutral:COL[s.col];
+    const c = COL[s.col];
     y += Math.sin(t*1.6 + s.r)*2;
     const r=s.r;
     ctx.globalCompositeOperation='lighter';

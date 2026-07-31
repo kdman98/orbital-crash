@@ -336,6 +336,10 @@ let grazeN=0, grazeT=0;                // near-miss ladder (pitch rises, decays 
 let gildTimer=14;                      // seconds until the next Gilded Bounty spawns
 let motes=[];                          // Flux Motes: annihilation loot; banking them drives the score mult
 let motesBank=0;                       // motes collected this life (HALVED on hit, not reset) -> mult = 1 + 0.1/mote
+// The multiplier law has ONE home. It used to be spelled out at five sites, so a change to the cap or
+// the per-mote rate had to be found five times.
+const recalcMult=()=>{ mult=Math.min(15, 1+motesBank*0.1); };
+const bankMote=()=>{ motesBank++; recalcMult(); };
 let moteN=0, moteT=0;                  // pickup ratchet ladder
 let score=0, mult=1;                   // no XP / levels — survival + annihilations + Mote mult ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
@@ -1372,8 +1376,7 @@ function stepMotes(dt){
     m.x+=m.vx; m.y+=m.vy;
     if(d<P.r+8){
       motes.splice(i,1);
-      motesBank++; moteN++; moteT=0.8;
-      mult=Math.min(15, 1+motesBank*0.1); // recompute NOW — the HUD, graze and deflect all read mult
+      bankMote(); moteN++; moteT=0.8;   // recompute NOW — the HUD, graze and deflect all read mult
       if(!unstable) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
       score+=Math.round(mult*P.scoreMult); // Motes bank into the score mult and pay directly (no XP/levels anymore)
       sfx.mote(moteN);
@@ -1546,7 +1549,7 @@ function stepEnemyForces(dt){
         e.eh=1;
         const horizon=22+grip*10;                         // devour radius — smaller than Singularity's 46
         if(d<horizon){                                    // devoured: bank a Mote, annihilate
-          motesBank++; mult=Math.min(15,1+motesBank*0.1);
+          bankMote();
           spawnBurst(e.x,e.y,COL[e.color]||COL.violet,5,2.4);
           queueKill(e); continue;
         }
@@ -1977,7 +1980,7 @@ function breakStreak(src){
   // one clip must sting, not delete every system you built this life
   const kept=Math.floor(motesBank/2);
   if(motesBank>=10) pushText(P.x,P.y-P.r-60,'MULT ×'+mult.toFixed(1)+' → ×'+(1+kept*0.1).toFixed(1),COL.red,1.2,13);
-  motesBank=kept; mult=Math.min(15, 1+motesBank*0.1);
+  motesBank=kept; recalcMult();
 }
 function onKill(e){
   if(state==='dead')return; // stop awarding score/xp once the core is lost
@@ -2009,7 +2012,7 @@ function onKill(e){
   }
   // the score multiplier is BANKED MOTES this life (Flip-vacuum loot), not the streak —
   // streak feeds the Capacitor, motes feed the mult; two currencies, two behaviours
-  mult=Math.min(15, 1+motesBank*0.1);
+  recalcMult();
   // Point-Blank Resonance: annihilations at the lip of your own Field pay x2, deep inside x3.
   // In a game where you STEER INTO the sky, diving deep for the kill is the score stat.
   // A body consumed by CRASHING into the Core is the failure case, not the play — no bonus.
@@ -2093,6 +2096,16 @@ function flip(){
   // screen — so every hungry flip EXPORTED the ammo you had just spent a hold gathering; and a volley
   // resolves over the following second, which is useless as a panic button. The rings are still the
   // ammunition, they just pay for RADIUS now instead of becoming bullets.
+  hungryFlipBurst(hc);
+  flipShockwave(hc);
+}
+
+// THE HUNGRY FLIP itself: the burst that purges loose matter and spends the rings.
+function hungryFlipBurst(hc){
+  // ONE fling law. The two sites below used to spell it out separately; the only textual difference
+  // was a Math.min(dist,R) clamp that is a no-op at the loose-matter site, whose loop has already
+  // skipped everything outside R.
+  const flingSpeed=(chg,dist,R)=>(FLING_V0+chg*FLING_VCHG)*(0.65+0.35*(1-Math.min(dist,R)/R));
   let purged=0, volleyed=0;   // both still gate feedback (ring, kick, sfx) — neither is printed any more
   if(hc>=RING_FIRE_HC){
     const chg=(hc-RING_FIRE_HC)/(1-RING_FIRE_HC);   // 0 at the load threshold → 1 at full charge
@@ -2130,7 +2143,7 @@ function flip(){
       const d=Math.sqrt(d2)||1;
       // closer to the core = thrown harder, but the rim floor is 0.65 rather than 0.45: at 0.45 the
       // bodies furthest out — the ones a wider push exists for — were the ones thrown least.
-      const pw=(FLING_V0+chg*FLING_VCHG)*(0.65+0.35*(1-d/R));
+      const pw=flingSpeed(chg,d,R);
       e.vx=dx/d*pw; e.vy=dy/d*pw;
       e.flung=FLING_HOLD;                            // un-clamped, low-friction travel
       spawnBurst(e.x,e.y,COL[e.color]||'#fff',4,2.6);
@@ -2162,7 +2175,7 @@ function flip(){
         // them straight back), and THAT is why the hungry flip read as having no reach: because ring
         // capture covers the entire Field, this branch — not the fling loop above — is where practically
         // every body ends up. The flip's headline verb was running at a seventh of its own strength.
-        const pw=(FLING_V0+chg*FLING_VCHG)*(0.65+0.35*(1-Math.min(ed,R)/R));
+        const pw=flingSpeed(chg,ed,R);
         e.vx=ex/ed*pw; e.vy=ey/ed*pw; e.flung=FLING_HOLD;
       }
       spawnBurst(e.x,e.y,COL[e.color]||'#fff',3,2.4);
@@ -2182,6 +2195,9 @@ function flip(){
     trauma=Math.min(1,trauma+0.07+Math.min(purged,14)*0.012);
     sfx.deflect(Math.min(4,1+Math.floor(purged/3)));
   }
+}
+
+function flipShockwave(hc){
   // Deflect (last-instant parry) and Lance Reflect were REMOVED on 2026-07-29. Both were real and both
   // worked, but neither was reachable as a skill: the reflect window measured a flat 4 frames (66.7ms)
   // across 19 consecutive samples — shorter than human reaction time and 4.25x shorter than the 280ms
@@ -2275,13 +2291,13 @@ function die(){
   let nb=false;
   if(score>store.best && !testMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
   save();
-  document.getElementById('deadScore').textContent='0';
-  document.getElementById('deadCause').textContent = lastDmg
+  el('deadScore').textContent='0';
+  el('deadCause').textContent = lastDmg
     ? 'Core lost to: '+lastDmg.src+' · Epoch '+ROMAN[(lastDmg.act-1)%12]+' '+lastDmg.phase
     : '';
-  document.getElementById('deadTime').textContent=fmtTime(elapsed);
-  document.getElementById('deadCombo').textContent=peakCombo;
-  document.getElementById('deadBest').classList.toggle('hidden',!nb);
+  el('deadTime').textContent=fmtTime(elapsed);
+  el('deadCombo').textContent=peakCombo;
+  el('deadBest').classList.toggle('hidden',!nb);
   // the shatter
   spawnBurst(P.x,P.y,COL[P.polarity],26,5.2); spawnBurst(P.x,P.y,'#fff',18,3.6);
   spawnRing(P.x,P.y,COL[P.polarity],180);
@@ -2290,7 +2306,7 @@ function die(){
   sfx.dead();
 }
 function revealDead(){
-  document.getElementById('dead').classList.remove('hidden');
+  el('dead').classList.remove('hidden');
   deadCountT=0.8;
   for(let i=0;i<6;i++) setTimeout(()=>beep(760+i*70,0.035,'square',0.05), i*110); // till blips
 }
@@ -2325,13 +2341,13 @@ function pushText(x,y,txt,color,life,size){
 // one thing you can't read off the screen.
 // You gained something — flies in on the left and lands on the chip column that tracks it.
 function pickupToast(p,note){
-  const el=document.getElementById('pickup'); if(!el)return;
-  el.style.setProperty('--pk',p.col);
-  el.innerHTML=`<span class="pkic">${p.ic}</span><b>${p.nm}</b><s>${note||p.ds}</s>`;
-  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  const pk=el('pickup'); if(!pk)return;
+  pk.style.setProperty('--pk',p.col);
+  pk.innerHTML=`<span class="pkic">${p.ic}</span><b>${p.nm}</b><s>${note||p.ds}</s>`;
+  pk.classList.remove('show'); void pk.offsetWidth; pk.classList.add('show');
 }
 function showAchvToast(txt){
-  const a=document.getElementById('achv'); if(!a)return;
+  const a=el('achv'); if(!a)return;
   a.textContent=txt;
   a.classList.remove('show'); void a.offsetWidth; a.classList.add('show');
 }
@@ -2618,6 +2634,7 @@ function drawEnemies(){
     // legible one at a time, but they smear together in a crowd. Enemies draw under 'lighter', so a
     // dark fracture line would add nothing and be invisible — the split has to be in the SHAPE.
     const sp=(e.type==='split');
+    const na=e.ph+elapsed*0.5;   // the Neutral's turning seam: the halves and the seam line share one angle
     let sca=0, ssa=0, soff=0;
     if(sp){
       const a=e.ph+elapsed*0.55;                                // the seam turns, so it is never edge-on and lost
@@ -2636,7 +2653,6 @@ function drawEnemies(){
       // you can hold makes it safe or makes it ammunition. A single flat violet disc said "some third
       // colour"; two halves say the true thing, which is "this one does not care which pole you hold".
       // The seam turns (like the Splitter's) so it is never edge-on and lost in a crowd.
-      const na=e.ph+elapsed*0.5;
       ctx.fillStyle=COL.red;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na, na+Math.PI); ctx.fill();
       ctx.fillStyle=COL.cyan;
@@ -2673,7 +2689,6 @@ function drawEnemies(){
       // into a thin outer band — it was carrying the "this is a Neutral" job that the red/cyan split
       // now does far better, while actively obscuring it. A thin seam line instead, which reads as the
       // boundary between the two charges rather than as another concentric ring.
-      const na=e.ph+elapsed*0.5;
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5;
       ctx.beginPath();
       ctx.moveTo(e.x+Math.cos(na)*e.r, e.y+Math.sin(na)*e.r);
@@ -3013,7 +3028,7 @@ function frameBody(now){
     if(deadCountT>0){ // score till-count
       deadCountT-=dt;
       const t=clamp(1-deadCountT/0.8,0,1);
-      document.getElementById('deadScore').textContent=Math.round(score*(1-Math.pow(1-t,3))).toLocaleString();
+      el('deadScore').textContent=Math.round(score*(1-Math.pow(1-t,3))).toLocaleString();
     }
   }
   render();
@@ -3045,7 +3060,7 @@ function crashHalt(err){
     +'<div style="opacity:.4;font-size:11px;max-width:34em;word-break:break-word">'+String(err&&err.message||err).replace(/[<>&]/g,'')+'</div>'
     +'<button id="crashReload" style="margin-top:6px;padding:10px 22px;background:transparent;color:#38e0ff;border:1px solid #38e0ff;border-radius:2px;font:inherit;letter-spacing:.18em;cursor:pointer">RELOAD</button>';
   document.body.appendChild(d);
-  document.getElementById('crashReload').onclick=()=>location.reload();
+  el('crashReload').onclick=()=>location.reload();
 }
 window.addEventListener('error',e=>{ console.error('[orbital-crash]',e.error||e.message); });  // surface faults outside the frame path (handlers, audio)
 requestAnimationFrame(frame);
@@ -3357,7 +3372,7 @@ window.__orbital=window.__polaris=window.__flux={
   // powerup test accessors
   POW, get orbs(){return orbs;}, get FX(){return FX;}, dropOrb, collectOrb, fireNova,
   grant(id,dur){ const p=POWMAP[id]; if(!p)return; if(p.kind==='instant')fireNova(); else FX[id]=dur||p.dur; },
-  set motesBankV(v){motesBank=v; mult=Math.min(15,1+motesBank*0.1);},
+  set motesBankV(v){motesBank=v; recalcMult();},
   get bossN(){return bossN;}, set bossN(v){bossN=v;},
   openCodex, queueKill,
   get ehT(){return ehT;}, get ehStrain(){return ehStrain;}, get flipCd(){return P&&P.flipCd;},
