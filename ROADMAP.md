@@ -7,6 +7,33 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### Cleanup pass — 12-agent audit, 83 findings, and a behaviour oracle (2026-07-31)
+Player brief: *"time to refactor / clean up codes and documents?"*
+
+Fifteen gameplay passes had gone in without a sweep behind them. A 12-agent audit over six lenses (dead code · dormant mechanics · doc↔code drift · duplication · structure · document hygiene), every finding then re-derived by an adversarial verifier, returned **83 confirmed and 3 refuted**. The refutations earned their keep: one finder wanted to delete `GRIND_MULT`, the deliberately-empty table this ledger says was left in place *"so the idea is not re-attempted from scratch."*
+
+**The oracle came first.** Refactoring a game tuned by measurement needs proof, not confidence: seeded PRNG in place of `Math.random`, the rAF chain frozen so manual ticks are the only driver, `store.achv` restored per run (achievements unlock perks and would otherwise leak between runs), and a scripted pilot — Lissajous pointer path, a flip every 47 frames, a Collapse every 311 — over 3 survival seeds × 40s and all 3 boss kinds × 25s. **93 state fingerprints per run, reproducible byte-for-byte.** Every commit below was checked against it and every one came back identical. Harness and baseline: see the pass's scratchpad, or re-derive from this description.
+
+**Two bugs surfaced that were not debt.**
+- **`hexA()` is six-digit only.** `parseInt('fff',16)` is 4095, so `hexA('#fff')` returned `rgb(0,15,255)` — saturated blue, silently. Three boss strokes used it: the Sentinel's two rings, the Emitter's hex outline, the Pulsar's telegraph ring. The other 13 `hexA` calls in the file spell white as `#ffffff`, and `bestiary.html` drew the same shapes white — so the game and the bestiary had been painting **different silhouettes**. Fixed, with the trap documented on `hexA` itself.
+- **The Codex told players missiles are blocked by matter.** *"an Anomaly's missiles are stopped by the first body in their path"* — the rule deleted on 2026-07-29 — printed eleven lines above the same Codex saying missiles pass through everything and nothing is cover. Rewritten to the shipped rule.
+
+**Deleted: 14 dead symbols** (`camX`/`camY`, `COLd`, `achvDone()`, `fireOneLance()`, `MNAME`, `lastKillT`, `bossPulseT`, `surgeTimer`, `comboTimer`, `actTime`, `orb.born`, the grid's `cols`, `P.pullMul`, `P.volN`, `id="bosslabel"`), each verified by exhaustive grep across all five files, the debug seam and every inline handler before removal.
+
+**Deleted: the dormant arsenal, 245 lines.** `P.singularity` (74), `P.congreg` (50), `P.sats` (26), `P.ferro` (26), `P.arc` (24) and seven smaller flags (45) — every one gated on a field `freshRun()` set to 0 that nothing ever wrote. GLOSSARY §11 had kept them as "written, tuned, switched off"; git keeps them better, and §11 is now an index of what went and where to find it (`git show 0b408c4^:index.html`) rather than a list of live-but-unreachable code. Kept on purpose: `ruptureBlast()` (live via Aegis), `P.shield` (Aegis grants it), `P.blastR`/`blastDmg` (reachable when `unstable>0`), and the identity-valued multipliers, which sit inside live arithmetic and would cost edits to save nothing.
+
+**`node --check` passed the whole time `discharging` was still referenced in `flip()`.** It cannot see a ReferenceError; only loading the page caught it. That trap is now three-for-three across sessions.
+
+**Structure.** `step()` was 471 lines — its seams were already banner-marked, so it lifted verbatim into `stepPlayer` · `stepEnemyForces` · `stepCollapseWave` · `stepAnnihilation` · `stepPlayerContact` · `stepRunTimers` · `stepDecay`, leaving 33 lines that read as the phase list they always were. Checked before moving anything: every block brace-balanced, no local crossing a boundary, exactly one `return` (in the contact block, now `true`/`false`). `flip()` split into `hungryFlipBurst` + `flipShockwave`, which shared only `hc`. `render()` was **not** oversized — 54 lines, already decomposed — a premise the audit corrected rather than accepted.
+
+**One home each** for the fling law (written twice, differing only by a clamp that was a no-op at the first site), the multiplier law (five sites), the Neutral's seam angle (computed twice per body per frame), and `COL[e.color]` (a no-op ternary, three sites). Ten `document.getElementById` calls now use the `el()` helper the file already defines — line 251 keeps the long form, because `el` is a `const` declared far below and calling it during module evaluation would hit the temporal dead zone.
+
+**Documents.** 34 drift fixes. The largest were structural: **286 lines of this file — 40% — were a byte-identical copy of POLARIS's ledger**, and the Backlog, Balance watch-list and Decisions log the file presented as its own were *POLARIS's*, six of nine backlog items naming systems this fork deleted. Those now sit under Pre-fork history with their headings demoted; the two sections above are this game's, written fresh. Also: the 2026-07-17 comfort pass was recorded twice with identical numbers (the shorter copy went); three stale `index.html:NNNN` citations now name stable identifiers instead of line numbers into a file that changes daily; entries superseded later the same day carry a `⤴` marker rather than being edited, so the measurements and the reasoning stay verbatim; and the folder-rename date was **2026-07-22 in README and 2026-07-27 in its own entry** — 07-27 is right.
+
+**Also:** `git init` — this was 228KB of measurement-derived tuning with no version control at all.
+
+`3585 → 3384` lines, and the file no longer contains anything that cannot run.
+
 ### The reversal stops narrating itself (2026-07-29)
 Player brief: *"dont have to show volley x6 things in text."*
 
@@ -43,7 +70,7 @@ Player brief: *"any opposing color may hit anormaly, so its movement hits himsel
 
 **The player spotted a structural consequence of the Hunt that the pricing had not caught up with.** Damage from matter was priced by *how deliberate the delivery was*, which is a sound idea while the boss holds station — but the Hunt now walks it the length of the arena through a field full of matter. Any rule shaped like "opposite-charge contact hurts it" therefore means **the Anomaly damages itself by travelling**, and the player need do nothing at all. The list cannot be about what touches it; it has to be about what **you aimed** or **what you carried**.
 
-So the list is now closed at two: **VOLLEY** (3, you fired it) and **RING GRIND** (2, you gathered it and steered it into contact). Everything else pays zero and bounces. Removed: the **Brute barge** — priced when the Hunt still halted 117px short and Brutes measurably never reached the boss on their own, which stopped being true the moment it crossed the whole arena — and the **Fling**'s 1.4s `e.fdmg` "still counts as your shot" window, since a body you shoved *away from yourself* is not a shot you took at something. `BARGE_MASS`, `BARGE_DMG`, `FLING_DMG`, `FLING_DMG_T` and the `fdmg` field are all gone.
+So the list is now closed at two: **VOLLEY** (3, you fired it) and **RING GRIND** (2 — repriced to **0.5** later the same day, see "Ring grind priced down" above; you gathered it and steered it into contact). Everything else pays zero and bounces. Removed: the **Brute barge** — priced when the Hunt still halted 117px short and Brutes measurably never reached the boss on their own, which stopped being true the moment it crossed the whole arena — and the **Fling**'s 1.4s `e.fdmg` "still counts as your shot" window, since a body you shoved *away from yourself* is not a shot you took at something. `BARGE_MASS`, `BARGE_DMG`, `FLING_DMG`, `FLING_DMG_T` and the `fdmg` field are all gone.
 
 **Measurement said the removal costs nothing.** Over 6 idle 45s fights the self-inflicted contacts were **13 grind, 0 barge, 0 fling** — both channels were already worth nothing in practice and were purely latent holes. After removal, damage by channel: **volley 4 · grind 18 · fling 0 · barge 0 · drift-in 0**. TTK unchanged within noise (emitter 15.8→14.3s, sentinel 11.5→13.0, pulsar 12.8→11.8), and idle self-damage sits at **1.5 HP average** against 18, with the player dead in all six.
 
@@ -99,7 +126,7 @@ Player brief: *"anormaly dash is too unexpected, telegraph-dash timing is too fa
 
 **And the commit now throws three spears instead of one.** A move announced for 1.3s cannot also be answered by a single sidestep, so the punctuation covers the angles you might leave **by** rather than the point you were standing **on** — the hex burst's own logic, applied to the dash. Three at 0.20 rad apart. The one non-obvious part: a spear stays glued to the muzzle and **re-aims at you** for its 0.55s charge, so a naive fan collapses to a single angle before it launches; each spear carries its own offset (`aoff`) through that re-aim. Verified holding a constant **0.4 rad** spread across the full charge and launching on three distinct headings. Against the same off-the-lane bot: still **0 body hits**, but **14–29 HP** now comes off the dash and its fan, against **57** for standing in it. The render was also normalising against a stale `0.65` while the timer ran `0.5` — a leftover from an earlier nerf — so the warning opened at 23% lit and never reached full: it *appeared* rather than wound up.
 
-**The Fling was unreachable code.** Ring capture is `d < P.fieldR` — the **whole 190px Field**, not a band near the ring radius — while the fling radius topped out at **170px**, and the fling loop skips anything ring-flagged. Every body the Fling existed for had already been claimed by the ring branch, which gave it a 3→8 px/frame nudge (**~107px**, then friction and seek pulled it home). Measured on a full-charge flip with 30 bodies around the core: **25 ringed, 0 flung.** The headline verb of the game's headline move was running at about a seventh of its own strength — and no amount of tuning the throw physics, which is what the two previous "fling further" passes did, could ever have reached it. Radius now `80 + charge·70 + rings·6` → **80–210px**, reaching just past the Field so the circle you can see is the promise; spent rings with no Anomaly to volley at take the **full fling**. Same test: **30 of 30 thrown.** By hold-charge — minimum hungry **442px peak / home at 3.6s**, three-quarters **558px / 5.0s**, full **706px / 6.9s**; Field swept in **0.17–0.27s** every time and *nothing lost* — every body comes back. `FLING_HOLD` 1.4 → **1.6** only; a first pass at 1.9 with a 0.99 friction put the entire arena off-screen for six seconds, which is not a reward, it is an empty sky. **The boss fight is untouched**: rings opposite the Anomaly → 20 volleyed / 0 flung; rings matching it → 20 flung / 0 volleyed / **0 damage**.
+**The Fling was unreachable code.** Ring capture is `d < P.fieldR` — the **whole 190px Field**, not a band near the ring radius — while the fling radius topped out at **170px**, and the fling loop skips anything ring-flagged. Every body the Fling existed for had already been claimed by the ring branch, which gave it a 3→8 px/frame nudge (**~107px**, then friction and seek pulled it home). Measured on a full-charge flip with 30 bodies around the core: **25 ringed, 0 flung.** The headline verb of the game's headline move was running at about a seventh of its own strength — and no amount of tuning the throw physics, which is what the two previous "fling further" passes did, could ever have reached it. Radius now `80 + charge·70 + rings·6` → **80–210px**, reaching just past the Field so the circle you can see is the promise; spent rings with no Anomaly to volley at take the **full fling**. Same test: **30 of 30 thrown.** By hold-charge — minimum hungry **442px peak / home at 3.6s**, three-quarters **558px / 5.0s**, full **706px / 6.9s**; Field swept in **0.17–0.27s** every time and *nothing lost* — every body comes back. `FLING_HOLD` 1.4 → **1.6** only (then solved back to **0.8s** in the speed pass recorded below); a first pass at 1.9 with a 0.99 friction put the entire arena off-screen for six seconds, which is not a reward, it is an empty sky. **The boss fight is untouched**: rings opposite the Anomaly → 20 volleyed / 0 flung; rings matching it → 20 flung / 0 volleyed / **0 damage**.
 
 **The missiles were innocent, and two quieter erasers were not.** With ambient traffic and mutual annihilation stripped out — a pinned wall of 16 Dots against each kind for 40s — the Anomaly's fire killed **0, 0 and 0**. The first attempt at this measurement scored 18/26, 21/26 and 26/26 and was pure artefact: adjacent opposite-colour wall Dots annihilating each other, and ambient spawns crossing the wall. What *was* real: **the mine blast** deleted every non-matching body inside 104px, on the same backwards colour rule the direct-hit path had already abandoned — it now scatters them; and **the Anomaly's body** consumed any opposite-colour body that touched it *even when that body paid 0 damage*, quietly deleting the cover and ammunition you were about to use, so drift-in now bounces off. Consumption still applies to matter that actually chips it, where it must. The last of it was a lie told by a particle effect: an absorbed missile burst **7 particles in the blocker's own colour, on top of the blocker** — pixel-for-pixel what a Dot popping looks like. Hence a real report of annihilation that the code was measurably not doing. The bolt now dies white and the blocker flares to say it survived. The hidden achievement **Skeet Shooter** moved with the rule — it fired when an Anomaly missile popped your Gilded Bounty, which nothing can do any more, and now fires when your Bounty **blocks** one.
 
@@ -135,6 +162,8 @@ Player brief: *"remove corona. bombers are all the same as other dots but just h
 **Two knock-ons worth watching.** Aegis is now **exception-free** — the payload was the only shield-piercing damage in the game, and `stepFX` re-pins `P.shield` every frame, so its 6s is absolute. And the drop bag going 5 → 4 types raises every surviving powerup's odds ~31% relative, which compounds it.
 
 ### Ring spin restored (2026-07-29)
+
+> ⤴ **Superseded the same day** by "Ring spin dialled back" above — the value landed at **1.2**, not 1.6. Kept for the bleed-vs-spin diagnosis and the ring-clamp headroom (2.9), both still live.
 Player ask: *"dots orbiting around core should be faster. we nerfed it before, right?"* — **Yes, though it was never labelled one.**
 
 **The evidence.** Rings measured **3.6 px/frame, 3.23s per revolution**. That number was not a speed decision: it fell out of the entry at ROADMAP *"Rings now firmly HOLD like-charge (spring pins matter to `fieldR·0.6` + strong tangential spin + **extra velocity bleed**)"*. The bleed is `0.80` where ordinary matter gets `0.86`, and ring steady state is `spin/(1-bleed)` — so cutting the headroom from 0.14 to 0.20 cut the whirl by ~30%. Corroboration that it is the same number: the Eddy rework entry records spin *"3.6→6.8"*, and 3.6 is exactly what measured today.
@@ -147,6 +176,8 @@ Player ask: *"dots orbiting around core should be faster. we nerfed it before, r
 
 
 ### The fling reaches further (2026-07-29)
+
+> ⤴ **Superseded** by "The Fling starts firing" above, which found the reach was never the problem — the whole verb was unreachable code. Kept for the throw-physics measurements.
 Player ask: *"let's fling further."*
 
 `7.2 → 12.0 px/frame` over **1.4s** (was 6.4→10.6 over 0.9s), and the proximity scale's rim floor went **0.45 → 0.65** — at 0.45 the bodies furthest from you, exactly the ones a wider push is for, were thrown the least. Measured in ordinary play: **~447px net throw, peaking ~550px** (was ~210px), everything alive, everything back on your core by ~9s. About 4 bodies per hungry flip.
@@ -280,7 +311,7 @@ Player brief: *"each pattern should not resolve by itself"* → *"fix the bestia
 
 **Every one of the four formations was already solved by standing still or pressing one key.** Measured, not guessed:
 - **The Gate** — slots sat 66.7px apart against a **26px** contact radius (core `r15` + drift `r11`). The midpoint between *any* two adjacent bodies is 33px from both, i.e. outside contact. You could walk through the wall anywhere; the "one gap" was decorative. Worse, at that spacing you were only ever in range of *one* body, so matching its colour also cleared it — and paid you ring ammo for it.
-- **The Vice** — the comment claimed *"whichever pole you pick, one side will kill you."* False. Both walls were **solid single colours**, and same-colour matter passes through the core ([index.html:1381](index.html)). Go red, sit in the left half: the red wall sweeps through you as free ammo and the cyan wall's travel ends at x≈537, never reaching you. It was a gift.
+- **The Vice** — the comment claimed *"whichever pole you pick, one side will kill you."* False. Both walls were **solid single colours**, and same-colour matter passes through the core (the like-charge `continue` in the contact loop). Go red, sit in the left half: the red wall sweeps through you as free ammo and the cyan wall's travel ends at x≈537, never reaching you. It was a gift.
 - **The Noose** — the only one that worked. It overshoots the centre (823px travelled vs a 794px radius) and its arc spacing falls under contact in the last stretch, so it genuinely shuts.
 - **The Comb** — worst of the four: 178px of clear channel against a 30px core, and each lane a single colour.
 
@@ -328,9 +359,9 @@ Player brief: *"splitter need unique UI, and bomber description needs change."*
 
 **Splitter had no visual identity at all.** It fell through every `else if` in `drawEnemies()` and rendered as a plain circle — identical to a Drifter but for 3px of radius (r14 vs r11) — while popping one *adds two bodies to the field*. The single decision it asks of you ("pop now, or reposition first?") had zero signal.
 
-Now drawn as a **binary**: two overlapping lobes with two white nuclei, on a slowly turning seam (so it is never edge-on and lost) that breathes as if the shell can barely hold. Every other body is one circle with one centre dot, so *"this one multiplies"* reads off the silhouette before you know its name. Silhouette was the only channel available — enemies draw under `'lighter'` (index.html:2003) so a dark fracture line adds nothing and is invisible, and rings stacked *outside* the body (Bomber, Charger) are legible one at a time but smear together in a crowd. Lobe radius 0.72 at offset 0.30 holds the drawn extent at ~1.02r, so the shape never lies about the r14 hitbox. Mirrored in `bestiary.html`.
+Now drawn as a **binary**: two overlapping lobes with two white nuclei, on a slowly turning seam (so it is never edge-on and lost) that breathes as if the shell can barely hold. Every other body is one circle with one centre dot, so *"this one multiplies"* reads off the silhouette before you know its name. Silhouette was the only channel available — enemies draw under `'lighter'` (the additive pass set in `render()`) so a dark fracture line adds nothing and is invisible, and rings stacked *outside* the body (Bomber, Charger) are legible one at a time but smear together in a crowd. Lobe radius 0.72 at offset 0.30 holds the drawn extent at ~1.02r, so the shape never lies about the r14 hitbox. Mirrored in `bestiary.html`.
 
-**Bomber's card stated a number that cannot happen.** It listed `12 dmg`, but `drawEnemies`' contact path `continue`s on bombers at index.html:1452 — *before* the `e.dmg` read at 1461 — so contact damage is dead data for this species. Meta line is now `0 on contact · 30 blast`.
+**Bomber's card stated a number that cannot happen.** It listed `12 dmg`, but `drawEnemies`' contact path `continue`d on bombers *before* the `e.dmg` read (since deleted) — so contact damage is dead data for this species. Meta line is now `0 on contact · 30 blast`.
 
 The tag also omitted both rules that matter: the **108px** blast radius, and that the payload **shatters your shield outright, Aegis included**, at any range inside the blast (`P.shield=0` runs regardless of i-frames). Rewritten to state both, plus the two upsides already true in code — it is a herdable grenade that damages every body in range and chips the Anomaly, and a Collapse vaporizes it harmlessly. GLOSSARY §5 already had these facts right; the bestiary was the stale copy, and the two are now in agreement. Splitter tag updated to match its new look, and "several Minis" corrected to **exactly 2**.
 
@@ -423,7 +454,7 @@ With the arsenal gone, the **Anomalies** now carry the game's variety. The singl
 - **Bestiary updated** (`bestiary.html`): the stale "hexagon / later a SPIRAL" boss text is replaced by a live-rendered **Anomaly-kinds** section — all six kinds, each with a distinct animated attack-cue portrait (`drawAnomMini`) + behavior/counter line — plus a rewritten intro card. Renamed the arena-circling Anomaly from "Orbiter" → **Sentinel** to disambiguate from the Orbiter enemy Dot.
 
 ### ORBITAL CRASH fork — vanilla survival + instant powerup drops (2026-07-21)
-Forked POLARIS into a new `pulsar/` folder (later renamed to `orbital-crash/` on 2026-07-22; the game is titled **ORBITAL CRASH**) and **stripped the whole meta-progression** — the game is now pure arcade survival, spiced by temporary powerup pickups. There are **no level-ups and no permanent upgrades**.
+Forked POLARIS into a new `pulsar/` folder (later renamed to `orbital-crash/` on 2026-07-27; the game is titled **ORBITAL CRASH**) and **stripped the whole meta-progression** — the game is now pure arcade survival, spiced by temporary powerup pickups. There are **no level-ups and no permanent upgrades**.
 - **Removed entirely**: XP / levels / `gainXP`, the level-up card **Offer**, **keystones** (the 5/10/15 fork), **Anomaly "Special" rewards**, **reroll/banish**, the menu **Arsenal shop**, and the cross-run **shard / unlock economy**. Also removed the "**hold to open Event Horizon**" flip — **flip is a pure tap** again (reverse poles). Collapse (the charged Capacitor ult) is unchanged and stays.
 - **Added — powerup drops (the only progression).** Any annihilation has a small chance to shed a glowing **orb** (a safety drop floats in when the field is empty; a purged Anomaly drops a cache). Rates are tunable constants near the top: `ORB_DROP_CHANCE` (0.008/kill), `ORB_CAP` (2 on field), `ORB_SAFETY_MIN/MAX` (22–34s, empty-field only), Anomaly cache = 1 orb. **Tuned down 2026-07-21** ("spawns too frequently"): from ~1 orb / 5–7s to ~1 / 15s under sustained aggressive play (measured), sparser in calm. **Steer your world into an orb** to collect — the effect is **instant and temporary**; grabbing the same one refreshes its timer. Roster (`const POW`): **◉ Singularity** (5s black hole that devours nearby matter), **🛡 Aegis** (6s shield), **❄ Cryo** (5.5s — incoming matter crawls), **☀ Corona** (6s — field burns opposite matter), **⚡ Overdrive** (6s — faster world + wide/whirling rings), **✺ Nova** (instant screen-clear shockwave, rarer weight).
 - **Key architecture**: with no permanent upgrades, base stats are constants, so `stepFX(dt)` just **toggles the existing tuned physics flags** each frame from the effect timers — `P.corona`, `P.eddy` (Overdrive borrows Eddy's wide/fast rings), `P.enemySlow` (Cryo 0.34), `P.moveMult` (1.4), `P.fieldR` (BASE_FIELDR 190 → ×1.28), `P.ringMul`, `P.shield` (Aegis = 3), and `P.ehorizon`+`ehT` (the black hole **reuses the old Event-Horizon devour code**, pinned open at full grip). Every effect rides code the game already balanced; it just expires. New: `stepFX`, `dropOrb`, `stepOrbs`, `collectOrb`, `fireNova`, `blackholeCollapse`, `drawOrbs`.
@@ -435,12 +466,57 @@ Forked POLARIS into a new `pulsar/` folder (later renamed to `orbital-crash/` on
   - **[low]** removed orphaned `.bchip.spec` CSS, the dead `state==='levelup'` render disjunct, and stale `menu|levelup|shop` comments.
   - Hardened `stepOrbs` collection (splice before `collectOrb`, since a Nova pickup can `killBoss`→`dropOrb` and mutate `orbs` mid-loop).
 
-### POLARIS — Event Horizon spam-invuln fix + Eddy collision fix (2026-07-21)
+## 🧊 Backlog (agreed direction, not yet started)
+
+This heading used to sit on POLARIS's backlog, six of whose nine entries named systems this fork deleted
+at the fork — Offers, keystones, cards, shards, the endgame ladder. Those are preserved below under
+Pre-fork history; they were never this game's plan.
+
+- **Touch controls** — parked pending the launch-environment decision (see the 2026-07-27 hardening entry).
+- **Moment Engine stretch** — stereo-panned kill pops, low-HP heartbeat + lowpass, storm drum layer. The
+  Moment Engine itself is live here (`timeScale`, GLOSSARY §10); this is the audio half of it.
+- **HUD hierarchy pass** — the meters read as equals; only Capacitor + Streak deserve to be loud
+  (deferred from the player review).
+- **A chase reward for the Sentinel that is not contact damage** — the obvious version measured backwards
+  (see "Ring grind priced down"), so the idea needs a different vehicle, not a different number.
+- **The powerup roster is still mundane** — four temporary drops, all of them straightforward. Noted
+  repeatedly, never designed.
+
+## ⚖️ Balance watch-list
+
+Live flags for *this* game. The list that used to be here tracked Deflect, Reflect, Offers, rarity pity
+and keystone power — most of those systems no longer exist.
+
+- **The four-powerup bag** — the roster went six → four (Cryo and Corona removed 2026-07-29) and Aegis is
+  now exception-free. Watch whether four reads as too few over a long run.
+- **No heal beats the lockout** — since Cryo went, Integrity regenerates only after 3.8s untouched and
+  nothing else heals. Disengaging is the entire healing verb; watch that a bad Epoch is still recoverable.
+- **Boss balance is bot-derived** — every TTK number in this ledger comes from a scripted pilot, not a
+  human. The Sentinel measures hardest. Confirm against a real player before trusting that ordering.
+- **Ring grind at 0.5** — priced so a grind-only bot solo-kills 0–1 fights in 6. If hoarding turns out to
+  make the Volley optional in real play, this is the lever.
+- **Bomber spawn weight vs. its damage** — `['bomber',9]` and `['bomber',7+a]` were both priced for a body
+  you could walk through. Each one now touches for 26 (36.4 by Epoch VI). Damage and weight were
+  deliberately not changed in the same pass so the playtest stays readable: measure Epoch IV–VI, then
+  flatten to `['bomber',7]` if it reads as attrition rather than positioning.
+- **Score inflation** — Point-Blank ×3 stacks with the mote mult (cap ×15) and the Collapse tally (N²×4).
+  Best-score comparisons against old saves are apples-to-oranges.
+
+## 🏛 Pre-fork history (POLARIS)
+
+Everything below this line is the **POLARIS** ledger, inherited wholesale when this game was forked out
+of it on 2026-07-21. It is kept because it records why things are the way they are — but it describes a
+roguelite with Offers, keystones, cards and shards, none of which exist here. Its backlog, watch-list and
+decisions log are POLARIS's; the two sections directly above are this game's.
+
+The same log lives in [`../polaris/ROADMAP.md`](../polaris/ROADMAP.md), which is still maintained.
+
+#### POLARIS — Event Horizon spam-invuln fix + Eddy collision fix (2026-07-21)
 - **EH spam invulnerability closed.** Holding EH grants iframe; you could re-press endlessly and stay shielded forever. Added a recharge: after the well collapses (release or auto), `ehCd = EH_CD` (2.0s) must elapse before it can reopen — holding during recharge just does a normal flip, no black hole, no iframe. Verified: a spammer now has a ~2.0s **vulnerable** window every ~3.2s cycle (iframe drops to 0). A dim violet recharge arc on the world shows the cooldown filling.
 - **Eddy no longer collides with Event Horizon** (and its premise was broken by the no-pull change — nothing "beelines in" anymore). Repurposed: Eddy now shapes YOUR RINGS instead of opposite matter — like-charge orbits **wide** (`fieldR·0.85` vs `0.6`) and **fast** (spin `1.7` vs `0.9`), a broad sweeping perimeter shield that annihilates threats farther out. It touches no opposite matter, so nothing fights EH's devour. Verified: ring radius 164→238, spin 3.6→6.8, opposite-matter tangential ≈0. Card + Eddy field-spin visual updated. Stacks with Heavy World's `ringMul`.
 - Audited the other keystone/mechanic pairs (Corona/EH, Ferrofluid/rings, Shepherd Moons/baseline rings, ring-fire/EH) — no remaining hard conflicts.
 
-### POLARIS — Ferrofluid buff (was near-useless) (2026-07-21)
+#### POLARIS — Ferrofluid buff (was near-useless) (2026-07-21)
 Root cause of "ferrofluid is weak": the mine killed matter of the charge opposite to the **Mote** (`e.color===m.color` skip), but the Motes that actually linger as mines are the opposite-charge ones (your own colour hoovers away), so the standing minefield was targeting **your own ring**, not threats — and the trigger was a 7px pinprick with no inward pull to sweep matter onto it. Fixes:
 - **Targeting**: mines now catch matter of the charge OPPOSITE your **world** (`e.color===P.polarity` skip) — i.e. actual threats, never your like-charge ring.
 - **Chain reactions**: a mine kill drops fresh loot → fresh mines. Verified: 16 threats packed into a Mote field are wiped in ~10 ticks as it cascades (Motes 14→22 during the chain).
@@ -448,18 +524,18 @@ Root cause of "ferrofluid is weak": the mine killed matter of the charge opposit
 - **Persistence**: under Ferrofluid, dropped Motes live 7–13s (was 4–8) and the field caps at 60 (was 40) → a real standing minefield accumulates.
 - Card + Codex text updated to teach "Motes are mines that chain-detonate." Balance: not degenerate — Motes are also your XP/mult, so arming the field trades income for defense, and chains need dense threats.
 
-### POLARIS — ring-fire is now a CHARGED (Hungry) flip only (2026-07-21)
+#### POLARIS — ring-fire is now a CHARGED (Hungry) flip only (2026-07-21)
 Quick-flip spam was cheaply sustaining. Now the ring only fires once hold-charge passes `RING_FIRE_HC` (0.5 — ~0.75s held): a **quick tap just reverses poles** (reposition / parry / colour-swap, no discharge), and a **charged "Hungry" reversal fires the ring**, power ramping `8 → 32` from the load threshold to full charge. The hold-charge gauge on the world now turns **hot white when loaded** (with a tick marking the fire threshold while charging) so the "ready to fire" state is legible. Codex Hold-charge section rewritten. Verified: quick flip (hc 0.07) fires 0; charged flip (hc 1) fires all at speed 32; charge-aware bot now out-survives quick-flip spam (avg ~104s vs ~78s).
 
-### POLARIS — removed Resonance perk (2026-07-21)
+#### POLARIS — removed Resonance perk (2026-07-21)
 Cut the **Resonance** stat (`greed`, +% score, cap ×3). `scoreMult` stays at its default 1 everywhere (all scoring intact — you just can't buff it via a card anymore). Pool: 25 → 24 perks (10 stats). Note: the "Point-Blank Resonance" scoring mechanic (×2/×3 by Field depth) is unrelated and stays.
 
-### POLARIS — flip fires the rings; Event Horizon → mini-Singularity (2026-07-21)
+#### POLARIS — flip fires the rings; Event Horizon → mini-Singularity (2026-07-21)
 Follow-up after the no-pull pass left the reverse verb feeling purposeless:
 - **Reverse poles now FIRES your rings.** On flip, every ring-captured body is flung radially outward as an annihilation projectile (opposite colours annihilate on contact regardless of your polarity) — scaled by hold-charge, briefly clamp-exempt via `e.flung` so it reads as a shot. This is the point of the flip now that nothing is vacuumed in: **gather a ring by drifting matter in, then flip to fire it** ("turn your own rings against the sky", literally). Bot avg death ~44s→~57s with sharply higher scores (one run L10/Epoch II/76k) — flip is now a real offensive verb, not a situational parry.
 - **Event Horizon reworked into a held mini-Singularity.** HOLD reverse → a small black hole opens at the world that DRAGS in and DEVOURS nearby matter (banks a Mote each, any charge incl. Neutrals), shields you (iframe) and vacuums loot while open. Smaller than the Collapse Singularity (devour radius 22–32px vs 46; reach 80–230px vs whole-arena) and shorter (auto-collapses at `EH_MAX`≈1.2s — can't be held forever; re-press to reopen). RELEASE reverses your poles; the collapse recoil flings any un-devoured leftovers. New devour loop in the force loop, timer/shield/spark block, `eventHorizonRelease` → collapse/implosion, `drawEHorizon` → darkening core + accretion rings + tight dashed horizon, and the AUG card text. Verified: devours + banks, auto-collapses + flips at ~1.2s even with matter present.
 
-### POLARIS mechanics pass — no-pull, keystone fork, 3-specials, ring hold (2026-07-21)
+#### POLARIS mechanics pass — no-pull, keystone fork, 3-specials, ring hold (2026-07-21)
 Playtest-driven changes on top of the re-theme fork:
 - **Deleted the inward pull on opposite-charge matter.** The world no longer vacuums another charge in — opposite matter drifts toward you only under its own gentle `seek` (chase), and annihilates against your rings/core. Force loop now `continue`s the `dir>0` (attract) branch. Shifts the loop from "gather-and-flip" to "**steer your world into** opposite matter." Game still functions (no-input smoke run still scores; bot avg death ~44s). Ripples fixed: **Heavy World** (was "+% pull on opposite matter", now dead) repurposed → **ring grip & spin** via new `P.ringMul` (default 1, cap 2.2, used in the ring spring/spin); dead `hcStep` removed; Hungry Hold's "reels opposite matter in" copy dropped (hold-charge still amplifies the reversal shockwave); tagline/Codex Charge Law/Hungry Hold/bestiary legend rewritten to "drifts toward you… never sucks it in… steer into it."
 - **Rings now firmly HOLD** like-charge (spring pins matter to `fieldR*0.6` + strong tangential spin + extra velocity bleed) — holds even when matter is fast. 14 test bodies lock into a uniform ring.
@@ -467,10 +543,10 @@ Playtest-driven changes on top of the re-theme fork:
 - **Keystone Fork**: levels 5/10/15 now show **three** keystones to pick from (dedicated "CHOOSE A KEYSTONE" screen; Reroll swaps the three, Banish hidden). Consequence: 3 keystones taken per run (up from optional).
 - **Specials**: every Anomaly purge now offers **3** specials (dropped the shard/achievement gate on the Anomaly reward — `isUnlocked` returns true for kind `special`; Arsenal shows them "◆ Anomaly reward").
 
-### POLARIS re-theme fork (2026-07-21)
+#### POLARIS re-theme fork (2026-07-21)
 Forked flux/ → polaris/; re-skinned the magnetic core into a magnetic WORLD (planet) in space; the verb Flip → Reverse poles; added baseline orbital rings (like-charge matter in-field is swept into a circling ring — a gentle Congregation-always-on via a tangential force in the enemy force loop; playtested, survivability ~unchanged, avg death ~55s vs ~44s in flux, mildly healthier early game); re-themed all player-facing strings, perk names, the Codex, and enhanced the planet render (atmosphere, lit hemisphere, tilted ring halo). Mechanics otherwise identical to FLUX.
 
-### Playtest-review pass (2026-07-21)
+#### Playtest-review pass (2026-07-21)
 Drove an autonomous bot through the real input surface (dispatched pointer/space/clicks) for 13 games + a 5-lens review with adversarial verification (33 findings raised, 29 refuted as bot-skill artifacts, 4 stood). Fixes:
 - **Field falloff floor** — this is the real answer to "Deep Gravity is only UI / matter sits inside the field untouched". The attract force was pure `t*t`, so the outer ~half of the ring was near-inert and a wider Field only *looked* wider. Added a floor: `tf = 0.16 + 0.84*t*t` in the force loop. A body at 250px (maxed 342 Field) now pulls **43px/15 ticks (was 8.9)**; the field grabs the instant a body crosses its edge, keeps the strong near-World grip, and visibly sorts charges (opposite-charge in / like-charge out). Neutrals + boss still ignore it (floor is inside the magnetism guard). Bot survivability unchanged (avg 43.6s vs 44.8s) — faster ammo delivery nets against faster annihilation.
 - **World-text declutter** (the "one change first") — deleted the mult-milestone floater (`motesBank%10`, duplicated the live `#mult` HUD) and swapped the DEFLECT text for a white clash-**ring** (charge bar + sfx already report the parry). Added a 5-step occupancy nudge in `pushText` so the remaining World-anchored labels stack legibly instead of overprinting into a smear. Verified visually (POINT BLANK / CHAIN / MULT now step vertically).
@@ -479,27 +555,26 @@ Drove an autonomous bot through the real input surface (dispatched pointer/space
 
 Left as **bot-skill artifacts, not bugs** (verified): "died holding full Capacitor / 1-2 collapses per run" (bot's ≥8-in-range collapse gate, unmeetable after a Ferrofluid board-wipe); "boss took 4 dmg in 12s" (bot landed zero Flare Reflects — a reflect-aware policy killed the Epoch I Anomaly in **7.7s / 6 reflects**; the boss is a reflect puzzle, working as designed); the parry-window sweep (all n=1, within-condition spread swallows it). The quiet opening is genuinely ambiguous — likely the bot reversing at 90px vs the ~52px Deflect window paying nothing — parked pending a human tester.
 
-### Comfort + bugfix pass (2026-07-17)
-- **"Dizzy" comfort pass** — the per-reversal full-screen flash (fired constantly) was the #1 nausea source: cut `0.28+hc*0.25`→`0.05+hc*0.13`. Screen shake changed from per-frame `rand` jitter to a smooth two-frequency `sin` wobble (mag 16→10, decay 1.6→2.4, per-reversal shake removed). Collapse strobe softened. Added a persisted **Reduced Motion toggle** (✺ button) that near-zeroes shake/flash/hitstop.
+#### Bugfix pass (2026-07-17)
 - **Removed the "like-charge — harmless" teaching UI** (ring + floating text) per request — the harmless like-charge pass-through mechanic stays, just no cue.
 - **Deep Gravity** — reported as "only UI is wider"; verified the radius genuinely applies (fieldR 190→342). Diagnosed as a *perception* thing at the time (gentle edge attraction) and left as-is. **Superseded by the 2026-07-21 field-falloff floor** — the gentle edge was in fact the whole problem; now fixed properly.
 - **Event Horizon input rework** — it "didn't work" because the trigger was tied to `holdT` (time-since-reversal), and **holding the key made auto-repeat re-fire the reversal every 0.28s, resetting the well**. Rebuilt to the player's spec: a dedicated `ehT` timer driven by the reverse button being **HELD** (mouse or keyboard, key-repeat ignored); **release reverses + flings**. Hold-to-open / release-to-scatter now works on both inputs. Verified: hold captures without reversing, release reverses + clears; no-EH tap unchanged.
 
-### Foundation (pre-ledger)
+#### Foundation (pre-ledger)
 - World polarity loop: Reverse / Shockwave / Hold-charge / Collapse / Annihilation
 - No-hit Streak → Capacitor economy; XP level-ups
 - Stat augments (rarity rolled per card ×1 / ×1.7 / ×2.6) in the Offer; Special augments from Anomaly purges
 - Anomaly boss: reversal-immune, hexagon Flare volleys, bait-to-erode
 - Epochs (Drift/Ember/Bloom/Tide) × Phases (Calm/Build/Storm/Boss); Arsenal meta-shop; achievements; Bestiary page + in-game overlay
 
-### Bug-fix pass (2026-07-15)
+#### Bug-fix pass (2026-07-15)
 - **Ghost colors** — COL.gold/violet/lime were undefined at 8 fanfare call sites; added
 - **Empty Purge** — pool-less Anomaly reward now pays full Capacitor + 40◆ ("SPECIAL CACHE")
 - **Collapse-proof Bombers** — your ult no longer triggers Bomber payloads (`!unstable` guard)
 - **Fast Reforge** — death button restarts instantly; "Arsenal & Menu" ghost button added
 - **Arsenal kind-tag collision** — `.stat` HUD rule was yanking Stat tags out of card flow (`kt-` prefix fix)
 
-### Big pass (2026-07-15) — "make score change how you move"
+#### Big pass (2026-07-15) — "make score change how you move"
 
 | # | Feature | One-liner | Verified |
 |---|---|---|---|
@@ -522,7 +597,7 @@ Left as **bot-skill artifacts, not bugs** (verified): "died holding full Capacit
 Rebalance applied with the pass: kill charge 0.008→0.006, streak trickle cap 0.045→0.035
 (compensating for the three new Capacitor income streams).
 
-### Player-review pass (2026-07-16) — "decisions and variety, not more income"
+#### Player-review pass (2026-07-16) — "decisions and variety, not more income"
 
 Balance surgery (from the in-character player review):
 - **Graze pays no Capacitor** — score crumb + sfx only. Grazes are luck as often as skill;
@@ -559,7 +634,7 @@ pool exclusion); reflect/reflHit/reflSafe/neutral-cover/goldberg/skeet all pass;
 cycle; 9000-tick endurance with ALL keystones stacked to Epoch IV, level 18, 236k — zero exceptions,
 console clean.
 
-### Cosmic pass 1 (2026-07-17) — Singularity, Shepherd Moons, Undertow brace, the Spheres
+#### Cosmic pass 1 (2026-07-17) — Singularity, Shepherd Moons, Undertow brace, the Spheres
 
 - **⊙ Singularity** ✓ (Special, Arsenal 300◆, one-take) — the Collapse inverts: a ~2.5s black hole
   drags both charges + Motes + **Flares** in, devours at the event horizon (each kill banks a Mote
@@ -575,7 +650,7 @@ console clean.
 - **♆ The Spheres** ✓ — `sfx.harp(n)`: plucked stacked-fifths arpeggio (quintal harmony). Voices
   Keystone takes, Singularity evaporation, secret-feat discovery; reserved for Syzygy when it lands.
 
-## 🌌 Cosmic Awe menu (ideation 2026-07-17, partially built — see Cosmic pass 1)
+### 🌌 Cosmic Awe menu (ideation 2026-07-17, partially built — see Cosmic pass 1)
 
 "Perks that make you feel like a planet / god / something in outer space." 5-lens panel, 50 raw → law-checked & tiered.
 
@@ -598,7 +673,7 @@ console clean.
 **Recommended build order:** 1) Gravitational Lensing (one force call per flare, transforms the boss duel) → 2) Deep Well (upgrades every second of play) → 3) Syzygy (cheap geometry + full ceremony, teaches the One Law).
 Slot collisions to decide before building: Singularity vs Last Judgment (Collapse), Binary Star vs Firstborn Moon (Twin Poles).
 
-## 🧊 Backlog (agreed direction, not yet started)
+### 🧊 Backlog (agreed direction, not yet started)
 
 - **Prime Bodies + Polaris Caches** — affixed elites (ANCHORED / SIPHON / GEMINI) dropping crackable caches
 - **More Anomaly variants** — SPIRAL shipped; PINCER (two synced arcs) and WALL (a flare curtain) are natural nexts
@@ -610,7 +685,7 @@ Slot collisions to decide before building: Singularity vs Last Judgment (Collaps
 - **Kinetic Mastery** — wake physics (drag matter by moving) + SLAM/CAROM billiard scoring
 - **HUD hierarchy pass** — five meters read as equals; only Capacitor + Streak deserve to be loud (deferred from the player review)
 
-## ⚖️ Balance watch-list
+### ⚖️ Balance watch-list
 
 - **Capacitor economy** — Deflect (+3%/body), Reflect (+4%/flare), motes (+0.5%), kills, streak
   trickle, milestones feed charge. Graze charge is CUT (2026-07-16) — **watch time-to-Collapse;
@@ -624,7 +699,7 @@ Slot collisions to decide before building: Singularity vs Last Judgment (Collaps
 - **Bomber spawn weight vs. its new damage** — `['bomber',9]` and `['bomber',7+a]` were both priced for a body you could walk through. Now each one touches for 26 (36.4 by Epoch VI), and the design note beside them forbids "just more meat". Damage and weight were deliberately not changed in the same pass so the playtest stays readable: measure Epoch IV–VI, then flatten to `['bomber',7]` if it reads as attrition rather than positioning.
 - **Anomaly destabilize** hands losing players more Flare ammo — confirm it doesn't make boss trivially fast for skilled players.
 
-### Playtest fixes (2026-07-15)
+#### Playtest fixes (2026-07-15)
 - **Crash ≠ Point-Blank** — Bodies consumed by crashing into the World (incl. shield-tanked hits) paid the ×3
   proximity bonus; contact kills now force ×1 via the existing `e._contact` flag. Courage bonus only pays
   for *annihilations* you positioned.
@@ -638,19 +713,19 @@ Slot collisions to decide before building: Singularity vs Last Judgment (Collaps
   above both exemptions: ignoring the Field's *forces* no longer grants immunity to its *corrosion*.
   Boss stays immune. Side effect worth knowing: Unstable Field is now the only passive answer to Neutrals.
 
-### Information layer (2026-07-15)
+#### Information layer (2026-07-15)
 - **Codex** (menu → "❖ Codex — how it works") — every rule written down: Colour Law, Point-Blank,
   Motes/Mult, Capacitor income, Streak tiers + severance, Hold-charge/Deflect mastery, the Anomaly loop,
   Offer rarity/reroll/banish/pity, and the full achievements list with live earned-status.
 - **Build display on pause** — every augment taken this run as chips with stack counts (`P._stacks`),
   hover for the effect; Specials get a violet border.
 
-### Stability pass (2026-07-15)
+#### Stability pass (2026-07-15)
 - State-transition fuzz: pause-during-inhale holds and resumes; death with pending level-ups cancels
   cleanly; quit-to-menu mid-run leaves no residue on restart. Endurance: god-mode bot ran two full boss
   cycles to Epoch III (80 game-seconds, level 12, 108k score) with zero exceptions.
 
-### Audit fixes (2026-07-15) — 3-lens adversarial audit, 13 findings triaged, all real ones fixed
+#### Audit fixes (2026-07-15) — 3-lens adversarial audit, 13 findings triaged, all real ones fixed
 - **`unstable` froze negative after the first Collapse** (HIGH, longstanding) — every `!unstable` gate
   read "still collapsing" forever: no kill-charge, no Splitter minis, no Bomber payloads, no mote charge,
   no Charger plow. Clamped to exactly 0 on expiry. Verified all five systems restored.
@@ -672,7 +747,7 @@ Slot collisions to decide before building: Singularity vs Last Judgment (Collaps
 - Post-fix regression battery: 7/7 pass; endurance to Epoch IV (3 purges, repeated collapses, level 21,
   418k score) with zero exceptions and charge economy flowing.
 
-### Perk rebalance pass (2026-07-17) — 4-lens audit → caps + repositions, not blanket damping
+#### Perk rebalance pass (2026-07-17) — 4-lens audit → caps + repositions, not blanket damping
 
 Player report: can't die at L15+, the dmg-field perk deletes the swarm before contact, most perks OP stacked.
 Audit found the immortality is structural — the 0.55s post-hit iframe caps burst, so death only comes from
@@ -687,25 +762,25 @@ repositioned into a legible **bucket** rather than just number-damped:
 - **Specials de-degenerated:** structural **generational blast decay** in processKills (0.7^gen, bail <18px) makes Volatile/Nova/Arc cascades finite; **Volatile** = chain REACH (diminishing→96px), **Nova** = blast FORCE (dmg cap 5) — were byte-identical; **Arc** chance diminishing→~42% + can't re-roll on arc/blast victims; **Conduit** capped (amp 1.7, holdMax floor 0.9, max 3 picks — the floor also fixes the Conduit+Discharge 0.5s-cadence screen-clear).
 - Buckets: **Offense** (volatile/nova/arc/discharge) · **Field-shape** (reach/pulse/overpull/corrosion/twin/keystones) · **Survival** (cap/bighit/frost/vamp/aegis/rupture) · **Economy** (greed/singul) · **Tempo** (swift/ript/overch/conduit/after/afterimg).
 
-### Comfort / motion-sickness pass (2026-07-17)
+#### Comfort / motion-sickness pass (2026-07-17)
 Player reported the game felt "kinda dizzy." Diagnosed the involuntary-motion sources and calmed them:
 - **Per-reversal full-screen flash killed** — reversing is constant, so a screen wash every reversal was the #1 offender. Cut `0.28+hc*0.25` → `0.05+hc*0.13`; reversal feedback now lives in the ring + World-colour change.
 - **Screen shake retuned** — was `rand(-s,s)` per-frame *jitter* (nausea); now a smooth two-frequency `sin` wobble (reads as impact, not vibration), magnitude 16→10, decay 1.6→2.4/s. Removed the per-reversal shake entirely.
 - **Collapse strobe softened** — the ~3Hz full-screen cyan pulse during a Collapse is now a slow, gentle tint (`sin(elapsed*8)`, lower alpha).
 - **Reduced Motion toggle** (new ✺ button, bottom-right, persisted): near-zeroes shake, flashes, hitstop and the collapse tint for sensitive players — the accessibility standard.
 
-### Riptide cut + Event Horizon rework (2026-07-17)
+#### Riptide cut + Event Horizon rework (2026-07-17)
 - **Removed Riptide** — a brief post-pop speed burst that, in the endgame's constant pops, was just always-on (redundant with Swift). Cut clean (AUG + `rip`/`ripT` state + usages).
 - **Undertow → Event Horizon** (rework + rename): holding a polarity now opens a **black hole** that drags nearby matter into a crushing orbit ~46px off your surface — opposites packed there **annihilate point-blank (×3)** and captives can't touch you while held; **reversing, or holding to full charge, flings the leftovers outward**. Gives hold-charge the dramatic, legible payoff it lacked. The old Undertow (shockwave-pulls-inward + brace) is gone.
 - **Old Event Horizon → Corona** (rename only): the opposite-charge-matter-corrode keystone keeps its mechanic, renamed to free the "Event Horizon" name for the black hole. Flag `P.horizon`→`P.corona`.
 - **Balance watch:** Event Horizon is intentionally strong (per request) — captive non-contact while holding + point-blank grind. Counterbalances: can't reverse while holding, ~1.5s auto-release, Flares/uncaptured threats still hit, bombers excluded from capture, leftovers return. Watch for degenerate safe-farming; levers are orbit radius, auto-release time, and whether to drop captive immunity.
 
-### Progression + hold-charge pass (2026-07-17)
+#### Progression + hold-charge pass (2026-07-17)
 - **Mote-only XP**: kills no longer grant XP — **collecting Motes is the sole XP source** (value 0.5→1.0). One clean channel (annihilate → loot dust → grow), thematic, and paced by Reverse-vacuum skill (uncollected = no XP). Verified pacing: keystones land L5 (Epoch I–II), L10 (Epoch III), L15 (Epoch V) — earned, no flood.
 - **Removed Conduit & Discharge** (the hold-charge amplifier perks). Hungry Hold stands alone as **ambient depth** — holding still ramps the pull ~1.6× and fires a ~1.5× reversal Shockwave at full charge (base `conduitAmp` 0.5 retained). No perks fuss over it; Afterimage stays (it's reversal-spacing, not hold-charge). Specials pool 11→9.
 - **OPEN — Undertow**: player finds it unclear/unfun. Diagnosis: the pull is subtle AND the reversal's expanding ring animation visually says "push" while the effect pulls inward — contradictory feedback. Proposed fix (pending choice): an inward "implosion" visual + stronger yank so it reads as *gather the swarm into your point-blank kill zone*. Not yet built.
 
-## 🗒 Decisions log
+### 🗒 Decisions log
 
 - 2026-07-17 — **Dense Core** de-degenerated: was multiplicative-compounding to a 70% damage-reduction floor (near-immunity in ~3 picks). Now **additive, hard cap 50% DR**, base 0.25→0.16. Same bug class as the Overcharge fix. **Watch-list sibling: Frozen World (frost)** — `enemySlow *= (1-m)` compounds toward 0 with NO floor (stacking freezes the swarm); not yet touched.
 - 2026-07-17 — **Epoch pressure creep**: same-species matter gains +8% contact damage & +4% speed per Epoch; post-125s the mix scales with Epoch (Drifters thin, Chargers/Bombers/Splitters/Neutrals climb); arena cap +10/Epoch (ceiling 300→330), spawn count +epoch/2. HP intentionally NOT scaled — annihilation is binary, so fatter bodies would only tax secondary tools. Elites/Primes remain the real answer for durable threats.

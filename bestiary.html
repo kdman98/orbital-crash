@@ -69,7 +69,7 @@
     {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'The uncharged body, and it <b>wears both poles</b> — half red, half cyan on a turning seam, because no polarity you can hold makes it safe or makes it ammunition. Immune to the Field; pop it with a reversal. It is <b>not</b> cover: nothing is. An Anomaly\'s missiles pass straight through every body on the field.'},
   ];
   const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:44,hp:'13+epoch·5',dmg:34,
-    tag:'The boss, at the end of each Epoch. Immune to your reversals, and its body hurts (34 dmg). Every missile it throws launches from its <b>own body</b>, so none can be turned back against it — <b>its own fire cannot erode it, and neither can matter that merely drifts into it</b>. You bring it down with the loop: <b>dodge</b> its patterns, <b>scavenge</b> your colour into your Rings, <b>evade</b> the other colour, then <b>hungry-flip to VOLLEY</b> those rings at it (<b>3 dmg</b> each). A loaded ring also <b>grinds</b> it just by touching — <b>½ dmg</b> per body, each spent doing it — steady pressure for holding the range, not a burst that ends the fight. Those are the <b>only two</b> ways matter can hurt it: anything that merely drifts or is flung into it bounces off for nothing, because the Anomaly walks the arena and a rule that paid for contact would let it damage itself just by moving. If you have been stripped of your Rings, a <b>charged reversal inside its skin</b> still chips it for <b>1</b> with no ammunition at all — priced to top you up, not to be the plan, because standing that close to a body that touches for 34 is the cost. Every kind also <b>hunts</b>: roughly every 9–14s it breaks station and <b>walks onto your core</b>, slowly and loudly. It lands <b>one</b> hit and recoils rather than parking on you — and it has to cross your rings to get there. A Collapse chips <b>15%, flat</b> — packing the field around it changes nothing. Purging it drops a powerup, +30 HP and +40% charge. Three KINDS below.'};
+    tag:'The boss, at the end of each Epoch. Immune to your reversals, and its body hurts (34 dmg). Every missile it throws launches from its <b>own body</b>, so none can be turned back against it — <b>its own fire cannot erode it, and neither can matter that merely drifts into it</b>. You bring it down with the loop: <b>dodge</b> its patterns, <b>scavenge</b> your colour into your Rings, <b>evade</b> the other colour, then <b>hungry-flip to VOLLEY</b> those rings at it (<b>3 dmg</b> each). A loaded ring also <b>grinds</b> it just by touching — <b>½ dmg</b> per body, each spent doing it — steady pressure for holding the range, not a burst that ends the fight. Those are the only two ways <i>your gathered matter</i> can hurt it — plus one exception that is not yours to gather: a <b>Charger in its committed dash</b>, driven into it, for <b>4</b>. Anything that merely drifts or is flung into it bounces off for nothing, because the Anomaly walks the arena and a rule that paid for contact would let it damage itself just by moving. If you have been stripped of your Rings, a <b>charged reversal inside its skin</b> still chips it for <b>1</b> with no ammunition at all — priced to top you up, not to be the plan, because standing that close to a body that touches for 34 is the cost. Every kind also <b>hunts</b>: roughly every 9–14s it breaks station and <b>walks onto your core</b>, slowly and loudly. It lands <b>one</b> hit and recoils rather than parking on you — and it has to cross your rings to get there. A Collapse chips <b>15%, flat</b> — packing the field around it changes nothing. Purging it drops a powerup, +30 HP and +40% charge. Three KINDS below.'};
   // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
   const ANOMS=[
     {kind:'anom',key:'emitter', name:'Emitter', col:'cyan', meta:'volleys · hovers · burst & stream',
@@ -133,7 +133,7 @@
       ctx.lineTo(x-ca*R*0.34, y-sa*R*0.34);
       ctx.lineTo(x-ca*R*0.72+sa*R*0.78, y-sa*R*0.72-ca*R*0.78);
       ctx.closePath(); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.28,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
     } else {
       ctx.fillStyle=c;            ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
@@ -143,7 +143,9 @@
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5; ctx.beginPath();
       ctx.moveTo(x+Math.cos(na)*r, y+Math.sin(na)*r); ctx.lineTo(x-Math.cos(na)*r, y-Math.sin(na)*r); ctx.stroke();
     } else if(s.type==='orbiter'){
-      const a0=t*1.5; ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,r*1.5,a0,a0+Math.PI*1.2); ctx.stroke();
+      // mirrors index.html: the game's trail arc is FROZEN at 0.4, not spun. A spinning arc here read as
+      // a different body — the Orbiter's motion is its curve through the field, not a rotating decoration.
+      const a0=0.4; ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,r*1.5,a0,a0+Math.PI*1.2); ctx.stroke();
     } else if(s.type==='bomber'){
       // mirrors index.html: the dashed 1.55r standoff ring went with the death payload — it was a
       // scale model of the 108px blast and promises a radius the Bomber no longer has.
@@ -152,7 +154,14 @@
     } else if(s.type==='charger'){
       const tt=Math.sin(t*3)*0.5+0.5;
       ctx.strokeStyle=hexA('#ffffff',0.4+0.5*tt); ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,r+4+6*tt,0,TAU); ctx.stroke();
-      ctx.strokeStyle=hexA(c,0.35+0.4*tt); ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-(30+18*tt),y); ctx.stroke();
+      // mirrors index.html's wind-up: the lane runs FORWARD along the aim, dashed, out to the collapsing
+      // reticle that marks where the dash ends. It used to draw a solid line pointing BACKWARDS, which
+      // contradicted this card's own copy ("draws the whole thing, out to a reticle").
+      const ha=0, ex=x+Math.cos(ha)*(30+18*tt), ey=y+Math.sin(ha)*(30+18*tt);
+      ctx.strokeStyle=hexA(c,0.35+0.4*tt); ctx.lineWidth=2; ctx.setLineDash([9,9]);
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=hexA('#ffffff',0.3+0.5*tt); ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(ex,ey,4+14*(1-tt),0,TAU); ctx.stroke();
     }
     ctx.globalCompositeOperation='source-over';
   }
@@ -239,7 +248,7 @@
     hex(R*0.52,-rot*1.4); ctx.strokeStyle=hexA(oc,0.8); ctx.lineWidth=2.5; ctx.stroke();
     for(let i=0;i<6;i++){ const a=rot+i/6*TAU;
       ctx.fillStyle=hexA(oc,0.95);
-      ctx.beginPath(); ctx.arc(x+Math.cos(a)*R, y+Math.sin(a)*R, 3.2,0,TAU); ctx.fill(); }
+      ctx.beginPath(); ctx.arc(x+Math.cos(a)*R, y+Math.sin(a)*R, 4.4,0,TAU); ctx.fill(); }
     ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(x,y,R*0.24,0,TAU); ctx.fill();
   }
 

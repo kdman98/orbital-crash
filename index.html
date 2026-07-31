@@ -344,7 +344,7 @@ let moteN=0, moteT=0;                  // pickup ratchet ladder
 let score=0, mult=1;                   // no XP / levels — survival + annihilations + Mote mult ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 let unstable=0; // collapse window
-let cwave=null, cwaveN=0; // collapse shockwave {x,y,r,id} — id lets Aftershock's second wave hit fresh
+let cwave=null, cwaveN=0; // collapse shockwave {x,y,r,id} — the id makes each wave hit a body at most once
 let resumeT=0; const READY_DUR=1.2; // brief breather after picking a perk
 let pointer={x:W/2,y:H/2,has:false};
 let settleT=0; // brief speed cap after a resume so the core glides instead of teleporting
@@ -1159,7 +1159,7 @@ function aimLunge(b){
   b.tx=clamp(P.x+dx/d*LUNGE_OVER, 60, W-60);
   b.ty=clamp(P.y+dy/d*LUNGE_OVER, 150, H-60);   // 150: clear of the HUD strip the boss is clamped out of
   b.telegraph=LUNGE_TEL;
-  sfx.closing();          // a 0.85s descending tone under the 0.9s wind-up — the warning is audible, not just drawn
+  sfx.closing();          // a 0.85s descending tone under the 1.3s wind-up — the warning is audible, not just drawn
 }
 function bossMove(b,dt){
   if(b.lunging>0){                                             // a committed dash always wins
@@ -1724,7 +1724,7 @@ function stepAnnihilation(){
               // ==========================================================================
               //  TWO CHANNELS. ONLY TWO. A body erodes the Anomaly if and only if it is:
               //    VOLLEY — fired at it by a hungry flip   (VOLLEY_DMG, 3)
-              //    GRIND  — riding your rings when it meets it (RING_GRIND_DMG, 2)
+              //    GRIND  — riding your rings when it meets it (RING_GRIND_DMG, 0.5)
               //  Everything else that touches it pays ZERO and bounces off.
               //
               //  WHY THE LIST IS CLOSED, and why it must stay closed: **the Anomaly moves.** Since the
@@ -2088,7 +2088,7 @@ function flip(){
   flash=0.05+hc*0.13; flashCol=COL[P.polarity]; // flipping is constant — a full-screen wash every flip was the #1 dizziness source; feedback lives in the ring + core colour now
   sfx.flip(hc);
   // THE HUNGRY FLIP — the one answer to a closing sky. Hold a pole to LOAD your rings, then reverse:
-  // every opposite-charge body inside the burst is PURGED where it stands, in the same frame. Quick
+  // every opposite-charge body inside the burst is FLUNG outward, alive, in the same frame. Quick
   // taps just reverse (reposition, colour-swap), so flip-spam can't cheaply sustain you.
   //
   // It used to fire the rings outward as projectiles instead. That failed twice over: the impulse ran
@@ -2111,7 +2111,7 @@ function hungryFlipBurst(hc){
     const chg=(hc-RING_FIRE_HC)/(1-RING_FIRE_HC);   // 0 at the load threshold → 1 at full charge
     let ringN=0;
     for(const e of enemies) if(e.ring && !e.dead && !e.queued) ringN++;
-    // charge sets the floor, the matter you actually gathered sets the ceiling: 64 → 170px
+    // charge sets the floor, the matter you actually gathered sets the ceiling: 80 → 210px
     const R=PURGE_R0 + chg*PURGE_RCHG + Math.min(ringN,PURGE_RING_CAP)*PURGE_RPER;
     // THE FLING. A reversal REPELS the matter that just turned hostile — it does not vaporise it. Three
     // reasons this replaced the old kill-everything Purge:
@@ -2211,7 +2211,8 @@ function flipShockwave(hc){
     if(hc>0.4){ spawnRing(P.x,P.y,'#fff',R*0.7); trauma=Math.min(1,trauma+hc*0.12); }
     // THE CLOSE REVERSAL — a third way at the Anomaly, and the only one that needs no ammunition.
     // A *charged* reversal detonated inside its skin chips it directly. This is deliberately the
-    // dangerous option: the shockwave reaches ~104-310px, the Anomaly's body does 34 on contact and is
+    // dangerous option: the shockwave reaches 130-156px on the charged reversals that can chip at all
+    // (the chip is gated at hc>=0.5, so amp is never below 1.25), the Anomaly's body does 34 on contact and is
     // never consumed, and it hunts and (as an Emitter, from Epoch III) lunges. So the window is a narrow
     // band of "close enough to hurt it, not close enough to be hit", held under its own point-blank fire.
     // It exists because the Volley depends on having gathered matter, and a player who has just been
@@ -2539,7 +2540,7 @@ function drawBoss(){
   }
   ctx.fillStyle=hexA(c, 0.28+(bossFlash>0?0.4:0));
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r*2.1*pulse,0,TAU); ctx.fill();
-  // The whole enemy pass runs under `lighter` (see drawScene) — which is why the old single-disc body
+  // The whole enemy pass runs under `lighter` (set in render()) — which is why the old single-disc body
   // worked: one fill has nothing to blow out against. These silhouettes are LAYERED (band + wings,
   // hex + inner hex + muzzles), and additively every overlap saturates to pure white, erasing exactly
   // the colour contrast the shapes exist to carry. Composite the body normally; the additive halo
