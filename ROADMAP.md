@@ -7,6 +7,17 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The comet gets rare, Point-Blank goes, and a Pattern Lab (2026-07-31)
+Player brief: *"make comet rarer / remove point blank x3 feature / where can i test patterns?"*
+
+**The comet is rarer — and the first attempt made it commoner, which measurement caught.** In the shape rotation at 1-in-5 it ran **1.3 per 10 minutes** against ~6.3 formations. Pulling it out onto its own 75–120s timer produced **3 per 10 minutes**: more than twice as often as the thing it was meant to undercut. Two facts had been missed — the timer only advances **outside a boss**, which is only ~301s of any 600s run, and formations are gated the same way, so the comparison is against a much smaller denominator than wall-clock suggests. At **200–300s** it measures **1 per 10 minutes** across five seeded runs, which is what "an event, not a wave" needed.
+
+**Point-Blank Resonance removed.** Kills inside the Field paid ×2 and ×3 deep inside, with crash-kills denied the bonus so courage paid and collisions did not. Every annihilation now pays a flat **10 × multiplier** wherever it happens — verified at 20px, at the 170px rim and at 400px, all **10**. Where you stand is already priced by the things that decide the fight: closing the range is how a Volley connects, and it is what walks you into an Anomaly's point-blank fire. The `_contact` flag went with it; it existed only to deny the bonus and had no other reader, so `queueKill` lost its second parameter.
+
+**Pattern Lab**, a third mode beside Boss Rush. A live ambient field with **no Anomaly and no Epoch phases**, and **1–5 fire the five shapes on demand**. Auto-formations are suppressed there, so nothing arrives unless you press for it. It exists because Boss Rush structurally cannot serve this: formations are gated on `wavePhase!=='boss'`, which is most of what Boss Rush is. Like Boss Rush it cannot set the best score. Verified: 150s with no boss and no unrequested shape, all five keys firing (29 / 20 / 99 / 36 / 1 bodies), and Boss Rush still working.
+
+**A note on the seeded traces, which all moved.** Two causes, and only one of them is a gameplay change. The scoring change is intended: survival scores fall 12–28%. The other is incidental — initialising `cometT` adds one `rand()` call at run start, which shifts the whole RNG stream, so every seeded run re-rolls. Neither is a defect, but it does mean these traces are a **fresh baseline** rather than a comparison, and old fingerprints are not meaningful against them.
+
 ### Three patterns that make COLOUR the puzzle (2026-07-31)
 Player brief: *"i was thinking about more fun and creative patterns, like tilt to live."*
 

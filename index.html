@@ -200,6 +200,7 @@
   <p class="tag" style="opacity:.82;margin-top:-2px;">No upgrades — just survival. Annihilations shed <b>powerup orbs</b>; steer into one for an instant, temporary edge.</p>
   <button class="btn" id="startBtn">Enter the field</button>
   <button class="btn sm ghost" id="arenaBtn" style="margin-top:14px;">◆ Boss Rush — every Anomaly</button>
+  <button class="btn sm ghost" id="labBtn" style="margin-top:8px;">✳ Pattern Lab — every shape, on demand</button>
   <button class="btn sm ghost" id="bestiaryBtn" style="margin-top:8px;">✦ Bestiary</button>
   <button class="btn sm ghost" id="codexBtn" style="margin-top:8px;">❖ Codex — how it works</button>
   <div class="hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> collapse</div>
@@ -411,7 +412,6 @@ let spawnTimer=0, elapsed=0;
 let spawnBias='cyan', biasTimer=0; // enemies arrive in shifting colour waves
 let combo=0, peakCombo=0;
 let streakTier=0;                      // next streak-milestone index (25/50/100/200)
-let pbT=0;                             // POINT BLANK text throttle
 let grazeN=0, grazeT=0;                // near-miss ladder (pitch rises, decays after 1.5s)
 let gildTimer=14;                      // seconds until the next Gilded Bounty spawns
 let motes=[];                          // Flux Motes: annihilation loot; banking them drives the score mult
@@ -930,10 +930,15 @@ function formComet(){
   holdBody(e, dx/d*COMET_SPD, dy/d*COMET_SPD, (d+m*3)/COMET_SPD/60);
   if(e) e.comet=1;
 }
-const FORMS=[formWall,formNoose,formPulse,formSorter,formComet];
+// The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
+// like any other — and a comet should read as a thing that happens to the sky, not as this turn's
+// shape. It gets its own, much longer timer below.
+const FORMS=[formWall,formNoose,formPulse,formSorter];
+const LAB_SHAPES=[formWall,formNoose,formPulse,formSorter,formComet];   // Pattern Lab: all five, on demand
 // The first one lands early enough that a short run still sees one; after that they space out, and
 // the timer PAUSES during a boss (an Anomaly is already the thing demanding your attention).
 let formT=rand(9,16), lastForm=-1;
+let cometT=rand(90,150);                // the first comet lands well after the first formation
 function spawnFormation(){
   if(enemies.length>200) return;                          // these are far denser than the old shapes
   let i; do{ i=irand(0,FORMS.length-1); }while(FORMS.length>1 && i===lastForm);
@@ -974,9 +979,15 @@ function director(dt){
   if(biasTimer<=0){ biasTimer=rand(3.2,5.5); spawnBias = spawnBias==='red'?'cyan':'red'; }
   // an irregular FORMATION now and then — only once the drizzle has established a rhythm worth
   // breaking, and never during a boss (the Anomaly is already the thing demanding your attention)
-  if(elapsed>42 && wavePhase!=='boss'){
+  if(elapsed>42 && wavePhase!=='boss' && !labMode){   // in the Lab nothing arrives unless you press for it
     formT-=dt;
     if(formT<=0){ formT=rand(30,46); spawnFormation(); }
+    // The comet on its own, much longer clock. MEASURED, because the first attempt at "rarer" was
+    // wrong: in the formation rotation it was 1-in-5 of ~6.8 formations per 10 minutes = **1.4**, and a
+    // 75-120s timer produced **3**, i.e. twice as often as before. Note this timer only advances outside
+    // a boss, which is just ~301s of any 600s run, so the wall-clock gap is about double the interval.
+    cometT-=dt;
+    if(cometT<=0){ cometT=rand(200,300); formComet(); }
   }
   // phase timing
   if(wavePhase!=='boss'){ phaseT-=dt; if(phaseT<=0) advancePhase(); }
@@ -1122,6 +1133,18 @@ function beginTestRun(){
   act=2; boss=null; bossTime=0; testIdx=0; wavePhase='boss';
   palCur.bg1=hx(ACTS[2].bg1); palCur.bg2=hx(ACTS[2].bg2); palCur.tint=hx(ACTS[2].tint);
   spawnBoss(TEST_ORDER[0]);
+}
+// ---- PATTERN LAB: the shapes on demand, with nothing else competing for your attention.
+// Boss Rush cannot serve this: formations are suppressed while `wavePhase==='boss'`, which is most of
+// what Boss Rush is. The Lab runs a live ambient field with NO Anomaly and no Epoch phases, and binds
+// 1-5 to the five shapes so you can fire one, watch it resolve, and fire it again.
+let labMode=false;
+function beginLabRun(){ act=1; wavePhase='calm'; phaseT=1e9; boss=null; bossTime=0; intensityTarget=0.34; }
+function labFire(i){
+  if(!labMode || state!=='play') return;
+  const f=LAB_SHAPES[((i%LAB_SHAPES.length)+LAB_SHAPES.length)%LAB_SHAPES.length];
+  f();
+  flash=0.3; flashCol=COL.violet; if(typeof sfx!=='undefined') sfx.lance();
 }
 function testNext(){ testIdx=(testIdx+1)%TEST_ORDER.length; boss=null; lances.length=0; bossTime=0; spawnBoss(TEST_ORDER[testIdx]); }
 function testPick(i){                          // 1-3 → jump to a specific kind
@@ -2058,7 +2081,7 @@ function stepPlayerContact(){
           if(e.type==='bomber') grantAchv('bomberPoint'); // took the hardest hit in the sky and lived
         }
       }
-      if(e.type!=='boss') queueKill(e,true); // boss is not consumed on contact
+      if(e.type!=='boss') queueKill(e);      // boss is not consumed on contact
       else if(e.hunt>0 || e.huntBreak>0){
         // A HUNT LANDS ONCE, THEN BREAKS OFF. This is the whole reason the Anomaly is now allowed to
         // reach the core at all. Its touch is 30 and it is never consumed, so a boss that simply stopped
@@ -2100,7 +2123,6 @@ function stepRunTimers(dt){
       }
     }
   }
-  if(pbT>0) pbT-=dt;
   if(grazeT>0){ grazeT-=dt; if(grazeT<=0) grazeN=0; }
   // Gilded Bounty: every 12-18s one Dot arrives gilded — annihilate it within 6s for a jackpot (not in the Arena)
   gildTimer-=dt;
@@ -2129,9 +2151,12 @@ function stepDecay(dt){
   if(flash>0) flash=Math.max(0,flash-dt*2.4);
 }
 
-function queueKill(e,byContact){
+// `byContact` used to matter: it denied the Point-Blank bonus to a body consumed by crashing INTO the
+// core, so courage was paid and collisions were not. With that bonus gone the flag has no reader, and
+// the one caller that passed it (player contact) no longer needs to.
+function queueKill(e){
   if(!e || e.dead || e.queued) return;
-  e.queued=true; e._contact=byContact; killQ.push(e);
+  e.queued=true; killQ.push(e);
 }
 function processKills(){
   let guard=0;
@@ -2227,14 +2252,11 @@ function onKill(e){
   // the score multiplier is BANKED MOTES this life (Flip-vacuum loot), not the streak —
   // streak feeds the Capacitor, motes feed the mult; two currencies, two behaviours
   recalcMult();
-  // Point-Blank Resonance: annihilations at the lip of your own Field pay x2, deep inside x3.
-  // In a game where you STEER INTO the sky, diving deep for the kill is the score stat.
-  // A body consumed by CRASHING into the Core is the failure case, not the play — no bonus.
-  const pd=Math.hypot(e.x-P.x,e.y-P.y);
-  const prox = e._contact?1 : pd<P.fieldR*0.45?3 : pd<P.fieldR?2 : 1;
-  const gain=Math.round(10*mult*prox*P.scoreMult);
+  // POINT-BLANK RESONANCE REMOVED (2026-07-31). An annihilation used to pay ×2 inside the Field and ×3
+  // deep inside it, on the argument that diving for the kill is the skill in a game where you steer INTO
+  // the sky. Every kill is now worth the same wherever it happens.
+  const gain=Math.round(10*mult*P.scoreMult);
   score+=gain;
-  if(prox===3 && !unstable && pbT<=0){ pbT=0.4; pushText(e.x,e.y-22,'POINT BLANK ×3','#fff',0.8,13); }
   // Flux Motes: annihilations shed collectible loot carrying the body's colour.
   const moteCap=40, moteLife=()=>rand(4,8);
   if(e.color!=='neutral' && motes.length<moteCap){
@@ -2259,8 +2281,6 @@ function onKill(e){
   // charge — kills during a collapse don't refund the capacitor (no back-to-back collapses).
   // base rate trimmed 0.008->0.006: graze/deflect/motes are new income, Collapse must stay earned.
   if(!unstable) P.charge=Math.min(1,P.charge + (0.006 + combo*0.0002)*P.chargeGain);
-  // heal (vamp). Leech only pays out on DEEP point-blank (prox===3) pops and
-  // only up to the refilling budget — ranged/aura/collision kills and raw volume do NOT heal.
   // visuals
   const c=COL[e.color];
   spawnBurst(e.x,e.y,c,e.type==='heavy'?18:9,e.type==='heavy'?4:2.6);
@@ -2489,7 +2509,7 @@ function die(){
   killQ.length=0;  // cancel any queued kills
   inhaleT=0;
   let nb=false;
-  if(score>store.best && !testMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
+  if(score>store.best && !testMode && !labMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
   save();
   el('deadScore').textContent='0';
   el('deadCause').textContent = lastDmg
@@ -3186,7 +3206,8 @@ function updateHUD(){
   // act label + biome tint (Arena shows its controls instead of the Epoch)
   const info=actInfo();
   const al=el('actlab');
-  if(testMode){ al.textContent='◆ BOSS RUSH · 1–'+TEST_ORDER.length+' SWITCH KIND'; al.style.color=COL.violet; }
+  if(labMode){ al.textContent='◆ PATTERN LAB · 1 WALL · 2 NOOSE · 3 PULSE · 4 SORTER · 5 COMET'; al.style.color=COL.violet; }
+  else if(testMode){ al.textContent='◆ BOSS RUSH · 1–'+TEST_ORDER.length+' SWITCH KIND'; al.style.color=COL.violet; }
   else { al.textContent='EPOCH '+ROMAN[(act-1)%12]+' · '+info.name.toUpperCase(); al.style.color=info.tint; }
   // boss integrity bar
   const bb=el('bossbar');
@@ -3276,18 +3297,23 @@ requestAnimationFrame(frame);
 //  UI: menu / pause / death
 // =====================================================================
 
-function startRun(test){
+// `mode`: falsy = a normal run · 'boss' = Boss Rush · 'lab' = Pattern Lab.
+// It was a boolean; a third testing mode is worth one string compare, and every existing caller
+// (including the debug seam's start() and start('boss')) keeps working unchanged.
+function startRun(mode){
   audioInit();
-  testMode=!!test; lastWasTest=!!test;
+  labMode = (mode==='lab');
+  testMode = !!mode && !labMode; lastWasTest=testMode;
   enemies=[];parts=[];texts=[];killQ=[];
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
-  pbT=0;grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
+  grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
   motes.length=0;motesBank=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   inhaleT=0;collapseKills=0;chargeFull=false;deathRevealT=0;deadCountT=0;
   orbs=[];orbTimer=9;for(const k in FX)FX[k]=0;   // powerups: no drops, no active effects at the start
   ehStrain=0; ehWarned=false;                      // the well's strain + its one-shot warning latch
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
+  cometT=rand(90,150);
   score=0;mult=1;
   trauma=0;hitstop=0;flash=0;unstable=0;cwave=null;timeScale=1;tsHold=0;
   boss=null;bossFlash=0;lances.length=0;bossN=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
@@ -3301,7 +3327,7 @@ function startRun(test){
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
   ehT=0;
   state='play'; lastT=performance.now(); acc=0;
-  if(test) beginTestRun(); else beginRun();
+  if(labMode) beginLabRun(); else if(testMode) beginTestRun(); else beginRun();
 }
 function toMenu(){
   state='menu';
@@ -3338,7 +3364,8 @@ function resumeGame(){
 function togglePause(){ if(state==='play')pauseGame(); else if(state==='paused')resumeGame(); }
 
 el('startBtn').onclick=()=>startRun(false);
-el('arenaBtn').onclick=()=>startRun(true);             // ◆ Anomaly Arena — bosses only
+el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anomalies back to back
+el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-5 to fire a shape
 el('againBtn').onclick=()=>{ startRun(lastWasTest); }; // Reforge = instant retry, in the same mode you were in
 el('deadMenuBtn').onclick=()=>{ toMenu(); };
 el('collapseBtn').onclick=e=>{ e.preventDefault(); collapse(); };
@@ -3361,7 +3388,7 @@ function openCodex(){
   <div class="cxs"><h3>The Charge Law</h3>
     <p>You are a magnetic world. <b>Opposite-charge matter drifts toward you</b> and annihilates on contact (threat and ammo) — your world <b>never sucks another charge in</b>, so you <b>steer into</b> it. <b>Like-charge is caught into your rings</b> (your armor — orbiting matter that never harms you, and a shell that annihilates opposite matter it touches). When <b>red meets cyan, both annihilate</b>. The law has one exception, and it belongs to the Anomaly: a dashing Charger plows through opposite matter instead of dying to it. Its <b>missiles</b> sit outside the law entirely — they pass through every body, so nothing is cover. Every body is also a weapon — if you position it.</p></div>
   <div class="cxs"><h3>Score</h3>
-    <p><b>Point-Blank:</b> annihilations inside your Field score <span class="gold">×2</span>, deep inside <span class="gold">×3</span>. Matter that crashes into you pays ×1 — courage counts, collisions don't.</p>
+    <p><b>Every annihilation pays the same</b>, wherever it happens — <span class="gold">10 × your multiplier</span>. Where you stand is already priced by the things that matter: closing the range is how a Volley connects, and it is what walks you into an Anomaly's point-blank fire.</p>
     <p><b>Multiplier = banked Motes.</b> Annihilations drop twinkling ✦ Motes: your charge hoovers in on its own, the opposite charge waits for a <b>reversal-vacuum</b>. Each banked Mote is <span class="gold">+0.1×</span> (cap ×15) — and the bank is <b>cut in half when you get hit</b>. Each banked Mote also pays out directly at your current multiplier.</p>
     <p><b>Gilded Bounty:</b> every ~15s a gold-ringed body arrives — pop it within 6s for <span class="gold">250×epoch</span>.</p>
     <p><b>Collapse tally:</b> the wave counts its kills and pays <span class="gold">N²×4</span> — herd a dense ring before you spend it.</p></div>
@@ -3464,6 +3491,7 @@ window.addEventListener('keydown',e=>{
   // range derives from TEST_ORDER so it can never drift from the '1-N SWITCH KIND' label again (it accepted
   // 1-5 while only 3 kinds existed, so 4 and 5 silently wrapped round to the first two)
   if(testMode && state==='play' && k>='1' && k<='9' && parseInt(k,10)<=TEST_ORDER.length){ e.preventDefault(); testPick(parseInt(k,10)-1); }
+  if(labMode  && state==='play' && k>='1' && k<='9' && parseInt(k,10)<=LAB_SHAPES.length){ e.preventDefault(); labFire(parseInt(k,10)-1); }
 });
 window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
 window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; }); // a keyup swallowed by Cmd+Tab must not leave the core drifting
