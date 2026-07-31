@@ -7,6 +7,21 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### Three patterns that make COLOUR the puzzle (2026-07-31)
+Player brief: *"i was thinking about more fun and creative patterns, like tilt to live."*
+
+Tilt to Live is a useful comparison for what it *cannot* do. It has one enemy type and one verb, so geometry is its entire design space, and its patterns are brilliant spatial puzzles because that is the only axis available. **This game has a second axis and the patterns were not using it.** Rule 2 in the pattern header — *alternate every body* — employs colour **defensively**, to stop a wave being solved with one keypress. Both shipped shapes, the Wall and the Noose, are pure space: neither needs a polarity button to exist.
+
+**◉ The Pulse** — a shockwave from elsewhere in the sky. Three nested **arcs** wash outward over you, each a **single colour**, alternating arc to arc, so it is answered by *matching* rather than dodging. Measured: 150° of front, 31 bodies per arc, radii 120 / 250 / 380 at a centre ~500px away, and **45px spacing at the radius where each arc reaches you** — under the 52px contact diameter, so rule 1 holds where it actually matters even though the arc fans out as it expands. Arcs rather than full rings because a circle sized that way costs ~72 bodies each, and because an arc leaves running around its edge as a real second answer.
+
+**◈ The Sorter** — two **solid** walls converging, one red and one cyan, doors at different heights. Neither door helps you with the other wall and no polarity is safe from both: match the one arriving first, then flip for the second. This breaks the *letter* of rule 2 while keeping its spirit — one solid red wall is a free door if you are red; two, in opposite colours, cannot both be. The walls **annihilate each other** where they meet, which is what ends the shape rather than a timer.
+
+**☄ The Comet** — an event rather than a formation: one body crossing the sky at **7.6 px/frame**, three times anything else, trailing a tail emitted in world space so it drifts behind the nucleus instead of being welded to it. Charged, so it is either a large ammunition delivery you intercept by positioning or a fast threat that crosses. Aimed to pass **near** you (±230px), so measured over five passes it touches you **1 time in 5** — an opportunity, not a hit. Its nucleus is a Brute, so it stays as ordinary matter when the flight lapses.
+
+**Two bugs caught by measurement, both in the Pulse.** `o.a += o.va` steps per **frame**, and I had computed the arc's drift per **second** — 60× too fast. Because the flight is polar the error compounds with radius, and the second bug fed it: a flat 9.5s hold let arcs expand past R≈1700 offscreen, where even a small angular rate is enormous tangentially. Peak body speed measured **210 px/frame**. Fixed by dividing the drift by frames of flight and giving each arc a hold just long enough to sweep past and clear: peak is now **12 px/frame**, which is the same figure the Sorter shows and is ordinary post-flight ring physics rather than anything the shape does.
+
+**Existing measured behaviour untouched**: 97 fingerprints across the six seeded traces, identical. That holds by construction — formations only fire after `elapsed > 42` and never during a boss, so the survival traces (40s) and the boss traces never reach one. A separate 300-second run does reach formation time repeatedly: no errors, all state finite.
+
 ### The sky becomes a sky: parallax starfield in, the square grid out (2026-07-31)
 Player brief: *"i'm planning to make our game to have more cosmic feeling in game overall."* — presentation layer, with the fight held exactly as measured.
 

@@ -848,7 +848,89 @@ function formNoose(){
               cx,cy,a,R,FORM_SPD,spin/(secs*60),secs+0.6);
   }
 }
-const FORMS=[formWall,formNoose];
+// THE PULSE — a shockwave from somewhere else in the sky. Nested arcs wash outward over you, and each
+// arc is a SINGLE colour, alternating arc to arc, so it is answered by matching rather than by dodging.
+//
+// This is the first shape whose question is COLOUR rather than geometry. Both older shapes are pure
+// space — a Tilt-to-Live designer would recognise the Wall and the Noose immediately, and neither one
+// needs a polarity button to exist. Rule 2 ("alternate every body") uses colour DEFENSIVELY, to stop a
+// wave being solved with one keypress; nothing until now used it as the puzzle itself.
+//
+// Arcs, not full rings, for two reasons. A full circle sized for tight spacing at the radius where it
+// actually reaches you costs ~72 bodies per ring, and three of those would be most of the arena cap.
+// And an arc is honest about what it is: a front arriving from one direction, which leaves running
+// around its edge as a real second answer beside flipping.
+const PULSE_ARC=2.62;                              // ~150° of front
+function formPulse(){
+  const px=P?P.x:W/2, py=P?P.y:H/2;
+  const a0=rand(0,TAU), dist=rand(470,560);
+  const cx=clamp(px+Math.cos(a0)*dist, -160, W+160);
+  const cy=clamp(py+Math.sin(a0)*dist, -160, H+160);
+  const bear=Math.atan2(py-cy, px-cx);             // the front faces you
+  const arrive=Math.hypot(px-cx, py-cy)||1;
+  // spaced for the radius where it MEETS you, not where it spawns: it fans out as it expands, so
+  // sizing at spawn would leave it walkable by the time it mattered
+  const N=clamp(Math.ceil(PULSE_ARC*arrive/FORM_STEP), 10, 34);
+  for(let k=0;k<3;k++){
+    const R=Math.max(70, arrive-140-k*130);        // nested: the outermost is the oldest, so it lands first
+    const col=(k%2===0)?'red':'cyan';              // ONE colour per arc — the whole point
+    // `o.a += o.va` steps PER FRAME, so the drift has to be divided by frames of flight, not seconds.
+    // Getting that wrong made the arcs whirl 60x too fast, and because the whole thing is polar the
+    // error compounds with radius: measured 210 px/frame once an arc had expanded past R≈1700.
+    const frames=Math.max(1,(arrive-R)/FORM_SPD);
+    const spin=(k%2?1:-1)*0.14/frames;
+    // Live exactly long enough to sweep past you and clear, rather than expanding forever offscreen —
+    // an arc at R=1700 is doing nothing except making its own tangential speed absurd.
+    const hold=(arrive-R+300)/FORM_SPD/60;
+    for(let i=0;i<N;i++){
+      const a=bear+(i/(N-1)-0.5)*PULSE_ARC;
+      holdOrbit(spawnEnemy('drift',col, cx+Math.cos(a)*R, cy+Math.sin(a)*R),
+                cx,cy,a,R,-FORM_SPD,spin, hold);   // negative vr = expanding
+    }
+  }
+}
+// THE SORTER — two solid walls converging, one RED and one CYAN, their doors at different heights.
+// Neither wall has a gap you can use for the other, and no polarity is safe from both: you match the
+// one arriving first, then flip for the second. The flip stops being a convenience and becomes the
+// solution.
+//
+// This deliberately breaks the LETTER of rule 2 (every shipped shape alternates every body) while
+// keeping its spirit, which is that no single polarity ever walks through a wave for free. One solid
+// red wall is a free door if you are red — two, in opposite colours, cannot both be.
+// They also annihilate each other where they meet, which is what ends the shape: not a timer.
+function formSorter(){
+  const N=Math.max(8,Math.ceil(H/FORM_STEP)+1), step=H/(N-1), m=80;
+  const gapA=irand(1,Math.max(1,N-4));
+  let gapB=irand(1,Math.max(1,N-4));
+  if(Math.abs(gapB-gapA)<4) gapB=(gapA+Math.floor(N/2))%Math.max(1,N-3)+1;   // the doors must not line up
+  const hold=formFlightTime(W+m*2);
+  for(let i=0;i<N;i++){
+    const y=i*step;
+    if(i<gapA || i>=gapA+2) holdBody(spawnEnemy('drift','red',  -m,  y),  FORM_SPD, 0, hold);
+    if(i<gapB || i>=gapB+2) holdBody(spawnEnemy('drift','cyan', W+m, y), -FORM_SPD, 0, hold);
+  }
+}
+// THE COMET — not a formation but an EVENT: one body crossing the whole sky on a fixed line, far faster
+// than anything else on the field, trailing a tail. It carries a charge like everything else, so it is
+// either a large delivery of ammunition you have to intercept by positioning, or a fast threat that
+// crosses — which keeps it inside the core verb (steer into it) instead of sitting beside the game as
+// decoration. Its nucleus is a Brute, so when the flight lapses it stays as ordinary matter.
+const COMET_SPD=7.6;
+function formComet(){
+  const edge=irand(0,3), m=120;
+  let x,y;
+  if(edge===0){ x=-m;   y=rand(H*0.15,H*0.85); }
+  else if(edge===1){ x=W+m; y=rand(H*0.15,H*0.85); }
+  else if(edge===2){ x=rand(W*0.15,W*0.85); y=-m; }
+  else { x=rand(W*0.15,W*0.85); y=H+m; }
+  // aimed to pass NEAR the World rather than at it — a comet has its own path and you go to meet it
+  const tx=(P?P.x:W/2)+rand(-230,230), ty=(P?P.y:H/2)+rand(-230,230);
+  const dx=tx-x, dy=ty-y, d=Math.hypot(dx,dy)||1;
+  const e=spawnEnemy('heavy', Math.random()<0.5?'red':'cyan', x, y);
+  holdBody(e, dx/d*COMET_SPD, dy/d*COMET_SPD, (d+m*3)/COMET_SPD/60);
+  if(e) e.comet=1;
+}
+const FORMS=[formWall,formNoose,formPulse,formSorter,formComet];
 // The first one lands early enough that a short run still sees one; after that they space out, and
 // the timer PAUSES during a boss (an Anomaly is already the thing demanding your attention).
 let formT=rand(9,16), lastForm=-1;
@@ -1641,6 +1723,17 @@ function stepEnemyForces(dt){
         if(e.latT>0){ e.latT-=dt; if(e.latT<=0){ e.lvx=0; e.lvy=0; } }
         e.x+=e.fvx+(e.lvx||0); e.y+=e.fvy+(e.lvy||0);
         e.vx=e.fvx; e.vy=e.fvy;               // hand the momentum over so the break-up is seamless
+        // THE COMET'S TAIL. Emitted here rather than in the renderer so it stays BEHIND the nucleus in
+        // world space and drifts, instead of being a shape rigidly welded to the body.
+        if(e.comet){
+          for(let q=0;q<2;q++){
+            const b=rand(0.4,3.4);
+            parts.push({x:e.x-e.fvx*b+rand(-3,3), y:e.y-e.fvy*b+rand(-3,3),
+              vx:-e.fvx*0.14+rand(-0.5,0.5), vy:-e.fvy*0.14+rand(-0.5,0.5),
+              life:rand(0.35,0.85), max:0.85,
+              color:Math.random()<0.45?'#ffffff':COL[e.color], r:rand(1.4,3.6), ring:false});
+          }
+        }
       }
       continue;
     }
@@ -3518,7 +3611,7 @@ window.__orbital=window.__polaris=window.__flux={
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length, shield:P&&P.shield, orbs:orbs.length, fx}; },
   flip, collapse, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
   spawnBoss, fireLanceVolley, get store(){return store;},
-  spawnFormation, formWall, formNoose,
+  spawnFormation, formWall, formNoose, formPulse, formSorter, formComet,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
   get motes(){return motes;}, get motesBank(){return motesBank;}, get mult(){return mult;},
