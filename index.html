@@ -325,7 +325,7 @@ function grantAchv(id){
 // =====================================================================
 let state='menu'; // menu | play | ready | paused | dead
 let P=null;       // player / run stats
-let enemies=[], parts=[], texts=[], sats=[];
+let enemies=[], parts=[], texts=[];
 let killQ=[];
 let spawnTimer=0, elapsed=0;
 let spawnBias='cyan', biasTimer=0; // enemies arrive in shifting colour waves
@@ -341,9 +341,6 @@ let score=0, mult=1;                   // no XP / levels — survival + annihila
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 let unstable=0; // collapse window
 let cwave=null, cwaveN=0; // collapse shockwave {x,y,r,id} — id lets Aftershock's second wave hit fresh
-let hole=null;  // Singularity black hole {x,y,life,ext} — the inverted Collapse
-let zaps=[]; let aftPending=false, aftT=0; // Arc zaps + Aftershock timer
-let afterimageT=0; // polarity-mastery: window where both colours repel
 let resumeT=0; const READY_DUR=1.2; // brief breather after picking a perk
 let pointer={x:W/2,y:H/2,has:false};
 let settleT=0; // brief speed cap after a resume so the core glides instead of teleporting
@@ -598,12 +595,10 @@ function freshRun(){
     seekMult:1,
     moveMult:1, chargeGain:1, scoreMult:1,
     charge:0, iframe:0, flipCd:0, pulseCd:0, hurtT:99, regen:2.6,
-    blastR:0, blastDmg:1, vamp:0, vampCap:0, vampBudget:0, pulse:0, sats:0, rupture:false, decay:0, armor:1,
-    shield:0, shieldMax:0, shieldT:0, shieldCd:8,
-    arc:0, aftershock:0,   // unlockable-perk state
-    holdT:0, holdMax:1.5, conduitAmp:0.5, discharge:0, afterimage:0, // polarity mastery
-    eddy:0, ehorizon:0, ferro:0, congreg:0, congregCd:0, // keystones (rule-changers, one take each)
-    singularity:0, // Collapse evolution (special)
+    blastR:0, blastDmg:1, armor:1,
+    shield:0,
+    holdT:0, holdMax:1.5, conduitAmp:0.5, // polarity mastery
+    eddy:0, ehorizon:0,               // keystones (rule-changers, one take each)
   };
   base.hp=base.maxHp;
   return base;
@@ -1095,16 +1090,15 @@ function coreHit(dmg,src){
   if(!P || state!=='play') return false;
   if(P.iframe>0) return false;
   if(P.shield>0){
-    P.shield--; P.iframe=0.7; P.shieldT=0;
+    P.shield--; P.iframe=0.7;
     flash=0.4; flashCol=COL[P.polarity]; trauma=Math.min(1,trauma+0.2);
     ruptureBlast(P.x,P.y,150); sfx.shield();
     return false;
   }
-  P.hp-=dmg*P.armor; P.iframe=0.5; P.hurtT=0; P.shieldT=0;
+  P.hp-=dmg*P.armor; P.iframe=0.5; P.hurtT=0;
   breakStreak(src);
   trauma=Math.min(1,trauma+0.3); flash=0.5; flashCol=COL.red; hitstop=Math.max(hitstop,0.05);
   sfx.hurt(); spawnBurst(P.x,P.y,COL.red,12,3);
-  if(P.rupture) ruptureBlast(P.x,P.y,170);
   if(P.hp<=0){ P.hp=0; die(); return true; }
   return false;
 }
@@ -1376,23 +1370,6 @@ function stepMotes(dt){
     }
     m.vx*=0.9; m.vy*=0.9;
     m.x+=m.vx; m.y+=m.vy;
-    // FERROFLUID keystone: an unbanked Mote is a MINE that catches THREATS — matter of the charge
-    // OPPOSITE your world (never your own like-charge ring). Each kill drops fresh loot → fresh mines,
-    // so a dense Mote field chain-detonates. The kill consumes the Mote: loot traded for annihilation.
-    if(P.ferro){
-      let mined=false;
-      for(const e of enemies){
-        if(e.dead||e.queued||e.type==='boss'||e.dev)continue; // a devotee never trips your mines
-        if(e.color==='neutral'||e.color===P.polarity)continue; // mine THREATS (opposite your world), never your own like-charge ring
-        const fdx=e.x-m.x, fdy=e.y-m.y, fr=e.r+16;             // real trigger radius (was +7 — a pinprick)
-        if(fdx*fdx+fdy*fdy<fr*fr){
-          queueKill(e);
-          spawnBurst(m.x,m.y,COL[m.color],9,3.2); spawnRing(m.x,m.y,COL[m.color],22);
-          motes.splice(i,1); mined=true; break;
-        }
-      }
-      if(mined) continue;
-    }
     if(d<P.r+8){
       motes.splice(i,1);
       motesBank++; moteN++; moteT=0.8;
@@ -1471,46 +1448,16 @@ function step(){
       parts.push({x:P.x+Math.cos(a)*rr,y:P.y+Math.sin(a)*rr,vx:-Math.cos(a)*2.4,vy:-Math.sin(a)*2.4,
         life:0.34,max:0.34,color:Math.random()<0.5?COL.violet:'#fff',r:rand(1.2,2.8),ring:false}); }
   }
-  if(afterimageT>0) afterimageT-=dt;
   // out-of-combat regen: recover after a few seconds without a hit
   P.hurtT+=dt;
   if(P.hurtT>3.8 && P.hp<P.maxHp) P.hp=Math.min(P.maxHp,P.hp+P.regen*dt);
-  // Leech Core: a per-second HEALING BUDGET refills over time (cap 7/s). Point-blank pops SPEND it —
-  // so lifesteal can't scale with raw kill volume into net-positive-forever immortality.
-  if(P.vampCap>0) P.vampBudget=Math.min(P.vampCap, P.vampBudget + P.vampCap*dt);
-  // Aegis shield recharge
-  if(P.shieldMax>0){ P.shieldT+=dt; if(P.shieldT>=P.shieldCd && P.shield<P.shieldMax){ P.shield++; P.shieldT=0; } }
-
-  // ----- satellites (Twin Poles) -----
-  sats.length=P.sats;
-  for(let i=0;i<P.sats;i++){
-    if(!sats[i]) sats[i]={a:i/P.sats*TAU};
-    sats[i].a+=dt*1.6;
-    const orbit=P.fieldR*0.42;
-    sats[i].x=P.x+Math.cos(sats[i].a)*orbit;
-    sats[i].y=P.y+Math.sin(sats[i].a)*orbit;
-  }
 
   // ----- forces on enemies -----
   // (Hungry Hold no longer reels opposite matter in — the world has no inward pull on another charge.
   //  Holding a pole still amplifies the reversal shockwave; see `hc` in flip().)
   const attractors=[[P.x,P.y,P.fieldR,P.fieldK,1]];
-  for(const s of sats) attractors.push([s.x,s.y,P.fieldR*0.55,P.fieldK*0.6,1]);
-  let devCount=0;
-  if(P.congreg) for(const e of enemies) if(e.dev && !e.dead && !e.queued) devCount++;
-
   for(const e of enemies){
     if(e.dead)continue;
-    // CORROSION (thorn) wears down only the multi-HP, force-ignoring Dots you can't easily lure into
-    // a one-pop finish — Brutes & Neutrals — leaving the 1hp swarm YOURS to annihilate (that was the
-    // "deletes everything before contact" complaint). Dormant: P.decay is documented in GLOSSARY §11
-    // and nothing writes it, so this block is one line from waking. Corona used to share it via a
-    // second `hzn` term (1.1/s to all opposite matter in the Field); removed with the powerup.
-    const cor=(P.decay>0 && (e.type==='heavy'||e.type==='neutral'))?P.decay:0;
-    if(cor>0 && e.type!=='boss'){
-      const cdx=P.x-e.x, cdy=P.y-e.y;
-      if(cdx*cdx+cdy*cdy<P.fieldR*P.fieldR){ e.hp-=cor*dt; if(e.hp<=0){ queueKill(e); continue; } }
-    }
     // a live Singularity overrides the dash: a charger that strays into the well's reach is gripped
     // (falls through to the devour below) instead of plowing on — matter near the black hole IS eaten
     if(e.type==='charger' && !(FX.blackhole>0 && Math.hypot(P.x-e.x,P.y-e.y)<230)){ stepCharger(e,dt); continue; }
@@ -1541,23 +1488,6 @@ function step(){
     let ax=0,ay=0;
     // base seek toward core (keeps pressure)
     let dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
-    // CONGREGATION keystone: same-colour Dots are captured into reverent orbit (max 4 devotees)
-    // instead of being repelled. Neutrals never convert; the boss never kneels.
-    if(P.congreg && e.color===P.polarity && e.type!=='neutral' && e.type!=='boss'){
-      if(e.dev){                      // position-controlled orbit — steady, reverent, clamp-proof
-        e.devA+=dt*1.15;
-        const or=P.fieldR*0.55;
-        const tx=P.x+Math.cos(e.devA)*or, ty=P.y+Math.sin(e.devA)*or;
-        e.x+=(tx-e.x)*0.12; e.y+=(ty-e.y)*0.12;
-        e.vx=0; e.vy=0;
-        continue;
-      }
-      if(d<P.fieldR && devCount<4){
-        e.dev=1; e.devA=Math.atan2(e.y-P.y,e.x-P.x); devCount++;
-        spawnRing(e.x,e.y,'#ffffff',e.r+12);
-        continue;
-      }
-    } else if(e.dev) e.dev=0;         // colour no longer matches (storm shift etc.) — faith lapses
     // EVENT HORIZON keystone: while you HOLD the reverse button, a SMALL black hole opens at your
     // world — a mini Singularity. It drags nearby matter in and DEVOURS it at a tight horizon (banks
     // a Mote each — every charge except your own, Neutrals included). Smaller reach & shorter than the
@@ -1602,9 +1532,8 @@ function step(){
     // orbiters curve around the core (tangential push) instead of beelining
     if(e.type==='orbiter'){ ax+=-dy/d*0.34; ay+=dx/d*0.34; }
     const attracted=(e.type!=='neutral' && e.type!=='boss' && e.color!==P.polarity);
-    // RINGING: like-charge matter the world captures into a holding orbit (its rings). Excludes
-    // devotees (Shepherd Moons run their own tight orbit) and the afterimage window (both-repel).
-    const ringing=(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity && !e.dev && afterimageT<=0);
+    // RINGING: like-charge matter the world captures into a holding orbit (its rings).
+    const ringing=(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity);
     // polarity field (skip neutral + boss — they ignore magnetism)
     if(e.type!=='neutral' && e.type!=='boss'){
       for(const A of attractors){
@@ -1615,10 +1544,10 @@ function step(){
           // deep inside the ring untouched and a WIDER Field only looked wider. A floor makes the Field
           // grab the instant a Dot crosses its edge, and the ramp still gives the strong near-core grip.
           const tf=0.16+0.84*t*t;
-          const dir=(afterimageT>0 || e.color===P.polarity)?-1:1; // same repel, opposite attract (afterimage: repel both)
+          const dir=(e.color===P.polarity)?-1:1; // same repel, opposite attract
           if(dir<0 && ringing) continue; // like-charge isn't plain-repelled — it's ring-captured below
           if(dir>0) continue;            // OPPOSITE matter has NO inward magnetic pull — the world never vacuums another charge in; it only drifts toward you under its own gentle chase (seek) and annihilates against your rings/core
-          const f=A[3]*tf/e.mass;        // only repel reaches here (afterimage window, or non-ringing like-charge)
+          const f=A[3]*tf/e.mass;        // only repel reaches here (non-ringing like-charge)
           ax+=ex/ed*f*dir; ay+=ey/ed*f*dir;
         }
       }
@@ -1706,32 +1635,6 @@ function step(){
   // lives up there. Clamp AFTER the force loop (updateBoss ran at the top of step, before this).
   if(boss && !boss.dead && bossTime>1.6) boss.y=Math.max(boss.y, 138);
 
-  // ----- CONGREGATION: one devotee martyrs itself against the nearest closing threat (1 per 1.5s) -----
-  if(P.congreg){
-    if(P.congregCd>0) P.congregCd-=dt;
-    else {
-      let threat=null, td=P.fieldR*1.3;
-      for(const o of enemies){
-        if(o.dead||o.queued||o.type==='boss'||o.dev)continue;
-        if(o.color==='neutral'||o.color===P.polarity)continue;
-        const dd=Math.hypot(o.x-P.x,o.y-P.y);
-        if(dd<td){ td=dd; threat=o; }
-      }
-      if(threat){
-        let dv=null, best=1e9;
-        for(const o of enemies){ if(o.dev&&!o.dead&&!o.queued){ const dd=Math.hypot(o.x-threat.x,o.y-threat.y); if(dd<best){best=dd; dv=o;} } }
-        if(dv){
-          dv.dev=0;                     // leaves the orbit as a normal same-colour body —
-          const mdx=threat.x-dv.x, mdy=threat.y-dv.y, ml=Math.hypot(mdx,mdy)||1;
-          dv.vx=mdx/ml*9; dv.vy=mdy/ml*9; // — hurled at the threat; opposite charges annihilate on touch
-          P.congregCd=1.5;
-          pushText(dv.x,dv.y-14,'✦','#ffffff',0.7,15);
-          sfx.whiff();
-        }
-      }
-    }
-  }
-
   // ----- collapse shockwave: a BLAST, not an eraser — 2 damage as it sweeps. Trash dies;
   // Brutes (3hp) crawl out burned and flung. The Singularity's horizon is the true eraser. -----
   if(cwave){
@@ -1749,48 +1652,6 @@ function step(){
       }
     }
     if(cwave.r>Math.hypot(W,H)+120) cwave=null;
-  }
-
-  // ----- SINGULARITY: the black hole feeds — drag, swirl, devour at the event horizon -----
-  if(hole){
-    hole.life-=dt;
-    P.iframe=Math.max(P.iframe,0.1); // you ARE the singularity — nothing touches you while it feeds
-    for(const e of enemies){
-      if(e.dead||e.queued||e.type==='boss')continue;
-      const dx=hole.x-e.x, dy=hole.y-e.y, d=Math.hypot(dx,dy)||1;
-      // Never eats your own colour, matching the live Singularity's rule (see the `P.ehorizon` capture
-      // gate). This block is the DORMANT `P.singularity` Collapse variant (§11) — kept in step so it
-      // does not wake up carrying a bug the reachable path has already fixed.
-      if(d<46){
-        if(e.color!==P.polarity){ // devoured: banks a Mote, feeds the hole (cap +3s of extensions)
-          if(hole.ext<3){ hole.life+=0.2; hole.ext+=0.2; }
-          motesBank++; mult=Math.min(15,1+motesBank*0.1);
-          queueKill(e);
-        }
-        continue;   // your own colour rides the well out at the centre: never eaten, and no longer
-                    // dragged either — the infall runs 19px/frame this close, so left in the loop it
-                    // would shoot each body through the middle and back, over and over
-      }
-      const sp=(240 + 54000/Math.max(60,d))*dt;   // px/s infall — position drag beats every speed clamp
-      e.x+=dx/d*sp; e.y+=dy/d*sp;
-      e.x+=-dy/d*80*dt; e.y+=dx/d*80*dt;          // the accretion spiral
-    }
-    for(const L of lances){                        // it eats the Anomaly's fire too
-      const dx=hole.x-L.x, dy=hole.y-L.y, d=Math.hypot(dx,dy)||1;
-      L.vx+=dx/d*1.1; L.vy+=dy/d*1.1;
-      if(d<40){ L.life=0; spawnBurst(hole.x,hole.y,COL.neutral,6,2.5); }
-    }
-    for(const m of motes) m.vac=Math.max(m.vac,0.15); // loot falls in and banks at the Core
-    unstable=Math.max(unstable,hole.life+0.35);       // the tally waits for evaporation
-    if(Math.random()<0.6){ const a=rand(0,TAU), rr=rand(60,190); // infalling sparks
-      parts.push({x:hole.x+Math.cos(a)*rr,y:hole.y+Math.sin(a)*rr,vx:-Math.cos(a)*2.4,vy:-Math.sin(a)*2.4,
-        life:0.4,max:0.4,color:Math.random()<0.5?COL.violet:'#fff',r:rand(1.5,3),ring:false}); }
-    if(hole.life<=0){ // EVAPORATION: a white breath, then the receipt
-      hole=null;
-      flash=0.7; flashCol='#fff'; trauma=Math.min(1,trauma+0.6);
-      spawnRing(P.x,P.y,'#fff',Math.max(W,H)*0.5); spawnRing(P.x,P.y,COL.violet,Math.max(W,H)*0.35);
-      sfx.harp(6);
-    }
   }
 
   // ----- anomaly lances: fly across, hurt the core, erode the anomaly -----
@@ -1924,12 +1785,12 @@ function step(){
       if(P.iframe<=0){
         if(P.shield>0){
           // Aegis blocks the hit and blasts the attacker away
-          P.shield--; P.iframe=0.7; P.shieldT=0;
+          P.shield--; P.iframe=0.7;
           flash=0.4; flashCol=COL[P.polarity]; trauma=Math.min(1,trauma+0.2);
           ruptureBlast(P.x,P.y,155); sfx.shield();
         } else {
           const dmg=e.dmg*P.armor;
-          P.hp-=dmg; P.iframe=0.55; P.hurtT=0; P.shieldT=0; // a real hit also stalls shield recharge — no refilling under fire
+          P.hp-=dmg; P.iframe=0.55; P.hurtT=0;
           breakStreak((DOTNAME[e.type]||e.type)+(e.color!=='neutral'?' ('+e.color+')':'')); // a real hit severs the streak (a shield block does not)
           trauma=Math.min(1,trauma+0.32); flash=0.5; flashCol=COL.red;
           hitstop=Math.max(hitstop,0.05);
@@ -1939,7 +1800,6 @@ function step(){
           // where a 26 Bomber and an 8 Dart now have to be told apart by the number alone.
           pushText(P.x,P.y-P.r-18,'-'+Math.round(dmg),COL.red,0.9,16);
           spawnBurst(P.x,P.y,COL.red,14,3.2);
-          if(P.rupture){ ruptureBlast(P.x,P.y,180); }
           if(P.hp<=0){ P.hp=0; die(); return; }
           if(e.type==='bomber') grantAchv('bomberPoint'); // took the hardest hit in the sky and lived
         }
@@ -2006,16 +1866,6 @@ function step(){
     }
   }
   for(const e of enemies){ if(e.gild>0){ e.gild-=dt; if(e.gild<=0){ e.gild=0; spawnRing(e.x,e.y,'#888',26); } } }
-  // Aftershock: fire the scheduled second collapse wave
-  if(aftPending){ aftT-=dt; if(aftT<=0){ aftPending=false;
-    cwave={x:P.x,y:P.y,r:0,id:++cwaveN}; unstable=Math.max(unstable,1.5); // fresh id: the echo hits survivors again
-    spawnRing(P.x,P.y,COL.violet,Math.max(W,H)*0.6); spawnRing(P.x,P.y,'#fff',Math.max(W,H)*0.8);
-    trauma=Math.min(1,trauma+0.5); flash=0.5; flashCol=COL.violet; sfx.collapse();
-    if(boss) damageBoss(boss, Math.ceil(boss.maxHp*0.15));
-  }}
-  // Arc zaps fade
-  for(let i=zaps.length-1;i>=0;i--){ zaps[i].life-=dt; if(zaps[i].life<=0) zaps.splice(i,1); }
-
   // ----- particles / texts -----
   for(const p of parts){
     p.vx*=0.9; p.vy*=0.9; p.x+=p.vx; p.y+=p.vy; p.life-=dt;
@@ -2135,9 +1985,8 @@ function onKill(e){
   const gain=Math.round(10*mult*prox*P.scoreMult);
   score+=gain;
   if(prox===3 && !unstable && pbT<=0){ pbT=0.4; pushText(e.x,e.y-22,'POINT BLANK ×3','#fff',0.8,13); }
-  // Flux Motes: annihilations shed collectible loot carrying the body's colour. Under FERROFLUID the
-  // loot is armed, so it lingers longer and the field holds more — a real standing minefield.
-  const moteCap=P&&P.ferro?60:40, moteLife=()=>P&&P.ferro?rand(7,13):rand(4,8);
+  // Flux Motes: annihilations shed collectible loot carrying the body's colour.
+  const moteCap=40, moteLife=()=>rand(4,8);
   if(e.color!=='neutral' && motes.length<moteCap){
     const n=1+(Math.random()<0.4?1:0);
     for(let i=0;i<n && motes.length<moteCap;i++){
@@ -2162,20 +2011,8 @@ function onKill(e){
   if(!unstable) P.charge=Math.min(1,P.charge + (0.006 + combo*0.0002)*P.chargeGain);
   // heal (vamp). Leech only pays out on DEEP point-blank (prox===3) pops and
   // only up to the refilling budget — ranged/aura/collision kills and raw volume do NOT heal.
-  if(P.vamp>0 && prox===3 && P.vampBudget>0){ const h=Math.min(P.vamp,P.vampBudget); P.hp=Math.min(P.maxHp,P.hp+h); P.vampBudget-=h; }
-  // Arc: chain-zap a nearby opposite-colour enemy. Only a GENUINE annihilation rolls (not an arc
-  // victim, not a blast-spawned kill) — so it's at most one bonus zap per real pop, never a conveyor.
-  if(P.arc>0 && !unstable && !e._arc && !e._gen && Math.random()<0.42*(1-Math.pow(0.6,P.arc))){
-    let best=null, bd2=200*200;
-    for(const o of enemies){
-      if(o.dead||o.queued||o.type==='boss'||o.type==='neutral')continue;
-      if(o.color===e.color)continue;
-      const dx=o.x-e.x,dy=o.y-e.y,d2=dx*dx+dy*dy; if(d2<bd2){bd2=d2;best=o;}
-    }
-    if(best){ best._arc=true; zaps.push({x1:e.x,y1:e.y,x2:best.x,y2:best.y,life:0.16,max:0.16,col:COL[best.color]}); queueKill(best); }
-  }
   // visuals
-  const c=e.color==='neutral'?COL.neutral:COL[e.color];
+  const c=COL[e.color];
   spawnBurst(e.x,e.y,c,e.type==='heavy'?18:9,e.type==='heavy'?4:2.6);
   if(combo>1 && combo%10===0){
     pushText(e.x,e.y-14,combo+' CHAIN',COL.gold,1.1,20);
@@ -2320,7 +2157,7 @@ function flip(){
   // set is now exactly two: reverse, and reverse-while-loaded.
   if(P.pulseCd<=0){
     const amp=1+hc*P.conduitAmp;    // a charged flip fires a bigger, stronger shockwave
-    const R=Math.min(310, (104+P.pulse*40)*amp);
+    const R=Math.min(310, 104*amp);
     spawnRing(P.x,P.y,COL[P.polarity],R);
     if(hc>0.4){ spawnRing(P.x,P.y,'#fff',R*0.7); trauma=Math.min(1,trauma+hc*0.12); }
     // THE CLOSE REVERSAL — a third way at the Anomaly, and the only one that needs no ammunition.
@@ -2341,8 +2178,7 @@ function flip(){
         if(typeof sfx!=='undefined') sfx.bosshit();
       }
     }
-    const force=Math.min(15, (4.6+P.pulse*1.9)*amp);
-    const discharging = P.discharge>0 && hc>=0.55; // charged discharge annihilates
+    const force=Math.min(15, 4.6*amp);
     for(const o of enemies){ if(o.dead||o.type==='boss')continue;
       const dx=o.x-P.x,dy=o.y-P.y,d=Math.hypot(dx,dy)||1;
       if(d<R){
@@ -2352,11 +2188,9 @@ function flip(){
         // the pulse only fires every 0.5s however fast you flip, and a half-killed Neutral is drawn
         // identically to a fresh one, so the first hit was invisible and the body read as immune. The
         // Codex and Bestiary both say "pop it with a reversal", singular; now that is true.
-        if(o.type==='neutral'){ o.hp-=NEUTRAL_POP+(discharging?3:0); if(o.hp<=0) queueKill(o); else spawnBurst(o.x,o.y,COL.neutral,5,2.6); }
-        else if(discharging && !o.queued) queueKill(o); // a charged discharge vaporises everything in the blast
+        if(o.type==='neutral'){ o.hp-=NEUTRAL_POP; if(o.hp<=0) queueKill(o); else spawnBurst(o.x,o.y,COL.neutral,5,2.6); }
       }
     }
-    if(discharging){ flash=Math.max(flash,0.5); flashCol='#fff'; sfx.milestone(20); }
     // NOTE: the *swarm* loop above skips the boss on purpose (`o.type==='boss'` is filtered out) — the
     // Anomaly shrugs off the shockwave's push and its Neutral-pop. The one thing a flip does to it is
     // the CLOSE REVERSAL chip handled above, which is deliberately its own branch. (This comment used
@@ -2365,7 +2199,6 @@ function flip(){
     // existing when every missile moved to launching from the boss's own body.)
     // FLIP-VACUUM: the Shockwave sweeps up every mote it touches, whatever its colour
     for(const m of motes){ const mdx=m.x-P.x,mdy=m.y-P.y; if(mdx*mdx+mdy*mdy<R*R) m.vac=0.9; }
-    if(P.afterimage>0) afterimageT=0.4; // both colours repel briefly — a clean window
     P.iframe=Math.max(P.iframe,0.12);
     P.pulseCd=0.5;                    // shockwave is a deliberate tool, not a constant shield
   } else {
@@ -2385,21 +2218,6 @@ function collapse(){
 }
 function detonateCollapse(){
   unstable=2.4; collapseKills=0;
-  if(P.singularity){
-    // SINGULARITY: the wipe INVERTS — not an explosion but a place where the universe ends.
-    // A black hole persists where you stood, dragging both colours, Motes and Lances inward;
-    // each Dot devoured banks a Mote and feeds the hole a little more life (cap +3s).
-    hole={x:P.x,y:P.y,life:2.5,ext:0};
-    unstable=Math.max(unstable,3.2);
-    hitstop=0.09; trauma=1; flash=0.7; flashCol=COL.violet;
-    sfx.collapse();
-    for(const o of enemies){ if(o.dead||o.type==='boss')continue;   // the first tug, felt everywhere
-      const dx=P.x-o.x,dy=P.y-o.y,dd=Math.hypot(dx,dy)||1; o.vx+=dx/dd*2.5; o.vy+=dy/dd*2.5; }
-    if(boss) damageBoss(boss, Math.ceil(boss.maxHp*0.15));
-    spawnRing(P.x,P.y,COL.violet,Math.max(W,H)*0.5);
-    if(P.aftershock){ aftPending=true; aftT=1.2; }
-    return;
-  }
   cwave={x:P.x,y:P.y,r:0,id:++cwaveN}; // expanding blast wave sweeps the arena (2 dmg — see step)
   hitstop=0.09; trauma=1; flash=0.9; flashCol='#fff';
   sfx.collapse();
@@ -2411,7 +2229,6 @@ function detonateCollapse(){
   if(boss) damageBoss(boss, Math.ceil(boss.maxHp*0.15)); // collapse chips the anomaly (volley your rings for the rest)
   spawnRing(P.x,P.y,'#fff',Math.max(W,H)*0.85);
   spawnRing(P.x,P.y,COL.cyan,Math.max(W,H)*0.6);
-  if(P.aftershock){ aftPending=true; aftT=0.85; } // Aftershock: schedule a second wave
 }
 
 // DEATH CEREMONY: the Core shatters and the world drifts for a beat BEFORE the ledger appears —
@@ -2512,7 +2329,6 @@ function render(){
     // parts under enemies (rings) / over (sparks) — draw all with additive
     ctx.globalCompositeOperation='lighter';
     drawParticles();
-    drawZaps();
     drawMotes();
     drawOrbs();
     drawEnemies();
@@ -2527,7 +2343,6 @@ function render(){
       ctx.beginPath(); ctx.arc(cwave.x,cwave.y,cwave.r,0,TAU); ctx.stroke();
     }
     ctx.globalCompositeOperation='source-over';
-    if(hole) drawHole();
     drawTexts();
   }
   ctx.restore();
@@ -2711,15 +2526,6 @@ function drawField(){
     ctx.beginPath(); ctx.arc(0,0,P.fieldR*0.88,0,TAU); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
   }
-  // satellites' fields
-  ctx.globalCompositeOperation='lighter';
-  for(const s of sats){
-    const sr=P.fieldR*0.55;
-    const g2=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,sr);
-    g2.addColorStop(0,hexA(c,0.12)); g2.addColorStop(1,hexA(c,0));
-    ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(s.x,s.y,sr,0,TAU); ctx.fill();
-  }
-  ctx.globalCompositeOperation='source-over';
 }
 function drawEHorizon(){
   // SINGULARITY powerup: a small black hole pinned at the world. Drawn BOLD so ON is unmistakable — a
@@ -2765,30 +2571,10 @@ function drawEHorizon(){
   ctx.lineCap='butt'; ctx.restore();
   ctx.globalCompositeOperation=prev;
 }
-function drawHole(){
-  // SINGULARITY: a disc of absence with an accretion rim — drawn source-over so it swallows light
-  const t=elapsed*3;
-  const g=ctx.createRadialGradient(hole.x,hole.y,0,hole.x,hole.y,64);
-  g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(0.62,'rgba(0,0,0,0.95)'); g.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(hole.x,hole.y,64,0,TAU); ctx.fill();
-  ctx.globalCompositeOperation='lighter';
-  ctx.lineWidth=2.5;
-  for(let i=0;i<3;i++){ // three uneven accretion arcs, counter-rotating shimmer
-    ctx.strokeStyle=hexA(i===1?'#ffffff':COL.violet, 0.5-i*0.12);
-    ctx.beginPath(); ctx.arc(hole.x,hole.y,40+i*7,t*(i%2?1.4:-1.1)+i*2.1,t*(i%2?1.4:-1.1)+i*2.1+4.4); ctx.stroke();
-  }
-  ctx.globalCompositeOperation='source-over';
-}
 function drawEnemies(){
   for(const e of enemies){
     if(e.type==='boss')continue;
-    const c = e.color==='neutral'?COL.neutral:COL[e.color];
-    if(e.dev){ // CONGREGATION: the faithful wear a thin halo and a prayer-line to the Core
-      ctx.strokeStyle='rgba(255,255,255,0.10)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(P.x,P.y); ctx.lineTo(e.x,e.y); ctx.stroke();
-      ctx.strokeStyle='rgba(255,255,255,0.4)';
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+5,0,TAU); ctx.stroke();
-    }
+    const c = COL[e.color];
     // glow
     ctx.fillStyle=hexA(c,0.28);
     ctx.beginPath(); ctx.arc(e.x,e.y,e.r*1.9,0,TAU); ctx.fill();
@@ -2922,12 +2708,6 @@ function drawPlayer(){
       ctx.strokeStyle=hexA('#ffffff',0.4); ctx.lineWidth=2;
       ctx.beginPath(); ctx.moveTo(P.x+Math.cos(a)*(rr-4),P.y+Math.sin(a)*(rr-4)); ctx.lineTo(P.x+Math.cos(a)*(rr+5),P.y+Math.sin(a)*(rr+5)); ctx.stroke(); }
   }
-  if(afterimageT>0){ // both-colour repel window
-    ctx.globalAlpha=afterimageT/0.4*0.5;
-    ctx.strokeStyle=COL.red; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(P.x,P.y,P.r+15,0,Math.PI); ctx.stroke();
-    ctx.strokeStyle=COL.cyan; ctx.beginPath(); ctx.arc(P.x,P.y,P.r+15,Math.PI,TAU); ctx.stroke();
-    ctx.globalAlpha=1;
-  }
   const blink = P.iframe>0 && Math.floor(elapsed*20)%2===0;
   ctx.globalAlpha=blink?0.4:1;
   // ---- THE WORLD: atmosphere, body, lit hemisphere, ring halo ----
@@ -2956,13 +2736,6 @@ function drawPlayer(){
   // the whole field's tint — and a +/− scratched on the planet was the last piece of UI pretending
   // the player needs to READ their own world instead of seeing it.
   ctx.globalAlpha=1;
-  // satellites
-  for(const s of sats){
-    ctx.fillStyle=hexA(c,0.6);
-    ctx.beginPath(); ctx.arc(s.x,s.y,6,0,TAU); ctx.fill();
-    ctx.fillStyle='#fff';
-    ctx.beginPath(); ctx.arc(s.x,s.y,2.4,0,TAU); ctx.fill();
-  }
   // Aegis shield rings
   for(let i=0;i<P.shield;i++){
     ctx.strokeStyle=hexA('#ffffff',0.35+0.22*Math.sin(elapsed*6+i));
@@ -2984,16 +2757,6 @@ function drawParticles(){
   }
   ctx.globalAlpha=1;
 }
-function drawZaps(){
-  for(const z of zaps){
-    const a=clamp(z.life/z.max,0,1);
-    ctx.globalAlpha=a; ctx.strokeStyle=z.col||'#fff'; ctx.lineWidth=2.5*a+0.5;
-    ctx.beginPath();
-    const mx=(z.x1+z.x2)/2+rand(-6,6), my=(z.y1+z.y2)/2+rand(-6,6); // slight jitter = lightning
-    ctx.moveTo(z.x1,z.y1); ctx.quadraticCurveTo(mx,my,z.x2,z.y2); ctx.stroke();
-  }
-  ctx.globalAlpha=1;
-}
 // Motes are LOOT, not enemies — so they twinkle as 4-point sparks with a white glint,
 // nothing like the round glowing bodies of Dots.
 function drawMotes(){
@@ -3009,12 +2772,6 @@ function drawMotes(){
     ctx.quadraticCurveTo(-1.7,-1.7,0,-7); ctx.fill();
     ctx.fillStyle='rgba(255,255,255,.95)';                               // glint
     ctx.beginPath(); ctx.arc(0,0,1.8,0,TAU); ctx.fill();
-    if(P&&P.ferro){ // Ferrofluid: armed loot wears a trigger ring showing its blast reach
-      ctx.strokeStyle=hexA(c,0.6); ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(0,0,16,0,TAU); ctx.stroke();
-      ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.arc(0,0,10,0,TAU); ctx.stroke();
-    }
     ctx.restore();
   }
   ctx.globalAlpha=1;
@@ -3267,7 +3024,7 @@ requestAnimationFrame(frame);
 function startRun(test){
   audioInit();
   testMode=!!test; lastWasTest=!!test;
-  enemies=[];parts=[];texts=[];sats=[];killQ=[];
+  enemies=[];parts=[];texts=[];killQ=[];
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
   pbT=0;grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
@@ -3277,8 +3034,7 @@ function startRun(test){
   ehStrain=0; ehWarned=false;                      // the well's strain + its one-shot warning latch
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
   score=0;mult=1;
-  trauma=0;hitstop=0;flash=0;unstable=0;cwave=null;hole=null;timeScale=1;tsHold=0;
-  zaps.length=0;aftPending=false;aftT=0;afterimageT=0;
+  trauma=0;hitstop=0;flash=0;unstable=0;cwave=null;timeScale=1;tsHold=0;
   boss=null;bossFlash=0;lances.length=0;bossN=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;
@@ -3510,7 +3266,6 @@ const sfx={
   lance(){ beep(180,0.12,'sawtooth',0.14,520); noise(0.1,0.08); },
   bosshit(){ beep(300,0.09,'square',0.12,180); noise(0.12,0.1); },
   graze(n){ beep(1500+Math.min(n,10)*130, 0.03, 'sine', 0.05, 1900+Math.min(n,10)*130); },
-  whiff(){ beep(240,0.08,'sine',0.05,180); },
   mote(n){ beep(600+Math.min(n,16)*70,0.04,'square',0.055,850+Math.min(n,16)*70); },
   inhale(){ beep(55,0.45,'sine',0.22,220); noise(0.45,0.12); beep(200,0.45,'sine',0.08,1800); },
   capFull(){ beep(660,0.09,'triangle',0.12,990); beep(990,0.12,'sine',0.09,1320); },
@@ -3572,7 +3327,6 @@ window.__orbital=window.__polaris=window.__flux={
   set motesBankV(v){motesBank=v; mult=Math.min(15,1+motesBank*0.1);},
   get bossN(){return bossN;}, set bossN(v){bossN=v;},
   openCodex, queueKill,
-  get hole(){return hole;},
   get ehT(){return ehT;}, get ehStrain(){return ehStrain;}, get flipCd(){return P&&P.flipCd;},
   heldByWell(){ let n=0; for(const e of enemies) if(e.eh && !e.dead && !e.queued) n++; return n; }, // captives blackholeCollapse would fling
 };
