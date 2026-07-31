@@ -268,10 +268,17 @@ const ctx = canvas.getContext('2d');
 //   S is clamped at 1, so any display at or above the reference short axis is EXACTLY today's game.
 // Desktop is unchanged by construction rather than by hope — the oracle's fingerprints still match.
 const REF_SHORT=800;
-let W=0,H=0,DPR=1,S=1;
+let W=REF_SHORT,H=REF_SHORT,DPR=1,S=1;   // seeded finite: a 0-viewport at boot must still leave a world
 function resize(){
-  DPR=Math.min(2,window.devicePixelRatio||1);
   const vw=window.innerWidth, vh=window.innerHeight;   // the real viewport, in CSS pixels
+  // A DEGENERATE VIEWPORT MUST NOT REACH THE DIVIDE. A phone reports 0x0 transiently — mid orientation
+  // flip, backgrounded, or on a PWA cold start before first layout — and `S` would come out 0, making
+  // `W = 0/0 = NaN`. NaN then propagates into P.x on the next follow step and NEVER washes out: a later
+  // good resize fixes W and H but the player and every enemy stay NaN, so the run is dead until reload.
+  // Measured, not theorised — a real 0-frame during an offline reload poisoned a whole 25-enemy run.
+  // Keeping the last good geometry is right anyway: there is nothing to render at 0x0.
+  if(!(vw>0 && vh>0)) return;
+  DPR=Math.min(2,window.devicePixelRatio||1);
   S=Math.min(1, Math.min(vw,vh)/REF_SHORT);
   W=vw/S; H=vh/S;                                      // the same viewport, in design units
   canvas.width=vw*DPR; canvas.height=vh*DPR;
@@ -3726,6 +3733,18 @@ window.__orbital=window.__polaris=window.__flux={
   get ehT(){return ehT;}, get ehStrain(){return ehStrain;}, get flipCd(){return P&&P.flipCd;},
   heldByWell(){ let n=0; for(const e of enemies) if(e.eh && !e.dead && !e.queued) n++; return n; }, // captives blackholeCollapse would fling
 };
+
+// =====================================================================
+//  OFFLINE (web build only)
+// =====================================================================
+// The whole game is three files with no dependencies, so the service worker precaches the lot and the
+// game runs on a plane. See sw.js.
+//   Guarded on `!window.Capacitor` because inside the native shell the assets are already bundled into
+// the app: a service worker there would cache nothing new and could serve a stale build after an
+// update. Registration is deferred to `load` so it never competes with the first frame.
+if(!window.Capacitor && 'serviceWorker' in navigator){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); // file:// throws; not fatal
+}
 })();
 </script>
 </body>

@@ -1,1 +1,16 @@
 .DS_Store
+
+# Oracle baselines and other scratch copies of the game. One of these — a 218KB duplicate of
+# index.html — got committed once because an `rm -f` ran from the wrong directory and reported success.
+.tmp-*
+
+# Capacitor / npm
+node_modules/
+www/
+
+# Capacitor native build output. The ios/ project itself IS committed; these parts are generated.
+ios/App/Pods/
+ios/App/App/public/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
