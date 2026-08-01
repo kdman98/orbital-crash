@@ -8,6 +8,10 @@
 node_modules/
 www/
 
+# Recorded play. Input tapes run ~200KB of JSON per minute of play, and they are measurements rather
+# than source — the harness that reads them (.harness/) IS committed.
+tapes/
+
 # Capacitor native build output. The ios/ project itself IS committed; these parts are generated.
 ios/App/Pods/
 ios/App/App/public/

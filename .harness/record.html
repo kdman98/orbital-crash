@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ORBITAL CRASH — record a run</title>
+<style>
+  html,body{margin:0;height:100%;background:#060814;color:#cfe6ff;
+            font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden}
+  #frame{position:fixed;inset:0 0 34px 0;width:100%;border:0;display:block}
+  #bar{position:fixed;left:0;right:0;bottom:0;height:34px;display:flex;align-items:center;gap:10px;
+       padding:0 10px;background:#0b1024;border-top:1px solid #1d2a4d;box-sizing:border-box}
+  #dot{width:9px;height:9px;border-radius:50%;background:#e0345a;flex:none;animation:p 1.4s infinite}
+  @keyframes p{50%{opacity:.25}}
+  #stat{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8fa8cc}
+  button{font:inherit;color:#cfe6ff;background:#16224a;border:1px solid #2b3d70;border-radius:5px;
+         padding:3px 11px;cursor:pointer}
+  button:hover{background:#1e2c5c}
+  button:disabled{opacity:.4;cursor:default}
+  b{color:#6fe3ff;font-weight:600}
+</style>
+</head>
+<body>
+<iframe id="frame" title="ORBITAL CRASH"></iframe>
+<div id="bar">
+  <span id="dot"></span>
+  <span id="stat">booting…</span>
+  <button id="save" disabled>Save tape</button>
+  <button id="again" disabled>New run</button>
+</div>
+<script type="module">
+// Record a real human run as an input tape.
+//
+// The game runs in an iframe whose document we rewrite so preload.js gets in ahead of the game's own
+// script — that is the only way to capture its rAF callback, and capturing it is what lets the tape
+// carry grid-aligned frame timings that replay can reproduce exactly.
+//
+// Audio stays ON by default: the Capacitor-full chime and the inhale swell are information you play by,
+// and a tape recorded in silence is a tape of someone playing a different game. The cost is that
+// noise() draws from the same Math.random stream the simulation uses (~24,000 draws per Collapse), so a
+// sound-on tape replays to draw-count granularity rather than bit-exactly until that is fixed.
+// Add ?silent=1 to record a bit-exact tape instead.
+const BASE = new URL('../', location.href).pathname;
+const silent = new URLSearchParams(location.search).has('silent');
+const $ = id => document.getElementById(id);
+const stat = (h) => { $('stat').innerHTML = h; };
+
+let n = 0;
+const fresh = u => fetch(u + (u.includes('?') ? '&' : '?') + 'h=' + (++n) + '_' + (performance.now() | 0),
+                        { cache: 'reload' }).then(r => { if (!r.ok) throw new Error(u + ' → ' + r.status); return r.text(); });
+
+const fnv = s => { let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+    h ^= c & 0xff; h = Math.imul(h, 16777619) >>> 0; h ^= (c >> 8) & 0xff; h = Math.imul(h, 16777619) >>> 0; }
+  return h.toString(16).padStart(8, '0'); };
+
+let W, H, G, REC, t0;
+
+async function boot() {
+  stat('fetching…');
+  // Harness files must be cache-busted: sw.js is cache-first for everything that is not .html.
+  const [src, pre, rec] = await Promise.all([
+    fresh(BASE + 'index.html'), fresh(BASE + '.harness/preload.js'), fresh(BASE + '.harness/record.js')]);
+
+  const f = $('frame');
+  await new Promise(res => { f.onload = res; f.src = BASE + 'index.html?rec=' + (++n); });
+
+  const d = f.contentDocument;
+  d.open();
+  d.write(src.replace(/<head>/i, '<head>\n<script>\n' + pre + '\n<' + '/script>'));
+  d.close();
+
+  W = await new Promise((res, rej) => { let i = 0;
+    const c = () => { const cw = f.contentWindow;
+      if (cw && cw.__H && cw.__orbital && cw.__H.pending) return res(cw);
+      if (++i > 250) return rej(new Error('game never registered a frame callback'));
+      setTimeout(c, 20); };
+    c(); });
+
+  H = W.__H; G = W.__orbital;
+  H.build = fnv((src.match(/<script>([\s\S]*?)<\/script>/) || [])[1] || '');
+  W.eval(rec);
+  REC = W.__REC;
+
+  if (silent) H.stubAudio();
+  H.pumpLive();                                   // real-clock frames, quantized on the way in
+  REC.start({ audioStubbed: silent });
+  t0 = performance.now();
+
+  $('save').disabled = false; $('again').disabled = false;
+  f.contentWindow.focus();
+  tick();
+}
+
+function tick() {
+  if (REC) {
+    const d = G.diag(), fr = REC.rows.length;
+    const ev = REC.rows.reduce((a, r) => a + r[1].length, 0);
+    stat(`seed <b>${REC.header.seed}</b> · build <b>${H.build}</b> · ${silent ? 'silent' : 'sound on'}` +
+         ` — <b>${fr}</b> frames, <b>${ev}</b> events, ${(fr / 60).toFixed(1)}s` +
+         ` · state <b>${d.state}</b> score <b>${d.score}</b>` +
+         (d.state === 'dead' ? ' — <b>save it</b>' : ''));
+  }
+  requestAnimationFrame(tick);
+}
+
+$('save').onclick = () => {
+  const tape = REC.stop();
+  const name = `tape-${tape.seed}-${tape.end.state}-${Math.round(tape.end.t)}s.json`;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(tape)], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  stat(`saved <b>${name}</b> — ${tape.frames.length} frames. Put it in <b>orbital-crash/tapes/</b>. Press "New run" to record another.`);
+};
+
+$('again').onclick = () => { $('save').disabled = true; $('again').disabled = true; boot(); };
+
+boot().catch(e => { stat('<b>boot failed:</b> ' + e.message); $('dot').style.background = '#666'; });
+</script>
+</body>
+</html>
