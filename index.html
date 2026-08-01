@@ -3205,7 +3205,11 @@ function drawEnemies(){
       // OUTSIDE the body reads as "the danger edge", and the real contact envelope is e.r + P.r — much
       // wider than any decoration would imply, so a player who trusts the drawing dies just outside it.
       // A jagged outline changes the read without promising a distance.
-      const NB=9, spin=e.ph+elapsed*0.7, inr=e.r*0.72;
+      // SEVEN DEEP SPIKES, not nine shallow ones. The first pass used 9 teeth at 0.72r, which at speed
+      // and at a distance still integrates to "a circle with a rough edge" — the exact read it existed to
+      // break. Fewer, deeper points (0.50r) give a silhouette that survives peripheral vision, and an odd
+      // count keeps it from reading as a symmetrical flower at any rotation.
+      const NB=7, spin=e.ph+elapsed*0.7, inr=e.r*0.50;
       ctx.beginPath();
       for(let k=0;k<NB*2;k++){
         const ba=spin+k*Math.PI/NB, br=(k%2)?inr:e.r;
@@ -3238,13 +3242,17 @@ function drawEnemies(){
       ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*1.5,0.4,0.4+Math.PI*1.2); ctx.stroke();
     } else if(e.type==='bomber'){
-      // pulsing warning ring — "do not touch me". The dashed standoff ring at 1.55r was deleted with
-      // the death payload on 2026-07-29: it was a scale model of the 108px blast, so once the blast
-      // was gone it promised a danger radius that no longer existed — and a player reading it as one
-      // would hold station just outside it, which is inside the new contact-kill envelope.
-      const pr=1+0.18*Math.sin(elapsed*7+e.ph);
-      ctx.strokeStyle=hexA('#ffffff',0.5+0.3*Math.sin(elapsed*7+e.ph)); ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*0.7*pr,0,TAU); ctx.stroke();
+      // A BLINKING FUSE, not a ring. The old 0.7r pulsing ring was one more concentric circle on a body
+      // in a sky full of them — it marked the Bomber with the same vocabulary the Gilded Bounty uses.
+      // A core that visibly TICKS says "armed" instead, and it is a second, redundant channel: even where
+      // the silhouette is ambiguous (crowded, overlapped, far away) the blink still reads.
+      // Everything stays inside the hull. The dashed 1.55r standoff ring was deleted with the death
+      // payload on 2026-07-29 because it promised a danger radius that no longer existed, and anything
+      // drawn outside the body invites the player to hold station just outside it — which is well inside
+      // the real contact envelope of e.r + P.r.
+      const bl=0.5+0.5*Math.sin(elapsed*7+e.ph);
+      ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.26+0.16*bl),0,TAU); ctx.fill();
     } else if(e.type==='charger' && e.spent){
       // COOLDOWN CLOCK. A sweeping arc that drains as the Charger re-arms, so "when does this thing go
       // off again" is a thing you read rather than a thing you guess.

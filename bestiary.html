@@ -64,7 +64,7 @@
     {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Fast fragment from a Splitter.'},
     {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Curves around your star instead of charging.'},
     {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:26,
-     tag:'The <b>hardest contact hit in the sky</b> — <b>26</b>, where a Brute is 22. Four touches from full and the run is over. There is no death payload and no reward for herding it: the hit is the whole body. It is also the most fragile thing in the game at <b>1 hp</b>, so anything at all deletes it. Know it by its <b>spiked hull</b> — it was a plain disc wearing a faint ring, which is very nearly what a <b>Gilded Bounty</b> looks like, and one of those you chase for a jackpot while the other ends your run. The spikes stop at the hull edge and promise no standoff distance: the contact envelope is always wider than the drawing.'},
+     tag:'The <b>hardest contact hit in the sky</b> — <b>26</b>, where a Brute is 22. Four touches from full and the run is over. There is no death payload and no reward for herding it: the hit is the whole body. It is also the most fragile thing in the game at <b>1 hp</b>, so anything at all deletes it. Know it by its <b>spiked hull and blinking fuse</b> — two channels on purpose, so it still reads when the silhouette is crowded or far away. It was a plain disc wearing a faint ring, which is very nearly what a <b>Gilded Bounty</b> looks like, and one of those you chase for a jackpot while the other ends your run. The spikes stop at the hull edge and promise no standoff distance: the contact envelope is always wider than the drawing.'},
     {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism does not own. It never joins your ring; it travels a line of its own, which is why it is the only shape in the sky with a direction. It <b>locks that lane the moment it winds up</b> and draws the whole thing out to a reticle on the spot where the dash ends, so the line is a promise it has already made. Step <b>off</b> it — or stand so it runs through an <b>Anomaly</b>, because a committed dash into one is worth <b>5 dmg</b>. It gets <b>one</b> lunge at a time: after the dash and a beat of recovery it is <b>spent</b> for <b>5s</b>, and it <b>drops the arrowhead for a disc</b> — because while it is spent it really is ordinary matter, and the hull is the game telling you what your Field does and does not own. The draining arc is its cooldown. <b>Kill it in that window and it is gone for good; leave it and it re-arms.</b> Which of those you get is a colour decision: match it and its contact is harmless, so it rides your ring as armour — and then re-arms <b>inside your guard</b>, about 117px out. Stay opposite and your own ring simply annihilates it.'},
     {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'The uncharged body, and it <b>wears both poles</b> — half red, half cyan on a turning seam, because no polarity you can hold makes it safe or makes it ammunition. Immune to the Field; pop it with a reversal. And it is <b>not</b> cover — nothing is. An Anomaly\'s missiles pass straight through every body on the field.'},
   ];
@@ -143,7 +143,7 @@
       ctx.closePath(); ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
     } else if(s.type==='bomber'){ // the spiked mine — as in the game, cut at exactly r, never past it
-      const NB=9, spin=t*0.7, inr=r*0.72;
+      const NB=7, spin=t*0.7, inr=r*0.50;   // mirrors index.html: 7 deep points, not 9 shallow teeth
       ctx.fillStyle=c; ctx.beginPath();
       for(let k=0;k<NB*2;k++){
         const ba=spin+k*Math.PI/NB, br=(k%2)?inr:r;
@@ -167,8 +167,9 @@
     } else if(s.type==='bomber'){
       // mirrors index.html: the dashed 1.55r standoff ring went with the death payload — it was a
       // scale model of the 108px blast and promises a radius the Bomber no longer has.
-      const pr=1+0.18*Math.sin(t*7); ctx.strokeStyle=hexA('#ffffff',0.5+0.3*Math.sin(t*7)); ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(x,y,r*0.7*pr,0,TAU); ctx.stroke();
+      const bl=0.5+0.5*Math.sin(t*7);      // a blinking fuse, not another concentric ring
+      ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
+      ctx.beginPath(); ctx.arc(x,y,r*(0.26+0.16*bl),0,TAU); ctx.fill();
     } else if(s.type==='charger'){
       const tt=Math.sin(t*3)*0.5+0.5;
       ctx.strokeStyle=hexA('#ffffff',0.4+0.5*tt); ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,r+4+6*tt,0,TAU); ctx.stroke();
