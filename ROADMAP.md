@@ -7,6 +7,28 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The comet crosses and leaves (2026-08-01)
+Player brief: *"make comet fly away and disappear, going out of screen like real comet"*
+
+**The comet never left.** Its flight ran a fixed `d+m*3` — the distance to a point near you, plus 360px — and the code and GLOSSARY both called what happened next a feature: *"its nucleus is a Brute, so when the flight lapses it stays as ordinary matter."* Measured over 14 isolated spawns, that meant **11 of 14 lapsed while still on screen**, and **every** body that lapsed was still alive two seconds later — several having closed to **92–116px** of the Star. The rarest event in the game, on a 200–300s timer specifically so it would read as *a thing that happens to the sky*, was ending as one more Brute hunting you.
+
+**One constant could never have worked, and that is geometry, not tuning.** The comet is aimed at a point near the *middle*, so the far half of its journey is never the same length as the near half — a level crossing and a steep corner-to-corner one need different distances. The flight is now **solved ray-vs-box** against the viewport padded by the same margin it spawned outside of, so it ends past the far edge by construction. Both components are finite-guarded: the direction is a unit vector, so at least one axis always crosses.
+
+**Reaching the edge retires it, and a retirement is not a kill.** `dead` alone, never `queueKill` — no score, no Mote, no blast, no death FX, because nothing was destroyed. Intercepting it in flight never reaches that line and still pays in full.
+
+| over 14 isolated spawns | before | after |
+|---|---|---|
+| crossed and left the sky | 0 | **13** |
+| lapsed still on screen | **11** | 0 |
+| intercepted by the Star | 2 | 1 |
+| alive 2s after lapsing | **12 of 12** | — |
+
+The one comet that did not leave ended **35px** from the Star — an interception, which is the ±230px pass-near aim working as designed.
+
+**What it costs you:** a missed comet used to become a large body of ammunition (or a threat) that stayed. Now it is gone, so the opportunity is genuinely lost. That is the point — an event you failed to meet, which is what a comet is.
+
+Verified: `node --check` clean and the page loads with **zero console errors** (the check does not catch ReferenceErrors, so both were run); the full oracle suite green — six pilots, three survival seeds and all three bosses, **all survived**, 464ms, no errors.
+
 ### Title lockup, and the World becomes the Star (2026-08-01)
 Player brief: *"괜찮은 게임 타이틀 디자인"* → *"we are going cosmic game"*
 

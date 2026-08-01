@@ -1074,7 +1074,12 @@ function formSorter(){
 // than anything else on the field, trailing a tail. It carries a charge like everything else, so it is
 // either a large delivery of ammunition you have to intercept by positioning, or a fast threat that
 // crosses — which keeps it inside the core verb (steer into it) instead of sitting beside the game as
-// decoration. Its nucleus is a Brute, so when the flight lapses it stays as ordinary matter.
+// decoration. Its nucleus is a Brute, so intercepting it is a real hit and not a tap.
+// IT CROSSES AND LEAVES. The flight is solved to end past the FAR edge, and a comet that gets there is
+// retired (see the lapse in the flight branch of stepEnemies). Miss it and you lost the opportunity
+// rather than gained an enemy — which is what an event is, and what the sentence above always claimed
+// it was. It used to strand itself mid-sky and hunt you as one more Brute, i.e. become exactly the
+// "this turn's shape" the timer below exists to stop it being.
 const COMET_SPD=7.6;
 function formComet(){
   const edge=irand(0,3), m=120;
@@ -1086,8 +1091,16 @@ function formComet(){
   // aimed to pass NEAR the Star rather than at it — a comet has its own path and you go to meet it
   const tx=(P?P.x:W/2)+rand(-230,230), ty=(P?P.y:H/2)+rand(-230,230);
   const dx=tx-x, dy=ty-y, d=Math.hypot(dx,dy)||1;
+  const ux=dx/d, uy=dy/d;
+  // Distance to clear the far side, SOLVED rather than guessed: ray-vs-box against the viewport padded
+  // by the same margin it spawned outside of. One fixed distance cannot serve both a level crossing and
+  // a steep corner-to-corner one, which is why the old `d+m*3` left it on screen — it is aimed at a
+  // point near the middle, so the far half of the journey is never the same length as the near half.
+  // Both components are finite-guarded: (ux,uy) is a unit vector, so at least one axis always crosses.
+  const ex = ux>0 ? (W+m-x)/ux : ux<0 ? (-m-x)/ux : Infinity;
+  const ey = uy>0 ? (H+m-y)/uy : uy<0 ? (-m-y)/uy : Infinity;
   const e=spawnEnemy('heavy', Math.random()<0.5?'red':'cyan', x, y);
-  holdBody(e, dx/d*COMET_SPD, dy/d*COMET_SPD, (d+m*3)/COMET_SPD/60);
+  holdBody(e, ux*COMET_SPD, uy*COMET_SPD, Math.min(ex,ey)/COMET_SPD/60);
   if(e) e.comet=1;
 }
 // The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
@@ -1921,6 +1934,13 @@ function stepEnemyForces(dt){
           }
         }
       }
+      // THE COMET LEAVES THE SKY. Its flight is solved to end outside the padded viewport, so a lapse
+      // means it has crossed and gone — retire it here instead of letting it fall through to seek and
+      // become one more Brute closing in from off-screen. It is a RETIREMENT, not a kill: `dead` alone,
+      // never queueKill, so there is no score, no Mote, no blast and no death FX — nothing was
+      // destroyed, it simply left. The dead sweep at the end of the frame culls it. Intercepting it in
+      // flight is untouched and still pays in full, because that path never reaches this line.
+      if(e.comet && e.hold<=0) e.dead=true;
       continue;
     }
     // (There is no guided-volley branch any more. Fired matter is ordinary flung matter now — it keeps
