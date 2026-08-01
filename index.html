@@ -117,14 +117,75 @@
     10%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}85%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-4px)}}
 
   /* ---------- overlays ---------- */
-  .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  /* `safe center` centres while the content fits and falls back to start the moment it does not.
+     Plain `center` overflows a short viewport in BOTH directions, and scrollTop cannot go negative,
+     so whatever spills off the top is unreachable forever — at 1280x720 that was the word ORBITAL,
+     sitting at top:-19px with the menu already scrolled to 0. The duplicate declaration is the
+     fallback: anything that does not parse `safe` keeps the plain `center` above it. */
+  .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;justify-content:safe center;
     text-align:center;padding:22px;background:radial-gradient(120% 90% at 50% 40%,rgba(14,22,44,.55),rgba(6,8,20,.94));
-    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:fade .35s ease both;overflow-y:auto;}
+    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:fade .35s ease both;
+    /* overflow-x is explicit: setting only overflow-y computes the other axis to auto, and the title
+       rings are wider than the wordmark — that was one stray horizontal scrollbar waiting to happen */
+    overflow-y:auto;overflow-x:hidden;}
   .overlay.hidden{display:none;}
   @keyframes fade{from{opacity:0}to{opacity:1}}
-  .logo{font-size:clamp(64px,21vw,190px);font-weight:900;line-height:.8;letter-spacing:.02em;margin:0;
-    background:linear-gradient(180deg,#fff 0%,var(--cyan) 48%,var(--violet) 100%);
-    -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 34px rgba(80,200,255,.45));}
+  /* ---- TITLE LOCKUP ----------------------------------------------------------------
+     The wordmark is deliberately colourless. The only colour on the menu is four charges on
+     two orbits, and between them they state the whole game without a line of copy:
+       outer ring — red + cyan, pinned half a lap apart and turning the SAME way. Opposite
+                    charge, but the geometry never lets them close: ~294px is as near as they
+                    ever get. A standoff that cannot resolve.
+       inner ring — red + cyan, COUNTER-rotating. Here contact is not optional. They hang
+                    apart, fall together, annihilate, and respawn. Every 7.6s, impact
+                    alternating right / left.
+     The old logo was a white→cyan→violet gradient, which left red — half the game — off the
+     title screen entirely. Positions come from the main frame loop; see titleOrbit(). */
+  .titlewrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;}
+  .logo{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
+    margin:0;font-weight:900;line-height:.84;}
+  /* the two words moved toward each other on purpose: ORBITAL +6px, CRASH -10px. The lockup reads
+     as one object rather than a label stuck above a headline. margin-bottom is em-based, so it was
+     pulled back to .7 to stop the bigger ORBITAL from opening the gap it used to hold. */
+  .logo .l1{font-size:clamp(17px,3.5vw,23px);letter-spacing:.62em;text-indent:.62em;color:#8fa4c8;
+    margin-bottom:.7em;}
+  .logo .l2{font-size:clamp(60px,16vw,158px);letter-spacing:-.012em;
+    background:linear-gradient(178deg,#fff 12%,#c9dcf2 62%,#8fa8c8 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 10px 40px rgba(0,0,0,.7));}
+  /* Every absolute child is anchored to the lockup's OWN centre (50% / 56%), and the JS only ever
+     supplies an offset from it. Two reasons, both paid for:
+       · .titlewrap is a flex column, so an absolute child with no left/top falls back to its static
+         position — that drops each particle a wordmark's height off its ring.
+       · the earlier version measured the wrap once and centred on the cached width, while the orbit
+         radius read a live window.innerWidth. On a phone the two disagreed and threw the rings 168px
+         off-centre. Letting CSS do the centring removes the cache, and the whole class of bug. */
+  .tring{position:absolute;left:50%;top:56%;border-radius:50%;pointer-events:none;
+    border:1px solid rgba(150,190,240,.26);box-shadow:0 0 40px -8px rgba(120,180,255,.28) inset;}
+  .tring.in{border-color:rgba(150,190,240,.11);}
+  .tdot{position:absolute;left:50%;top:56%;width:13px;height:13px;border-radius:50%;
+    margin:-6.5px 0 0 -6.5px;pointer-events:none;}
+  .tdot.r{background:var(--red);box-shadow:0 0 14px 3px rgba(255,63,108,.85),0 0 40px 8px rgba(255,63,108,.35);}
+  .tdot.c{background:var(--cyan);box-shadow:0 0 14px 3px rgba(56,224,255,.85),0 0 40px 8px rgba(56,224,255,.35);}
+  .ttrail{position:absolute;left:50%;top:56%;width:8px;height:8px;border-radius:50%;
+    margin:-4px 0 0 -4px;pointer-events:none;filter:blur(1px);}
+  /* the wrapper carries the impact position, the children carry the animation — on one element the
+     keyframe transform would overwrite the translate that puts it at the impact point */
+  .tfx{position:absolute;left:50%;top:56%;width:0;height:0;pointer-events:none;z-index:5;}
+  .tburst{position:absolute;left:-80px;top:-80px;width:160px;height:160px;border-radius:50%;opacity:0;
+    background:radial-gradient(closest-side,rgba(255,255,255,.95),rgba(175,235,255,.34) 38%,transparent 72%);}
+  .tburst.go{animation:tBurst .9s cubic-bezier(.1,.7,.2,1) forwards;}
+  @keyframes tBurst{0%{opacity:0;transform:scale(.12)}9%{opacity:1;transform:scale(.62)}
+    100%{opacity:0;transform:scale(1.6)}}
+  .tshock{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;opacity:0;
+    border:1.5px solid rgba(190,240,255,.9);}
+  .tshock.go{animation:tShock 1.15s cubic-bezier(.1,.75,.2,1) forwards;}
+  @keyframes tShock{0%{opacity:0;transform:scale(.2)}12%{opacity:1}
+    100%{opacity:0;transform:scale(5) scaleY(.42);border-width:1px}}
+  /* 26em is the budget the tag has to live in: every beat must hold ONE line at this measure, or it
+     spills a single word onto a line of its own. The longest beat currently sets 370px against the
+     416px cap — that headroom is the edit budget for anyone rewriting the copy. */
   .tag{margin:14px 0 24px;color:var(--dim);font-size:clamp(13px,3.6vw,16px);max-width:26em;line-height:1.6;}
   .tag b.r{color:var(--red);} .tag b.c{color:var(--cyan);} .tag b{color:var(--ink);font-weight:700;}
   .btn{pointer-events:auto;cursor:pointer;border:none;border-radius:100px;padding:16px 46px;font-size:18px;font-weight:800;
@@ -181,10 +242,13 @@
     <button id="collapseBtn">◇ Collapse <span id="cbKey">Shift</span></button>
   </div>
   <div id="controls">
-    <div class="cr"><kbd>Mouse</kbd> Steer world</div>
+    <div class="cr"><kbd>Mouse</kbd> Steer star</div>
     <div class="cr"><kbd>Space</kbd><kbd>Click</kbd> Reverse poles</div>
     <div class="cr"><kbd>Shift</kbd><kbd>R-Click</kbd> Collapse</div>
     <div class="cr"><kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute</div>
+    <!-- Mode keys (Boss Rush / Pattern Lab). Empty and hidden on a normal run — these hints used to
+         live in the Epoch slot at the top of the screen, which is a NAME slot, not a keymap. -->
+    <div class="cr hidden" id="modeKeys"></div>
   </div>
   <div id="pickup"></div>
   <div id="achv"></div>
@@ -195,13 +259,27 @@
 
 <!-- MENU -->
 <div class="overlay" id="menu">
-  <h1 class="logo">ORBITAL CRASH</h1>
-  <p class="tag">You are a magnetic world. <b class="r">Opposite</b> matter <b>drifts</b> toward you and annihilates — <b class="c">like</b> matter is caught into your <b>rings</b>. Your world never sucks another charge in; you <b>steer into</b> the sky. When <b class="r">red</b> meets <b class="c">cyan</b>, they annihilate.<br><b>Reverse your poles</b> to turn your own rings against it.</p>
-  <p class="tag" style="opacity:.82;margin-top:-2px;">No upgrades — just survival. Annihilations shed <b>powerup orbs</b>; steer into one for an instant, temporary edge.</p>
+  <div class="titlewrap" id="titleLock">
+    <div class="tring"></div><div class="tring in"></div>
+    <div class="tfx"><i class="tburst"></i><i class="tshock"></i></div>
+    <h1 class="logo"><span class="l1">ORBITAL</span><span class="l2">CRASH</span></h1>
+  </div>
+  <!-- Four beats, one per line, and nothing else. Everything cut from here — scoring, Motes, rings as
+       armour, powerup orbs, the Capacitor — is stated in full one button down under ❖ Codex, so the
+       menu no longer teaches the game twice. What survives is only what a player cannot infer: the
+       law, the fact that nothing comes to them, and the one input that is not steering. -->
+  <p class="tag">You are a wandering star, <b class="r">red</b> or <b class="c">cyan</b>.<br>
+    <b>Steer into</b> your own colour to catch it in a ring.<br>
+    <b>Click</b> to reverse.<br>
+    Make opposite colours <b>collide</b> with each other.<br>
+    Beware colliding your star with <b>opposite Matter</b>!</p>
+  <p class="tag" style="opacity:.82;margin-top:2px;">Nothing accumulates but time.</p>
   <button class="btn" id="startBtn">Enter the field</button>
-  <button class="btn sm ghost" id="arenaBtn" style="margin-top:14px;">◆ Boss Rush — every Anomaly</button>
-  <button class="btn sm ghost" id="labBtn" style="margin-top:8px;">✳ Pattern Lab — every shape, on demand</button>
-  <button class="btn sm ghost" id="bestiaryBtn" style="margin-top:8px;">✦ Bestiary</button>
+  <button class="btn sm ghost" id="arenaBtn" style="margin-top:14px;">◆ Boss Rush — practise every Anomaly</button>
+  <button class="btn sm ghost" id="labBtn" style="margin-top:8px;">✳ Pattern Lab — call any wave on demand</button>
+  <!-- A real rule that the UI never stated anywhere: both practice modes are score-sandboxed. -->
+  <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;">Practice modes — neither can set your best</div>
+  <button class="btn sm ghost" id="bestiaryBtn" style="margin-top:12px;">✦ Bestiary</button>
   <button class="btn sm ghost" id="codexBtn" style="margin-top:8px;">❖ Codex — how it works</button>
   <div class="hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> collapse</div>
 </div>
@@ -253,8 +331,15 @@
 (()=>{
 "use strict";
 // =====================================================================
-//  ORBITAL CRASH — a magnetic-world survival arcade. Steer into the sky; grab powerups. Single file, no assets.
+//  ORBITAL CRASH — a wandering-star survival arcade. Steer into the sky; grab powerups. Single file, no assets.
 // =====================================================================
+// TEXT HAS TWO AUDIENCES, and only one of them is playing. Everything a player reads is written for a
+// player: names, verbs, and what to do about it. Everything written for US — code identifiers, raw
+// exception text, internal phase names — is diagnostic, and shipping it inside a player-facing screen
+// makes the game look like a tool that leaked. `DEV` is the seam. It is off unless you ask for it:
+//   ?dev=1  (or #dev, so it survives a hash-only reload)
+// A false DEV must never change behaviour, only wording — every gate below picks between two STRINGS.
+const DEV = /[?&]dev=1\b/.test(location.search) || /(^|#)dev\b/.test(location.hash);
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 // WORLD SCALE. Every length and every speed in this file is in DESIGN UNITS, measured against a
@@ -292,7 +377,7 @@ function resize(){
 // the most structured thing on screen and it read as arcade playfield — a Cartesian lattice is the
 // visual language of a scoreboard, not of space — and there were no stars anywhere in the file.
 //
-// Three depth layers, offset against the World's position so moving shifts the near layer further than
+// Three depth layers, offset against the Star's position so moving shifts the near layer further than
 // the far one. That parallax is the whole trick: it is what makes the sky read as something you are
 // moving THROUGH rather than a backdrop painted behind a box, and it costs nothing in rules.
 //
@@ -325,7 +410,7 @@ function initStars(){
 }
 function drawStars(){
   if(!stars.length) return;
-  // Parallax is driven by where the World is, so it only moves when YOU do. Comfort mode keeps the
+  // Parallax is driven by where the Star is, so it only moves when YOU do. Comfort mode keeps the
   // depth but takes most of the travel out.
   const px=P?P.x:W/2, py=P?P.y:H/2;
   const damp=store.reduceMotion?0.3:1;
@@ -483,9 +568,9 @@ const FLING_HOLD=0.8;           // 1.6 → 0.8s: the reach was already right, on
 // block. Both were latent "contact = damage" holes, and once the Hunt began walking the Anomaly across
 // the arena a boss could farm them off its own travel. Measured over 6 idle fights before removal:
 // 13 grind contacts, **0 barge, 0 fling** — they were paying nothing and risking everything.)
-// The World's pull on its OWN colour, outside the Field (see the force loop). Deliberately small next to
+// The Star's pull on its OWN colour, outside the Field (see the force loop). Deliberately small next to
 // a Drifter's own 0.22 seek: this is meant to read as your colour leaning toward you, not as a vacuum.
-// 0.16 → 0.30, reach 1.5x → 1.8x. The gentle version was right for a stationary World and wrong for one
+// 0.16 → 0.30, reach 1.5x → 1.8x. The gentle version was right for a stationary Star and wrong for one
 // that has to dodge: grinding an Anomaly means holding close range under point-blank fire, and a player
 // weaving to survive gathered a measurably smaller ring (avg 3.2 / peak 10, against 4.3 / 15 standing
 // still). Gathering and surviving were pulling against each other. Stronger pull plus the ring-grade
@@ -561,11 +646,11 @@ const VOLLEY_HOLD=1.75;
 // repriced UP while keeping the ordering that gives them meaning: aimed beats opportunistic beats
 // drift (which still pays nothing — GLOSSARY §7, "drifting into it pays nothing").
 const VOLLEY_DMG=3;      // per body that connects — aimed and guided, the highest price in the game
-const BASE_FIELDR=190;  // the world's gravity reach never changes now (no upgrades) — Overdrive widens it only while its timer runs
+const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrades) — Overdrive widens it only while its timer runs
 
 // =====================================================================
 //  POWERUPS  — the ONLY progression. No level-ups, no permanent upgrades.
-//  Matter occasionally drops a glowing orb; steer your world into it for an
+//  Matter occasionally drops a glowing orb; steer your star into it for an
 //  INSTANT, TEMPORARY effect. Timed effects just toggle the tuned physics
 //  flags that used to be permanent perks — so every effect rides code the
 //  game already balanced, it simply expires.
@@ -573,7 +658,7 @@ const BASE_FIELDR=190;  // the world's gravity reach never changes now (no upgra
 const POW=[
   {id:'blackhole', ic:'◉', nm:'Singularity', col:'#b98bff', dur:5.0, kind:'timed',   ds:'a black hole devours hostile matter · your own colour is spared'},
   {id:'aegis',     ic:'🛡', nm:'Aegis',       col:'#7fe9ff', dur:6.0, kind:'timed',   ds:'a shield turns aside every hit'},
-  {id:'overdrive', ic:'⚡', nm:'Overdrive',   col:'#ffe36b', dur:6.0, kind:'timed',   ds:'faster world · wide, whirling rings'},
+  {id:'overdrive', ic:'⚡', nm:'Overdrive',   col:'#ffe36b', dur:6.0, kind:'timed',   ds:'faster star · wide, whirling rings'},
   {id:'nova',      ic:'✺', nm:'Nova',        col:'#ff6b9d', dur:0,   kind:'instant', ds:'a shockwave detonates everything near'},
 ];
 const POWMAP={}; for(const p of POW) POWMAP[p.id]=p;
@@ -634,7 +719,7 @@ function stepOrbs(dt){
     const o=orbs[i]; o.life-=dt;
     if(o.life<=0){ orbs.splice(i,1); continue; }
     const dx=P.x-o.x, dy=P.y-o.y, d=Math.hypot(dx,dy)||1;
-    if(d<P.fieldR*1.15){ const t=1-d/(P.fieldR*1.15); o.vx+=dx/d*(0.5+t*1.4); o.vy+=dy/d*(0.5+t*1.4); } // gentle draw toward the world
+    if(d<P.fieldR*1.15){ const t=1-d/(P.fieldR*1.15); o.vx+=dx/d*(0.5+t*1.4); o.vy+=dy/d*(0.5+t*1.4); } // gentle draw toward the star
     o.vx*=0.92; o.vy*=0.92; o.x+=o.vx; o.y+=o.vy;
     if(d<P.r+22){ orbs.splice(i,1); collectOrb(o); } // remove FIRST — collectOrb→Nova→killBoss can push new orbs mid-loop
   }
@@ -998,7 +1083,7 @@ function formComet(){
   else if(edge===1){ x=W+m; y=rand(H*0.15,H*0.85); }
   else if(edge===2){ x=rand(W*0.15,W*0.85); y=-m; }
   else { x=rand(W*0.15,W*0.85); y=H+m; }
-  // aimed to pass NEAR the World rather than at it — a comet has its own path and you go to meet it
+  // aimed to pass NEAR the Star rather than at it — a comet has its own path and you go to meet it
   const tx=(P?P.x:W/2)+rand(-230,230), ty=(P?P.y:H/2)+rand(-230,230);
   const dx=tx-x, dy=ty-y, d=Math.hypot(dx,dy)||1;
   const e=spawnEnemy('heavy', Math.random()<0.5?'red':'cyan', x, y);
@@ -1279,7 +1364,7 @@ function spawnBoss(forceVariant){
 const MSL={
   volley:{sp:5.4, r:9,  life:4.2},
   // seeker turn radius is v/w = 3.3/0.055 = 60px — it out-TURNS you easily, but at 3.3px/frame it cannot
-  // out-RUN a World doing 6.2, so the answer is to run, not to juke. Tracking was 1.1s and the Sentinel
+  // out-RUN a Star doing 6.2, so the answer is to run, not to juke. Tracking was 1.1s and the Sentinel
   // (seekers + swarmers + orbit) went 0-for-2 against a bot the other two kinds lost to 0-for-4; 0.85s
   // lets a late cut beat them without making them ignorable.
   seeker:{sp:3.3, r:9,  life:5.2, turn:0.055, seekFor:0.85},
@@ -1287,7 +1372,7 @@ const MSL={
   mine:  {sp:0.9, r:11, life:3.4, arm:1.2, blast:104},
   spear: {sp:9.2, r:8,  life:2.8, tel:0.55},
 };
-// Aim that LEADS the World's current motion. Without this a "straight shot at you" only ever asks you
+// Aim that LEADS the Star's current motion. Without this a "straight shot at you" only ever asks you
 // to keep doing what you were already doing, which is not a dodge.
 function leadAngle(b,speed,frac){
   if(!P) return rand(0,TAU);
@@ -1310,7 +1395,7 @@ function fireMissile(b,a,kind,spOverride){
 }
 // --- the patterns each kind throws ---
 function fireHexVolley(b){                                     // EMITTER: its silhouette, fired
-  // ORIENT the hexagon so one arm leads the World. Fired at a free-running rotation it was a decorative
+  // ORIENT the hexagon so one arm leads the Star. Fired at a free-running rotation it was a decorative
   // starburst that sprayed empty space — measured at 1.8 dps, and *dodging made no difference*, which is
   // the signature of a pattern that was never aimed at anything. Anchoring one spoke keeps the hexagon
   // read (it is the Emitter's whole silhouette) while making it a question: one arm is for you, the
@@ -1345,7 +1430,7 @@ function fireSpear(b){                                         // EMITTER (Epoch
 }
 function fireMines(b,n){                                       // PULSAR: ground denial between rings
   // Mines have to arm on ground you might actually WANT, so they are lobbed at scattered points around
-  // the World, not sprinkled around the Anomaly. Dropped at the boss they armed 270px from anyone and
+  // the Star, not sprinkled around the Anomaly. Dropped at the boss they armed 270px from anyone and
   // measured 12 damage across a 40s fight — denying territory nobody was standing in denies nothing.
   // Speed is solved from the arming decay so each one arrives and settles roughly where it was aimed:
   // travel = sp * (1-0.965^N)/0.035 with N = arm*60, i.e. ~26.3*sp.
@@ -1595,7 +1680,7 @@ function stepLances(dt){
       L.px=L.x; L.py=L.y;
       continue;                                    // a telegraph cannot hit anything, including you
     }
-    if(L.kind==='seeker' && L.seekT>0){            // SEEKER: turn toward the World, then commit
+    if(L.kind==='seeker' && L.seekT>0){            // SEEKER: turn toward the Star, then commit
       L.seekT-=dt;
       const want=Math.atan2(P.y-L.y, P.x-L.x);
       let cur=Math.atan2(L.vy,L.vx), d=want-cur;
@@ -1618,7 +1703,7 @@ function stepLances(dt){
     // NOTE: there is deliberately no "missile strikes the Anomaly" case any more. Every missile is
     // launched from the Anomaly's own body, so baiting one back through it is not a thing that can
     // happen — the erosion path is your ring volley (`flip()`), not its own fire.
-    // SINGULARITY powerup: the black hole swallows the Anomaly's Flares that stray near your world,
+    // SINGULARITY powerup: the black hole swallows the Anomaly's Flares that stray near your star,
     // so they can't sail through the well untouched and strike the core.
     if(!gone && FX.blackhole>0){
       const dx=L.x-P.x, dy=L.y-P.y;
@@ -1773,7 +1858,7 @@ function stepPlayer(dt){
   if(keys['w']||keys['arrowup'])ky-=1; if(keys['s']||keys['arrowdown'])ky+=1;
   if(kx||ky){ const sp=6.5*P.moveMult; const l=Math.hypot(kx,ky); P.x+=kx/l*sp; P.y+=ky/l*sp; }
   P.x=clamp(P.x,P.r,W-P.r); P.y=clamp(P.y,P.r,H-P.r);
-  // the World is steered by position, not velocity, so nothing recorded how fast it was going. Missiles
+  // the Star is steered by position, not velocity, so nothing recorded how fast it was going. Missiles
   // that LEAD you need that, or a "leading" shot just aims where you already are and asks nothing.
   P.dx=P.x-(P.lastX===undefined?P.x:P.lastX); P.dy=P.y-(P.lastY===undefined?P.y:P.lastY);
   P.lastX=P.x; P.lastY=P.y;
@@ -1781,7 +1866,7 @@ function stepPlayer(dt){
   if(P.flipCd>0)P.flipCd-=dt;
   if(P.pulseCd>0)P.pulseCd-=dt;
   P.holdT+=dt;                       // polarity mastery: charge builds while you hold a colour
-  // SINGULARITY (powerup): while its timer runs the well is pinned open at the world (stepFX drives
+  // SINGULARITY (powerup): while its timer runs the well is pinned open at the star (stepFX drives
   // P.ehorizon + ehT). Here we just add the infalling ambience and let it vacuum loot into the bank.
   if(FX.blackhole>0){
     for(const m of motes) m.vac=Math.max(m.vac,0.12); // devoured loot falls in and banks
@@ -1795,7 +1880,7 @@ function stepPlayer(dt){
 }
 
   // ----- forces on enemies -----
-  // (Hungry Hold no longer reels opposite matter in — the world has no inward pull on another charge.
+  // (Hungry Hold no longer reels opposite matter in — the star has no inward pull on another charge.
   //  Holding a pole still amplifies the reversal shockwave; see `hc` in flip().)
 function stepEnemyForces(dt){
   const attractors=[[P.x,P.y,P.fieldR,P.fieldK,1]];
@@ -1846,7 +1931,7 @@ function stepEnemyForces(dt){
     // base seek toward core (keeps pressure)
     let dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
     // EVENT HORIZON keystone: while you HOLD the reverse button, a SMALL black hole opens at your
-    // world — a mini Singularity. It drags nearby matter in and DEVOURS it at a tight horizon (banks
+    // star — a mini Singularity. It drags nearby matter in and DEVOURS it at a tight horizon (banks
     // a Mote each — every charge except your own, Neutrals included). Smaller reach & shorter than the
     // full Singularity, and it shares the same "never touch your own colour" gate below.
     // THE WELL DOES NOT TOUCH YOUR OWN COLOUR. Same-charge matter is not a threat — it cannot reach your
@@ -1889,7 +1974,7 @@ function stepEnemyForces(dt){
     // orbiters curve around the core (tangential push) instead of beelining
     if(e.type==='orbiter'){ ax+=-dy/d*0.34; ay+=dx/d*0.34; }
     const attracted=(e.type!=='neutral' && e.type!=='boss' && e.color!==P.polarity);
-    // RINGING: like-charge matter the world captures into a holding orbit (its rings).
+    // RINGING: like-charge matter the star captures into a holding orbit (its rings).
     const ringing=(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity);
     // polarity field (skip neutral + boss — they ignore magnetism)
     if(e.type!=='neutral' && e.type!=='boss'){
@@ -1903,7 +1988,7 @@ function stepEnemyForces(dt){
           const tf=0.16+0.84*t*t;
           const dir=(e.color===P.polarity)?-1:1; // same repel, opposite attract
           if(dir<0 && ringing) continue; // like-charge isn't plain-repelled — it's ring-captured below
-          if(dir>0) continue;            // OPPOSITE matter has NO inward magnetic pull — the world never vacuums another charge in; it only drifts toward you under its own gentle chase (seek) and annihilates against your rings/core
+          if(dir>0) continue;            // OPPOSITE matter has NO inward magnetic pull — the star never vacuums another charge in; it only drifts toward you under its own gentle chase (seek) and annihilates against your rings/core
           const f=A[3]*tf/e.mass;        // only repel reaches here (non-ringing like-charge)
           ax+=ex/ed*f*dir; ay+=ey/ed*f*dir;
         }
@@ -1915,8 +2000,8 @@ function stepEnemyForces(dt){
     // neither ringed NOR pulled in — it just drifts toward you.)
     // EDDY keystone now shapes THE RINGS (not opposite matter, so it no longer fights Event Horizon):
     // it whirls your ring WIDE and FAST — a broad, sweeping perimeter shield that annihilates threats
-    // farther out. HEAVY WORLD stacks on top (grip/spin via ringMul).
-    // CORE GRAVITY — like-charge only, and only OUTSIDE the Field. The World had no pull whatsoever on
+    // farther out. HEAVY STAR stacks on top (grip/spin via ringMul).
+    // CORE GRAVITY — like-charge only, and only OUTSIDE the Field. The Star had no pull whatsoever on
     // its own colour until a body crossed the Field edge: the magnetic loop skips like-charge (it is
     // ring-captured instead) and ring capture is gated on `d<P.fieldR`. Measured, the two colours
     // approached at rates identical to the frame — from 300/260/220px, same-colour and opposite-colour
@@ -1978,7 +2063,7 @@ function stepEnemyForces(dt){
     // the ring is running fast enough to out-pace the slowest bodies in it.
     // Like-charge that is closing on you under CORE GRAVITY gets ring-grade headroom (2.9) rather than
     // the ordinary 1.9. Without it your own ammunition simply cannot keep up: a Drifter capped at
-    // `3.4*1.9` ≈ 6.5 px/frame while the World moves at up to 18.5% of the pointer gap per frame — well
+    // `3.4*1.9` ≈ 6.5 px/frame while the Star moves at up to 18.5% of the pointer gap per frame — well
     // past 13 — so any player dodging at speed outruns the matter they are trying to gather. That is the
     // "you have to move slow to keep a ring" problem: it was never about LOSING ring members (measured
     // 100% retention at every speed up to 13 px/frame), it was about never catching new ones.
@@ -2431,7 +2516,7 @@ function hungryFlipBurst(hc){
     //      matching your NEW polarity — but your rings are the OLD colour, so they were killed and the
     //      volley then skipped them as `queued`. Measured: 10 rings gathered → 10 popped → **0 volleyed**.
     //      The boss-fight volley was barely firing at all.
-    //   2. It is what a magnetic world should do. Annihilating everything in a radius was the game's
+    //   2. It is what a wandering star should do. Annihilating everything in a radius was the game's
     //      fifth "everything near me dies" effect, which the glossary already flagged as the reason
     //      Collapse has no identity left. Repulsion is a verb nothing else in the game owns.
     //   3. It leaves the matter ALIVE, so a hungry flip under pressure buys you space instead of paying
@@ -2590,8 +2675,12 @@ function die(){
   if(score>store.best && !testMode && !labMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
   save();
   el('deadScore').textContent='0';
+  // The death receipt. `phase` is an internal identifier — 'calm'/'build'/'storm'/'boss' — and no
+  // player-facing screen has ever taught those words, so it printed lowercase code under a headline.
+  // It is genuinely useful to us (it says WHERE in the beat the run ended), so it moves behind DEV
+  // rather than being deleted. The heading already says "Core Lost"; the line names the killer.
   el('deadCause').textContent = lastDmg
-    ? 'Core lost to: '+lastDmg.src+' · Epoch '+ROMAN[(lastDmg.act-1)%12]+' '+lastDmg.phase
+    ? 'Lost to '+lastDmg.src+' · Epoch '+ROMAN[(lastDmg.act-1)%12]+(DEV?' · phase '+lastDmg.phase:'')
     : '';
   el('deadTime').textContent=fmtTime(elapsed);
   el('deadCombo').textContent=peakCombo;
@@ -2882,7 +2971,7 @@ function drawField(){
   }
 }
 function drawEHorizon(){
-  // SINGULARITY powerup: a small black hole pinned at the world. Drawn BOLD so ON is unmistakable — a
+  // SINGULARITY powerup: a small black hole pinned at the star. Drawn BOLD so ON is unmistakable — a
   // black disc, a bright pulsing horizon ring, accretion rings sweeping in, and infalling streaks.
   if(ehT<=0.05) return;
   const grip=clamp(ehT/EH_MAX,0,1);
@@ -3063,7 +3152,7 @@ function drawPlayer(){
   }
   const blink = P.iframe>0 && Math.floor(elapsed*20)%2===0;
   ctx.globalAlpha=blink?0.4:1;
-  // ---- THE WORLD: atmosphere, body, lit hemisphere, ring halo ----
+  // ---- THE STAR: atmosphere, body, lit hemisphere, ring halo ----
   // atmosphere glow (two soft layers)
   ctx.fillStyle=hexA(c,0.40);
   ctx.beginPath(); ctx.arc(P.x,P.y,P.r*2.4,0,TAU); ctx.fill();
@@ -3078,7 +3167,7 @@ function drawPlayer(){
   // atmosphere rim
   ctx.strokeStyle=hexA('#ffffff',0.85); ctx.lineWidth=2.2;
   ctx.beginPath(); ctx.arc(P.x,P.y,P.r*0.86,0,TAU); ctx.stroke();
-  // tilted ring halo — you are a ringed world even before matter gathers
+  // tilted ring halo — you are a ringed star even before matter gathers
   ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(-0.22); ctx.scale(1,0.36);
   ctx.strokeStyle=hexA(c,0.55); ctx.lineWidth=2.4;
   ctx.beginPath(); ctx.arc(0,0,P.r*1.95,0,TAU); ctx.stroke();
@@ -3087,7 +3176,7 @@ function drawPlayer(){
   ctx.restore();
   // No pole glyph. Polarity is already said three times over — the core's colour, the ring halo, and
   // the whole field's tint — and a +/− scratched on the planet was the last piece of UI pretending
-  // the player needs to READ their own world instead of seeing it.
+  // the player needs to READ their own star instead of seeing it.
   ctx.globalAlpha=1;
   // Aegis shield rings
   for(let i=0;i<P.shield;i++){
@@ -3284,9 +3373,16 @@ function updateHUD(){
   // act label + biome tint (Arena shows its controls instead of the Epoch)
   const info=actInfo();
   const al=el('actlab');
-  if(labMode){ al.textContent='◆ PATTERN LAB · 1 WALL · 2 NOOSE · 3 PULSE · 4 SORTER · 5 COMET'; al.style.color=COL.violet; }
-  else if(testMode){ al.textContent='◆ BOSS RUSH · 1–'+TEST_ORDER.length+' SWITCH KIND'; al.style.color=COL.violet; }
+  // The top-centre slot NAMES where you are — an Epoch, or the mode standing in for one. It used to
+  // carry the mode's keymap as well, which put 60 characters of "1 WALL · 2 NOOSE · …" in the one
+  // place the eye checks mid-fight. Keys now sit with the other keys, in the control legend.
+  const mk=el('modeKeys');
+  if(labMode){ al.textContent='✳ PATTERN LAB'; al.style.color=COL.violet;
+    mk.innerHTML='<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd> Wall · Noose · Pulse · Sorter · Comet'; }
+  else if(testMode){ al.textContent='◆ BOSS RUSH'; al.style.color=COL.violet;
+    mk.innerHTML='<kbd>1</kbd>–<kbd>'+TEST_ORDER.length+'</kbd> Change Anomaly'; }
   else { al.textContent='EPOCH '+ROMAN[(act-1)%12]+' · '+info.name.toUpperCase(); al.style.color=info.tint; }
+  mk.classList.toggle('hidden', !(labMode||testMode));
   // boss integrity bar
   const bb=el('bossbar');
   if(boss){ bb.classList.remove('hidden'); bb.querySelector('i').style.transform=`scaleX(${clamp(boss.hp/boss.maxHp,0,1)})`;
@@ -3306,6 +3402,7 @@ function updateHUD(){
 //  MAIN LOOP
 // =====================================================================
 let lastT=performance.now(), acc=0;
+let titleOff=false;   // latched by frameBody if the title lockup ever throws
 // ---- Moment Engine: global slow-motion. slowmo(scale,hold) dips sim speed, then eases back to 1. ----
 let timeScale=1, tsHold=0;
 function slowmo(scale,hold){ timeScale=Math.min(timeScale,scale); tsHold=Math.max(tsHold,hold); }
@@ -3338,6 +3435,13 @@ function frameBody(now){
     }
   }
   render();
+  // The title lockup is cosmetic and lives outside the sim. It gets its own guard so a fault in it
+  // can never reach the frame guard below and halt a game that is otherwise running fine — it just
+  // switches itself off and leaves a still wordmark.
+  if(state==='menu' && !titleOff){
+    try{ titleOrbit(now/1000); }
+    catch(err){ titleOff=true; console.error('[orbital-crash] title fx disabled',err); }
+  }
   if(state==='play'||state==='ready') updateHUD();
   if(AC) updateAmbient((state==='play')?intensity:0.08, dt);
 }
@@ -3361,15 +3465,112 @@ function crashHalt(err){
   try{ if(AC) AC.suspend(); }catch(e){}   // kill the drone; a humming frozen game is worse than a quiet one
   const d=document.createElement('div');
   d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,8,20,.94);color:#e8ecff;font:600 14px/1.6 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;text-align:center;padding:24px';
+  // The exception message is for us, not for the player: it is unlocalised engine text, it names
+  // internals, and it cannot be acted on by anyone who is not holding the source. The player gets the
+  // two facts that are actually theirs — it stopped, and the save survived — plus the button. Under
+  // DEV the raw message comes back, because at that point reading it IS the job.
   d.innerHTML='<div style="color:#ff3f6c;font-size:18px;letter-spacing:.22em">◆ CORE FAULT ◆</div>'
     +'<div style="opacity:.75;max-width:34em">The simulation hit an error and stopped. Your best score is safe.</div>'
-    +'<div style="opacity:.4;font-size:11px;max-width:34em;word-break:break-word">'+String(err&&err.message||err).replace(/[<>&]/g,'')+'</div>'
+    +(DEV?'<div style="opacity:.4;font-size:11px;max-width:34em;word-break:break-word">'+String(err&&err.message||err).replace(/[<>&]/g,'')+'</div>':'')
     +'<button id="crashReload" style="margin-top:6px;padding:10px 22px;background:transparent;color:#38e0ff;border:1px solid #38e0ff;border-radius:2px;font:inherit;letter-spacing:.18em;cursor:pointer">RELOAD</button>';
   document.body.appendChild(d);
   el('crashReload').onclick=()=>location.reload();
 }
 window.addEventListener('error',e=>{ console.error('[orbital-crash]',e.error||e.message); });  // surface faults outside the frame path (handlers, audio)
 requestAnimationFrame(frame);
+
+// =====================================================================
+//  TITLE LOCKUP — the one rule, on a loop
+// =====================================================================
+// See the .titlewrap block in <style> for what the two orbits are saying. This half just moves them.
+// Called only from frameBody while state==='menu', so a run pays nothing for it.
+// FLAT was .30, which made the outer ring 258px tall against a 132px wordmark: it hung 12px off the
+// top of the screen and its lower arc cut 41px into the body copy, reading as a strikethrough
+// through the first line. .19 keeps the ring framing the words and clear of both.
+const TITLE={IN:.62, CYCLE:7.6, DIE:.62, SPREAD:Math.PI*.82, SPIN:.30, FLAT:.19};
+const tWrap=el('titleLock');
+const tRings=[...tWrap.querySelectorAll('.tring')];
+const tFx=tWrap.querySelector('.tfx'), tBurst=tFx.querySelector('.tburst'), tShock=tFx.querySelector('.tshock');
+function tMk(cls){
+  const d=document.createElement('div'); d.className='tdot '+cls; tWrap.appendChild(d);
+  const tr=Array.from({length:7},()=>{
+    const e=document.createElement('div');
+    e.className='ttrail'; e.style.background=(cls==='r')?'var(--red)':'var(--cyan)';
+    tWrap.appendChild(e); return e;
+  });
+  return {el:d,tr,hist:[]};
+}
+const tSpin=[tMk('c'),tMk('r')];   // outer: locked half a lap apart — never touch
+const tHit =[tMk('c'),tMk('r')];   // inner: counter-rotating — always do
+// Note there is no measuring pass here on purpose. Every coordinate below is an offset from the
+// lockup's centre, which CSS already holds at left:50%/top:56% — so nothing to cache, nothing to
+// invalidate on resize, and no per-frame offsetWidth read forcing a synchronous layout.
+function tPlace(p,x,y,a,alpha,boost){
+  // Depth is CONTINUOUS in sin(a) — 0 on the far side of the ellipse, 1 on the near side — which is
+  // also the physically right falloff for a circle seen at an angle. It used to be the boolean
+  // sin(a)>0, so scale AND opacity both snapped (.62→1.18, .45→1) on the single frame a charge
+  // crossed either horizontal extreme: a hard flicker twice a lap, at the ends of the outer ring.
+  const d=(Math.sin(a)+1)/2;
+  const k=(.62+.56*d)*(boost||1);                 // near side reads bigger…
+  p.el.style.transform=`translate(${x}px,${y}px) scale(${k})`;
+  p.el.style.opacity=(.45+.55*d)*alpha;           // …and brighter
+  p.el.style.zIndex=d>.5?4:1;                     // paint order still flips, but only at the extremes,
+  p.hist.unshift([x,y,d,alpha]);                  // where the charge is clear of the wordmark anyway
+  if(p.hist.length>34)p.hist.pop();
+  p.tr.forEach((e,i)=>{
+    const h=p.hist[(i+1)*4]; if(!h)return;
+    e.style.transform=`translate(${h[0]}px,${h[1]}px) scale(${(1-i/7)*(.55+.45*h[2])})`;
+    e.style.opacity=(1-i/7)*(.16+.34*h[2])*h[3];
+    e.style.zIndex=h[2]>.5?3:1;
+  });
+}
+function tHide(p){ p.el.style.opacity=0; p.hist.length=0; for(const e of p.tr) e.style.opacity=0; }
+
+// The flash boxes keep their size once the animation ends, parked at the last impact point. Left
+// there they sit outside a narrow viewport if the window is resized between impacts — invisible,
+// since overflow-x is hidden and they are at opacity 0, but they still inflate the overlay's
+// scrollWidth. Recentre once BOTH have finished: under reduceMotion the shock never runs at all,
+// so waiting on either one alone would leave the wrapper parked forever in one of the two modes.
+for(const e of [tBurst,tShock]) e.addEventListener('animationend',()=>{
+  e.classList.remove('go');
+  if(!tBurst.classList.contains('go') && !tShock.classList.contains('go')) tFx.style.transform='';
+});
+
+let tBoom=-1;
+function titleOrbit(tt){
+  // rx is capped at 42% of the viewport so the outer ring is never wider than the screen it sits on
+  const rx=Math.min(window.innerWidth*.42,430), ry=rx*TITLE.FLAT;
+  const irx=rx*TITLE.IN, iry=ry*TITLE.IN;
+  tRings.forEach((r,i)=>{
+    const k=i?TITLE.IN:1;
+    r.style.width=rx*2*k+'px'; r.style.height=ry*2*k+'px';
+    r.style.transform='translate(-50%,-50%)';   // centre the box on the anchor CSS already placed
+  });
+  // outer pair: same angular speed, +π offset. The gap between them is constant by construction.
+  tSpin.forEach((p,i)=>{
+    const a=tt*TITLE.SPIN+i*Math.PI;
+    tPlace(p, Math.cos(a)*rx, Math.sin(a)*ry, a, 1);
+  });
+  // inner pair: sweep toward a shared meeting angle, which alternates ends every cycle.
+  const n=Math.floor(tt/TITLE.CYCLE), u=(tt%TITLE.CYCLE)/TITLE.CYCLE, meet=(n%2)?Math.PI:0;
+  if(u<TITLE.DIE){
+    const k=u/TITLE.DIE;
+    const gap=TITLE.SPREAD*(1-Math.pow(k,2.6));   // ^2.6: hangs apart, then falls in. Attraction, not a lerp.
+    const fade=Math.min(1,u/.07), boost=1+k*k*.55;
+    tHit.forEach((p,i)=>{
+      const a=meet+(i?gap:-gap);
+      tPlace(p, Math.cos(a)*irx, Math.sin(a)*iry, a, fade, boost);
+    });
+  }else{
+    for(const p of tHit) tHide(p);
+    if(tBoom!==n){                                // once per cycle, on the frame contact lands
+      tBoom=n;
+      tFx.style.transform=`translate(${Math.cos(meet)*irx}px,${Math.sin(meet)*iry}px)`;
+      const fx=store.reduceMotion?[tBurst]:[tBurst,tShock];   // comfort mode keeps the flash, drops the wave
+      for(const e of fx){ e.classList.remove('go'); void e.offsetWidth; e.classList.add('go'); }
+    }
+  }
+}
 
 // =====================================================================
 //  UI: menu / pause / death
@@ -3464,31 +3665,36 @@ function openCodex(){
   const powRows=POW.map(p=>`<div class="cxa"><span class="st" style="color:${p.col}">${p.ic}</span><span><b>${p.nm}</b> — ${p.ds}${p.kind==='timed'?` <span class="rw">· ${p.dur}s</span>`:` <span class="rw">· instant</span>`}</span></div>`).join('');
   el('codexBody').innerHTML=`
   <div class="cxs"><h3>The Charge Law</h3>
-    <p>You are a magnetic world. <b>Opposite-charge matter drifts toward you</b> and annihilates on contact (threat and ammo) — your world <b>never sucks another charge in</b>, so you <b>steer into</b> it. <b>Like-charge is caught into your rings</b> (your armor — orbiting matter that never harms you, and a shell that annihilates opposite matter it touches). When <b>red meets cyan, both annihilate</b>. The law has one exception, and it belongs to the Anomaly: a dashing Charger plows through opposite matter instead of dying to it. Its <b>missiles</b> sit outside the law entirely — they pass through every body, so nothing is cover. Every body is also a weapon — if you position it.</p></div>
+    <p>You are a wandering star. <b>Opposite-charge matter drifts toward you</b> and annihilates on contact — threat and ammunition in one body. Your star <b>never sucks another charge in</b>, so you <b>steer into</b> it. <b>Like-charge is caught into your rings</b>: orbiting matter that never harms you, and a shell that annihilates opposite matter it touches. When <b>red meets cyan, both annihilate</b>. Every body is a weapon, if you position it.</p>
+    <p>The law has one exception, and it is the <b>Charger</b>: in its committed dash it plows through opposite matter instead of dying to it.</p></div>
   <div class="cxs"><h3>Score</h3>
-    <p><b>Every annihilation pays the same</b>, wherever it happens — <span class="gold">10 × your multiplier</span>. Where you stand is already priced by the things that matter: closing the range is how a Volley connects, and it is what walks you into an Anomaly's point-blank fire.</p>
-    <p><b>Multiplier = banked Motes.</b> Annihilations drop twinkling ✦ Motes: your charge hoovers in on its own, the opposite charge waits for a <b>reversal-vacuum</b>. Each banked Mote is <span class="gold">+0.1×</span> (cap ×15) — and the bank is <b>cut in half when you get hit</b>. Each banked Mote also pays out directly at your current multiplier.</p>
-    <p><b>Gilded Bounty:</b> every ~15s a gold-ringed body arrives — pop it within 6s for <span class="gold">250×epoch</span>.</p>
-    <p><b>Collapse tally:</b> the wave counts its kills and pays <span class="gold">N²×4</span> — herd a dense ring before you spend it.</p></div>
+    <p><b>Every annihilation pays the same</b>, wherever it happens — <span class="gold">10 × your multiplier</span>.</p>
+    <p><b>Multiplier = banked Motes.</b> Annihilations drop twinkling ✦ Motes: your own charge hoovers in by itself, the opposite charge waits for a <b>reversal-vacuum</b>. Each banked Mote pays out at your current multiplier and adds <span class="gold">+0.1×</span> to it (cap ×15) — and the bank is <b>cut in half when you get hit</b>. Streak carries perfection; the bank carries greed.</p>
+    <p><b>Gilded Bounty:</b> every ~15s a gold-ringed body arrives — pop it within 6s for <span class="gold">250×epoch</span>. <b>Collapse tally:</b> the wave counts its kills and pays <span class="gold">N²×4</span>, so herd a dense ring before you spend it.</p></div>
   <div class="cxs"><h3>Capacitor &amp; Collapse</h3>
-    <p>The Capacitor fills from pops, Motes (+0.5%), and streak milestones. Grazes pay a score crumb only — charge income is things you <i>chose</i>. Full meter chimes. <b>Collapse</b> (Shift / R-click): a breath of slow-motion, then a gravity wave sweeps the sky for <b>2 damage</b> — the weak die, but Brutes crawl out burned and flung. Against an <b>Anomaly</b> it is worth a flat <span class="gold">15%</span> and nothing more: the wave does not touch the boss, so herding matter onto it first buys you nothing. Kills during it refund nothing — the next one must be earned.</p>
-</div>
+    <p>The Capacitor fills from pops, Motes (+0.5%) and streak milestones. Grazes pay a score crumb only — charge income is things you <i>chose</i>. A full meter chimes.</p>
+    <p><b>Collapse</b> (Shift / R-click): a breath of slow-motion, then a gravity wave sweeps the sky for <b>2 damage</b> — the weak die, but Brutes crawl out burned and flung. Against an <b>Anomaly</b> it is worth a flat <span class="gold">15%</span> and nothing more: the wave never touches the boss, so packing matter onto it first buys you nothing. Kills during it refund no charge — the next one must be earned.</p></div>
   <div class="cxs"><h3>Streak</h3>
     <p>A <b>no-hit</b> kill count. Ranks: 25 <b style="color:var(--cyan)">AWAKENING</b> · 50 <b class="gold">MAGNETIC</b> · 100 <b class="vio">UNSTOPPABLE</b> · 200 <b>TRANSCENDENT</b>, each granting a Capacitor chunk. Taking a real hit ends it — but a 25+ streak <b>bursts into Capacitor</b> (up to +20%) instead of vanishing. Shield blocks don't break it.</p></div>
   <div class="cxs"><h3>Mastery</h3>
-    <p><b>Hold-charge / the Hungry flip:</b> holding a pole LOADS the ring gauge around your world (a tick marks when it's loaded; it turns hot white). A <b>quick tap</b> just reverses poles — reposition, swap colour. A <b>charged (Hungry) reversal FLINGS</b>: every body that is opposite-charge <i>after the flip resolves</i> and inside the burst is <b>thrown outward, alive</b>. Nothing dies. This is your panic button — when the sky closes in, the answer is always <i>hold, then reverse</i>.</p>
-    <p><b>Why throwing beats killing.</b> A tap already turns the swarm harmless, because matching its colour <i>is</i> what safety means here. What makes reversing dangerous under pressure is that <b>your own Rings and your own gathered matter turn hostile the instant you flip</b> — and they are in close orbit. The Fling throws exactly that off you, and leaves it on the field as matter you can still use.</p>
-    <p>The burst's <b>reach</b> is paid for twice over: how long you held sets its floor, and <b>every body you gathered into your rings widens it</b> (80px up to 210px — just past your own Field, so the circle you can see is the promise). Rings are armour on the way in and reach on the way out — so hoarding a ring before you spend it is the whole skill. With an <b>Anomaly</b> alive your rings are <b>volleyed</b> at it rather than flung, which is the boss fight's whole weapon; with none, they take the full fling like anything else. <b>Neutrals</b> are never flung: they pop to the <b>Shockwave</b> every reversal emits, one reversal, not two.</p></div>
+    <p><b>Hold-charge and the Hungry flip.</b> Holding a pole <b>loads</b> the ring gauge around your star (a tick marks the threshold; it turns hot white). A <b>quick tap</b> just reverses poles — reposition, swap colour. A <b>loaded reversal FLINGS</b>: every body that is opposite-charge <i>after the flip resolves</i> and inside the burst is <b>thrown outward, alive</b>. Nothing dies.</p>
+    <p><b>Why throwing beats killing.</b> A tap already turns the swarm harmless — matching its colour <i>is</i> what safety means here. What makes reversing dangerous under pressure is that <b>your own rings turn hostile the instant you flip</b>, in close orbit. The Fling throws exactly that off you and leaves it on the field, still yours to use. When the sky closes in, the answer is always <i>hold, then reverse</i>.</p>
+    <p>The burst's <b>reach</b> is paid for twice: how long you held sets its floor, and <b>every body you gathered widens it</b> — 80px up to 210px, just past your own Field, so the circle you can see is the promise. Rings are armour on the way in and reach on the way out, which makes hoarding one before you spend it the whole skill. With an <b>Anomaly</b> alive your rings are <b>volleyed</b> at it instead of flung; with none, they take the full fling like anything else. <b>Neutrals</b> are never flung — they pop to the <b>Shockwave</b> every reversal emits, one reversal, not two.</p></div>
   <div class="cxs"><h3>The Anomaly</h3>
-    <p>The Anomaly ignores your reversals entirely, and <b>its own fire cannot be turned against it</b>: every <b>missile</b> launches from its own body, so there is nothing to walk back through it. <b>Missiles and matter never touch each other</b> — a missile flies straight through every body on the field, killing none of them and stopped by none of them. <b>Nothing is cover.</b> A missile <b>hurts you whatever your own polarity</b>, so you dodge it, you never match it: positioning is the whole defence.</p>
-    <p><b>The loop.</b> <b>Dodge</b> its patterns · <b>scavenge</b> your own colour into your <b>Rings</b> · <b>evade</b> the other colour · then <b>hungry-flip to VOLLEY</b> those Rings at it. Hold the colour <i>opposite</i> the Anomaly's and everything you gather becomes the thing that erodes it. A loaded ring also <b>grinds</b> it on contact, so closing the distance pays twice. Matter hurts it only if you <b>fired</b> it or <b>carried</b> it — drifting into it, or being flung past it, pays <b>nothing</b>, however thick the field gets.</p>
-    <p><b>Ways in.</b> Matter erodes it <b>two ways only</b>: a <b>Volley</b> you fired — <span class="gold">3</span> per body that connects, the main line — and a <b>Ring grind</b>, <span class="gold">1</span> per body, for carrying a loaded ring into it; each one is spent doing it, so a grind is steady pressure rather than a burst — you still finish with a volley. One exception: a <b>Charger in its committed dash</b> driven into the Anomaly is worth <span class="gold">5</span> — you cannot aim it, but you can stand so its locked lane runs through the boss. <b>Anything else that merely touches it bounces off for nothing</b>, because the Anomaly walks the arena and a rule that paid for contact would let it damage itself by moving. <b>Your reversal does not touch it</b> — the Shockwave repels matter and pops Neutrals, and that is all it does; erosion is matter you gathered or aimed. <b>Collapse</b> — <span class="gold">15%</span>, flat, no matter what the field looks like. Past 45s it <b>DESTABILIZES</b> and fires faster; at 60s it flees. Purging it <b>drops a powerup cache</b>, +30 Integrity and +40% charge.</p>
-    <p>Every Anomaly is a different <b>kind</b>, and you can read which one you drew <b>from its silhouette</b> before it fires — the shape is the mechanic. <b>Emitter</b> (the teacher — a faceted <b>hexagon</b> turning on the same value that aims it; alternates a six-shot <b>burst</b>, one arm leading you and the other five closing your escape angles, with a sweeping <b>stream</b> of leading fans; from <b>Epoch II</b> it also <b>dashes</b>, firing a spear as it commits). <b>Sentinel</b> (a hollow <b>ring</b> with two pincer wings — it orbits the arena throwing <b>seekers</b> that out-turn you but cannot out-run you, so <b>run, do not juke</b>; it sheds swarmers as it goes, so its trail is half threat and half volley ammo). <b>Pulsar</b> (a core in a crown of <b>rays</b> that lengthen as it winds up — erupts a <b>radial wall of 13 with one seam</b>, so find the seam; between rings it lobs <b>mines</b> onto the ground around you, each drawing its own blast). Every kind also <b>hunts</b>: roughly every 9–14s it breaks station — audibly, trailing a bright wake and a line drawn to your core — and <b>walks onto the core itself</b>. It is slow enough to stroll away from, it lands <b>one</b> hit and recoils rather than parking on you, and it has to cross your <b>rings</b> to reach you, which cut it on the way in.</p></div>
+    <p><b>It is outside your magnetism.</b> It ignores your reversals, and its own fire cannot be turned back on it — every <b>missile</b> launches from its own body. Missiles and matter never touch: a missile flies through every body on the field, killing none and stopped by none, so <b>nothing is cover</b>. A missile hurts you whatever polarity you hold. You dodge it; you never match it.</p>
+    <p><b>The loop.</b> <b>Dodge</b> its patterns · <b>scavenge</b> your own colour into your <b>Rings</b> · <b>evade</b> the other colour · then <b>hungry-flip to VOLLEY</b> those rings at it. Hold the colour <i>opposite</i> the Anomaly's and everything you gather becomes the thing that erodes it.</p>
+    <p><b>Ways in.</b> Everything that erodes it, and what each is worth:</p>
+    <div class="cxa"><span class="st gold" style="width:32px">3</span><span><b>Volley</b> — per body that connects, thrown by a hungry flip. The main line.</span></div>
+    <div class="cxa"><span class="st gold" style="width:32px">1</span><span><b>Ring grind</b> — per body, for carrying a loaded ring into it. Each is spent doing it, so this is pressure while you hold the range, not the blow that ends the fight.</span></div>
+    <div class="cxa"><span class="st gold" style="width:32px">5</span><span><b>Charger dash</b> — a committed dash driven into it. You cannot aim it, but you can stand so its locked lane runs through the boss.</span></div>
+    <div class="cxa"><span class="st gold" style="width:32px">15%</span><span><b>Collapse</b> — flat, whatever the field looks like.</span></div>
+    <p style="margin-top:8px"><b>Nothing else reaches it.</b> Matter that merely drifts or is flung into it bounces off — the Anomaly walks the arena, and a rule that paid for contact would let it damage itself by moving. Your reversal does not touch it either: the Shockwave repels matter and pops Neutrals, and that is all. Past 45s it <b>DESTABILIZES</b> and fires faster; at 60s it flees. Purging it drops a <b>powerup cache</b>, +30 Integrity and +40% charge.</p>
+    <p><b>Read the silhouette.</b> Each of the three kinds — <b>Emitter</b>, <b>Sentinel</b>, <b>Pulsar</b> — announces its mechanic in its shape before it fires, and its integrity bar names the counter while you fight it. Full cards are in the <b>✦ Bestiary</b>. All three also <b>hunt</b>: roughly every 9–14s one breaks station — audibly, trailing a bright wake and a line drawn to your core — and <b>walks onto the core itself</b>. It is slow enough to stroll away from, it lands <b>one</b> hit and recoils rather than parking on you, and it has to cross your <b>rings</b> to reach you, which cut it on the way in.</p></div>
   <div class="cxs"><h3>Powerups</h3>
-    <p>There are <b>no level-ups and no permanent upgrades</b> — the game is vanilla survival. Instead, annihilations occasionally shed a glowing <b>powerup orb</b> (and a purged Anomaly always drops a cache). <b>Steer your world into it</b> to collect — the effect is <b>instant and temporary</b>. Grab another of the same to refresh its timer.</p>
+    <p>There are <b>no level-ups and no permanent upgrades</b> — this is vanilla survival. Annihilations occasionally shed a glowing <b>orb</b>, and a purged Anomaly always drops a cache. <b>Steer into it</b> to collect: the effect is <b>instant and temporary</b>, and grabbing another of the same refreshes its timer.</p>
     ${powRows}</div>
   <div class="cxs"><h3>Achievements</h3>${achRows}</div>
-  <div class="cxs"><h3>Dots</h3><p>Nine species with their stats and habits live in the <b>✦ Bestiary</b>, one button over.</p></div>`;
+  <div class="cxs"><h3>Matter</h3><p>Nine species, plus the Anomaly kinds and the Patterns, with their real sizes, health and damage — all in the <b>✦ Bestiary</b>, one button over.</p></div>`;
   el('codex').classList.remove('hidden');
 }
 function closeCodex(){ el('codex').classList.add('hidden'); }
@@ -3711,6 +3917,18 @@ window.__orbital=window.__polaris=window.__flux={
   // requestAnimationFrame — so without this the canvas stays blank forever and no visual change can be
   // verified at all (every pixel sample this session read pure black until it was added).
   render(){ render(); },
+  // Same reason as render(), for the OTHER half of the screen. Every HUD string — the Epoch label, the
+  // mode keys, the Anomaly's tip line — is written by updateHUD(), which only ever runs from frameBody.
+  // In a hidden tab that never happens, so the HUD keeps whatever the static markup shipped with and a
+  // test reads 'EPOCH I · DRIFT' no matter what the game state actually is. That is a false PASS.
+  hud(){ updateHUD(); },
+  // Third of the same family, for the menu. The title lockup is moved only by frameBody, so in a
+  // hidden tab all four charges keep transform:'' forever and any check reads them as simply absent.
+  // Pass a wall-clock time in SECONDS to place them; the annihilation cycle is 7.6s long, so
+  // title(0) … title(4.72) walks the inner pair from full spread to contact.
+  title(t){ titleOrbit(t||0);
+    const rd=e=>({x:+e.getBoundingClientRect().left.toFixed(1),y:+e.getBoundingClientRect().top.toFixed(1),o:+e.style.opacity});
+    return {t:t||0, spin:tSpin.map(p=>rd(p.el)), hit:tHit.map(p=>rd(p.el)), lastImpactCycle:tBoom}; },
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     const fx={}; for(const k in FX) if(FX[k]>0) fx[k]=+FX[k].toFixed(2);
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,

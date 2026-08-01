@@ -1,6 +1,6 @@
 # ORBITAL CRASH
 
-Pure arcade survival — steer your world, annihilate opposite charge, survive the Anomalies. No meta-progression; instant temporary powerup drops only. Single-file HTML5 canvas, no build step, no dependencies.
+Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies. No meta-progression; instant temporary powerup drops only. Single-file HTML5 canvas, no build step, no dependencies.
 
 ## Run
 
@@ -19,5 +19,6 @@ python3 -m http.server 8755
 
 - [ROADMAP.md](ROADMAP.md) — shipped log + what's next
 - [GLOSSARY.md](GLOSSARY.md) — every game term, mapped to code names
+- [TITLE.md](TITLE.md) — what the menu's four orbiting charges are saying, and how to tune them
 
 > History: this folder was `pulsar/` (forked from POLARIS) until 2026-07-27.
