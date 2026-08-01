@@ -45,7 +45,7 @@
       <div class="logo">ORBITAL CRASH</div>
       <div class="sub">Bestiary</div>
     </header>
-    <p class="legend">Every body carries a charge — <b style="color:#ff3f6c">Red</b> or <b style="color:#38e0ff">Cyan</b>. Opposite charge → drifts toward you &amp; annihilates on contact (<b>danger &amp; ammo</b>); your world never sucks it in — you steer into it. Like charge → caught into your rings (<b>safe</b>). <b style="color:#c7b8ff">Neutral</b> is uncharged. Charges shown are just examples.</p>
+    <p class="legend">Every body carries a charge — <b style="color:#ff3f6c">Red</b> or <b style="color:#38e0ff">Cyan</b>. Opposite charge drifts toward you and annihilates on contact (<b>danger and ammo</b>); like charge is caught into your rings (<b>safe</b>). <b style="color:#c7b8ff">Neutral</b> is uncharged. The charges shown below are examples — any species can arrive as either.</p>
     <div class="grid" id="fbGrid"></div>
     <p class="foot">Rendered live with ORBITAL CRASH's own draw code · sizes, health &amp; damage are the real values.</p>
   </div>
@@ -55,36 +55,44 @@
   const TAU=Math.PI*2;
   const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
 
-  const CORE={kind:'core',name:'The World',tag:'You — a magnetic world. Steer with the mouse; reverse your poles to turn your own rings against the sky.'};
+  const CORE={kind:'core',name:'The Star',tag:'You — a wandering star. Steer with the mouse; reverse your poles to turn your own rings against the sky.'};
   const DOTS=[
     {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,hp:1,dmg:10,tag:'Steady approach — the baseline body.'},
     {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, hp:1,dmg:8, tag:'Small and very fast; light hit.'},
-    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'Big, slow, tanky — heavy hit. <b>3 hp</b>, so it is the one body that walks out of a Collapse burned instead of dead. Against an Anomaly it is no different from anything else: gather it into your rings and grind, or volley it.'},
+    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'Big, slow, tanky — heavy hit. At <b>3 hp</b> it is the one body that walks out of a Collapse burned and flung instead of dead.'},
     {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,hp:1,dmg:12,tag:'The binary — two lobes, two nuclei, already coming apart. Popping it bursts those nuclei out as <b>2 Minis</b>, so it is the one body that leaves the sky fuller than it found it. A <b>Collapse kills it clean</b>, with no fragments.'},
     {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Fast fragment from a Splitter.'},
-    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Curves around your world instead of charging.'},
+    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Curves around your star instead of charging.'},
     {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:26,
-     tag:'The <b>hardest contact hit in the sky</b> — <b>26</b>, where a Brute is 22. Four touches from full and the run is over. Its death payload is gone: there is no trick left and no reward for herding it, only the hit. It is also the most fragile body in the game at <b>1 hp</b>, so anything at all deletes it — and while you hold its colour it rings up as armour and volleys like any other matter.'},
-    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism does not own. It will never join your ring; it travels on a line of its own, which is why it is the only shape in the sky with a direction. It <b>locks that lane the moment it winds up</b> and draws the whole thing, out to a reticle on the spot where the dash ends, so the line is a promise it has already made. Step <b>off</b> it — or stand so it runs through an <b>Anomaly</b>, because a committed dash into one is worth <b>5 dmg</b>.'},
-    {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'The uncharged body, and it <b>wears both poles</b> — half red, half cyan on a turning seam, because no polarity you can hold makes it safe or makes it ammunition. Immune to the Field; pop it with a reversal. It is <b>not</b> cover: nothing is. An Anomaly\'s missiles pass straight through every body on the field.'},
+     tag:'The <b>hardest contact hit in the sky</b> — <b>26</b>, where a Brute is 22. Four touches from full and the run is over. There is no death payload and no reward for herding it: the hit is the whole body. It is also the most fragile thing in the game at <b>1 hp</b>, so anything at all deletes it.'},
+    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism does not own. It never joins your ring; it travels a line of its own, which is why it is the only shape in the sky with a direction. It <b>locks that lane the moment it winds up</b> and draws the whole thing out to a reticle on the spot where the dash ends, so the line is a promise it has already made. Step <b>off</b> it — or stand so it runs through an <b>Anomaly</b>, because a committed dash into one is worth <b>5 dmg</b>.'},
+    {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'The uncharged body, and it <b>wears both poles</b> — half red, half cyan on a turning seam, because no polarity you can hold makes it safe or makes it ammunition. Immune to the Field; pop it with a reversal. And it is <b>not</b> cover — nothing is. An Anomaly\'s missiles pass straight through every body on the field.'},
   ];
   const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:44,hp:'(13+epoch·5)×1.5',dmg:30,
-    tag:'The boss, at the end of each Epoch. Immune to your reversals, and its body hurts (30 dmg). Every missile it throws launches from its <b>own body</b>, so none can be turned back against it — <b>its own fire cannot erode it, and neither can matter that merely drifts into it</b>. You bring it down with the loop: <b>dodge</b> its patterns, <b>scavenge</b> your colour into your Rings, <b>evade</b> the other colour, then <b>hungry-flip to VOLLEY</b> those rings at it (<b>3 dmg</b> each). A loaded ring also <b>grinds</b> it just by touching — <b>1 dmg</b> per body, each spent doing it — steady pressure for holding the range, not a burst that ends the fight. Those are the only two ways <i>your gathered matter</i> can hurt it — plus one exception that is not yours to gather: a <b>Charger in its committed dash</b>, driven into it, for <b>5</b>. Anything that merely drifts or is flung into it bounces off for nothing, because the Anomaly walks the arena and a rule that paid for contact would let it damage itself just by moving. <b>Your reversal does not touch it.</b> The Shockwave repels matter and pops Neutrals; erosion is matter you gathered or aimed, and nothing else — so being stripped of your Rings means gathering more, not finding another button. Every kind also <b>hunts</b>: roughly every 9–14s it breaks station and <b>walks onto your core</b>, slowly and loudly. It lands <b>one</b> hit and recoils rather than parking on you — and it has to cross your rings to get there. A Collapse chips <b>15%, flat</b> — packing the field around it changes nothing. Purging it drops a powerup, +30 HP and +40% charge. Three KINDS below.'};
+    tag:'The boss, at the end of each Epoch. Immune to your reversals, and its body hurts (<b>30 dmg</b>). Every missile launches from its <b>own body</b>, so none can be turned back against it. You bring it down with the loop: <b>dodge</b> its patterns, <b>scavenge</b> your colour into your Rings, <b>evade</b> the other colour, then <b>hungry-flip to VOLLEY</b> those rings at it — <b>3 dmg</b> per body that connects. A loaded ring also <b>grinds</b> it on contact for <b>1</b>, each body spent doing it: steady pressure for holding the range, not the blow that ends the fight. Those are the only two ways your gathered matter reaches it. Matter that merely drifts or is flung into it bounces off for nothing — the Anomaly walks the arena, and a rule that paid for contact would let it damage itself just by moving. Being stripped of your Rings means gathering more, not finding another button. Every kind also <b>hunts</b>: roughly every 9–14s it breaks station and <b>walks onto your core</b>, slowly and loudly. It lands <b>one</b> hit and recoils rather than parking on you — and it has to cross your rings to get there. Purging it drops a powerup, +30 HP and +40% charge. Three KINDS below.'};
   // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
   const ANOMS=[
     {kind:'anom',key:'emitter', name:'Emitter', col:'cyan', meta:'volleys · hovers · burst & stream',
-     tag:'The teacher. Alternates a hexagon <b>burst</b> — six shots, one arm leading you and the other five closing the angles you might run to — and a sweeping <b>stream</b> of leading fans. Cross them; do not back away in a straight line. From <b>Epoch II</b> it also <b>dashes</b>, throwing <b>three fanned spears</b> as it commits. The dash <b>locks its lane when the wind-up starts</b> and drives straight past you — so the dashed line is a promise it has already made, and the answer is to step <b>off the line</b>, not to back away down it. One sidestep is not the whole answer: the fan covers the angles you leave by.'},
+     tag:'The teacher. Alternates a hexagon <b>burst</b> — six shots, one arm leading you and the other five closing the angles you might run to — with a sweeping <b>stream</b> of leading fans. Cross them; never back away in a straight line. From <b>Epoch II</b> it also <b>dashes</b>, throwing <b>three fanned spears</b> as it commits. The dash <b>locks its lane at the wind-up</b> and drives straight past you, so the answer is to step <b>off the line</b> — but one sidestep is not enough on its own, because the spear fan covers the angles you leave by.'},
     {kind:'anom',key:'sentinel',name:'Sentinel',col:'cyan', meta:'chase · circles · seeds a trail',
      tag:'Orbits the arena firing <b>seekers</b> in pincer pairs — they turn onto you for a moment, then commit. They out-turn you but cannot out-run you, so <b>run, do not juke</b>. It also sheds swarmers as it goes, leaving a <b>trail</b> that is part threat and part volley ammo.'},
     {kind:'anom',key:'pulsar',  name:'Pulsar',  col:'red',  meta:'ground denial · rings & mines',
      tag:'Charges, then erupts a <b>radial wall of 13 with one seam</b> — find the seam and be in it. Between rings it lobs <b>mines</b> onto the ground around you; each draws its exact blast, so the answer is simply to not be there. The blast touches <b>you and nothing else</b> — a mine is a missile, and missiles never interact with matter. Carries 25% less HP: it is the kind that moves you rather than out-damages you.'},
   ];
-  // the two Patterns — irregular waves that arrive between the drizzle, from ~0:42 onward
+  // The five shapes, in Pattern Lab key order (1-5). Four are true Patterns — irregular waves that
+  // arrive between the drizzle from ~0:42 onward — and the fifth, the Comet, is an EVENT on its own
+  // much longer clock, which its card says outright rather than filing it as a wave like the others.
   const FORMS=[
     {kind:'form',key:'wall', name:'The Wall',  col:'cyan', meta:'marches across · returns once',
      tag:'A solid line spans the arena with <b>one gap</b> — and the gap <b>shuts</b> as the line advances, so it is widest the moment it arrives. Reaching the far edge it <b>turns around</b> and comes back. Colour alternates every body: no polarity is safe anywhere along it.'},
     {kind:'form',key:'noose',name:'The Noose', col:'red',  meta:'cages you · then bites',
      tag:'A ring shuts on wherever you are standing, its <b>seam rotating</b> as it comes in, so the way out is never where you last looked. It <b>locks</b> just wide enough to stay solid — and then <b>five strands keep going</b> and land on your core. Leaving costs precision: one open seam, four needles where the strands peeled out, and wall everywhere else.'},
+    {kind:'form',key:'pulse',name:'The Pulse', col:'red',  meta:'three arcs · answered by colour',
+     tag:'A shockwave from somewhere else in the sky: three nested <b>arcs</b> wash outward over you, each arc a <b>single colour</b>, alternating arc to arc. It is the one shape you answer by <b>matching</b> rather than dodging — its question is colour, not geometry. Roughly 150° of front, spaced to still be solid at the radius where it reaches you, so there is no walking between the bodies. Arcs rather than full rings, which keeps running around the edge a real second answer.'},
+    {kind:'form',key:'sorter',name:'The Sorter',col:'cyan',meta:'two walls · two colours · two doors',
+     tag:'Two <b>solid</b> walls converge, one <b>red</b> and one <b>cyan</b>, their doors at different heights. Neither door helps you with the other wall, and no polarity is safe from both: <b>match the one arriving first, then flip for the second</b>. Every other shape alternates colour body by body; this is the exception that serves the same rule, because one solid red wall is a free door if you are red — two, in opposite colours, cannot both be. The walls <b>annihilate each other</b> where they meet, and that, not a timer, is what ends the shape.'},
+    {kind:'form',key:'comet',name:'The Comet', col:'cyan', meta:'an event · roughly 1 per 10 min',
+     tag:'Not a formation but an <b>event</b>, and deliberately rare — about <b>one every 10 minutes</b>, on its own clock rather than in the shape rotation. One body crosses the whole sky on a fixed line at <b>three times</b> the speed of anything else on the field, trailing a tail. It carries a charge like everything else, so it is either a large delivery of ammunition you intercept by positioning or a fast threat that crosses. It is aimed to pass <b>near</b> you rather than at you, and touches you about <b>one pass in five</b> — an opportunity, not a hit. Its nucleus is a <b>Brute</b>, so once the flight lapses it stays on the field as ordinary matter.'},
   ];
 
   const renders=[];
@@ -304,7 +312,7 @@
       ctx.beginPath(); ctx.moveTo(x+ox+16,y); ctx.lineTo(x+ox+38,y); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x+ox+38,y); ctx.lineTo(x+ox+31,y-5); ctx.lineTo(x+ox+31,y+5); ctx.closePath();
       ctx.fillStyle=hexA('#ffffff',0.34); ctx.fill();
-    } else {
+    } else if(s.key==='noose'){
       // a ring contracting to its LOCK radius while the seam rotates, then five strands carrying on
       // into the core. Deliberately not to scale — the real lock is 106px of a 742px spawn and the
       // bite ends at 24, which at card size would be three indistinguishable dots.
@@ -319,6 +327,63 @@
         ctx.beginPath(); ctx.arc(x+Math.cos(a)*rr,y+Math.sin(a)*rr,4.2,0,TAU); ctx.fill();
       }
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
+    } else if(s.key==='pulse'){
+      // Three nested arcs washing outward from a source off the card, ONE COLOUR PER ARC and
+      // alternating arc to arc, starting red — `(k%2===0)?'red':'cyan'` in formPulse(). k=0 is the
+      // OUTERMOST and therefore lands first, which is why it carries the largest radius here too.
+      // The span is the game's real PULSE_ARC (2.62 rad ≈ 150°); the radii are not to scale, because
+      // the real thing travels ~500px to reach you and the card is 190 tall.
+      const ox=x, oy=y+105, SPAN=2.62, N=19;                    // the source sits below; the front faces up
+      const cyc=(t*0.3)%1;
+      for(let k=0;k<3;k++){
+        // k=0 outermost. The band is sized so the middle arc crosses the Star at mid-cycle, and N is
+        // set for THAT radius — formPulse() spaces itself where the front meets you, not where it
+        // spawns, because an arc fans out as it expands and sizing at spawn leaves it walkable later.
+        const R=40+cyc*72+(2-k)*38;
+        ctx.fillStyle=hexA(k%2===0?COL.red:COL.cyan,0.92);
+        for(let i=0;i<N;i++){
+          const a=-Math.PI/2+(i/(N-1)-0.5)*SPAN;
+          ctx.beginPath(); ctx.arc(ox+Math.cos(a)*R, oy+Math.sin(a)*R, 4.2,0,TAU); ctx.fill();
+        }
+      }
+      ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
+    } else if(s.key==='sorter'){
+      // Two SOLID single-colour walls closing on each other, red from the left and cyan from the
+      // right, each with a two-body door — and the doors deliberately do not line up (formSorter()
+      // re-rolls gapB until they are at least 4 slots apart). No arrows: the two colours converging
+      // is the whole read, and a pair of arrows would collide in the middle exactly when they meet.
+      const cyc=(t*0.28)%1, sp=13.4, N=13, gapA=3, gapB=8;
+      const lx=x-70+cyc*54, rx=x+70-cyc*54;
+      for(let i=0;i<N;i++){
+        const yy=y-(N-1)*sp/2+i*sp;
+        if(i!==gapA && i!==gapA+1){ ctx.fillStyle=hexA(COL.red,0.92);
+          ctx.beginPath(); ctx.arc(lx,yy,4.4,0,TAU); ctx.fill(); }
+        if(i!==gapB && i!==gapB+1){ ctx.fillStyle=hexA(COL.cyan,0.92);
+          ctx.beginPath(); ctx.arc(rx,yy,4.4,0,TAU); ctx.fill(); }
+      }
+      // what actually ends the shape: the two walls annihilating each other as they overlap
+      if(cyc>0.72){ const f=(cyc-0.72)/0.28;
+        for(let i=0;i<N;i++){ if(i===gapA||i===gapA+1||i===gapB||i===gapB+1) continue;
+          const yy=y-(N-1)*sp/2+i*sp;
+          ctx.fillStyle=hexA('#ffffff',0.5*f*(0.5+0.5*Math.sin(t*11+i)));
+          ctx.beginPath(); ctx.arc(x,yy,3+4*f,0,TAU); ctx.fill(); } }
+      ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
+    } else if(s.key==='comet'){
+      // One body on a fixed line, far faster than anything else, with the tail formComet() actually
+      // emits: particles laid down BEHIND the nucleus in world space, ~45% white and the rest the
+      // body's own colour. The nucleus is a Brute, so it is drawn as the biggest body on any card.
+      const c=COL[s.col], cyc=(t*0.3)%1, TN=24;
+      const cx=x-104+cyc*208, cy=y+44-cyc*88;
+      for(let i=TN;i>=1;i--){
+        const f=i/TN;
+        ctx.fillStyle=hexA(i%3===0?'#ffffff':c, 0.75*(1-f*0.92));
+        ctx.beginPath(); ctx.arc(cx-f*104+Math.sin(t*6+i)*1.9, cy+f*44+Math.cos(t*5+i)*1.9,
+                                4.6*(1-f*0.62),0,TAU); ctx.fill();
+      }
+      ctx.fillStyle=hexA(c,0.22); ctx.beginPath(); ctx.arc(cx,cy,30,0,TAU); ctx.fill();
+      ctx.fillStyle=hexA(c,0.40); ctx.beginPath(); ctx.arc(cx,cy,19,0,TAU); ctx.fill();
+      ctx.fillStyle=c;            ctx.beginPath(); ctx.arc(cx,cy,10,0,TAU); ctx.fill();   // a Brute nucleus
+      ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(cx,cy,3.6,0,TAU); ctx.fill();
     }
     ctx.globalCompositeOperation='source-over';
   }
