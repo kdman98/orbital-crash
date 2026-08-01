@@ -5,10 +5,20 @@
 // queue — which, in a hidden tab, never drains. Phase 0 measured exactly that (document.hidden=true, no
 // natural frame in 800ms).
 //
-// So: load index.html into an iframe to establish the document URL (relative paths, same origin), then
-// re-write that same document with preload.js injected into <head>. The game parses a second time, its
-// kickoff lands in our captured rAF instead of the browser's, and we own every frame from the first one.
-// Costs one extra parse (~250ms). Requires no edit to index.html.
+// So: write index.html into a BLANK iframe document with preload.js injected into <head>. Its kickoff
+// lands in our captured rAF instead of the browser's, and we own every frame from the first one.
+// Requires no edit to index.html.
+//
+// It used to point f.src at index.html FIRST, to establish the document URL, and rewrite that document.
+// That booted the game TWICE in one Window (document.open() reuses it), and the two loops then fought
+// over preload's single-slot H.pending. It survived here only by accident: instance #1 registered with
+// the browser's real rAF before preload existed, and a hidden tab never fires it, so #1 stayed dormant
+// and #2 won. Make the tab VISIBLE — i.e. let a human actually play — and #1 wakes, re-registers into
+// the captured slot, and takes over, drawing to the DISCARDED document's canvas. Measured in record.html:
+// an empty field, a frozen HUD, 600 pumped frames producing 0 steps and 0 RNG draws. A green selftest
+// never covered it, because the selftest runs hidden.
+// <base> replaces what f.src used to provide: about:blank has no URL of its own, so without it the
+// game's relative URLs would resolve against this page instead of its own directory.
 //
 // Run this in any page on the same origin, then drive f.contentWindow.__H.
 // sw.js is cache-FIRST for everything that is not .html, and it caches whatever it fetches. So the first
@@ -72,11 +82,13 @@ window.__boot = async function (opts) {
   const f = document.createElement('iframe');
   f.id = '__harness_frame';
   f.style.cssText = 'position:fixed;left:-10000px;top:0;width:1280px;height:800px;border:0';
-  f.src = base + 'index.html' + bust;
+  // No src and no onload wait. A fresh iframe already holds an about:blank document that is available
+  // synchronously on append; setting src='about:blank' instead fires `load` DURING appendChild, before a
+  // handler can be attached, and the await then never resolves — measured as a hung selftest.
   document.body.appendChild(f);
-  await new Promise(res => { f.onload = res; });
 
-  const injected = src.replace(/<head>/i, '<head>\n<script>\n' + pre + '\n<' + '/script>');
+  const injected = src.replace(/<head>/i,
+    '<head>\n<base href="' + base + '">\n<script>\n' + pre + '\n<' + '/script>');
   if (injected === src) throw new Error('boot: no <head> found to inject into');
 
   const d = f.contentDocument;

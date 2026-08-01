@@ -7,8 +7,14 @@
 <style>
   html,body{margin:0;height:100%;background:#060814;color:#cfe6ff;
             font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden}
-  #frame{position:fixed;inset:0 0 34px 0;width:100%;border:0;display:block}
-  #bar{position:fixed;left:0;right:0;bottom:0;height:34px;display:flex;align-items:center;gap:10px;
+  /* Column flex, NOT `position:fixed; inset:0 0 34px 0`. An <iframe> is a REPLACED element: with
+     height:auto it takes its intrinsic 300x150 and ignores `bottom` entirely, where a normal element
+     would stretch. That silently handed the game a 150px-tall window, so it computed S=150/800=0.1875
+     and built a 6827-unit-wide world — a giant clipped title over an empty field. Flex also keeps the
+     bar's height in ONE place instead of repeating 34px here as a magic number. */
+  body{display:flex;flex-direction:column}
+  #frame{flex:1 1 auto;min-height:0;width:100%;border:0;display:block}
+  #bar{flex:none;height:34px;display:flex;align-items:center;gap:10px;
        padding:0 10px;background:#0b1024;border-top:1px solid #1d2a4d;box-sizing:border-box}
   #dot{width:9px;height:9px;border-radius:50%;background:#e0345a;flex:none;animation:p 1.4s infinite}
   @keyframes p{50%{opacity:.25}}
@@ -62,12 +68,23 @@ async function boot() {
   const [src, pre, rec] = await Promise.all([
     fresh(BASE + 'index.html'), fresh(BASE + '.harness/preload.js'), fresh(BASE + '.harness/record.js')]);
 
+  // Write into a BLANK document. Pointing f.src at index.html first booted the game a SECOND time:
+  // document.open() reuses the same Window, so instance #1 (loaded without preload) survived the
+  // rewrite, and once preload replaced requestAnimationFrame its re-registration landed in the same
+  // single-slot H.pending and clobbered the real loop. The surviving instance then drew to the
+  // DISCARDED document's canvas — an empty field, a frozen 0:00 HUD, and diag() reporting `play` from
+  // the other instance while nothing ever stepped. Measured: 600 hand-pumped frames produced 0 steps
+  // and 0 RNG draws. about:blank has no base URL of its own, so <base> is what keeps the game's own
+  // relative URLs (manifest, icons) resolving to its directory rather than to .harness/.
+  // No src and no onload wait: the iframe already holds an about:blank document, and assigning
+  // src='about:blank' fires `load` during the assignment, before a handler can catch it — a hang.
+  // "New run" re-enters here; document.open() resets whatever the previous run wrote.
   const f = $('frame');
-  await new Promise(res => { f.onload = res; f.src = BASE + 'index.html?rec=' + (++n); });
 
   const d = f.contentDocument;
   d.open();
-  d.write(src.replace(/<head>/i, '<head>\n<script>\n' + pre + '\n<' + '/script>'));
+  d.write(src.replace(/<head>/i,
+    '<head>\n<base href="' + BASE + '">\n<script>\n' + pre + '\n<' + '/script>'));
   d.close();
 
   W = await new Promise((res, rej) => { let i = 0;
