@@ -7,6 +7,57 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### A mine you can name, a Charger that ends, and matter that takes up space (2026-08-01)
+Player brief: *"we should have way to identify bomber"* · *"dodging just continues so long cuz it survives too long"* · *"if same color dots collide, they push each other for space, not merging"*
+
+**The Bomber looked like a jackpot.** It hits hardest in the sky — **26**, against a Drifter's 10 — and was drawn as a plain disc wearing a faint pulsing ring, which is very nearly what a **Gilded Bounty** is: a big dot wearing a ring. One of those you steer into for a jackpot; the other ends the run. It is now a **spiked mine**, joining the language the game already speaks (Charger = arrowhead, Splitter = two cores, Neutral = seam). The spikes are cut at **exactly `e.r`** and never reach past the hull — deliberately, because that is the trap the old dashed standoff ring fell into: anything drawn outside the body reads as *the danger edge*, while the real contact envelope is `e.r + P.r`, far wider. An honest outline promises nothing it cannot keep.
+
+**The Charger never ended.** Its loop was approach → wind-up → dash → rest → **approach again, forever**. Nothing finished a Charger except killing it, and killing it is precisely what your Field cannot help with, so the answer was to dodge and then dodge again with no resolution.
+
+**Retiring it permanently was built first, and was wrong.** It made the Charger *spent* forever after one dash — measured resolving in **3.13s** — but that deletes a threat rather than resolving an exchange, and a species that answers itself in three seconds is not a species. Player's correction: *"charger dash once, then have cooldown which it makes a ring during duration."*
+
+**So spent is a COOLDOWN.** One committed lunge, then **5s** as ordinary matter, then it re-arms. Measured cycle: dash at 1.73s → **spent at 3.13s** → **re-arms at 8.15s** (5.02s) → dashes again at 9.05s. During the window the Field owns it: across 9.55s spent it was **ringed for 9.52s** — it genuinely becomes your armour. Kill it there and it is gone for good; ignore it and you buy the lunge again. The telegraph, the locked lane and the 5-damage Anomaly kill-lane are untouched.
+
+**The shape carries the state.** A spent Charger is drawn as a **disc**, not an arrowhead, because the hull's whole job is to say *this one is not yours to gather* — and while it is spent that is false. A draining arc at 1.18r shows the cooldown; it is a **partial sweep tight to the hull**, deliberately not a closed ring further out, because that is the standoff-ring mistake again (a ring outside a body reads as a danger radius, and the contact envelope is always wider).
+
+**The colour law now answers the Charger, and gives two different answers.** Measured: **match its colour** → contact is harmless, it rides your ring, and then re-arms **at 117px — inside your own guard**, winding up immediately rather than approaching. **Stay opposite** → your ring annihilates it (dead at 2.12s, before it ever went spent). Armour with a catch, or a clean kill. **Open question for a human:** a 0.9s telegraph at 117px is dodgeable on paper — the lane locks at wind-up and stepping 28px off it is trivial in 0.9s — but whether it *feels* fair is not something a bot can answer.
+
+**Same-colour matter now takes up space.** Rule 1 says like charges cannot annihilate; it turned out they did not interact *at all*, so they overlapped freely and a one-polarity crowd rendered as a single smear. Overlaps resolve positionally, split by mass. **Positions only, never velocity** — impulse would pump energy into the ring orbit that carries your armour. Formation bodies are exempt, since `holdOrbit` writes x/y every frame and a shove would corrupt geometry measured to the pixel.
+
+| | before | after |
+|---|---|---|
+| 14 stacked same-colour bodies, mean nearest neighbour | **0.9px** | **21.8px** (diameter is 22) |
+| player's ring radius, 16 bodies, after 8s | 114.2 | **114.3**, spread 0.4 (design 114) |
+| median live bodies over 8 seeds | 31 | **42** |
+
+The ring survives untouched because the shove between ring bodies is **tangential** — it spreads them *around* the orbit rather than off it. The denser field is the real cost: bodies that no longer overlap also no longer drift through each other into opposite matter, so incidental mutual annihilation drops. Median score fell 7,584 → 6,014 with median HP flat (61.9 → 61.5), i.e. fewer free kills rather than a harder game.
+
+### Everything arrives from off-screen (2026-08-01)
+Player brief: *"all dots should appear from outside the screen, not inside. it just appears from nowhere"* → *"if all patterns are coming in from off-screen well, we might not need warnings. just make sure all patterns not just 'appear'"*
+
+**Ambient matter used one flat margin for every species,** `m=30`, so a body's leading edge broke the screen almost at once: a **Brute (r=20) had 10px** of clearance, a Bomber 13, a Drifter 19 — under a tenth of a second at their speeds. The margin is now each body's **own radius plus a fixed 46px**, so every species gets identical off-screen approach, and they enter *moving* along the edge normal instead of accelerating from rest.
+
+**Aiming the entry at the arena centre was measured and rejected.** It funnels all four sides into one point, where opposite colours delete each other before reaching you: median HP went the *wrong* way (63.1 → **77.2**) and live bodies *fell* 41 → 36.5. The edge normal keeps the spread and lands at 61.9.
+
+**Cost, accepted deliberately:** over 8 seeded 40s runs, median HP-at-40s **42.0 → 61.9**, with median score flat (6,789 → 7,584). The clearance itself is what costs the pressure — entry speed barely moves it. Player's call: *"accept the easier game."*
+
+**Patterns had the same disease, and one of them could not be cured the same way.** Measured across 4 player positions × spawns:
+
+| | visible on spawn frame, before | after |
+|---|---|---|
+| Wall / Sorter / Comet | 0% | 0% |
+| **Noose** | diagonal arcs on-screen | **0%** |
+| **Pulse** | **45.8%** | **0%** |
+
+- **Noose:** its radius was `max(W,H)*0.58` — a constant that ignored where you stand. At 1280×800 that is 742 against a 754 corner distance, so its four diagonal arcs were on-screen from frame one, and standing off-centre put a whole flank in open space. Now measured from the **farthest corner** + 70. Cage geometry untouched (`NOOSE_MIN_R` still 106); only the approach lengthens.
+- **Pulse:** the leading arc used to start at `arrive-140` — **140px from your face**. It now starts near its origin, and the origin is placed outside a chosen **edge** rather than on a free bearing.
+
+**The Pulse cannot come from as far out as the others, and that is geometry.** Its front is sized for the radius where it *meets* you, so bodies-needed grows with origin distance against a fixed 34-per-arc cap: 500px → 39px spacing, 700px → **54px**, past the 52px contact diameter. Bound is **~675px**. Hence measuring to the nearest edge, which is always closer than the far corner. Re-verified after the change: **max gap 42.3px** where it reaches you — still a wall, not a fence.
+
+**The 40s suite is blind to most of the game, and that is now measured, not suspected.** The standard 2400-frame pilot stops at **40s**, but formations begin at ~42s, **Chargers at 45s** and **Bombers at 80s** — so the survival numbers came back *byte-identical* across three separate changes to those systems. Anything touching a species or a pattern must be verified some other way (direct spawn geometry, single-body probes) or with longer pilots.
+
+At **5400 frames (90s)** the pilot reaches all of it — and dies every time in **both** builds: control **6/6 deaths, median 61s**; new **6/6, median 57s**. The scripted pilot cannot survive the end of Act 1 regardless of these changes, so mid-game numbers are dominated by its incompetence, not by the build. Median score 18,037 → 13,898, consistent with the same-charge shove removing incidental kills. This is the clearest statement yet of why a human playtest is the missing measurement. Emitter across 6 seeds went 2/6 → 3/6 deaths (mean HP 21.0 → 14.2) — inside the noise of a fight that already kills the scripted pilot a third of the time, and still awaiting its human playtest.
+
 ### The comet crosses and leaves (2026-08-01)
 Player brief: *"make comet fly away and disappear, going out of screen like real comet"*
 

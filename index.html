@@ -824,14 +824,38 @@ function spawnEnemy(type,color,x,y){
   enemies.push(e);
   return e;   // formations need the body back so they can place it and hold it in shape
 }
+// Ambient matter must ARRIVE, not appear. `m` was a flat 30 for every species, so a body's leading edge
+// broke the screen almost immediately: a Brute (r=20) had 10px of clearance, a Drifter 19, a Bomber 13.
+// Bodies spawn at rest, but the eye still reads a shape that is half on-screen on its first frame as
+// having popped into existence rather than come from somewhere. The margin is now the body's OWN radius
+// plus a fixed clearance, so every species — Drifter to Brute — enters with the same off-screen approach
+// regardless of how big it is, which a single flat number cannot give you.
+// Formations are deliberately NOT covered by this: the Noose and the Pulse materialise around you on
+// purpose and cannot come from off-screen without ceasing to be what they are. That is a telegraph
+// problem, not a spawn-position one.
+const EDGE_CLEAR=46;
 function spawnAtEdge(type,color){
-  const m=30; let x,y;
+  const m=EDGE_CLEAR+((ETYPE[type]&&ETYPE[type].r)||12); let x,y;
   const side=irand(0,3);
   if(side===0){x=rand(-m,W+m);y=-m;}
   else if(side===1){x=W+m;y=rand(-m,H+m);}
   else if(side===2){x=rand(-m,W+m);y=H+m;}
   else{x=-m;y=rand(-m,H+m);}
-  spawnEnemy(type,color,x,y);
+  const e=spawnEnemy(type,color,x,y);
+  // ENTER MOVING. Bodies spawn at rest and accelerate under seek, so the extra clearance above would
+  // otherwise be crossed as a slow crawl — pure added grace. Measured over 8 seeded 40s runs, the
+  // margin alone lifted median HP-at-40s from 42.0 to 63.1 (+50%) while leaving median score flat at
+  // ~6790: the same game, just softer. Handing each body the inward velocity it would have built over
+  // that distance keeps the arrival clock roughly where it was, and reads better besides — matter now
+  // flies in from off-screen instead of drifting in.
+  // Straight in along the EDGE NORMAL, not toward the centre and not at you. Aiming at the centre was
+  // measured and rejected: it funnels every side into one point, so opposite colours meet and delete
+  // each other before reaching you — median HP went the wrong way (63.1 -> 77.2) and live bodies FELL
+  // 41 -> 36.5. Aiming at the player would make every body a homing shot from birth; seek already does
+  // the tracking. The normal just carries it across its own margin and leaves the spread intact.
+  if(e){ const sp=e.maxsp*0.55;
+         if(side===0) e.vy=sp; else if(side===1) e.vx=-sp;
+         else if(side===2) e.vy=-sp; else e.vx=sp; }
 }
 function biasedColor(){ return Math.random()<0.74 ? spawnBias : (spawnBias==='red'?'cyan':'red'); }
 
@@ -989,7 +1013,15 @@ const NOOSE_SPIN=0.38;                               // rad/s of seam rotation �
 // or the colour law. Do not chase it to zero.
 const NOOSE_WAVE=0.8;                                // seconds between the two polarities letting go
 function formNoose(){
-  const cx=P?P.x:W/2, cy=P?P.y:H/2, R=Math.max(W,H)*0.58;
+  const cx=P?P.x:W/2, cy=P?P.y:H/2;
+  // START CLEAR OF THE SCREEN. It was max(W,H)*0.58 — a constant that ignored where you actually are,
+  // so at 1280x800 the ring spawned at 742 against a 754 corner distance and its four diagonal arcs were
+  // ON SCREEN from the first frame. Stand off-centre and a whole flank of it materialised in open space.
+  // Measuring from the FARTHEST CORNER guarantees every slot starts outside the viewport wherever you
+  // are standing. The cage geometry is untouched (NOOSE_MIN_R still 106) — only the approach lengthens,
+  // and `close` derives from R, so the ring simply spends longer visibly coming for you.
+  const R=Math.max(Math.hypot(cx,cy), Math.hypot(W-cx,cy),
+                   Math.hypot(cx,H-cy), Math.hypot(W-cx,H-cy)) + 70;
   const N=NOOSE_SLOTS, gapAt=irand(0,N-1);
   const close=(R-NOOSE_MIN_R)/FORM_SPD/60;           // seconds spent shutting, before the cage
   const spin=(Math.random()<0.5?1:-1)*NOOSE_SPIN/60; // `o.a += o.va` steps PER FRAME, not per second
@@ -1023,16 +1055,41 @@ function formNoose(){
 const PULSE_ARC=2.62;                              // ~150° of front
 function formPulse(){
   const px=P?P.x:W/2, py=P?P.y:H/2;
-  const a0=rand(0,TAU), dist=rand(470,560);
-  const cx=clamp(px+Math.cos(a0)*dist, -160, W+160);
-  const cy=clamp(py+Math.sin(a0)*dist, -160, H+160);
+  // Origin pushed out as far as the DENSITY BOUND allows, and no further. The front is sized for the
+  // radius where it meets you, so its body count grows with `dist` while the per-arc cap stays at 34:
+  // at dist 500 the cap gives 39px spacing, at 700 it gives 54px — past the 52px contact diameter, i.e.
+  // walkable. Measured bound is ~675, so 620 is the ceiling with margin. This is why the Pulse CANNOT
+  // originate fully off-screen the way the Noose and the Wall do: it would stop being a wall. Same
+  // family of result as the Noose's N<8 bound — geometry, not tuning.
+  // Pick an EDGE to come from, rather than a free bearing. A random bearing at a fixed distance put the
+  // origin on-screen whenever it pointed along the long axis (500-620 against a 640 half-width), and the
+  // arcs live within 170 of the origin, so they spawned in open space: 45.8% of Pulse bodies were
+  // visible on the frame they were created. Measuring to the edge instead makes the required distance
+  // depend on where you actually are, which is also what keeps `arrive` inside the density bound — the
+  // nearest edge is always closer than the far corner.
+  const cand=[[px,-1,0],[W-px,1,0],[py,0,-1],[H-py,0,1]];   // [distance to that edge, outward x, outward y]
+  let pool=cand.filter(c=>c[0]<=420);                        // edges close enough to stay dense
+  if(!pool.length) pool=[cand.reduce((a,b)=>b[0]<a[0]?b:a)]; // dead centre of a huge arena: nearest wins
+  const pick=pool[irand(0,pool.length-1)];
+  // Clear the edge by more than the outermost arc's own radius (170), or the arc pokes back inside.
+  const back=rand(190,230), reach=pick[0]+back;
+  // Slide along the edge so it is not always a cardinal sweep. Tangential only, so the origin stays
+  // outside; capped at 200 because it feeds `arrive` through the hypotenuse and that feeds the bound.
+  const off=rand(-200,200);
+  const cx=px+pick[1]*reach-pick[2]*off, cy=py+pick[2]*reach+pick[1]*off;
   const bear=Math.atan2(py-cy, px-cx);             // the front faces you
   const arrive=Math.hypot(px-cx, py-cy)||1;
   // spaced for the radius where it MEETS you, not where it spawns: it fans out as it expands, so
   // sizing at spawn would leave it walkable by the time it mattered
   const N=clamp(Math.ceil(PULSE_ARC*arrive/FORM_STEP), 10, 34);
   for(let k=0;k<3;k++){
-    const R=Math.max(70, arrive-140-k*130);        // nested: the outermost is the oldest, so it lands first
+    // Nested, outermost oldest so it lands first — but sized from the ORIGIN now, not backwards from
+    // you. It used to be `arrive-140-k*130`, which put the leading arc 140px from your face: the shape
+    // did not travel, it materialised on top of you and then expanded. Starting near the origin instead
+    // puts the three fronts ~410/480/540px away at spawn — at or past the screen edge for most bearings
+    // — so they sweep in across the sky. Spacing at the meeting radius is untouched, because N is sized
+    // on `arrive` and `arrive` has not moved.
+    const R=170-k*70;                              // 170 / 100 / 40 from the origin; ~0.5s apart on arrival
     const col=(k%2===0)?'red':'cyan';              // ONE colour per arc — the whole point
     // `o.a += o.va` steps PER FRAME, so the drift has to be divided by frames of flight, not seconds.
     // Getting that wrong made the arcs whirl 60x too fast, and because the whole thing is polar the
@@ -1219,6 +1276,10 @@ function doSpawns(dt){
 // drawn reticle against a 28px contact radius: dead on the lane, and still unable to touch a stationary
 // target. When the render promises a point, the body has to actually get there.
 const CHG_WIND=0.9, CHG_SPD=9.5, CHG_DECAY=0.99, CHG_REACH=250, CHG_DASH=1.2;
+// Seconds a Charger spends SPENT before it re-arms. The armed cycle is ~3.1s (approach 0.8 + wind 0.9 +
+// dash 0.5 + rest 0.9), so 5 makes the majority of its life the window where it is yours, without
+// deleting it from the fight the way retiring it permanently did.
+const CHG_COOL=5;
 function stepCharger(e,dt){
   if(!e.cst){ e.cst='approach'; e.ct=0; }
   const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
@@ -1253,9 +1314,22 @@ function stepCharger(e,dt){
     e.dleft-=Math.hypot(e.vx,e.vy);              // distance governs; CHG_DASH is only a failsafe
     e.vx*=CHG_DECAY; e.vy*=CHG_DECAY;
     if(e.dleft<=0 || e.ct>CHG_DASH){ e.cst='rest'; e.ct=0; }
-  } else {                                        // rest
+  } else {                                        // rest — and then it is SPENT
     e.vx*=0.84; e.vy*=0.84; e.ct+=dt;
-    if(e.ct>0.9){ e.cst='approach'; e.ct=0; }
+    // It used to loop straight back to 'approach', forever. Nothing ended a Charger except killing it,
+    // and killing it is the one thing your Field cannot help with — so the answer to a Charger was to
+    // dodge, and then dodge again, with no point at which the exchange resolved. ("sometimes dodging
+    // just continues so long cuz it survives too long.")
+    // Now the wind-up buys ONE committed dash, and the recovery hands the body back to the field:
+    // `spent` drops it out of stepCharger for good, after which it is ordinary matter — your magnetism
+    // reaches it, your rings gather or grind it, a Collapse takes it. Survive the lunge and it becomes
+    // yours. That makes the Charger an exchange with an ending instead of a standing tax, and it costs
+    // nothing from its dangerous half: the telegraph, the commitment and the kill-lane are untouched.
+    // SPENT IS A COOLDOWN, NOT A RETIREMENT. Retiring it permanently was the first attempt and it solved
+    // the Charger in 3.13s — the threat did not resolve, it was deleted, which is a different and worse
+    // thing. It re-arms after CHG_COOL, so the window is an *opportunity* rather than an ending: kill it
+    // while it is ordinary matter and it is gone for good; ignore it and you buy the lunge again.
+    if(e.ct>0.9){ e.spent=true; e.cool=CHG_COOL; e.cst='approach'; e.ct=0; }
   }
   e.x+=e.vx; e.y+=e.vy;
 }
@@ -1901,7 +1975,16 @@ function stepEnemyForces(dt){
     if(e.dead)continue;
     // a live Singularity overrides the dash: a charger that strays into the well's reach is gripped
     // (falls through to the devour below) instead of plowing on — matter near the black hole IS eaten
-    if(e.type==='charger' && !(FX.blackhole>0 && Math.hypot(P.x-e.x,P.y-e.y)<230)){ stepCharger(e,dt); continue; }
+    // A SPENT CHARGER RE-ARMS. While the cooldown runs it falls through to the ordinary force loop, so
+    // the Field owns it like anything else: it can be reeled into your ring, ground against an Anomaly,
+    // or simply annihilated — and killing it there is what ends it permanently. `ring` is cleared on
+    // re-arm because the ring flag is maintained by the force loop, which a re-armed Charger skips: left
+    // set, a body that is no longer orbiting would keep paying ring-grind damage to a boss forever.
+    if(e.type==='charger' && e.spent){
+      e.cool-=dt;
+      if(e.cool<=0){ e.spent=false; e.ring=0; e.cst='approach'; e.ct=0; }
+    }
+    if(e.type==='charger' && !e.spent && !(FX.blackhole>0 && Math.hypot(P.x-e.x,P.y-e.y)<230)){ stepCharger(e,dt); continue; }
     // FORMATION FLIGHT: while `hold` runs, a body flies its assigned vector and ignores seek and the
     // polarity field entirely — otherwise every shape converges on the core and dissolves into the
     // same blob as ambient spawn, which is the whole thing formations exist to break. When it lapses
@@ -2118,6 +2201,9 @@ function stepCollapseWave(){
 }
 
   // ----- enemy vs enemy annihilation (spatial grid) -----
+// Fraction of a same-colour overlap resolved per frame (see the shove at the bottom of the pair loop).
+// Not 1.0: a full resolve makes contact a hard snap and sets crowds vibrating between neighbours.
+const SAME_PUSH=0.5;
 function stepAnnihilation(){
   const cell=64, grid=new Map();
   const key=(cx,cy)=>cx+cy*10000;
@@ -2210,6 +2296,24 @@ function stepAnnihilation(){
               const s=eDash?e:o; spawnBurst(s.x,s.y,COL[s.color],5,2.6);
             }
             else if(unstable>0 || opposite){ queueKill(e); queueKill(o); }
+            else if(!(e.hold>0) && !(o.hold>0)){
+              // SAME COLOUR TAKES UP SPACE. Rule 1 says like charges cannot annihilate, and until now
+              // that meant they did not interact AT ALL — two same-colour bodies simply overlapped, so a
+              // crowd of one polarity stacked into one smeared blob instead of reading as a dozen dots.
+              // A soft POSITIONAL shove, split by mass so a Brute shoulders a Drifter aside instead of
+              // being nudged equally by it. Positions only, never velocity: the polarity field owns
+              // velocity, and injecting impulse here would pump energy into the ring orbit that carries
+              // your armour — the one structure in the game whose radius and spin are tuned to the pixel.
+              // Formation bodies are exempt: holdBody/holdOrbit WRITE x/y every frame, so a shove is
+              // either silently overwritten or it corrupts geometry (Wall spacing, the Noose's cage)
+              // that was measured deliberately. Shapes keep their shape; loose matter jostles.
+              const dd=Math.hypot(dx,dy)||1, ov=rr-dd;
+              if(ov>0){
+                const nx=dx/dd, ny=dy/dd, me=e.mass||1, mo=o.mass||1, tot=me+mo, push=ov*SAME_PUSH;
+                e.x-=nx*push*(mo/tot); e.y-=ny*push*(mo/tot);
+                o.x+=nx*push*(me/tot); o.y+=ny*push*(me/tot);
+              }
+            }
           }
         }
       }
@@ -3071,7 +3175,11 @@ function drawEnemies(){
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na, na+Math.PI); ctx.fill();
       ctx.fillStyle=COL.cyan;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na+Math.PI, na+TAU); ctx.fill();
-    } else if(e.type==='charger'){
+    } else if(e.type==='charger' && !e.spent){
+      // SPENT CHARGERS ARE DRAWN AS DISCS, by falling past this branch. The comment below is the reason:
+      // the hull says "this one is not yours to gather". While the cooldown runs that is no longer true —
+      // the Field owns it, your ring can take it — so it must stop wearing the shape that denies it. The
+      // arrowhead snaps back the instant it re-arms, which is also the tell that the lunge is live again.
       // THE CHARGER IS AN ARROWHEAD — the only body in the sky with a direction, and the only one your
       // Field does not touch. Every other body is a soft disc that your magnetism owns: like-charge gets
       // reeled into your rings, opposite-charge drifts in and dies on them. The Charger ignores all of
@@ -3086,6 +3194,24 @@ function drawEnemies(){
       ctx.lineTo(e.x-ca*R*0.72-sa*R*0.78, e.y-sa*R*0.72+ca*R*0.78);    // port barb
       ctx.lineTo(e.x-ca*R*0.34,       e.y-sa*R*0.34);                  // notched tail
       ctx.lineTo(e.x-ca*R*0.72+sa*R*0.78, e.y-sa*R*0.72-ca*R*0.78);    // starboard barb
+      ctx.closePath(); ctx.fill();
+    } else if(e.type==='bomber'){
+      // THE BOMBER IS A MINE — a spiked hull, not a disc. It carries the hardest contact hit in the sky
+      // (26, against a Drifter's 10) and was drawn as a plain circle wearing a faint pulsing ring, which
+      // is very nearly what a GILDED BOUNTY looks like: a big dot wearing a ring. One of those you steer
+      // into for a jackpot and the other ends your run, so they must not share a silhouette.
+      // The spikes are cut at exactly e.r and never reach past the hull. That is deliberate, and it is
+      // the same trap the old dashed standoff ring fell into (removed 2026-07-29): anything drawn
+      // OUTSIDE the body reads as "the danger edge", and the real contact envelope is e.r + P.r — much
+      // wider than any decoration would imply, so a player who trusts the drawing dies just outside it.
+      // A jagged outline changes the read without promising a distance.
+      const NB=9, spin=e.ph+elapsed*0.7, inr=e.r*0.72;
+      ctx.beginPath();
+      for(let k=0;k<NB*2;k++){
+        const ba=spin+k*Math.PI/NB, br=(k%2)?inr:e.r;
+        const bxp=e.x+Math.cos(ba)*br, byp=e.y+Math.sin(ba)*br;
+        if(k===0) ctx.moveTo(bxp,byp); else ctx.lineTo(bxp,byp);
+      }
       ctx.closePath(); ctx.fill();
     } else {
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,TAU); ctx.fill();
@@ -3119,6 +3245,16 @@ function drawEnemies(){
       const pr=1+0.18*Math.sin(elapsed*7+e.ph);
       ctx.strokeStyle=hexA('#ffffff',0.5+0.3*Math.sin(elapsed*7+e.ph)); ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*0.7*pr,0,TAU); ctx.stroke();
+    } else if(e.type==='charger' && e.spent){
+      // COOLDOWN CLOCK. A sweeping arc that drains as the Charger re-arms, so "when does this thing go
+      // off again" is a thing you read rather than a thing you guess.
+      // Drawn tight to the hull at 1.18r and as a PARTIAL sweep on purpose. A full circle further out
+      // would repeat the standoff-ring mistake — a closed ring outside a body reads as a danger radius,
+      // and the real contact envelope is e.r + P.r, wider than any decoration. An arc that visibly
+      // shortens reads as a timer, which is what it is.
+      const frac=clamp((e.cool||0)/CHG_COOL,0,1);
+      ctx.strokeStyle=hexA(c,0.30+0.35*(1-frac)); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*1.18,-Math.PI/2,-Math.PI/2+TAU*frac); ctx.stroke();
     } else if(e.type==='charger'){
       if(e.cst==='wind'){
         // THE FULL LANE, to where the dash actually ends. The old line ran 40→100px while the wind-up
