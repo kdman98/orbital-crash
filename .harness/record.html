@@ -63,6 +63,25 @@ const fnv = s => { let h = 2166136261 >>> 0;
 let W, H, G, REC, t0;
 
 async function boot() {
+  // THE SERVICE WORKER MUST NOT BE BETWEEN US AND THE GAME. sw.js is network-first for .html, but on a
+  // failed fetch it falls back to `caches.match('./index.html')` — the copy precached at install. So if
+  // the dev server is down (or blips) the recorder is handed a stale shell and tapes it WITHOUT ANY
+  // ERROR. That is not hypothetical: the first two tapes ever recorded both carry build c76dd415, a
+  // build several commits old, because the server had died between sessions. Two runs of real play were
+  // spent measuring a game that no longer existed, and the only reason it was caught is that every tape
+  // carries a build hash.
+  // Unregistering makes every fetch below go straight to the network, so a dead server produces a loud
+  // boot failure instead of a quiet lie. The SW keeps intercepting until the page reloads, hence the
+  // reload. Recording needs the dev server anyway, so nothing is lost by not being offline-capable here.
+  if (navigator.serviceWorker) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    if (regs.length) {
+      stat('a service worker was intercepting fetches — unregistering and reloading…');
+      await Promise.all(regs.map(r => r.unregister()));
+      location.reload();
+      return;
+    }
+  }
   stat('fetching…');
   // Harness files must be cache-busted: sw.js is cache-first for everything that is not .html.
   const [src, pre, rec] = await Promise.all([
