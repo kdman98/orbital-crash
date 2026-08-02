@@ -58,14 +58,14 @@
   const CORE={kind:'core',name:'The Star',tag:'You — a wandering star. Steer with the mouse; reverse your poles to turn your own rings against the sky.'};
   const DOTS=[
     {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,hp:1,dmg:10,tag:'Steady approach — the baseline body.'},
-    {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, hp:1,dmg:8, tag:'Small and very fast; light hit.'},
-    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'Big, slow, tanky — heavy hit. At <b>3 hp</b> it is the one body that walks out of a Collapse burned and flung instead of dead.'},
+    {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, hp:1,dmg:8, tag:'Small and very fast; light hit. Read it by the <b>wake</b> — it is the fastest ordinary body in the game, so the thing that marks it is its own speed. It and the Drifter are the two most common bodies on screen, and they were separated by three pixels of radius.'},
+    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'Big, slow, tanky — heavy hit, and the only <b>hexagon</b> in the sky: it was a plain disc separated from a Drifter by size alone, and size is the first thing a crowded screen takes away. Its flats sit on the true body edge. At <b>3 hp</b> it is the one body that walks out of a Collapse burned and flung instead of dead.'},
     {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,hp:1,dmg:12,tag:'The binary — two lobes, two nuclei, already coming apart. Popping it bursts those nuclei out as <b>2 Minis</b>, so it is the one body that leaves the sky fuller than it found it. A <b>Collapse kills it clean</b>, with no fragments.'},
-    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Fast fragment from a Splitter.'},
-    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Curves around your star instead of charging.'},
-    {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:26,
-     tag:'The <b>hardest contact hit in the sky</b> — <b>26</b>, where a Brute is 22. Four touches from full and the run is over. There is no death payload and no reward for herding it: the hit is the whole body. It is also the most fragile thing in the game at <b>1 hp</b>, so anything at all deletes it. Know it by its <b>spiked hull and blinking fuse</b> — two channels on purpose, so it still reads when the silhouette is crowded or far away. It was a plain disc wearing a faint ring, which is very nearly what a <b>Gilded Bounty</b> looks like, and one of those you chase for a jackpot while the other ends your run. The spikes stop at the hull edge and promise no standoff distance: the contact envelope is always wider than the drawing.'},
-    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism does not own. It never joins your ring; it travels a line of its own, which is why it is the only shape in the sky with a direction. It <b>locks that lane the moment it winds up</b> and draws the whole thing out to a reticle on the spot where the dash ends, so the line is a promise it has already made. Step <b>off</b> it — or stand so it runs through an <b>Anomaly</b>, because a committed dash into one is worth <b>5 dmg</b>. It gets <b>one</b> lunge at a time: after the dash and a beat of recovery it is <b>spent</b> for <b>5s</b>, and it <b>drops the arrowhead for a disc</b> — because while it is spent it really is ordinary matter, and the hull is the game telling you what your Field does and does not own. The draining arc is its cooldown. <b>Kill it in that window and it is gone for good; leave it and it re-arms.</b> Which of those you get is a colour decision: match it and its contact is harmless, so it rides your ring as armour — and then re-arms <b>inside your guard</b>, about 117px out. Stay opposite and your own ring simply annihilates it.'},
+    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Fast fragment from a Splitter — and the only body in the sky with <b>no white core</b>. At this size a core dot is under two pixels on a phone and carries nothing, so its absence is the mark: a solid pellet, which is what shrapnel should look like.'},
+    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Curves around your star instead of charging. The <b>hole through it</b> is its mark, and the pip running that hole turns the way the body curves — clockwise, always. It used to wear a trailing arc drawn <i>outside</i> the hull, which stated nothing (the angle was fixed in world space) and sat at 60% of the radius that actually kills you.'},
+    {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:10,
+     tag:'The <b>spiked mine</b> — and as of <b>2026-08-02</b>, an ordinary dot. Its hit was <b>26</b>, the hardest in the sky; it is now <b>10</b>, the same as a Drifter. The cost was never the health alone: <i>every</i> hit zeroes your combo and halves your Mote bank, so the hardest-hitting body was also the one most likely to delete the multiplier you spent the run building. Its death payload went the same way in 2026-07-29 — there is no explosion, and nothing it does harms the dots around it. At <b>1 hp</b> anything deletes it. The hull is <b>identity, not a warning</b>: know it by the spikes and the blinking fuse so you never mistake it for a <b>Gilded Bounty</b>, which is a big dot wearing a ring and worth chasing. The hardest contact hit in the sky is now the <b>Brute</b>, at 22.'},
+    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism does not own. It never joins your ring; it travels a line of its own, which is why it is the only shape in the sky with a direction. It <b>locks that lane the moment it winds up</b> and draws the whole thing out to a reticle on the spot where the dash ends, so the line is a promise it has already made. Step <b>off</b> it — or stand so it runs through an <b>Anomaly</b>, because a committed dash into one is worth <b>5 dmg</b>. It gets <b>one</b> lunge at a time: after the dash and a beat of recovery it is <b>spent</b> for <b>5s</b>, and the hull goes <b>hollow</b> — same arrowhead, no fill — because while it is spent it really is ordinary matter, and the shell is inert. The wedge filling from the centre is its cooldown; when it completes, the outline floods solid again and the lunge is live. (It was briefly drawn as a plain disc, which made a <b>dmg 16</b> body wear the exact drawing of the <b>dmg 10</b> Drifter for most of its life.) <b>Kill it in that window and it is gone for good; leave it and it re-arms.</b> Which of those you get is a colour decision: match it and its contact is harmless, so it rides your ring as armour — and then re-arms <b>inside your guard</b>, about 117px out. Stay opposite and your own ring simply annihilates it.'},
     {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'The uncharged body, and it <b>wears both poles</b> — half red, half cyan on a turning seam, because no polarity you can hold makes it safe or makes it ammunition. Immune to the Field; pop it with a reversal. And it is <b>not</b> cover — nothing is. An Anomaly\'s missiles pass straight through every body on the field.'},
   ];
   const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:44,hp:'(13+epoch·5)×1.5',dmg:30,
@@ -152,6 +152,26 @@
       }
       ctx.closePath(); ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
+    } else if(s.type==='orbiter'){ // annulus: the hole IS the mark, exactly as in the game
+      ctx.fillStyle=c; ctx.beginPath();
+      ctx.arc(x,y,r,0,TAU,false); ctx.arc(x,y,r*0.52,0,TAU,true); ctx.fill();
+      const oa=t*2.6;               // pip runs clockwise, matching the tangential push in the game
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(x+Math.cos(oa)*r*0.74, y+Math.sin(oa)*r*0.74, r*0.20,0,TAU); ctx.fill();
+    } else if(s.type==='heavy'){   // hexagon: flats on exactly r, so the silhouette still tells the truth
+      const HR=r*1.1547, hs=t*0.35;
+      ctx.fillStyle=c; ctx.beginPath();
+      for(let k=0;k<6;k++){ const a2=hs+k*Math.PI/3, hx=x+Math.cos(a2)*HR, hy=y+Math.sin(a2)*HR;
+        k?ctx.lineTo(hx,hy):ctx.moveTo(hx,hy); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
+    } else if(s.type==='mini'){    // the one fully solid body in the sky — no core dot, on purpose
+      ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+    } else if(s.type==='fast'){    // the wake: aspect ratio is the cue that survives a phone screen
+      ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=r*0.9; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-r*2.4,y); ctx.stroke(); ctx.lineCap='butt';
+      ctx.fillStyle=c;            ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
     } else {
       ctx.fillStyle=c;            ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
@@ -160,10 +180,6 @@
       const na=t*0.5;
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5; ctx.beginPath();
       ctx.moveTo(x+Math.cos(na)*r, y+Math.sin(na)*r); ctx.lineTo(x-Math.cos(na)*r, y-Math.sin(na)*r); ctx.stroke();
-    } else if(s.type==='orbiter'){
-      // mirrors index.html: the game's trail arc is FROZEN at 0.4, not spun. A spinning arc here read as
-      // a different body — the Orbiter's motion is its curve through the field, not a rotating decoration.
-      const a0=0.4; ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,r*1.5,a0,a0+Math.PI*1.2); ctx.stroke();
     } else if(s.type==='bomber'){
       // mirrors index.html: the dashed 1.55r standoff ring went with the death payload — it was a
       // scale model of the 108px blast and promises a radius the Bomber no longer has.

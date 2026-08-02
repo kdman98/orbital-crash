@@ -807,7 +807,14 @@ const ETYPE={
   mini:   {r:7,  hp:1, mass:0.6,  maxsp:5.2, seek:0.38, dmg:6},
   neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:15},
   orbiter:{r:10, hp:1, mass:0.9,  maxsp:4.7, seek:0.30, dmg:11}, // curves around the core
-  bomber: {r:17, hp:1, mass:1.5,  maxsp:2.5, seek:0.17, dmg:26}, // the hardest contact hit in the sky — and 1hp, so anything deletes it
+  // BOMBER, 2026-08-02: dmg 26 -> 10, Drifter parity. Player brief: "reduce bomber damage to normal
+  // dots ... removing shield and player intentions." The impact was never only its HP cost — every hit
+  // also zeroes `combo` and HALVES `motesBank` (see breakStreak), so at 26 the Bomber was the body most
+  // likely to land the blow that deletes the multiplier you spent the run building. It is now an
+  // ordinary dot in every stat, and its spiked hull is species identity rather than a threat warning.
+  // NOTE this leaves it strictly weaker than a Drifter — same damage, slower (2.5 vs 3.4), lower seek,
+  // and a much bigger target at r=17. That is a deliberate consequence of the brief, not an oversight.
+  bomber: {r:17, hp:1, mass:1.5,  maxsp:2.5, seek:0.17, dmg:10},
   charger:{r:13, hp:1, mass:1.0,  maxsp:3.0, seek:0.14, dmg:16}, // telegraphs then dashes; ignores your field
 };
 function spawnEnemy(type,color,x,y){
@@ -933,13 +940,24 @@ function formWall(){
   const hold=cross*2+0.6;                          // out AND back — ignoring it does not end it
   const CLOSE=Math.max(0,(3*step-FORM_STEP*1.6)/2);// px each flank slides toward the gap
   const lat=CLOSE/(cross*60);                      // per-frame lateral drift
+  // THE WALL LETS GO IN TWO POLARITY WAVES, for the same reason the Noose does (NOOSE_WAVE, 2026-07-31).
+  // `formAlt` makes every neighbour the opposite charge, so when the whole line lapsed on ONE frame it
+  // became a row of ordinary bodies each standing next to its own annihilator: they converge down the
+  // field, interleave, and delete each other. MEASURED before the fix, over 6 Lab walls: the vertical
+  // orientation lost 16-22 of 29 bodies IN PAIRS, all of it after the flight ended — 55-76% of the shape
+  // killing itself with the player uninvolved. (The horizontal wall is the same shape with twice the
+  // traverse; it simply had not got there yet inside the measurement window.)
+  // Staggering the release by colour means adjacent bodies are never loose in the field together. Keyed
+  // off gapAt's parity so it varies per wall without spending another rand(), exactly as the Noose does.
+  const late=(gapAt%2===0)?'red':'cyan';
   for(let i=0;i<N;i++){
     if(i>=gapAt && i<gapAt+2) continue;            // the way through
     const t=i*step;
-    const e = horiz ? spawnEnemy('drift',formAlt(i), dir>0?-m:W+m, t)
-                    : spawnEnemy('drift',formAlt(i), t, dir>0?-m:H+m);
-    if(horiz) holdBody(e, dir*FORM_SPD, 0, hold);
-    else      holdBody(e, 0, dir*FORM_SPD, hold);
+    const col=formAlt(i), wave=(col===late)?NOOSE_WAVE:0;
+    const e = horiz ? spawnEnemy('drift',col, dir>0?-m:W+m, t)
+                    : spawnEnemy('drift',col, t, dir>0?-m:H+m);
+    if(horiz) holdBody(e, dir*FORM_SPD, 0, hold+wave);
+    else      holdBody(e, 0, dir*FORM_SPD, hold+wave);
     const near = i===gapAt-1 ? 1 : (i===gapAt+2 ? -1 : 0);   // the two bodies that own the door
     if(near){
       if(horiz) e.lvy=near*lat; else e.lvx=near*lat;
@@ -2361,11 +2379,16 @@ function stepPlayerContact(){
           sfx.hurt();
           // The game's only damage readout. It used to live inside the Bomber payload (the one hit big
           // enough to be worth naming); with the payload gone it belongs on the ordinary contact path,
-          // where a 26 Bomber and an 8 Dart now have to be told apart by the number alone.
+          // where a 22 Brute and an 8 Dart now have to be told apart by the number alone.
           pushText(P.x,P.y-P.r-18,'-'+Math.round(dmg),COL.red,0.9,16);
           spawnBurst(P.x,P.y,COL.red,14,3.2);
           if(P.hp<=0){ P.hp=0; die(); return true; }
-          if(e.type==='bomber') grantAchv('bomberPoint'); // took the hardest hit in the sky and lived
+          // 'Danger Close' meant something when a Bomber hit for 26 — surviving it was a real feat. At
+          // Drifter parity (10, from 2026-08-02) it fires on almost any Bomber contact from full health,
+          // so it is now flavour rather than an achievement. Left in place rather than retired because
+          // the roster count is documented (six, one secret) and an unearned entry is a smaller problem
+          // than a hole; worth repointing at the Brute, which now carries the hardest hit at 22.
+          if(e.type==='bomber') grantAchv('bomberPoint');
         }
       }
       if(e.type!=='boss') queueKill(e);      // boss is not consumed on contact
@@ -2650,8 +2673,8 @@ function hungryFlipBurst(hc){
     // A body you shoved away from yourself is not a shot you took at something, and once the Hunt began
     // walking the Anomaly across the whole arena, any "contact hurts it" clause meant the boss could
     // earn your damage for you by travelling. Erosion is the VOLLEY and the RING GRIND, nothing else.
-    // Bombers are ordinary matter here and need no special case. Since 2026-07-29 they carry the
-    // hardest contact hit in the sky (26) instead of a death payload, so the fling is the only way to
+    // Bombers are ordinary matter here and need no special case. The death payload went on 2026-07-29
+    // and the outsized contact hit went on 2026-08-02, so the fling is the only way to
     // get one off your skin without eating it.
     for(const e of enemies){
       if(e.dead||e.queued||e.type==='boss')continue;
@@ -3138,13 +3161,37 @@ function drawEHorizon(){
   ctx.lineCap='butt'; ctx.restore();
   ctx.globalCompositeOperation=prev;
 }
+// THE HALO HAS NO EDGE ANY MORE. It used to be `fillStyle=hexA(c,0.28)` + `arc(e.r*1.9)` — a FLAT-alpha
+// disc, so it had a hard visible boundary, and a visible boundary reads as a statement about reach. The
+// statement was false in both directions, because the real contact envelope is `e.r + P.r` (P.r = 15,
+// set once at boot and never reassigned) while the halo was `e.r * 1.9`. Those agree only at r = 16.67:
+//   Mini   13.3 drawn vs 22 lethal — 8.7px of killing space OUTSIDE the halo
+//   Dart   15.2 vs 23  · Drifter 20.9 vs 26  · Bomber 32.3 vs 32  · Brute 38.0 vs 35 (3px to SPARE)
+// One cue, opposite lessons: clip a Brute's halo and live, keep clear of a Mini's and die. That is the
+// 1.55r standoff-ring trap generalised to every body on screen.
+// The fix is to remove the EDGE, not to move it. Sizing the halo to `e.r+15` would put a 22px cloud
+// around a 7px Mini and turn a 40-body field into fog — and it would make a HUD element of every body,
+// which is how you end up with nothing standing out. A gradient promises nothing, so it cannot lie.
+// Cached one sprite per polarity and blitted: `drawImage` of a prepared canvas beats arc+fill at these
+// radii, and it never pays `createRadialGradient` per body per frame.
+const GLOW={};
+function glowSprite(col){
+  let s=GLOW[col]; if(s) return s;
+  const N=128, cv=document.createElement('canvas'); cv.width=cv.height=N;
+  const gx=cv.getContext('2d'), rg=gx.createRadialGradient(N/2,N/2,0,N/2,N/2,N/2);
+  rg.addColorStop(0,    hexA(col,0.34));
+  rg.addColorStop(0.55, hexA(col,0.15));
+  rg.addColorStop(1,    hexA(col,0));
+  gx.fillStyle=rg; gx.fillRect(0,0,N,N);
+  return GLOW[col]=cv;
+}
 function drawEnemies(){
   for(const e of enemies){
     if(e.type==='boss')continue;
     const c = COL[e.color];
-    // glow
-    ctx.fillStyle=hexA(c,0.28);
-    ctx.beginPath(); ctx.arc(e.x,e.y,e.r*1.9,0,TAU); ctx.fill();
+    // glow — same extent as before, but ramped to zero so there is no boundary to aim at
+    const GR=e.r*1.9;
+    ctx.drawImage(glowSprite(c), e.x-GR, e.y-GR, GR*2, GR*2);
     // SPLITTER is drawn as a BINARY — two overlapping lobes with two nuclei, because it literally IS
     // two bodies wearing one shell. Every other body in the sky is one circle with one white centre,
     // so "pop this and you get MORE of them" reads off the silhouette alone. Silhouette is the only
@@ -3175,12 +3222,15 @@ function drawEnemies(){
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na, na+Math.PI); ctx.fill();
       ctx.fillStyle=COL.cyan;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na+Math.PI, na+TAU); ctx.fill();
-    } else if(e.type==='charger' && !e.spent){
-      // SPENT CHARGERS ARE DRAWN AS DISCS, by falling past this branch. The comment below is the reason:
-      // the hull says "this one is not yours to gather". While the cooldown runs that is no longer true —
-      // the Field owns it, your ring can take it — so it must stop wearing the shape that denies it. The
-      // arrowhead snaps back the instant it re-arms, which is also the tell that the lunge is live again.
-      // THE CHARGER IS AN ARROWHEAD — the only body in the sky with a direction, and the only one your
+    } else if(e.type==='charger'){
+      // SPENT CHARGERS KEEP THE HULL AND LOSE THE FILL. The first attempt dropped them past this branch
+      // to be drawn as plain discs, reasoning that the arrowhead says "not yours to gather" and that is
+      // false while the cooldown runs. The reasoning was right and the execution was not: a plain disc at
+      // r=13 IS a Drifter (r=11), so a dmg:16 body spent ~62% of its life wearing the exact drawing of the
+      // dmg:10 body — and the contact check has no spent exemption. A HOLLOW hull says the true thing
+      // without lying about which species it is: the shell is inert, the Field owns it, but it is still a
+      // Charger and it is still going to re-arm. The re-arm tell gets louder too — the outline floods
+      // solid on a single frame, which is a stronger snap than the 33% size change it used to be.
       // Field does not touch. Every other body is a soft disc that your magnetism owns: like-charge gets
       // reeled into your rings, opposite-charge drifts in and dies on them. The Charger ignores all of
       // that and travels on a line of its own, so drawing it as one more disc set the wrong expectation
@@ -3194,7 +3244,14 @@ function drawEnemies(){
       ctx.lineTo(e.x-ca*R*0.72-sa*R*0.78, e.y-sa*R*0.72+ca*R*0.78);    // port barb
       ctx.lineTo(e.x-ca*R*0.34,       e.y-sa*R*0.34);                  // notched tail
       ctx.lineTo(e.x-ca*R*0.72+sa*R*0.78, e.y-sa*R*0.72-ca*R*0.78);    // starboard barb
-      ctx.closePath(); ctx.fill();
+      ctx.closePath();
+      // Hollow while spent, solid while armed. Same path either way, so the species never changes shape —
+      // only its state does. Stroked rather than layered with a second fill because the whole enemy pass
+      // runs under `lighter`: stacked fills saturate toward white and destroy the red/cyan contrast the
+      // polarity law depends on (the boss body wraps itself in source-over at its own draw for exactly
+      // this reason). An empty outline costs one stroke and reveals the glow behind it.
+      if(e.spent){ ctx.strokeStyle=c; ctx.lineWidth=Math.max(2,e.r*0.22); ctx.stroke(); }
+      else ctx.fill();
     } else if(e.type==='bomber'){
       // THE BOMBER IS A MINE — a spiked hull, not a disc. It carries the hardest contact hit in the sky
       // (26, against a Drifter's 10) and was drawn as a plain circle wearing a faint pulsing ring, which
@@ -3217,15 +3274,49 @@ function drawEnemies(){
         if(k===0) ctx.moveTo(bxp,byp); else ctx.lineTo(bxp,byp);
       }
       ctx.closePath(); ctx.fill();
+    } else if(e.type==='orbiter'){
+      // THE ORBITER IS AN ANNULUS — a ring of matter with a hole through it. Its identity used to be an
+      // arc drawn at 1.5r, which was the deleted standoff ring's radius almost exactly, sat at 60% of the
+      // radius that actually kills, and was near-identical to the spent Charger's mark. Worse, it encoded
+      // nothing: the angles were fixed in WORLD space, so every Orbiter on screen had its gap pointing the
+      // same way forever regardless of which way it curved.
+      // Negative space is the right channel here. Under `lighter` a hole costs nothing and cannot smear
+      // into a neighbour the way a stacked fill does, and it stays legible when bodies overlap. The
+      // reversed winding on the inner circle is what punches it.
+      ctx.beginPath();
+      ctx.arc(e.x,e.y,e.r,0,TAU,false);
+      ctx.arc(e.x,e.y,e.r*0.52,0,TAU,true);
+      ctx.fill();
+    } else if(e.type==='heavy'){
+      // THE BRUTE IS A HEXAGON. It was a plain disc, separated from a Drifter by size alone (20 vs 11) —
+      // and size is the weakest channel in the game: bodies overlap, they are read in peripheral vision,
+      // and the world scale shrinks everything to under half on a phone. Flats sit at exactly e.r, so the
+      // silhouette still tells the truth about the space it occupies; the corners over-draw to 1.155r,
+      // which errs in the safe direction (the same direction the Charger's arrowhead already errs in).
+      // Straight edges are what survive scaling — an internal mark at 9.75 CSS px does not.
+      const HR=e.r*1.1547, hs=e.ph+elapsed*0.35;   // slow spin so it is never lost edge-on
+      ctx.beginPath();
+      for(let k=0;k<6;k++){
+        const ha2=hs+k*Math.PI/3, hx=e.x+Math.cos(ha2)*HR, hy=e.y+Math.sin(ha2)*HR;
+        if(k===0) ctx.moveTo(hx,hy); else ctx.lineTo(hx,hy);
+      }
+      ctx.closePath(); ctx.fill();
     } else {
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,TAU); ctx.fill();
     }
-    // core dot — two of them on a Splitter, one on everything else
+    // Core dot — two on a Splitter, one on most things, and DELIBERATELY NONE on three.
+    // The absences are marks in their own right, which is the cheapest channel there is:
+    //   · Orbiter — the annulus hole IS the centre; a dot in it would fill the thing that identifies it.
+    //   · Mini    — at r=7 the dot is ~1.2 CSS px on a phone: it carries no information and is the only
+    //               reason a Mini reads as a shrunken Drifter. Without it the Mini is the one fully solid
+    //               body in the sky, which is what a piece of Splitter shrapnel should look like.
+    //   · spent Charger — the cooldown wedge is the centre.
+    const noCore = (e.type==='orbiter') || (e.type==='mini') || (e.type==='charger' && e.spent);
     ctx.fillStyle='rgba(255,255,255,0.85)';
     if(sp){
       ctx.beginPath(); ctx.arc(e.x-ssa*soff, e.y+sca*soff, e.r*0.26,0,TAU); ctx.fill();
       ctx.beginPath(); ctx.arc(e.x+ssa*soff, e.y-sca*soff, e.r*0.26,0,TAU); ctx.fill();
-    } else {
+    } else if(!noCore){
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(e.type==='neutral'?0.24:0.34),0,TAU); ctx.fill();
     }
     if(e.type==='neutral'){
@@ -3239,8 +3330,30 @@ function drawEnemies(){
       ctx.lineTo(e.x-Math.cos(na)*e.r, e.y-Math.sin(na)*e.r);
       ctx.stroke();
     } else if(e.type==='orbiter'){
-      ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*1.5,0.4,0.4+Math.PI*1.2); ctx.stroke();
+      // A PIP RUNNING THE HOLE, replacing the 1.5r trail arc. The arc was drawn at essentially the
+      // deleted standoff ring's radius, sat at 60% of the radius that kills, and — the part that made it
+      // worthless as a mark — used FIXED WORLD ANGLES, so every Orbiter's gap pointed the same way
+      // forever no matter which way the body was curving. The tangential push that defines this species
+      // has a fixed handedness (a +90° rotation of the radial vector, i.e. clockwise on screen); an
+      // increasing pip angle matches it, so for the first time the mark states the behaviour it exists
+      // to advertise. Inside the hull, and it rides the negative space rather than competing with it.
+      const oa=e.ph+elapsed*2.6;
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(e.x+Math.cos(oa)*e.r*0.74, e.y+Math.sin(oa)*e.r*0.74, e.r*0.20,0,TAU); ctx.fill();
+    } else if(e.type==='fast'){
+      // THE DART GETS A WAKE. It and the Drifter are the two most common bodies in the sky — measured at
+      // 8.1 and 20.1 per sample, sharing the screen in 77% of samples — and they were separated by radius
+      // alone, 8 against 11. Aspect ratio is the one silhouette cue that still resolves at ~3.9 CSS px on
+      // a phone, where a 3px internal mark cannot. It also encodes the actual difference: this is the
+      // fastest ordinary body in the game (maxsp 6.4 against a Drifter's 3.4), so the thing that marks it
+      // is its own speed. Drawn backward along the path already travelled, which is the one exemption to
+      // "nothing outside the hull" the file already relies on for the Charger's dash streak — a trail
+      // behind a body promises nothing about the space in front of it.
+      const sp2=Math.hypot(e.vx,e.vy);
+      if(sp2>1.2){
+        ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=e.r*0.9;
+        ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x-e.vx*2.2, e.y-e.vy*2.2); ctx.stroke();
+      }
     } else if(e.type==='bomber'){
       // A BLINKING FUSE, not a ring. The old 0.7r pulsing ring was one more concentric circle on a body
       // in a sky full of them — it marked the Bomber with the same vocabulary the Gilded Bounty uses.
@@ -3254,15 +3367,20 @@ function drawEnemies(){
       ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.26+0.16*bl),0,TAU); ctx.fill();
     } else if(e.type==='charger' && e.spent){
-      // COOLDOWN CLOCK. A sweeping arc that drains as the Charger re-arms, so "when does this thing go
-      // off again" is a thing you read rather than a thing you guess.
-      // Drawn tight to the hull at 1.18r and as a PARTIAL sweep on purpose. A full circle further out
-      // would repeat the standoff-ring mistake — a closed ring outside a body reads as a danger radius,
-      // and the real contact envelope is e.r + P.r, wider than any decoration. An arc that visibly
-      // shortens reads as a timer, which is what it is.
+      // COOLDOWN CLOCK, as a WEDGE FROM THE CENTRE rather than an arc around the rim.
+      // The arc it replaces sat at 1.18r and was defended in this very comment as safe because it was "a
+      // PARTIAL sweep, not a closed ring". That defence was wrong on its own terms: the sweep is TAU*frac
+      // and frac starts at exactly 1.0, so it WAS a closed ring at the instant every cooldown began, and
+      // still read closed for the first second of five. It also sat 0.34 units from the Orbiter's arc,
+      // making the two species' only marks near-identical.
+      // A pie has no rim. It cannot be mistaken for a radius, it cannot collide with any other ring in the
+      // game's vocabulary, and it lives entirely inside the hull. Running `1-frac` fills it as the body
+      // re-arms, so the wedge completing and the outline flooding solid are one gesture.
       const frac=clamp((e.cool||0)/CHG_COOL,0,1);
-      ctx.strokeStyle=hexA(c,0.30+0.35*(1-frac)); ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*1.18,-Math.PI/2,-Math.PI/2+TAU*frac); ctx.stroke();
+      ctx.fillStyle=hexA(c,0.55);
+      ctx.beginPath(); ctx.moveTo(e.x,e.y);
+      ctx.arc(e.x,e.y,e.r*0.78,-Math.PI/2,-Math.PI/2+TAU*(1-frac));
+      ctx.closePath(); ctx.fill();
     } else if(e.type==='charger'){
       if(e.cst==='wind'){
         // THE FULL LANE, to where the dash actually ends. The old line ran 40→100px while the wind-up
@@ -3271,16 +3389,36 @@ function drawEnemies(){
         // CHG_REACH it is honest in both directions: it shows the lane to leave, and when the Charger
         // has wound up from too far out it visibly falls SHORT of you, which is worth knowing.
         const t=clamp((e.ct||0)/CHG_WIND,0,1);
-        ctx.strokeStyle=hexA('#ffffff',0.4+0.5*t); ctx.lineWidth=2.5;
-        ctx.beginPath(); ctx.arc(e.x,e.y,e.r+4+6*t,0,TAU); ctx.stroke();
+        // THE WIND-UP TELL IS A HEATING NOSE, INSIDE THE HULL. It was a closed white ring swelling from
+        // 17px to 23px and brightening to 0.9 alpha — against a 28px kill radius (e.r 13 + P.r 15). So
+        // the brightest, most attention-grabbing mark on screen stopped 5px SHORT of the lethal edge, at
+        // the exact moment the player is looking for that edge hardest. Hold station just outside the
+        // ring, visibly clear of it, and take 16 damage. That is the deleted 1.55r standoff ring rebuilt
+        // closed, brighter, and animated to draw the eye. No comment defended it; it simply escaped the
+        // rule the Bomber and the spent arc were both written to obey.
+        // A glow at the nose says "this end is about to happen to you" and states no distance at all.
+        // Peak extent 0.55r + 0.38r = 0.93r, inside the hull by construction.
+        const nha=(e.aimx!==undefined)?Math.atan2(e.aimy,e.aimx):e.ph;
+        ctx.fillStyle=hexA('#ffffff',0.35+0.6*t);
+        ctx.beginPath();
+        ctx.arc(e.x+Math.cos(nha)*e.r*0.55, e.y+Math.sin(nha)*e.r*0.55, e.r*(0.16+0.22*t),0,TAU);
+        ctx.fill();
         if(e.tgx!==undefined){
           const ex=e.tgx, ey=e.tgy;                     // the LOCKED point — a fixed mark on the ground,
                                                         // not a stub that slides as the body drifts
           ctx.strokeStyle=hexA(c,0.28+0.42*t); ctx.lineWidth=1.5+1.5*t; ctx.setLineDash([9,9]);
           ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(ex,ey); ctx.stroke(); ctx.setLineDash([]);
-          // reticle collapsing onto the end of the lane — the countdown made spatial, as the dash uses
+          // Reticle collapsing onto the end of the lane — the countdown made spatial. It used to shrink
+          // to 8px, against the 28px envelope the arriving dash actually carries: a player standing 20px
+          // off centre was unambiguously OUTSIDE the drawn mark and still got hit. It now settles on
+          // exactly `e.r + P.r`, so what it collapses to IS the radius that kills.
+          // This is the one ring outside a hull the rule should permit, and the distinction is worth
+          // stating: it is drawn on the GROUND, not on a body, and it marks a place rather than implying
+          // a standoff — and it is true. The file already has this precedent in the mine telegraph,
+          // which is drawn at exactly the radius it will cover.
+          const RET=e.r+(P?P.r:15);
           ctx.strokeStyle=hexA(c,0.3+0.45*t); ctx.lineWidth=1.5;
-          ctx.beginPath(); ctx.arc(ex,ey, 8+34*(1-t), 0, TAU); ctx.stroke();
+          ctx.beginPath(); ctx.arc(ex,ey, RET+26*(1-t), 0, TAU); ctx.stroke();
         }
       } else if(e.cst==='dash'){ // motion streak
         ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=e.r*1.3;

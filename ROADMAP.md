@@ -7,6 +7,86 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The danger edge stops lying (2026-08-02)
+Player brief: *"can we fix this? or is fixing this right?"*
+
+**The rule this project already had was banning the wrong thing.** Since the 1.55r standoff ring was deleted on 2026-07-29 the rule has been *nothing may be drawn outside a body*. But the real contact envelope is **`e.r + P.r` = `e.r + 15`** (`P.r` is set once at boot and never reassigned, so it is a constant per species), and the actual defect was never the geometry — it was decorations stating a **false value**. The rule is now: *a ring outside a hull must sit at exactly `e.r + P.r`, or not exist.*
+
+**The universal halo was the largest instance, on every body on screen.** `fillStyle=hexA(c,0.28)` + `arc(e.r*1.9)` is a FLAT-alpha disc, so it had a hard visible boundary — and `1.9·r` equals `r+15` only at r=16.67, so it was wrong in *both* directions: Mini 13.3 drawn vs **22** lethal, Dart 15.2 vs 23, Drifter 20.9 vs 26, Bomber 32.3 vs 32, Brute 38.0 vs 35 with 3px to spare. Clip a Brute's halo and live; stay clear of a Mini's and die.
+
+It is now a **cached radial-gradient sprite per polarity**, blitted with `drawImage`. Measured by sampling luminance outward from a Drifter, before vs after:
+
+| | before | after |
+|---|---|---|
+| profile from d=11 | 151, 151, 151 … 139, **33** | 96, 88, 83, 75, 71, 62, 57, 48, 44, 36, 33 |
+| biggest single-step drop | **106**, at d=21 | **9** |
+
+The cliff landed at exactly the predicted 20.9 edge. Extent is unchanged, so it looks the same — it simply stops asserting a boundary. Render cost with 41 bodies: **0.23ms/frame**, cheaper than the arc+fill it replaced.
+
+**Deliberately NOT resized to the envelope.** Sizing the halo to `e.r+15` puts a 22px cloud around a 7px Mini and, across 40 bodies, turns the field into fog — while promoting a decorative bloom to a HUD element on everything, which is how nothing ends up standing out. The precision was the defect; the radius was fine.
+
+**The Charger's wind-up ring: deleted.** A closed white circle swelling 17→23px and brightening to 0.9 alpha, against a **28px** kill radius — the brightest mark on screen halting 5px inside lethal, during the exact 0.9s the player is deciding where to stand. Structurally the deleted standoff ring rebuilt closed, brighter and animated. No comment defended it; it escaped the rule the Bomber and the spent-Charger arc were both written to obey. Replaced by a nose that heats up **inside** the hull (peak 0.93r).
+
+**The reticle: now true.** It collapsed to **8px** against a 28px envelope, so a player 20px off centre was visibly outside the mark and still took 16 damage. It now settles on exactly `e.r + P.r` = **28**. This is the legitimate exception to the rule: it marks the **ground**, not a body, and it is honest — the same precedent the mine telegraph already set.
+
+Still outstanding in this class: the Gilded Bounty ring (1.8r, closed and dashed — the standoff ring's exact form, on the one body the game baits you toward) and the boss integrity ring (`b.r+11` against a `b.r+15` envelope).
+
+### The Wall stops eating itself (2026-08-02)
+Player brief: *"wall pattern collides each other in conclusion. should we have same color in same axis? idk"*
+
+**Right diagnosis, and "in conclusion" was the load-bearing word.** Measured over 6 Lab walls, classifying every death by whether bodies died in **pairs** (each other) or **alone** (the player): the vertical orientation lost **16–22 of 29 bodies in pairs** — 55–76% of the shape — and every one of those deaths landed *after* the hold lapsed at ~981 frames, not during the march. The horizontal wall showed 0 pair-kills only because its traverse is twice as long and the measurement window ended first; it is the same shape with the same defect.
+
+**The cause is rule 2 meeting the release.** `formAlt` alternates every body, so a wall is a row in which every neighbour is its own annihilator. While `hold` runs they fly a fixed vector and ignore the field, holding ~42px apart. The instant it lapses — all at once, for the whole line — they become ordinary matter, converge down the polarity field, interleave, and delete each other. This is precisely the Noose's release problem, which was diagnosed and fixed on 2026-07-31 and never propagated to the Wall.
+
+**Same fix, same constant.** The Wall now releases in two polarity waves `NOOSE_WAVE` (0.8s) apart, keyed off `gapAt`'s parity so it varies per wall without spending another `rand()`. Measured after, 8 walls / 199 bodies: **0 pair-kills**, both orientations; survivors 114/145 vertical and 35/54 horizontal, with the remaining losses being deaths to the player, which is the shape doing its job.
+
+**The player's own suggestion — one colour per wall — was not taken, and it is worth recording why.** A single-colour wall is a free door for anyone holding that polarity: rule 2 exists precisely so no wave is solved by one keypress. The **Sorter** does use solid single-colour walls, but only as a *pair* in opposite colours, so no polarity is safe from both. A lone Wall does not have that structure, so the stagger is the fix and the colour law stays intact.
+
+### The Bomber becomes an ordinary dot (2026-08-02)
+Player brief: *"reduce bomber damage to normal dots, it is already lethal by bombing dots around it, removing shield and player intentions."*
+
+**The premise was checked before the number was changed, and half of it is not what the code does.** There is no Bomber blast: `P.blastR` is declared **0** and is **never assigned anywhere in the file**, so the chain-blast branch in `processKills` can only fire while `unstable > 0` — i.e. during the player's own Collapse. The death payload went on 2026-07-29 and nothing replaced it. **Nothing a Bomber does harms the dots around it.**
+
+**The other half is real, and it is the better argument.** A hit is never only HP: `breakStreak` zeroes `combo` and **halves the Mote bank**, so the hardest-hitting body in the sky was also the one most likely to land the blow that deletes a run's accumulated multiplier. "Removing player intentions" is exactly right — it just came from the hit table, not from an explosion.
+
+**`dmg` 26 → 10, Drifter parity.** Verified in-engine by driving one body of each species into a pinned Star and reading the actual loss: mini 6, Dart 8, **Drifter 10, Bomber 10**, Orbiter 11, Splitter 12, Neutral 15, Charger 16, **Brute 22**. The Brute is now the hardest contact hit in the sky.
+
+**Two consequences, stated rather than hidden.** The Bomber is now **strictly weaker than a Drifter** — same damage, slower (2.5 vs 3.4), lower seek, and a far bigger target at r=17 — so its spiked hull is species identity rather than a threat warning, and it has no stat that makes it dangerous. And **'Danger Close'** ("take a Bomber's impact and live") now fires on almost any contact from full health; it is left in place because the roster count is documented, but it should be repointed at the Brute.
+
+**The suite cannot see this change, measured rather than assumed.** The first Bomber can spawn at **t=82s** and the median pilot dies at **57s**, so no scripted run ever meets one. Boss fights and 90s survival came back identical (emitter dead, sentinel 53.3, pulsar 15.1; survival 49/49/57/57/72/86). Worth noting the player's own 71.9s tape ended before a Bomber could exist either — this is a change to a part of the game neither the bot nor the recorded run has actually played.
+
+### Nine species, nine silhouettes (2026-08-02)
+Player brief: *"charger identification when cooldown? also i want each enemies identified well while fast/complex combat too. will the difficulty go too high?"*
+
+**A 22-agent audit of the draw code found 43 candidate collisions; adversarial refutation killed all but 5.** Several plausible-sounding ones died on inspection and are worth recording so they are not "found" again: Splitter vs Neutral (the Neutral overrides the fill to hard red/cyan halves, so colour separates them), armed Charger vs Splitter (measures radial extent, not silhouette), Bomber star vs the disc band (the S-scale premise was simply wrong).
+
+**The Charger's cooldown was the worst of the confirmed set, and it was self-inflicted the day before.** Making a spent Charger a plain disc meant a **dmg 16** body wore the exact drawing of the **dmg 10** Drifter for ~62% of its life, with no spent exemption in the contact check. It now keeps the arrowhead and loses only the *fill* — a hollow hull says "the shell is inert, the Field owns it" without lying about the species, and the re-arm becomes a one-frame flood to solid instead of a size change. Stroked rather than double-filled because the enemy pass runs under `lighter`, where stacked fills saturate to white and destroy the polarity contrast.
+
+**The cooldown arc is gone, replaced by a wedge from the centre.** Its own comment defended it as "a PARTIAL sweep, not a closed ring" — but `frac` starts at exactly 1.0, so it *was* a closed ring at the instant every cooldown began, and sat 0.34 units from the Orbiter's arc. A pie has no rim: it cannot be read as a radius and cannot collide with any other ring in the vocabulary.
+
+**Four more species were sharing one silhouette.** Drifter, Dart, Mini and Orbiter all fell through to the same plain disc, separated by radii of 11 / 8 / 7 / 10. Census over six 90s runs: **20.1 Drifters and 8.1 Darts per sample**, co-occurring in **77%** of samples — i.e. ~85% of everything on screen was two bodies distinguished by three pixels.
+
+| species | mark | why |
+|---|---|---|
+| Drifter | plain disc + core — **the deliberate null** | legibility is differential; if everything is marked, nothing is. The unmarked slot belongs to the most common body. |
+| Dart | backward **wake** | aspect ratio is the only cue that survives ~3.9 CSS px on a phone, and it encodes the real difference (maxsp 6.4 vs 3.4) |
+| Mini | **no core dot** — solid pellet | at r=7 the dot is under 2px on a phone; its absence is cheaper and louder than any addition |
+| Orbiter | **annulus** + pip | replaces a 1.5r arc that stated nothing — its angles were fixed in *world* space, so every Orbiter's gap pointed the same way regardless of curve. The pip now runs clockwise, matching the tangential push. |
+| Brute | **hexagon** | flats on exactly `e.r`; straight edges survive scaling where an internal mark does not |
+
+**Difficulty: it went down, not up.** Anchored against the exact build in the player's tape — hash `c76dd415` matches `3dd14fc` — over 10 seeds:
+
+| | tape build | now |
+|---|---|---|
+| median HP at 40s | 39.3 | **65.5** |
+| median score at 40s | 6,109 | 6,661 |
+| median survival, 90s run | 58s | 56.5s |
+| deaths by 90s | 9/10 | 10/10 |
+
+The early game is markedly softer; the mid-game is statistically identical (survival distributions overlap almost entirely, means 60.5 vs 60.1). What rose is **bodies on screen** — mean 32.9, peak 137 — so the cost of the recent work was never difficulty, it was reading load. Which is why these two questions were the same question.
+
+All changes are draw-only: the sim is untouched, and the boss suite returns the same values as before.
+
 ### A mine you can name, a Charger that ends, and matter that takes up space (2026-08-01)
 Player brief: *"we should have way to identify bomber"* · *"dodging just continues so long cuz it survives too long"* · *"if same color dots collide, they push each other for space, not merging"*
 
