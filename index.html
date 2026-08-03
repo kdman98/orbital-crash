@@ -2332,6 +2332,33 @@ function stepAnnihilation(){
               const v=eDash?o:e; queueKill(v);
               const s=eDash?e:o; spawnBurst(s.x,s.y,COL[s.color],5,2.6);
             }
+            // A SHAPE THAT KILLS ITSELF PAYS NOTHING (2026-08-03). Player report: "the sorter will
+            // collide each other, making significant score."
+            // Measured with the star parked in a corner touching nothing, per Sorter: median **454
+            // score, 4 Motes and +0.58 Capacitor** — over half a Collapse — and one run in six built a
+            // **41-combo**, crossing the 25 streak milestone with its fanfare and capacitor chunk. The
+            // Sorter is two walls in opposite colours converging, so its ending IS a mutual
+            // annihilation ("what ends the shape: not a timer"), and every one of those ~20 pairs was
+            // being invoiced to the player, who did not do it.
+            // This is the two-channel rule again, one level down: that rule exists because a moving
+            // Anomaly would otherwise damage ITSELF and pay you for it. Same defect, same answer — you
+            // are paid for what you did, and two bodies flying their assigned vectors into each other
+            // is the field resolving itself.
+            // So the collision still HAPPENS (it must — it is the shape's ending) and still READS as an
+            // annihilation, it just does not pay: `dead` alone, never queueKill, so no score, no combo,
+            // no Mote, no Capacitor, no blast chain. Exactly the comet/pulse retirement, applied to a
+            // pair. Gated on BOTH being in formation flight, so nothing the player owns is caught:
+            // your ring bodies have no `hold`, so ring-vs-formation still pays in full. Gated on
+            // `!unstable` so a Collapse — which is yours — is never silenced.
+            // In practice this is the Sorter alone: the Wall's two-wave release already measures 0
+            // pair-kills, the Noose's `rmin` floors it out of self-contact, and the Pulse puts one
+            // colour per arc at different radii.
+            else if(!unstable && opposite && e.hold>0 && o.hold>0){
+              e.dead=true; o.dead=true;
+              const mx=(e.x+o.x)/2, my=(e.y+o.y)/2;
+              spawnBurst(mx,my,COL[e.color]||'#fff',4,2.4);
+              spawnBurst(mx,my,COL[o.color]||'#fff',4,2.4);
+            }
             else if(unstable>0 || opposite){ queueKill(e); queueKill(o); }
             else if(!(e.hold>0) && !(o.hold>0)){
               // SAME COLOUR TAKES UP SPACE. Rule 1 says like charges cannot annihilate, and until now
@@ -3924,7 +3951,39 @@ el('pauseBtn').onclick=togglePause;
 el('resumeBtn').onclick=resumeGame;
 el('quitBtn').onclick=()=>{ el('pause').classList.add('hidden'); if(AC&&AC.state==='suspended')AC.resume(); toMenu(); };
 // bestiary overlay: lazy-load the standalone page; ✕ or Escape closes
-function openBestiary(){ const f=el('bestiaryFrame'); if(!f.getAttribute('src')) f.setAttribute('src','bestiary.html'); el('bestiary').classList.remove('hidden'); }
+//
+// ESCAPE HAS TO BE BOUND INSIDE THE IFRAME TOO (2026-08-03). Player report: "close bestiary or codex via
+// esc doesnt work if i clicked page once." Reproduced exactly, and it is the Bestiary only — the Codex is
+// a plain div in this document and was never affected. The Bestiary is an <iframe>, and **one click
+// anywhere inside it moves `document.activeElement` to IFRAME#bestiaryFrame**, which means the keystroke
+// is delivered to the CHILD document. A `window` listener in the parent never sees it, so Escape is dead
+// until you click back out — and there is nothing obvious to click back out ONTO, because the overlay
+// fills the screen. Verified before the fix: open → click inside → activeElement is the iframe → Escape →
+// still open.
+// Same-origin, so the parent can simply listen on the child document as well. Bound on every `load` (the
+// src is set once, but a reload would replace the document) and again on open, which covers the second
+// and later opens where the load event has long since fired. A WeakSet keyed on the document makes it
+// idempotent without leaking, and the try/catch is there because a bind failure must never stop the
+// overlay opening — it would turn a dead key into a dead button.
+// The fix is deliberately parent-side: bestiary.html is also a standalone page, and teaching it to reach
+// for `parent` would give it a second, worse identity.
+const escBoundDocs=new WeakSet();
+function bindFrameEsc(f){
+  try{
+    const d=f.contentDocument;
+    if(!d || escBoundDocs.has(d)) return;
+    escBoundDocs.add(d);
+    d.addEventListener('keydown', ev=>{
+      if(ev.key==='Escape' && !el('bestiary').classList.contains('hidden')){ ev.preventDefault(); closeBestiary(); }
+    });
+  }catch(_){}
+}
+function openBestiary(){
+  const f=el('bestiaryFrame');
+  if(!f.getAttribute('src')){ f.setAttribute('src','bestiary.html'); f.addEventListener('load',()=>bindFrameEsc(f)); }
+  el('bestiary').classList.remove('hidden');
+  bindFrameEsc(f);
+}
 function closeBestiary(){ el('bestiary').classList.add('hidden'); }
 
 // ---- Codex: every rule of the game, written down. Rebuilt on open so achievement status stays fresh. ----
@@ -3989,8 +4048,15 @@ el('bestiaryBtn').onclick=openBestiary;
 el('bestiaryClose').onclick=closeBestiary;
 el('codexBtn').onclick=openCodex;
 el('codexClose').onclick=closeCodex;
-addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('bestiary').classList.contains('hidden')){ e.stopPropagation(); closeBestiary(); }});
-addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.contains('hidden')){ e.stopPropagation(); closeCodex(); }});
+// stopIMMEDIATEPropagation, not stopPropagation. Both of these and the main input handler are registered
+// on the SAME target (window), and `stopPropagation` only stops the walk to the NEXT target — it does
+// nothing to other listeners already attached to this one. So Escape was closing the overlay and then
+// also reaching `if(k==='p'||k==='escape') togglePause()` on the way past. It is invisible today because
+// these overlays only open from the menu, where togglePause is inert; it would have become a real bug the
+// moment either one became reachable mid-run. The code always intended "Escape closes the overlay and
+// does nothing else" — this is the call that actually says that.
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('bestiary').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeBestiary(); }});
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeCodex(); }});
 
 // =====================================================================
 //  INPUT

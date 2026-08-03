@@ -7,6 +7,75 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Sorter stops invoicing you for its own suicide · Escape works inside the Bestiary (2026-08-03)
+Player report: *"the sorter will collide each other, making significant score."* · *"close bestiary or codex via esc doesnt work if i clicked page once."*
+
+**1 — A shape that kills itself now pays nothing.**
+
+Measured with the star parked in a corner touching nothing, per Sorter:
+
+| | before | after |
+|---|---|---|
+| score | **454** | **15** |
+| Capacitor | **+0.58** (over half a Collapse) | **+0.006** |
+| Motes | **4** | **0** |
+| combo | up to **41** (crossed the 25 streak milestone, fanfare and all) | **1** |
+
+The Sorter is two walls in opposite colours converging, so its ending *is* a mutual annihilation —
+"what ends the shape: not a timer". About **35 of its 40 bodies** die that way, and every one was being
+invoiced to a player who did not do it. The Capacitor line is the one that mattered most: half a Collapse,
+free, for standing still.
+
+**This is the two-channel rule one level down.** That rule exists because a moving Anomaly would otherwise
+damage *itself* and pay you for it. Same defect, same answer: you are paid for what you did, and two
+bodies flying their assigned vectors into each other is the field resolving itself.
+
+The collision still **happens** — it has to, it is the shape's ending — and still reads as one, with a
+burst in both colours at the meeting point. It just does not pay: `dead` alone, never `queueKill`, so no
+score, no combo, no Mote, no Capacitor and no blast chain. Exactly the comet/pulse retirement, applied to
+a pair.
+
+Gated on **both** bodies being in formation flight, so nothing the player owns is caught — your ring
+bodies carry no `hold`. Gated on `!unstable`, so a Collapse (which is yours) is never silenced. In
+practice this is the Sorter alone: the Wall's two-wave release already measures 0 pair-kills, the Noose's
+`rmin` floors it out of self-contact, and the Pulse puts one colour per arc at different radii.
+
+**Regression-checked, because silencing the wrong pair would be worse than the bug:** an ordinary opposite
+pair still pays **20**, and a formation body killed by an *ordinary* body still pays **20** (only one side
+held → falls through to the normal path). A 300s run reaches Epoch III at 56,864 with no console errors.
+
+*Measurement note.* The first two passes at this number were contaminated and are worth recording. Parking
+the star in-arena mixed in kills the star itself caused; parking it far outside made every post-lapse
+survivor converge on one distant point, an artifact that manufactures collisions. And the Pattern Lab runs
+ambient traffic, which showed up as "score accruing after lapse with zero marked kills". The clean figure
+needed all three controls: Sorter bodies only, ambient culled every frame, star unreachable.
+
+**2 — Escape now works after clicking inside the Bestiary.**
+
+Reproduced exactly, and it is the **Bestiary only** — the Codex is a plain div in this document and was
+never affected (verified: open → click inside → Escape → closes). The Bestiary is an `<iframe>`, and one
+click anywhere inside it moves `document.activeElement` to `IFRAME#bestiaryFrame`, which delivers the
+keystroke to the **child** document. A `window` listener in the parent never sees it. Worse, the overlay
+fills the screen, so there is nothing obvious to click back out onto.
+
+Same-origin, so the parent simply listens on the child document too — bound on every `load` (a reload
+replaces the document) and again on open, which covers the second and later opens where the load event
+fired long ago. A `WeakSet` keyed on the document makes it idempotent without leaking; the try/catch
+exists because a failed bind must never stop the overlay opening, which would turn a dead key into a dead
+button. Deliberately parent-side: `bestiary.html` is also a standalone page, and teaching it to reach for
+`parent` would give it a second, worse identity.
+
+**A latent bug found next to it.** Both overlay handlers called `stopPropagation()`, but they and the main
+input handler are registered on the **same target** (`window`) — and `stopPropagation` only stops the walk
+to the *next* target, doing nothing about other listeners on this one. So Escape closed the overlay and
+then also reached `if(k==='p'||k==='escape') togglePause()`. Invisible today because these overlays only
+open from the menu, where `togglePause` is inert; it would have become real the moment either became
+reachable mid-run. Now `stopImmediatePropagation()`, which is the call that actually means what the code
+always intended.
+
+Verified end to end: open → click inside the iframe → `activeElement` is the iframe → **Escape closes it**,
+with pause untouched and state still `menu`.
+
 ### The Pulse: 3 arcs → 2, and the gap doubles — plus a survey of what else should retire (2026-08-03)
 Player brief: *"gap between pulse walls are too short, and let's reduce them to 2 walls. it would be hard if done in complex fights"* · *"i think we should retire some of dots exiting screen, without making scores. Do you agree? i'm worrying / thinking of which things we should retire though."*
 
