@@ -7,6 +7,66 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Anomaly stops leaving; the bait starts landing; the well is excised (2026-08-03)
+Player brief: *"remove the dead code too"* · *"make charger dash into anormaly stronger, with visually (or sonically) i can realize. this build-up for attack is hard"* · *"remove Anomaly Destabilization and flee, and i'll handle difficulty more detailed."*
+
+**1 — The Singularity machinery is gone: 166 lines.** Disabled and excised the same day. Out: the well
+in `stepEnemyForces`, `blackholeCollapse()`, `drawEHorizon()` (44 lines of rendering), the `e.eh` contact
+skip, the Flare swallow, the Charger override, `ehT`/`EH_MAX`/`ehStrain`/`EH_CLOSE`/`ehWarned`,
+`P.ehorizon`, the run resets and the `ehT`/`ehStrain`/`heldByWell` seam getters. **Kept:** `sfx.closing()`
+— shared with the Charger wind-up and the Pulsar's station break, and deleting it would have silenced two
+live telegraphs. Verified: 2,440 frames, `FX` down to `{aegis, overdrive}`, `P.ehorizon` undefined, all
+three surviving powerups still collect, zero console errors.
+
+**2 — Destabilize and the flee are removed.** `fast = bossTime>45 ? 0.62 : 1` is now `fast = 1`, the
+DESTABILIZING HUD line is gone, and the 60s failsafe is deleted.
+
+**The flee was doing more than it looked.** It called `onBossCleared()`, which increments `act` — so
+running the clock out handed you *the Epoch advance for free*. The fight had a second win condition that
+asked nothing of you, and it fired precisely for the players losing. The cadence ramp was that failsafe's
+partner: a 15-second "finish it" window before the boss left. With nothing to race, a ramp keyed to a
+timer is a difficulty spike attached to nothing the player did.
+
+**There is now exactly one way past an Anomaly: purge it.** No soft-lock — Collapse chips a flat 15%
+regardless of the field, so seven of them end any Anomaly unaided, and volley / grind / baited charge are
+untouched. The failure mode is losing the run, which is the correct failure mode for a boss.
+
+**Verified:** `bossTime` driven to **120s**, twice the old deadline — boss alive, phase still `boss`,
+`act` unchanged at 1, and the DESTABILIZING line never printed once across the whole fight. (First attempt
+at this test proved nothing and is worth recording: the boss *died* at ~43s of `bossTime`, short of the
+60s deadline, so the run never reached the code under test. Pinning its HP was what made the test real.)
+
+**3 — The baited charge: `CHARGE_DMG` 5 → 12, and it announces itself.**
+
+**The price never matched the setup.** The lane locks at wind-up along the charger→**you** ray, so the
+only way it crosses the Anomaly is to put the Anomaly on that line — which means **standing in the kill
+lane and leaving it late**, paying 16 damage and a broken streak if you misread. At 5 that bought 12–18%
+of a bar (HP is `(13+act*5)*1.5` → 27 / 35 / 42). At 12 it is **44% / 34% / 29%**. 12 is also exactly four
+volley bodies, which is the ratio the risk earns — a volley body is one of a dozen thrown from a hoard you
+already had; this is a single body bought with position.
+
+**And it was the least legible hit in the game.** The connect printed a 15px damage number in the enemy's
+own colour — the same readout a 1-damage grind prints — into the busiest moment the game has. Damage alone
+would not have fixed that: a number nobody sees is not a reward. The impact now gets a signature on every
+channel the game already uses for "that mattered", and no new one: **hitstop 0.09** (above a shield block's
+0.05, below a 50-combo's 0.12), a **screen kick**, **two rings at the impact point** rather than the boss
+centre (white at contact scale, wider in the charger's colour), a **gold ◆ BAITED −12 at 22px** — the size
+reserved for a purge and a streak tier — and **`sfx.baited()`**, its own voice. Deliberately **not** slowmo:
+the dash resolves in ~0.17s and a Charger is rarely alone, so stretching time would take the field away
+mid-exchange.
+
+The voice is built as bosshit's opposite so the two are tellable apart with your eyes elsewhere: bosshit is
+one short square blip falling 300→180 in 0.09s; this is a heavy low slam falling 110→44 over 0.20s that
+then **rises** (523→784, 784→1175). Every reward voice in this game goes up, every damage voice goes down;
+a baited charge is both, in that order.
+
+**Verified in-engine, muted, isolated geometry** — charger 90px above the Anomaly, player 145px below, so
+charger→player is 235px (inside the 237.5px lock) and the lock happens *clear* of the hull: state machine
+ran approach → wind (f26) → dash (f80), impact at **f81 for exactly 12.0**, 34.3% of an Act-2 bar, with the
+gold readout and both rings captured on screen. Two false starts worth keeping: the first run measured **1**
+because an ambient ring body reached the boss first (Boss Rush runs a live field), and the second measured
+**0** because the charger matched the boss colour — `chips` requires `X.color !== B.color`.
+
 ### ◉ Singularity disabled — the free wipe was beating the earned one (2026-08-03)
 Player brief: *"actually i think singularity is too strong, i am even thinking about disabling it."*
 
@@ -1046,7 +1106,7 @@ Left as **bot-skill artifacts, not bugs** (verified): "died holding full Capacit
 | 7 | Colour Law | Flares annihilate bodies · dashing Charger plows · Bomber AoE 3hp + boss chip | ✓ all three |
 | 8 | Storm Shift | storm swaps colour mid-wave, surge + banner | code-reviewed |
 | 9 | Death Receipt + Flare sirens | "Core lost to: Anomaly Flare · Epoch I calm" + edge chevrons | ✓ receipt verified |
-| 10 | Anomaly destabilize | 45s "DESTABILIZING" label + 0.6× volley cadence, "ANOMALY FLED" at 60s | code-reviewed |
+| 10 | ~~Anomaly destabilize~~ | **REMOVED 2026-08-03** — was 45s "DESTABILIZING" + 0.62× cadence, flee at 60s. The Anomaly no longer leaves and the fight has no clock. | ✓ removal verified to 120s |
 | 11 | Like-charge teaching ripple | first 3 harmless touches say so | code-reviewed |
 | 12 | Motes + Reverse-Vacuum | mult = 1+0.1×banked (cap ×15, **halved on hit**); Motes are also the sole XP; opposite motes need a reversal | ✓ drop/hoover/vacuum/mult |
 | 13 | Collapse Ceremony | full chime → 0.45s inhale slow-mo → detonation → "N ANNIHILATED" N²×4 tally | ✓ tally + inhale |
@@ -1156,7 +1216,8 @@ Slot collisions to decide before building: Singularity vs Last Judgment (Collaps
   Best-score comparisons with old saves are apples-to-oranges after this pass.
 - **Rarity pity** may raise average Offer power; if runs feel too easy by Epoch III, drop pity threshold trigger to Rare-only (not Rare+).
 - **Bomber spawn weight vs. its new damage** — `['bomber',9]` and `['bomber',7+a]` were both priced for a body you could walk through. Now each one touches for 26 (36.4 by Epoch VI), and the design note beside them forbids "just more meat". Damage and weight were deliberately not changed in the same pass so the playtest stays readable: measure Epoch IV–VI, then flatten to `['bomber',7]` if it reads as attrition rather than positioning.
-- **Anomaly destabilize** hands losing players more Flare ammo — confirm it doesn't make boss trivially fast for skilled players.
+- ~~**Anomaly destabilize** hands losing players more Flare ammo~~ — **moot, removed 2026-08-03.** Replaced by a live question: with no flee and no cadence ramp, an Anomaly fight is now unbounded in time. A player who cannot produce damage no longer gets released at 60s (nor the free `act++` the flee handed out). Watch for the fight that stops resolving — the intended floor is Collapse's flat 15%, i.e. seven Capacitors, which needs confirming against a real player rather than asserted.
+- **Baited charge at 12** (was 5) — one body is now 44% / 34% / 29% of an Epoch I / II / III bar. Priced against the current HP pool `(13+act*5)*1.5`; if that pool moves, re-price this with it. Watch whether three baits ending an Anomaly reads as a skill payoff or as skipping the fight — the setup requires standing in the kill lane, so it should stay rare, but that is a prediction and not a measurement.
 
 #### Playtest fixes (2026-07-15)
 - **Crash ≠ Point-Blank** — Bodies consumed by crashing into the Star (incl. shield-tanked hits) paid the ×3

@@ -521,15 +521,6 @@ let resumeT=0; const READY_DUR=1.2; // brief breather after picking a perk
 let pointer={x:W/2,y:H/2,has:false};
 let settleT=0; // brief speed cap after a resume so the core glides instead of teleporting
 let keys={};
-let ehT=0; const EH_MAX=1.2; // black hole (Singularity powerup) drives the devour: ehT is pinned to EH_MAX while the effect is live (no hold mechanic — flip is a pure tap now)
-// THE WELL STRAINS: for the last EH_CLOSE seconds the Singularity is visibly failing to hold what it
-// swallowed. ehStrain ramps 0→1 across that window and is read ONLY by the renderer, the captives'
-// tremor and the audio latch — never by reach/horizon/drag. That separation is the whole design: while
-// a body is held it cannot touch you (see the e.eh skip in the contact test), so the danger is not the
-// parting fling, it's the instant that immunity ends with a packed crowd still sitting on your skin.
-// Shrinking the well to telegraph would release the crowd early, limp and harmless, and delete the very
-// moment being announced. So the grip never weakens — it only stops looking like it's coping.
-let ehStrain=0; const EH_CLOSE=2.0; let ehWarned=false;
 const DOTSPD=1.22; // livelier field: speeds up rings, neutrals & wandering matter — NOT the opposite-charge inward pull
 const RING_FIRE_HC=0.5; // a flip only FLINGS once hold-charge passes this — quick taps just reverse; a Hungry (held) flip clears
 // THE FLING — the hungry flip's burst. Radius = a floor set by charge, plus a bonus for every body you
@@ -604,7 +595,18 @@ const RING_GRIND_DMG=1;
 // of so its locked lane ran through the boss. Since the close reversal was removed it is also the ONLY
 // erosion that costs you no ammunition and no Capacitor — the whole of the answer for a player stripped
 // of everything — which is why it went 4 → 5 in the same pass.
-const CHARGE_DMG=5;
+//
+// 5 → 12 (2026-08-03). Player brief: "make charger dash into anormaly stronger... this build-up for
+// attack is hard." It is, and the price never reflected it. Read the setup honestly: the lane locks at
+// wind-up along the charger→YOU ray, so the only way it crosses the Anomaly is to put the Anomaly on
+// that line — which means STANDING IN THE KILL LANE and leaving it late. You are paying 16 damage and a
+// broken streak if you misread the timing, to buy one body's worth of erosion.
+// At 5 that was 12-18% of a bar (HP is (13+act*5)*1.5 → 27/35/42). At 12 it is 44% / 34% / 29%: three
+// or four baits end any Anomaly, and one is unmistakably a chunk of the bar rather than a rounding
+// error. 12 is also exactly 4 volley bodies, which is the ratio the risk deserves — a volley body is
+// one of a dozen thrown from a hoard you already had, this is a single body bought with position.
+// Sized against the pool it faces, not in the abstract: if boss HP moves again, re-price this with it.
+const CHARGE_DMG=12;
 // NO PER-KIND BONUS — and the "runner" bonus that seemed obvious was measurably backwards. The idea was
 // that the Sentinel spends the fight circling, so a ring you finally land on it should be worth more.
 // Measured, closing on the Sentinel is the CHEAPEST of the three: hoard a ring, walk in and hold contact
@@ -667,28 +669,26 @@ let orbTimer=14;          // seconds until a safety drop (a passive player still
 const ORB_DROP_CHANCE=0.008;  // per non-Collapse annihilation
 const ORB_CAP=2;              // max orbs waiting on the field before drops pause
 const ORB_SAFETY_MIN=22, ORB_SAFETY_MAX=34; // safety-drop interval; only fires when the field is empty
-const FX={blackhole:0, aegis:0, overdrive:0}; // remaining seconds of each timed effect
+const FX={aegis:0, overdrive:0}; // remaining seconds of each timed effect
 
-// ◉ SINGULARITY was DISABLED on 2026-08-03 — pulled from the roster, machinery left in place. Player
-// brief: "actually i think singularity is too strong, i am even thinking about disabling it."
-// It was Aegis plus a field wipe plus Mote income, for zero input. Capture was immunity BY GEOMETRY,
-// not by tuning: the devour horizon is 32px and the largest contact envelope in the game is also 32px
-// (Bomber r17 + P.r15), while a captured body's velocity is damped x0.55/frame — so anything the well
-// held died at or before your skin. Measured previously: 12/12 hostiles + 6/6 Neutrals devoured for
-// 0 HP, against -14 HP in the control. For its 5s the game's one rule is suspended — opposite matter
-// cannot reach you and your own colour was already spared, so the flip decides nothing and the star is
-// a walking delete bubble. That also starves the question GLOSSARY has carried since Corona went: the
-// most-EARNED action (Collapse) was the weakest of the three "everything near me dies" effects, and
-// the free automatic one was the strongest. Removing the entry is the whole disable: POWMAP loses the
-// key, so nothing rolls it and __orbital.grant('blackhole') no-ops; FX.blackhole stays 0 forever, so
-// stepFX never sets P.ehorizon, whose ONLY writer it is, and every well path below is unreachable.
-// The code stays for now (see the well in stepEnemyForces, blackholeCollapse, drawEHorizon, the Flare
-// swallow and the Charger override) so re-enabling is one line. If the removal sticks, excise it in a
-// follow-up commit the way the dormant arsenal went — git keeps it better than a comment does.
-// Consequence to watch: with 3 entries the noNova down-weight redistributes. Measured over 6000 rolls:
-// Aegis 45.1%, Overdrive 43.9%, Nova 11.0% (was ~30.5 / 30.5 / 8.5). Aegis is now the most common pickup
-// in the game, and a far weaker one than what it replaced. Second order: nothing erases a Brute outright
-// any more, so the Brute is now the most durable body in the game.
+// ◉ SINGULARITY was REMOVED on 2026-08-03 — disabled and excised in the same day, ~150 lines: the well
+// in stepEnemyForces, blackholeCollapse(), drawEHorizon(), the e.eh contact skip, the Flare swallow, the
+// Charger override, ehT/EH_MAX/ehStrain/EH_CLOSE/ehWarned and P.ehorizon. `git show <this commit>^` reads
+// it back. Player brief: "actually i think singularity is too strong... i'll handle difficulty more
+// detailed", then "remove the dead code too".
+// It was Aegis plus a field wipe plus Mote income, for zero input. Capture was immunity BY GEOMETRY, not
+// by tuning: the devour horizon was 32px and the largest contact envelope in the game is also 32px
+// (Bomber r17 + P.r15), while a captured body's velocity was damped x0.55/frame — so anything the well
+// held died at or before your skin. Measured: 12/12 hostiles + 6/6 Neutrals devoured for 0 HP, against
+// -14 HP in the control. For its 5s the game's one rule was suspended — opposite matter could not reach
+// you and your own colour was already spared, so the flip decided nothing and the star was a walking
+// delete bubble. It also starved the question GLOSSARY has carried since Corona went: the most-EARNED
+// action (Collapse) was the weakest of the "everything near me dies" effects and the free automatic one
+// was the strongest.
+// Consequences, measured not assumed. The noNova down-weight redistributes across 3 entries — over 6000
+// rolls: Aegis 45.1%, Overdrive 43.9%, Nova 11.0% (was ~30.5 / 30.5 / 8.5), so Aegis is now the most
+// common pickup and a far weaker one than what it replaced. Second order: nothing erases a Brute
+// outright any more, making the Brute the most durable body in the game.
 //
 // CRYO was REMOVED on 2026-07-29 (freeze + mend + shatter, and the `enemySlow` multiplier that was
 // its only consumer). It had been reworked twice — 0.34 slow → 0.14 near-freeze → the game's only
@@ -702,18 +702,6 @@ function stepFX(dt){
   P.fieldR    = FX.overdrive>0 ? BASE_FIELDR*1.28 : BASE_FIELDR;
   P.ringMul   = FX.overdrive>0 ? 1.8 : 1;
   P.shield = FX.aegis>0 ? 3 : 0; // Aegis is the only shield source now — a solid shell while it runs, gone when it lapses
-  if(FX.blackhole>0){
-    P.ehorizon=1; ehT=EH_MAX;                    // grip stays FULL to the last frame — see ehStrain's note
-    // strain ramps over the final EH_CLOSE seconds. Derived fresh from the timer every step (never
-    // latched) so re-grabbing the orb mid-close — collectOrb's Math.max snaps the timer back to 5.0 —
-    // simply un-strains it, and a short grant() from the debug seam starts already straining.
-    ehStrain=clamp(1-FX.blackhole/EH_CLOSE,0,1);
-    // one-shot: step() can run 5× in a single frame after a hitch, so a bare threshold test would
-    // stack five voices. Same latch idiom as chargeFull — and it re-arms if the orb is re-grabbed.
-    if(ehStrain<=0) ehWarned=false;
-    else if(!ehWarned){ ehWarned=true; if(typeof sfx!=='undefined') sfx.closing(); }
-  }
-  else if(P.ehorizon){ P.ehorizon=0; ehT=0; ehStrain=0; ehWarned=false; blackholeCollapse(); } // just expired → fling the captives
   for(const k in FX){ if(FX[k]>0) FX[k]=Math.max(0,FX[k]-dt); }
 }
 // drop a random orb at (x,y). NEVER a duplicate — skip any type already active OR already waiting on
@@ -762,25 +750,6 @@ function fireNova(){
   if(typeof sfx!=='undefined') sfx.collapse();
   if(boss) damageBoss(boss, Math.ceil(boss.maxHp*0.15));
 }
-// Black hole expiry: fling whatever it had captured outward as a parting scatter
-function blackholeCollapse(){
-  let n=0;
-  for(const e of enemies){
-    if(!e.eh||e.dead||e.queued)continue;
-    const ex=e.x-P.x, ey=e.y-P.y, ed=Math.hypot(ex,ey)||1;
-    e.vx+=ex/ed*11; e.vy+=ey/ed*11; e.eh=0; e.flung=0.35; n++;
-  }
-  // The kick scales with the size of the hoard: letting go of forty bodies should not feel like letting
-  // go of three. sfx.deflect used to play here, which is the game's RISING "nice block" chirp — a reward
-  // sound on the one moment that takes your armour away.
-  if(n){
-    const w=Math.min(1,n/18);
-    spawnRing(P.x,P.y,'#fff',60+w*70); spawnRing(P.x,P.y,'#b98bff',120+w*110);
-    trauma=Math.min(1,trauma+0.15+w*0.25);
-    if(typeof sfx!=='undefined') sfx.release();
-  }
-}
-
 // ---- acts / biomes / pacing (mood + depth) ----
 const ACTS=[
   {name:'Drift', bg1:'#0a1526', bg2:'#04060f', tint:'#38e0ff'},
@@ -810,7 +779,7 @@ function freshRun(){
     blastR:0, blastDmg:1, armor:1,
     shield:0,
     holdT:0, holdMax:1.5, conduitAmp:0.5, // polarity mastery
-    eddy:0, ehorizon:0,               // keystones (rule-changers, one take each)
+    eddy:0,                           // Overdrive borrows this: wide, fast, whirling rings
   };
   base.hp=base.maxHp;
   return base;
@@ -1236,7 +1205,7 @@ function director(dt){
   if(testMode){
     biasTimer-=dt; if(biasTimer<=0){ biasTimer=rand(3.2,5.5); spawnBias = spawnBias==='red'?'cyan':'red'; }
     intensityTarget=0.62;                        // steady boss-fight pressure
-    if(boss && !boss.dead) bossTime+=dt;         // still tick (Destabilize at 45s works) — but it never flees
+    if(boss && !boss.dead) bossTime+=dt;         // kept ticking for the HUD; nothing reads it as a deadline any more
     else testNext();
     doSpawns(dt);                                // ambient dots — a real environment, not an empty arena
     if(boss) updateBoss(dt);
@@ -1259,13 +1228,14 @@ function director(dt){
   }
   // phase timing
   if(wavePhase!=='boss'){ phaseT-=dt; if(phaseT<=0) advancePhase(); }
-  else { bossTime+=dt;
-    if(!boss || boss.dead) onBossCleared();
-    else if(bossTime>60){ // visible failsafe: the Anomaly flees instead of silently vanishing
-      boss.dead=true; boss=null; lances.length=0;
-      onBossCleared();
-    }
-  }
+  // THE ANOMALY NO LONGER LEAVES (2026-08-03). It used to flee at 60s, and fleeing called
+  // onBossCleared() — which increments `act`. So running out the clock handed you the Epoch advance for
+  // free, and the fight had a second win condition that asked nothing of you. There is now exactly one
+  // way past an Anomaly: purge it. `bossTime` still ticks, because the HUD and the ledger read it.
+  // No soft-lock: Collapse chips a flat 15% whatever the field looks like, so seven of them end any
+  // Anomaly on their own, and every other erosion path (volley, ring grind, the baited charge) is still
+  // open. The failure mode is losing the run, which is the correct failure mode for a boss.
+  else { bossTime+=dt; if(!boss || boss.dead) onBossCleared(); }
   // STORM SHIFT: halfway through a storm the colour flips — re-decide your polarity mid-wave
   if(wavePhase==='storm' && stormShiftT>0){
     stormShiftT-=dt;
@@ -1719,7 +1689,13 @@ function bossMove(b,dt){
 }
 function updateBoss(dt){
   const b=boss;
-  const fast = bossTime>45 ? 0.62 : 1;   // past 45s the Anomaly DESTABILIZES — everything fires faster
+  // DESTABILIZE IS GONE (2026-08-03). `fast` used to be `bossTime>45 ? 0.62 : 1` — every cadence in the
+  // fight multiplied by 0.62 once the clock passed 45s. It was the partner of the 60s flee: a 15-second
+  // "finish it" window before the boss left. With the flee removed there is nothing to race, so a
+  // cadence ramp is just a difficulty spike on a timer rather than on anything the player did. Kept as a
+  // named constant instead of inlining 1, because it is threaded through ~12 cadence expressions below
+  // and a future ramp (on the Anomaly's own HP, say) belongs here rather than re-derived at each site.
+  const fast = 1;
   // schedule the hunt BEFORE moving, so the move this frame already reflects it. A hunt never STARTS
   // mid-dash or mid-charge (both are commitments the player has already read and answered), but one
   // already running carries through — a Pulsar closing on you while it winds up is the point of it.
@@ -1828,12 +1804,6 @@ function stepLances(dt){
     // NOTE: there is deliberately no "missile strikes the Anomaly" case any more. Every missile is
     // launched from the Anomaly's own body, so baiting one back through it is not a thing that can
     // happen — the erosion path is your ring volley (`flip()`), not its own fire.
-    // SINGULARITY powerup: the black hole swallows the Anomaly's Flares that stray near your star,
-    // so they can't sail through the well untouched and strike the core.
-    if(!gone && FX.blackhole>0){
-      const dx=L.x-P.x, dy=L.y-P.y;
-      if(dx*dx+dy*dy < 170*170){ spawnBurst(L.x,L.y,COL.violet,8,3.2); gone=true; }
-    }
     // MISSILES AND MATTER DO NOT INTERACT. AT ALL. A missile passes straight through every Dot on the
     // field: it does not kill them, it is not stopped by them, and nothing is drawn when it crosses one.
     // Missiles are aimed at YOU and are answered by moving; matter is answered by colour. Two systems,
@@ -1991,14 +1961,6 @@ function stepPlayer(dt){
   if(P.flipCd>0)P.flipCd-=dt;
   if(P.pulseCd>0)P.pulseCd-=dt;
   P.holdT+=dt;                       // polarity mastery: charge builds while you hold a colour
-  // SINGULARITY (powerup): while its timer runs the well is pinned open at the star (stepFX drives
-  // P.ehorizon + ehT). Here we just add the infalling ambience and let it vacuum loot into the bank.
-  if(FX.blackhole>0){
-    for(const m of motes) m.vac=Math.max(m.vac,0.12); // devoured loot falls in and banks
-    if(Math.random()<0.5){ const a=rand(0,TAU), rr=rand(40,150);   // infalling sparks
-      parts.push({x:P.x+Math.cos(a)*rr,y:P.y+Math.sin(a)*rr,vx:-Math.cos(a)*2.4,vy:-Math.sin(a)*2.4,
-        life:0.34,max:0.34,color:Math.random()<0.5?COL.violet:'#fff',r:rand(1.2,2.8),ring:false}); }
-  }
   // out-of-combat regen: recover after a few seconds without a hit
   P.hurtT+=dt;
   if(P.hurtT>3.8 && P.hp<P.maxHp) P.hp=Math.min(P.maxHp,P.hp+P.regen*dt);
@@ -2022,7 +1984,7 @@ function stepEnemyForces(dt){
       e.cool-=dt;
       if(e.cool<=0){ e.spent=false; e.ring=0; e.cst='approach'; e.ct=0; }
     }
-    if(e.type==='charger' && !e.spent && !(FX.blackhole>0 && Math.hypot(P.x-e.x,P.y-e.y)<230)){ stepCharger(e,dt); continue; }
+    if(e.type==='charger' && !e.spent){ stepCharger(e,dt); continue; }
     // FORMATION FLIGHT: while `hold` runs, a body flies its assigned vector and ignores seek and the
     // polarity field entirely — otherwise every shape converges on the core and dissolves into the
     // same blob as ambient spawn, which is the whole thing formations exist to break. When it lapses
@@ -2071,45 +2033,6 @@ function stepEnemyForces(dt){
     let ax=0,ay=0;
     // base seek toward core (keeps pressure)
     let dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
-    // EVENT HORIZON keystone: while you HOLD the reverse button, a SMALL black hole opens at your
-    // star — a mini Singularity. It drags nearby matter in and DEVOURS it at a tight horizon (banks
-    // a Mote each — every charge except your own, Neutrals included). Smaller reach & shorter than the
-    // full Singularity, and it shares the same "never touch your own colour" gate below.
-    // THE WELL DOES NOT TOUCH YOUR OWN COLOUR. Same-charge matter is not a threat — it cannot reach your
-    // skin anyway — it is your armour and, with an Anomaly alive, your entire ammunition supply. Seizing
-    // it made the best powerup in the roster actively hostile during the one fight where matter is worth
-    // something: you spend a hold gathering rings to volley, the Singularity lands, and it eats the
-    // hoard. Only the boss was exempt, and the boss is immune to the well, so in that fight the only
-    // thing it reliably destroyed was yours. Skipping capture entirely (rather than just sparing it at
-    // the horizon) also keeps `blackholeCollapse()` from flinging your rings across the arena when the
-    // well lets go. Your ring simply keeps orbiting through the whole thing.
-    if(P.ehorizon && ehT>0.05 && e.type!=='boss' && e.color!==P.polarity){
-      const grip=clamp(ehT/EH_MAX,0,1);
-      const reach=80+grip*150;                            // grows as you hold (well under a full Field)
-      if(d<reach){
-        e.eh=1;
-        const horizon=22+grip*10;                         // devour radius — smaller than Singularity's 46
-        if(d<horizon){                                    // devoured: bank a Mote, annihilate
-          bankMote();
-          spawnBurst(e.x,e.y,COL[e.color]||COL.violet,5,2.4);
-          queueKill(e); continue;
-        }
-        const inf=(90+13000/Math.max(50,d))*dt*(0.4+grip*0.7); // infall drag — weaker/smaller than Singularity
-        e.x+=dx/d*inf; e.y+=dy/d*inf;
-        // STRAIN: the swirl whips faster and the captives shiver as the well starts to fail. The HOARD
-        // is the warning — these are the bodies that will be standing on your skin the moment the well
-        // lets go, so the cue belongs on them, not only on the rim. Positional and oscillatory: velocity
-        // is damped to nothing at 0.55/frame anyway, and a body that DRIFTED past reach would clear its
-        // e.eh and quietly opt out of the parting fling.
-        e.x+=-dy/d*(46+ehStrain*130)*dt; e.y+=dx/d*(46+ehStrain*130)*dt;   // accretion swirl
-        if(ehStrain>0 && !store.reduceMotion){
-          const j=Math.sin(elapsed*34+e.ph)*ehStrain*2.6;  // 5.4Hz shudder, per-body phase so it reads as a rattling crowd, not one pulsing blob
-          e.x+=dx/d*j; e.y+=dy/d*j;
-        }
-        e.vx*=0.55; e.vy*=0.55;
-        continue;                                          // captured — skip normal forces
-      } else if(e.eh) e.eh=0;
-    } else if(e.eh) e.eh=0;
     ax+=dx/d*e.seek*P.seekMult;
     ay+=dy/d*e.seek*P.seekMult;
     // orbiters curve around the core (tangential push) instead of beelining
@@ -2304,6 +2227,34 @@ function stepAnnihilation(){
                       : (X.ring ? RING_GRIND_DMG*(GRIND_MULT[B.variant]||1) : 0));
               // the grind pays a half, so the readout has to survive a fraction without printing "-0.5000000001"
               if(d>0){ damageBoss(B,d); pushText(B.x,B.y-B.r-8,'-'+(Number.isInteger(d)?d:d.toFixed(1)),COL[X.color],0.45,15);
+                // THE BAIT LANDS, AND YOU KNOW IT. The connect used to be a 15px damage number in the
+                // enemy's own colour — the same readout a 1-damage grind prints — dropped into the
+                // busiest moment the game has. The hardest erosion in the fight was the least legible
+                // one, which is the player's report: "make it stronger, with visually (or sonically) i
+                // can realize." Damage alone would not have fixed that; a number nobody sees is not a
+                // reward. So the impact gets its own signature on every channel the game already uses to
+                // mean "that mattered", and no new one:
+                //   HITSTOP  0.09 — above the shield block (0.05), below a 50-combo (0.12). The frame
+                //            hangs, which is this engine's whole vocabulary for weight.
+                //   TRAUMA   the screen kicks, scaled by nothing — a bait is a bait.
+                //   RINGS    two, at the IMPACT POINT rather than the boss centre, so the eye is pulled
+                //            to where the lane actually crossed: a white one at contact scale and a
+                //            wider one in the charger's colour.
+                //   TEXT     gold, 22px, the size the game reserves for a purge and a streak tier. Gold
+                //            is the reward channel; the red/cyan number stays for ordinary erosion.
+                //   SOUND    sfx.baited() — its own voice, low impact then a rising confirm, so it is
+                //            distinguishable from bosshit() with your eyes on the far side of the field.
+                // Deliberately NOT slowmo: the dash resolves in ~0.17s and a Charger is usually not
+                // alone, so stretching time here would take the field away from you mid-exchange.
+                if(charging){
+                  const ix=(X.x+B.x)/2, iy=(X.y+B.y)/2;
+                  hitstop=Math.max(hitstop,0.09);
+                  trauma=Math.min(1,trauma+0.34);
+                  spawnRing(ix,iy,'#fff',B.r+26); spawnRing(ix,iy,COL[X.color],B.r+96);
+                  spawnBurst(ix,iy,'#fff',16,4.6); spawnBurst(ix,iy,COL[X.color],12,3.4);
+                  pushText(B.x,B.y-B.r-34,'◆ BAITED  -'+d,COL.gold,1.15,22);
+                  if(typeof sfx!=='undefined') sfx.baited();
+                }
                 // 'Skeet Shooter' has now outlived two rules. It fired when an Anomaly missile POPPED
                 // your Gilded Bounty, then when your Bounty BLOCKED one; missiles no longer touch matter
                 // at all, so both are gone. It lands on the surviving sense of the name — you fired your
@@ -2363,7 +2314,6 @@ function stepAnnihilation(){
 function stepPlayerContact(){
   for(const e of enemies){
     if(e.dead||e.queued)continue; // a Dot already claimed by the wave/a lance/decay this frame can't also hit you
-    if(e.eh && P.ehorizon)continue; // Event Horizon captives are held off your skin while you hold
     const dx=e.x-P.x, dy=e.y-P.y, rr=e.r+P.r;
     const d2=dx*dx+dy*dy;
     // near-miss GRAZE: a dangerous Dot that enters the skim band and LEAVES without touching.
@@ -2939,7 +2889,6 @@ function render(){
     drawEnemies();
     drawBoss();
     drawLances();
-    if(P&&P.ehorizon) drawEHorizon();
     drawPlayer();
     if(cwave){
       ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=6;
@@ -3136,50 +3085,6 @@ function drawField(){
     ctx.beginPath(); ctx.arc(0,0,P.fieldR*0.88,0,TAU); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
   }
-}
-function drawEHorizon(){
-  // SINGULARITY powerup: a small black hole pinned at the star. Drawn BOLD so ON is unmistakable — a
-  // black disc, a bright pulsing horizon ring, accretion rings sweeping in, and infalling streaks.
-  if(ehT<=0.05) return;
-  const grip=clamp(ehT/EH_MAX,0,1);
-  const vis=0.6+0.4*grip;                                  // visible the instant it opens; intensifies as it grips
-  const t=elapsed*4, c=COL[P.polarity];
-  // STRAIN: this game states "your window is closing" exactly one way — the thing you were already
-  // watching starts pulsing about twice as fast and NOTHING else changes (Gilded Bounty steps 7→14
-  // rad/s for its last 2s; an expiring orb blinks for its last 2s). So the rim heaves harder and
-  // quicker while radius, colour and line width stay put: the same object under load, not a new one.
-  // 11→22 rad/s is 1.75→3.5Hz, landing on the Lunger/Pulsar "it fires NOW" rung rather than the
-  // gentler "notice me" one — correct, because what's coming is being done TO you.
-  const s=ehStrain;
-  const reach=80+grip*150, horizon=24+grip*11, pulse=1+(0.09+0.10*s)*Math.sin(elapsed*(11+11*s));
-  const prev=ctx.globalCompositeOperation;
-  // --- the event horizon: a bold disc of absence (source-over so it truly swallows light) ---
-  ctx.globalCompositeOperation='source-over';
-  const dg=ctx.createRadialGradient(P.x,P.y,0,P.x,P.y,horizon+24);
-  dg.addColorStop(0,`rgba(1,1,7,${0.9*vis})`); dg.addColorStop(0.5,`rgba(1,1,7,${0.68*vis})`); dg.addColorStop(1,'rgba(1,1,7,0)');
-  ctx.fillStyle=dg; ctx.beginPath(); ctx.arc(P.x,P.y,horizon+24,0,TAU); ctx.fill();
-  ctx.globalCompositeOperation='lighter';
-  // --- bright pulsing horizon rim (white core, violet halo) — the clear "it's OPEN" cue ---
-  ctx.strokeStyle=hexA('#ffffff',0.9*vis); ctx.lineWidth=3;
-  ctx.beginPath(); ctx.arc(P.x,P.y,horizon*pulse,0,TAU); ctx.stroke();
-  ctx.strokeStyle=hexA(COL.violet,0.75*vis); ctx.lineWidth=7;
-  ctx.beginPath(); ctx.arc(P.x,P.y,(horizon+6)*pulse,0,TAU); ctx.stroke();
-  // --- accretion rings collapsing inward to the horizon (they race as the well strains) ---
-  // The Math.max clamp already pins the tail of each ring's sweep at the horizon, so the faster they
-  // run the more of them stack on that one radius under 'lighter' — the rim brightens on its own as
-  // it closes. A free implosion cue; no extra draw needed.
-  ctx.lineWidth=2;
-  for(let i=0;i<4;i++){ const rr=Math.max(horizon, reach*(1-((t*(0.22+s*0.5)+i/4)%1)));
-    ctx.strokeStyle=hexA(c,0.18*vis); ctx.beginPath(); ctx.arc(P.x,P.y,rr,0,TAU); ctx.stroke(); }
-  // --- infalling streaks: spokes drawn INTO the horizon, rotating (matter being swallowed) ---
-  ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(t*(1.4+s*1.7));
-  ctx.strokeStyle=hexA('#ffffff',0.55*vis); ctx.lineWidth=2; ctx.lineCap='round';
-  for(let i=0;i<7;i++){ const a=i/7*TAU;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a)*(horizon+30),Math.sin(a)*(horizon+30));
-    ctx.lineTo(Math.cos(a)*(horizon+9),Math.sin(a)*(horizon+9)); ctx.stroke(); }
-  ctx.lineCap='butt'; ctx.restore();
-  ctx.globalCompositeOperation=prev;
 }
 // THE HALO HAS NO EDGE ANY MORE. It used to be `fillStyle=hexA(c,0.28)` + `arc(e.r*1.9)` — a FLAT-alpha
 // disc, so it had a hard visible boundary, and a visible boundary reads as a statement about reach. The
@@ -3712,11 +3617,10 @@ function updateHUD(){
     const tip=(ak.tip3 && (act>=2||testMode)) ? ak.tip3 : ak.tip;   // the Emitter's tip grows with it, on the epoch the dash arrives
     // The hunt outranks the standing tip: it is the only time the Anomaly is actively walking onto your
     // core, it is over in a few seconds, and the answer is a movement answer — which is exactly what
-    // this line is allowed to name. Destabilize still outranks both; it is the end of the fight.
-    const line = bossTime>45 ? '◆ DESTABILIZING — FINISH IT'
-               : (boss.hunt>0 ? '◆ IT IS COMING FOR THE CORE — MOVE' : tip);
-    bb.querySelector('.bl').textContent=line;
-    bb.querySelector('.bl').style.color = boss.hunt>0 && bossTime<=45 ? COL.red : ''; }
+    // this line is allowed to name. (The DESTABILIZING line outranked both until 2026-08-03; it went
+    // with the mechanic, so the hunt is now the only thing that can displace the tip.)
+    bb.querySelector('.bl').textContent = boss.hunt>0 ? '◆ IT IS COMING FOR THE CORE — MOVE' : tip;
+    bb.querySelector('.bl').style.color = boss.hunt>0 ? COL.red : ''; }
   else bb.classList.add('hidden');
 }
 
@@ -3912,7 +3816,6 @@ function startRun(mode){
   motes.length=0;motesBank=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   inhaleT=0;collapseKills=0;chargeFull=false;deathRevealT=0;deadCountT=0;
   orbs=[];orbTimer=9;for(const k in FX)FX[k]=0;   // powerups: no drops, no active effects at the start
-  ehStrain=0; ehWarned=false;                      // the well's strain + its one-shot warning latch
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
   cometT=rand(90,150);
   score=0;mult=1;
@@ -3926,7 +3829,6 @@ function startRun(mode){
   el('bossbar').classList.add('hidden');
   el('bestiary').classList.add('hidden'); el('codex').classList.add('hidden'); // a run must never start hidden under an info overlay
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
-  ehT=0;
   state='play'; lastT=performance.now(); acc=0;
   if(labMode) beginLabRun(); else if(testMode) beginTestRun(); else beginRun();
 }
@@ -4010,7 +3912,7 @@ function openCodex(){
     <div class="cxa"><span class="st gold" style="width:32px">1</span><span><b>Ring grind</b> — per body, for carrying a loaded ring into it. Each is spent doing it, so this is pressure while you hold the range, not the blow that ends the fight.</span></div>
     <div class="cxa"><span class="st gold" style="width:32px">5</span><span><b>Charger dash</b> — a committed dash driven into it. You cannot aim it, but you can stand so its locked lane runs through the boss.</span></div>
     <div class="cxa"><span class="st gold" style="width:32px">15%</span><span><b>Collapse</b> — flat, whatever the field looks like.</span></div>
-    <p style="margin-top:8px"><b>Nothing else reaches it.</b> Matter that merely drifts or is flung into it bounces off — the Anomaly walks the arena, and a rule that paid for contact would let it damage itself by moving. Your reversal does not touch it either: the Shockwave repels matter and pops Neutrals, and that is all. Past 45s it <b>DESTABILIZES</b> and fires faster; at 60s it flees. Purging it drops a <b>powerup cache</b>, +30 Integrity and +40% charge.</p>
+    <p style="margin-top:8px"><b>Nothing else reaches it.</b> Matter that merely drifts or is flung into it bounces off — the Anomaly walks the arena, and a rule that paid for contact would let it damage itself by moving. Your reversal does not touch it either: the Shockwave repels matter and pops Neutrals, and that is all. <b>It does not leave.</b> There is no timer and no escape — the Anomaly stands until you purge it. Purging it drops a <b>powerup cache</b>, +30 Integrity and +40% charge.</p>
     <p><b>Read the silhouette.</b> Each of the three kinds — <b>Emitter</b>, <b>Sentinel</b>, <b>Pulsar</b> — announces its mechanic in its shape before it fires, and its integrity bar names the counter while you fight it. Full cards are in the <b>✦ Bestiary</b>. All three also <b>hunt</b>: roughly every 9–14s one breaks station — audibly, trailing a bright wake and a line drawn to your core — and <b>walks onto the core itself</b>. It is slow enough to stroll away from, it lands <b>one</b> hit and recoils rather than parking on you, and it has to cross your <b>rings</b> to reach you, which cut it on the way in.</p></div>
   <div class="cxs"><h3>Powerups</h3>
     <p>There are <b>no level-ups and no permanent upgrades</b> — this is vanilla survival. Annihilations occasionally shed a glowing <b>orb</b>, and a purged Anomaly always drops a cache. <b>Steer into it</b> to collect: the effect is <b>instant and temporary</b>, and grabbing another of the same refreshes its timer.</p>
@@ -4192,6 +4094,14 @@ const sfx={
   buy(){ beep(660,0.07,'square',0.12,880); },
   lance(){ beep(180,0.12,'sawtooth',0.14,520); noise(0.1,0.08); },
   bosshit(){ beep(300,0.09,'square',0.12,180); noise(0.12,0.1); },
+  // THE BAITED CHARGE. It has to be tellable from bosshit() while your eyes are on the far side of the
+  // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
+  // in 0.09s), this is a heavy low SLAM that falls much further and much longer, and then RISES. The
+  // rise is the part that carries the meaning — every reward voice in this game goes up (deflect,
+  // graze, capFull, level) and every damage voice goes down (hurt, dead, streakLost). A baited charge
+  // is the rare event that is both an impact and a reward, so it does both, in that order.
+  baited(){ beep(110,0.20,'sawtooth',0.26,44); noise(0.20,0.18);
+            beep(523,0.16,'triangle',0.13,784); beep(784,0.22,'sine',0.10,1175); },
   graze(n){ beep(1500+Math.min(n,10)*130, 0.03, 'sine', 0.05, 1900+Math.min(n,10)*130); },
   mote(n){ beep(600+Math.min(n,16)*70,0.04,'square',0.055,850+Math.min(n,16)*70); },
   inhale(){ beep(55,0.45,'sine',0.22,220); noise(0.45,0.12); beep(200,0.45,'sine',0.08,1800); },
@@ -4270,8 +4180,7 @@ window.__orbital=window.__polaris=window.__flux={
   set motesBankV(v){motesBank=v; recalcMult();},
   get bossN(){return bossN;}, set bossN(v){bossN=v;},
   openCodex, queueKill,
-  get ehT(){return ehT;}, get ehStrain(){return ehStrain;}, get flipCd(){return P&&P.flipCd;},
-  heldByWell(){ let n=0; for(const e of enemies) if(e.eh && !e.dead && !e.queued) n++; return n; }, // captives blackholeCollapse would fling
+  get flipCd(){return P&&P.flipCd;},
 };
 
 // =====================================================================
