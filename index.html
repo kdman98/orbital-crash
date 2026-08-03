@@ -697,29 +697,10 @@ const ORB_CAP=2;              // max orbs waiting on the field before drops paus
 const ORB_SAFETY_MIN=22, ORB_SAFETY_MAX=34; // safety-drop interval; only fires when the field is empty
 const FX={aegis:0, overdrive:0}; // remaining seconds of each timed effect
 
-// ◉ SINGULARITY was REMOVED on 2026-08-03 — disabled and excised in the same day, ~150 lines: the well
-// in stepEnemyForces, blackholeCollapse(), drawEHorizon(), the e.eh contact skip, the Flare swallow, the
-// Charger override, ehT/EH_MAX/ehStrain/EH_CLOSE/ehWarned and P.ehorizon. `git show <this commit>^` reads
-// it back. Player brief: "actually i think singularity is too strong... i'll handle difficulty more
-// detailed", then "remove the dead code too".
-// It was Aegis plus a field wipe plus Mote income, for zero input. Capture was immunity BY GEOMETRY, not
-// by tuning: the devour horizon was 32px and the largest contact envelope in the game is also 32px
-// (Bomber r17 + P.r15), while a captured body's velocity was damped x0.55/frame — so anything the well
-// held died at or before your skin. Measured: 12/12 hostiles + 6/6 Neutrals devoured for 0 HP, against
-// -14 HP in the control. For its 5s the game's one rule was suspended — opposite matter could not reach
-// you and your own colour was already spared, so the flip decided nothing and the star was a walking
-// delete bubble. It also starved the question GLOSSARY has carried since Corona went: the most-EARNED
-// action (Collapse) was the weakest of the "everything near me dies" effects and the free automatic one
-// was the strongest.
-// Consequences, measured not assumed. The noNova down-weight redistributes across 3 entries — over 6000
-// rolls: Aegis 45.1%, Overdrive 43.9%, Nova 11.0% (was ~30.5 / 30.5 / 8.5), so Aegis is now the most
-// common pickup and a far weaker one than what it replaced. Second order: nothing erases a Brute
-// outright any more, making the Brute the most durable body in the game.
-//
-// CRYO was REMOVED on 2026-07-29 (freeze + mend + shatter, and the `enemySlow` multiplier that was
-// its only consumer). It had been reworked twice — 0.34 slow → 0.14 near-freeze → the game's only
-// in-combat heal — and each pass was answering the same complaint from a different angle. Integrity
-// now regenerates ONLY through the 3.8s no-hit lockout, so disengaging is the whole healing verb.
+// THE ROSTER IS THREE, AND A THREE-WIDE BAG IS THE THING TO WATCH. The noNova down-weight spreads over
+// three entries, so over 6000 rolls: Aegis 45.1%, Overdrive 43.9%, Nova 11.0% — the most common pickup
+// in the game is also the dullest one. (Singularity and Cryo were removed and excised; ROADMAP has the
+// dated entries and `git log` has the code.)
 
 // map the live effect timers onto the physics flags every frame, then tick them down
 function stepFX(dt){

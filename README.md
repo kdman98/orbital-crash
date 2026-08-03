@@ -17,8 +17,6 @@ python3 -m http.server 8755
 
 ## Docs
 
-- [ROADMAP.md](ROADMAP.md) — shipped log + what's next
-- [GLOSSARY.md](GLOSSARY.md) — every game term, mapped to code names
+- [GLOSSARY.md](GLOSSARY.md) — the game as it is now: every term, mapped to code names
+- [ROADMAP.md](ROADMAP.md) — the dated ledger: what shipped, what's parked, what needs balance attention
 - [TITLE.md](TITLE.md) — what the menu's four orbiting charges are saying, and how to tune them
-
-> History: this folder was `pulsar/` (forked from POLARIS) until 2026-07-27.

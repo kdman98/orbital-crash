@@ -12,10 +12,9 @@ between them they state the whole game before you press anything:
   They hang apart, fall together, and annihilate in a flash. Every 7.6 seconds, impact alternating
   right, left, right.
 
-That is the game's one rule — opposite charge annihilates — running on a loop, with no copy.
-
-The previous logo was a white→blue→violet gradient on the words. It looked fine and said nothing:
-red never appeared, so half the game was missing from its own title screen.
+That is the game's one rule — opposite charge annihilates — running on a loop, with no copy. **The
+wordmark must stay colourless**: hue belongs to polarity, and a gradient on the words puts colour
+where it means nothing while leaving red missing from the game's own title screen.
 
 ## What a dev needs to know
 
@@ -65,7 +64,7 @@ fall in, instead of sliding together evenly. That is the attraction read; it is 
 
 ## Copy
 
-Five one-line beats and nothing else — 40 words, down from ~65:
+Five one-line beats and nothing else, 40 words:
 
 > You are a wandering star, **red** or **cyan**.
 > **Steer into** your own colour to catch it in a ring.
@@ -73,8 +72,8 @@ Five one-line beats and nothing else — 40 words, down from ~65:
 > Make opposite colours **collide** with each other.
 > Beware colliding your star with **opposite Matter**!
 
-Everything cut — scoring, Motes, rings as armour, powerup orbs — is stated in full one button down
-under **❖ Codex**, so the menu had been teaching the game twice. What is left is only what a player
+**The menu must not teach what the Codex teaches.** Scoring, Motes, rings as armour and powerup orbs
+are all stated in full one button down under **❖ Codex**; what belongs here is only what a player
 cannot infer.
 
 **The word `opposite` in the last beat is load-bearing.** Without it that line forbids the thing the
