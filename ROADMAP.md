@@ -16,10 +16,10 @@ Measured with the star parked in a corner touching nothing, per Sorter:
 
 | | before | after |
 |---|---|---|
-| score | **454** | **15** |
-| Capacitor | **+0.58** (over half a Collapse) | **+0.006** |
+| score | **454** | **0** |
+| Capacitor | **+0.58** (over half a Collapse) | **0** |
 | Motes | **4** | **0** |
-| combo | up to **41** (crossed the 25 streak milestone, fanfare and all) | **1** |
+| combo | up to **41** (crossed the 25 streak milestone, fanfare and all) | **0** |
 
 The Sorter is two walls in opposite colours converging, so its ending *is* a mutual annihilation —
 "what ends the shape: not a timer". About **35 of its 40 bodies** die that way, and every one was being
@@ -44,11 +44,26 @@ practice this is the Sorter alone: the Wall's two-wave release already measures 
 pair still pays **20**, and a formation body killed by an *ordinary* body still pays **20** (only one side
 held → falls through to the normal path). A 300s run reaches Epoch III at 56,864 with no console errors.
 
-*Measurement note.* The first two passes at this number were contaminated and are worth recording. Parking
-the star in-arena mixed in kills the star itself caused; parking it far outside made every post-lapse
-survivor converge on one distant point, an artifact that manufactures collisions. And the Pattern Lab runs
-ambient traffic, which showed up as "score accruing after lapse with zero marked kills". The clean figure
-needed all three controls: Sorter bodies only, ambient culled every frame, star unreachable.
+*Measurement note — this number was first published as 15 score / 1 combo, and that was wrong.* The
+residual was read as a leak in the gate; it was contamination, and clearing it took **four** attempts,
+each defeated by a different mechanism. Worth recording in full because every one of them looked like a
+clean isolation at the time:
+
+1. **Star parked in-arena** — mixed in kills the star itself caused.
+2. **Star pinned to (−9000, −9000)** — but `P` is **clamped to the arena**, so it merely sat in the corner
+   at (15, 15), where a wall spanning every `y` walked into it. The "leaked" kill was a *real* player kill,
+   correctly paid, 27.5px away against a 26px envelope.
+3. **Ambient culled every frame** — but `doSpawns` runs **inside** `tick()`, so an ambient dot still spawns
+   and collides mid-frame. Worse, the end-of-frame dead-sweep then removes it from `enemies`, so checking
+   after the tick reads "0 ambient present" and reads as exoneration.
+4. **Clean at last:** suppress ambient *at source* by filling the spawn cap (`enemies.length < cap`) with
+   inert Neutrals — `opposite` requires both sides non-neutral, so they can never annihilate anything —
+   and shrink `P.r`/`P.fieldR` to nothing so the star cannot touch or attract.
+
+The result: exactly **one stray ambient dot per Sorter**, worth 10 score, and the runs where none appears
+pay **0 score, 0 combo, 0 Motes, 0 Capacitor** across 36 self-kills. The gate has no leak. The lesson is
+the one this ledger keeps relearning: a residual is a claim about a *cause*, and it needs the same standard
+of proof as the headline number.
 
 **2 — Escape now works after clicking inside the Bestiary.**
 
