@@ -7,6 +7,77 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Pulse: 3 arcs → 2, and the gap doubles — plus a survey of what else should retire (2026-08-03)
+Player brief: *"gap between pulse walls are too short, and let's reduce them to 2 walls. it would be hard if done in complex fights"* · *"i think we should retire some of dots exiting screen, without making scores. Do you agree? i'm worrying / thinking of which things we should retire though."*
+
+**Both halves of the first brief are one complaint.** Three arcs 70px apart arrive **0.57s** apart. This
+game's own standard for a warning you can act on is **`CHG_WIND` 0.9s** and **`LUNGE_TEL` 1.3s** — both
+numbers set by telegraphs that were explicitly retuned *until they were answerable*. The Pulse was asking
+for a **polarity** decision on under half the notice the Charger gives you for a dodge, three times in a
+row, and the answer to an arc is a **flip**, the one input with a cooldown on it.
+
+`PULSE_ARCS=2`, `PULSE_GAP=150`. **Measured over 10 spawns: 2 arcs, 68 bodies, arrival gap 1.22s** (median,
+zero spread) — inside the established band, right beside `LUNGE_TEL`. Body count **102 → 68**, which is the
+"complex fights" half of the brief.
+
+Two properties worth recording because they constrain any future retune:
+- **The gap is exactly linear in ΔR.** Every arc passes through the player's radius `arrive` at
+  `(arrive−R)/FORM_SPD`, so the arrival difference is `ΔR/FORM_SPD` and nothing else. That is why the old
+  figure can be stated exactly as 0.57s rather than estimated.
+- **Spacing must stay expressed in radius, not time.** Per-arc density where it reaches you is
+  `PULSE_ARC*arrive/(N−1)` *regardless of R* — every arc crosses the same meeting radius — so R buys
+  arrival time and only arrival time. R must also stay under `back` (190–230) or the outer arc pokes back
+  on-screen at spawn and loses the 0%-visible-at-birth property.
+
+Colour alternation survives the cut: two arcs are red then cyan, so no single polarity walks through both.
+
+---
+
+**On the second brief — the general "retire dots exiting the screen" rule. Measured, and the answer is no.**
+
+The instinct is right and it is already the rule for the two shapes that needed it. But as a *general*
+mechanism it would be code that never runs. Instrumented over **300s of real play, tracking every body
+individually**:
+
+| | |
+|---|---|
+| bodies that entered the arena | **1,374** |
+| ever left again | **2 (0.1%)** |
+| of those, came back | **2 (100%)** |
+| median off-screen population | **0** |
+| peak off-screen population | **1** |
+
+**Ambient dots cannot leave — they seek you.** `ax += dx/d*e.seek*P.seekMult` runs on every body every
+frame; that is what `seek` is. Nothing loiters off-screen, so there is nothing for an exit rule to collect.
+
+**And after the Pulse fix there is very little sediment left anyway.** Per-shape, 6 trials each, counting
+only bodies born from that shape still alive 30s later:
+
+| shape | born | left behind |
+|---|---|---|
+| Wall | 20 | **6** |
+| Sorter | 40 | **2** |
+| Noose | 20 | **2** |
+| Pulse | 68 | **0** |
+| Comet | 1 | **0** |
+
+Against a median live field of **23**, the worst remaining offender is the Wall at 6 — and the Wall's
+leftovers are *deliberate*: its hold is `cross*2+0.6` precisely so it goes out **and back**, because
+"ignoring it does not end it" is the shape's whole thesis. Retiring those would delete the design.
+
+**The hazard of a blanket rule, stated plainly.** The one population that *would* start qualifying if the
+physics ever changed is **flung** bodies. The Fling is defence and only defence (two-channel rule) — a body
+you pushed away is explicitly not a shot you took. Auto-deleting anything that leaves would quietly promote
+the Fling from "push them away" into "delete them", which is a strictly stronger verb than the damage rules
+allow, arrived at by accident rather than decision. (Measured: 0 of the 2 exiters were flung, so this is a
+latent hole, not a live one — the same category as the Brute barge that was removed for being a hole
+waiting to be walked into.)
+
+**The rule that is actually operating, and the one to keep:** *retire a body that has finished a committed
+trajectory it was born with; never retire one that is still hunting you.* The Comet and the Pulse qualify —
+they are born with a path, they fly it, they are done. A hunter is never done. "Is it off-screen?" is a
+proxy that happens to coincide for those two and misleads everywhere else.
+
 ### The Pulse sweeps through and leaves the sky (2026-08-03)
 Player brief: *"too many bullets when pulse finished, what about just let it go away in screen and disappear."*
 

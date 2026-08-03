@@ -1060,6 +1060,21 @@ function formNoose(){
 // And an arc is honest about what it is: a front arriving from one direction, which leaves running
 // around its edge as a real second answer beside flipping.
 const PULSE_ARC=2.62;                              // ~150° of front
+// ARC COUNT AND SPACING (2026-08-03). Player brief: "gap between pulse walls are too short, and let's
+// reduce them to 2 walls. it would be hard if done in complex fights."
+// Both halves of that are the same complaint. Three arcs at 70px apart arrive **0.49s** apart — and the
+// game's own standard for "a warning you can act on" is CHG_WIND 0.9s and LUNGE_TEL 1.3s, set by the two
+// telegraphs that were explicitly retuned until they were actionable. The Pulse was asking for a polarity
+// decision on less than half the notice the Charger gives you for a dodge, three times in a row, and the
+// answer to an arc is a FLIP — the one input with a cooldown on it.
+// 2 arcs at 150px is **1.04s** apart, inside that established band, and it drops the shape from 3N to 2N
+// bodies (up to 102 -> 68), which is the "complex fights" half.
+// The spacing must stay in RADIUS, not time: every arc passes through the player's radius `arrive`, so
+// per-arc density at the moment it reaches you is identical whatever R is (PULSE_ARC*arrive/(N-1)). R
+// buys arrival time and nothing else. R must also stay under `back` (190-230) or the outer arc pokes
+// back on-screen at spawn and loses the 0%-visible-at-birth property.
+const PULSE_ARCS=2;                                // was 3
+const PULSE_GAP=150;                               // px between arcs -> 150/FORM_SPD/60 = 1.04s (was 70 -> 0.49s)
 function formPulse(){
   const px=P?P.x:W/2, py=P?P.y:H/2;
   // Origin pushed out as far as the DENSITY BOUND allows, and no further. The front is sized for the
@@ -1103,14 +1118,14 @@ function formPulse(){
   const PM=60;
   const far=Math.max(Math.hypot(-PM-cx,-PM-cy), Math.hypot(W+PM-cx,-PM-cy),
                      Math.hypot(-PM-cx,H+PM-cy), Math.hypot(W+PM-cx,H+PM-cy));
-  for(let k=0;k<3;k++){
+  for(let k=0;k<PULSE_ARCS;k++){
     // Nested, outermost oldest so it lands first — but sized from the ORIGIN now, not backwards from
     // you. It used to be `arrive-140-k*130`, which put the leading arc 140px from your face: the shape
     // did not travel, it materialised on top of you and then expanded. Starting near the origin instead
-    // puts the three fronts ~410/480/540px away at spawn — at or past the screen edge for most bearings
-    // — so they sweep in across the sky. Spacing at the meeting radius is untouched, because N is sized
-    // on `arrive` and `arrive` has not moved.
-    const R=170-k*70;                              // 170 / 100 / 40 from the origin; ~0.5s apart on arrival
+    // puts the fronts hundreds of px away at spawn — at or past the screen edge for most bearings — so
+    // they sweep in across the sky. Spacing at the meeting radius is untouched, because N is sized on
+    // `arrive` and `arrive` has not moved.
+    const R=170-k*PULSE_GAP;                       // 170 / 20 from the origin; 1.04s apart on arrival
     const col=(k%2===0)?'red':'cyan';              // ONE colour per arc — the whole point
     // `o.a += o.va` steps PER FRAME, so the drift has to be divided by frames of flight, not seconds.
     // Getting that wrong made the arcs whirl 60x too fast, and because the whole thing is polar the
@@ -3922,36 +3937,51 @@ function openCodex(){
   const powRows=POW.map(p=>`<div class="cxa"><span class="st" style="color:${p.col}">${p.ic}</span><span><b>${p.nm}</b> — ${p.ds}${p.kind==='timed'?` <span class="rw">· ${p.dur}s</span>`:` <span class="rw">· instant</span>`}</span></div>`).join('');
   el('codexBody').innerHTML=`
   <div class="cxs"><h3>The Charge Law</h3>
-    <p>You are a wandering star. <b>Opposite-charge matter drifts toward you</b> and annihilates on contact — threat and ammunition in one body. Your star <b>never sucks another charge in</b>, so you <b>steer into</b> it. <b>Like-charge is caught into your rings</b>: orbiting matter that never harms you, and a shell that annihilates opposite matter it touches. When <b>red meets cyan, both annihilate</b>. Every body is a weapon, if you position it.</p>
-    <p>The law has one exception, and it is the <b>Charger</b>: in its committed dash it plows through opposite matter instead of dying to it.</p></div>
+    <p>Every body is <b>red</b> or <b>cyan</b>. Match a colour to be safe from it; hold the opposite to destroy it. That choice is the whole game.</p>
+    <div class="cxa"><span class="st">●</span><span><b>Opposite</b> charge drifts toward you and dies on contact — your danger and your ammunition at once.</span></div>
+    <div class="cxa"><span class="st">○</span><span><b>Like</b> charge is caught into your <b>rings</b>: harmless, and a shell that kills opposite matter it touches.</span></div>
+    <div class="cxa"><span class="st">→</span><span>Your star never pulls matter in. You <b>steer into</b> whatever you mean to hit.</span></div>
+    <div class="cxa"><span class="st">◆</span><span>One exception — a <b>Charger</b> in its dash plows through opposite matter instead of dying to it.</span></div></div>
   <div class="cxs"><h3>Score</h3>
     <p><b>Every annihilation pays the same</b>, wherever it happens — <span class="gold">10 × your multiplier</span>.</p>
-    <p><b>Multiplier = banked Motes.</b> Annihilations drop twinkling ✦ Motes: your own charge hoovers in by itself, the opposite charge waits for a <b>reversal-vacuum</b>. Each banked Mote pays out at your current multiplier and adds <span class="gold">+0.1×</span> to it (cap ×15) — and the bank is <b>cut in half when you get hit</b>. Streak carries perfection; the bank carries greed.</p>
-    <p><b>Gilded Bounty:</b> every ~15s a gold-ringed body arrives — pop it within 6s for <span class="gold">250×epoch</span>. <b>Collapse tally:</b> the wave counts its kills and pays <span class="gold">N²×4</span>, so herd a dense ring before you spend it.</p></div>
+    <div class="cxa"><span class="st">✦</span><span><b>Multiplier = banked Motes.</b> Each banks <span class="gold">+0.1×</span> (cap ×15). A hit <b>halves the bank</b>.</span></div>
+    <div class="cxa"><span class="st">✦</span><span>Your own colour hoovers Motes in by itself. The opposite colour waits for a <b>reversal-vacuum</b>.</span></div>
+    <div class="cxa"><span class="st">◆</span><span><b>Gilded Bounty</b> — every ~15s a gold-ringed body arrives. Pop it within 6s for <span class="gold">250×epoch</span>.</span></div>
+    <div class="cxa"><span class="st">◎</span><span><b>Collapse tally</b> — the wave pays <span class="gold">N²×4</span> for N kills, so herd a dense ring before spending it.</span></div></div>
   <div class="cxs"><h3>Capacitor &amp; Collapse</h3>
-    <p>The Capacitor fills from pops, Motes (+0.5%) and streak milestones. Grazes pay a score crumb only — charge income is things you <i>chose</i>. A full meter chimes.</p>
-    <p><b>Collapse</b> (Shift / R-click): a breath of slow-motion, then a gravity wave sweeps the sky for <b>2 damage</b> — the weak die, but Brutes crawl out burned and flung. Against an <b>Anomaly</b> it is worth a flat <span class="gold">15%</span> and nothing more: the wave never touches the boss, so packing matter onto it first buys you nothing. Kills during it refund no charge — the next one must be earned.</p></div>
+    <p>The Capacitor fills from pops, Motes and streak milestones. A full meter chimes. Spend it with <b>Shift</b> or <b>right-click</b>.</p>
+    <div class="cxa"><span class="st">◎</span><span>A breath of slow-motion, then a gravity wave sweeps the whole sky for <b>2 damage</b>.</span></div>
+    <div class="cxa"><span class="st">◎</span><span>The weak die; <b>Brutes</b> crawl out burned and flung. Against an <b>Anomaly</b> it is a flat <span class="gold">15%</span>, never more.</span></div>
+    <div class="cxa"><span class="st">◎</span><span>Kills during a Collapse <b>refund no charge</b> — the next one must be earned.</span></div>
+    <div class="cxa"><span class="st">·</span><span>Grazes pay a score crumb only. Charge income is things you <i>chose</i> to do.</span></div></div>
   <div class="cxs"><h3>Streak</h3>
-    <p>A <b>no-hit</b> kill count. Ranks: 25 <b style="color:var(--cyan)">AWAKENING</b> · 50 <b class="gold">MAGNETIC</b> · 100 <b class="vio">UNSTOPPABLE</b> · 200 <b>TRANSCENDENT</b>, each granting a Capacitor chunk. Taking a real hit ends it — but a 25+ streak <b>bursts into Capacitor</b> (up to +20%) instead of vanishing. Shield blocks don't break it.</p></div>
+    <p>A <b>no-hit</b> kill count. Every rank grants a Capacitor chunk. A real hit ends it; shield blocks do not.</p>
+    <div class="cxa"><span class="st">✧</span><span>25 <b style="color:var(--cyan)">AWAKENING</b> · 50 <b class="gold">MAGNETIC</b> · 100 <b class="vio">UNSTOPPABLE</b> · 200 <b>TRANSCENDENT</b></span></div>
+    <div class="cxa"><span class="st">✧</span><span>Break a streak of 25+ and it <b>bursts into Capacitor</b> (up to +20%) instead of simply vanishing.</span></div></div>
   <div class="cxs"><h3>Mastery</h3>
-    <p><b>Hold-charge and the Hungry flip.</b> Holding a pole <b>loads</b> the ring gauge around your star (a tick marks the threshold; it turns hot white). A <b>quick tap</b> just reverses poles — reposition, swap colour. A <b>loaded reversal FLINGS</b>: every body that is opposite-charge <i>after the flip resolves</i> and inside the burst is <b>thrown outward, alive</b>. Nothing dies.</p>
-    <p><b>Why throwing beats killing.</b> A tap already turns the swarm harmless — matching its colour <i>is</i> what safety means here. What makes reversing dangerous under pressure is that <b>your own rings turn hostile the instant you flip</b>, in close orbit. The Fling throws exactly that off you and leaves it on the field, still yours to use. When the sky closes in, the answer is always <i>hold, then reverse</i>.</p>
-    <p>The burst's <b>reach</b> is paid for twice: how long you held sets its floor, and <b>every body you gathered widens it</b> — 80px up to 210px, just past your own Field, so the circle you can see is the promise. Rings are armour on the way in and reach on the way out, which makes hoarding one before you spend it the whole skill. With an <b>Anomaly</b> alive your rings are <b>volleyed</b> at it instead of flung; with none, they take the full fling like anything else. <b>Neutrals</b> are never flung — they pop to the <b>Shockwave</b> every reversal emits, one reversal, not two.</p></div>
+    <p>Holding a pole <b>loads</b> the ring gauge around your star — a tick marks the threshold, and it turns hot white. What you do next is everything.</p>
+    <div class="cxa"><span class="st">○</span><span><b>Quick tap</b> — reverses your poles and nothing else. Reposition, swap which colour is safe.</span></div>
+    <div class="cxa"><span class="st">●</span><span><b>Loaded reversal</b> — <b>FLINGS</b>. Every body opposite-charge after the flip is thrown outward <b>alive</b>. Nothing dies.</span></div>
+    <div class="cxa"><span class="st">→</span><span><b>Why throw, not kill?</b> Flipping turns your own rings hostile in close orbit. The Fling throws exactly that off you.</span></div>
+    <div class="cxa"><span class="st">→</span><span>Reach is <b>80–210px</b>: your hold sets the floor, and every body you gathered widens it. Hoard before you spend.</span></div>
+    <div class="cxa"><span class="st">◆</span><span>With an <b>Anomaly</b> alive your rings are <b>volleyed</b> at it instead of flung.</span></div>
+    <div class="cxa"><span class="st">·</span><span><b>Neutrals</b> are never flung. The <b>Shockwave</b> every reversal emits pops them — one reversal, not two.</span></div></div>
   <div class="cxs"><h3>The Anomaly</h3>
-    <p><b>It is outside your magnetism.</b> It ignores your reversals, and its own fire cannot be turned back on it — every <b>missile</b> launches from its own body. Missiles and matter never touch: a missile flies through every body on the field, killing none and stopped by none, so <b>nothing is cover</b>. A missile hurts you whatever polarity you hold. You dodge it; you never match it.</p>
-    <p><b>The loop.</b> <b>Dodge</b> its patterns · <b>scavenge</b> your own colour into your <b>Rings</b> · <b>evade</b> the other colour · then <b>hungry-flip to VOLLEY</b> those rings at it. Hold the colour <i>opposite</i> the Anomaly's and everything you gather becomes the thing that erodes it.</p>
-    <p><b>Ways in.</b> Everything that erodes it, and what each is worth:</p>
+    <p><b>It is outside your magnetism.</b> Reversals do not touch it, and its missiles fly through every body — so <b>nothing is cover</b>. Dodge them; never match them.</p>
+    <p><b>The loop:</b> <b>dodge</b> its patterns · <b>scavenge</b> your colour into your <b>Rings</b> · <b>evade</b> the other colour · <b>hungry-flip to VOLLEY</b>.</p>
+    <p><b>Ways in</b>, and what each is worth:</p>
     <div class="cxa"><span class="st gold" style="width:32px">3</span><span><b>Volley</b> — per body that connects, thrown by a hungry flip. The main line.</span></div>
-    <div class="cxa"><span class="st gold" style="width:32px">1</span><span><b>Ring grind</b> — per body, for carrying a loaded ring into it. Each is spent doing it, so this is pressure while you hold the range, not the blow that ends the fight.</span></div>
-    <div class="cxa"><span class="st gold" style="width:32px">5</span><span><b>Charger dash</b> — a committed dash driven into it. You cannot aim it, but you can stand so its locked lane runs through the boss.</span></div>
+    <div class="cxa"><span class="st gold" style="width:32px">1</span><span><b>Ring grind</b> — per body, for carrying a loaded ring into it. Pressure, not the finisher.</span></div>
+    <div class="cxa"><span class="st gold" style="width:32px">12</span><span><b>Charger dash</b> — stand so its locked lane runs through the boss. The hardest hit to set up.</span></div>
     <div class="cxa"><span class="st gold" style="width:32px">15%</span><span><b>Collapse</b> — flat, whatever the field looks like.</span></div>
-    <p style="margin-top:8px"><b>Nothing else reaches it.</b> Matter that merely drifts or is flung into it bounces off — the Anomaly walks the arena, and a rule that paid for contact would let it damage itself by moving. Your reversal does not touch it either: the Shockwave repels matter and pops Neutrals, and that is all. <b>It does not leave.</b> There is no timer and no escape — the Anomaly stands until you purge it. Purging it drops a <b>powerup cache</b>, +30 Integrity and +40% charge.</p>
-    <p><b>Read the silhouette.</b> Each of the three kinds — <b>Emitter</b>, <b>Sentinel</b>, <b>Pulsar</b> — announces its mechanic in its shape before it fires, and its integrity bar names the counter while you fight it. Full cards are in the <b>✦ Bestiary</b>. All three also <b>hunt</b>: roughly every 9–14s one breaks station — audibly, trailing a bright wake and a line drawn to your core — and <b>walks onto the core itself</b>. It is slow enough to stroll away from, it lands <b>one</b> hit and recoils rather than parking on you, and it has to cross your <b>rings</b> to reach you, which cut it on the way in.</p></div>
+    <p style="margin-top:8px"><b>Nothing else reaches it</b>, and <b>it does not leave</b>: no timer, no escape. Purge it for a <b>powerup cache</b>, +30 Integrity and +40% charge.</p>
+    <p>All three kinds <b>hunt</b>: every 9–14s one breaks station and walks onto your core. Slow and loud — it lands <b>one</b> hit, then recoils.</p>
+    <p><b>Emitter</b>, <b>Sentinel</b> and <b>Pulsar</b> each announce their mechanic in their shape. Full cards are in the <b>✦ Bestiary</b>.</p></div>
   <div class="cxs"><h3>Powerups</h3>
-    <p>There are <b>no level-ups and no permanent upgrades</b> — this is vanilla survival. Annihilations occasionally shed a glowing <b>orb</b>, and a purged Anomaly always drops a cache. <b>Steer into it</b> to collect: the effect is <b>instant and temporary</b>, and grabbing another of the same refreshes its timer.</p>
+    <p><b>No level-ups, no permanent upgrades</b> — this is vanilla survival. <b>Steer into</b> an orb to collect it; every effect is instant and temporary.</p>
     ${powRows}</div>
   <div class="cxs"><h3>Achievements</h3>${achRows}</div>
-  <div class="cxs"><h3>Matter</h3><p>Nine species, plus the Anomaly kinds and the Patterns, with their real sizes, health and damage — all in the <b>✦ Bestiary</b>, one button over.</p></div>`;
+  <div class="cxs"><h3>Matter</h3><p>Nine species, the Anomaly kinds and the Patterns — real sizes, health and damage — in the <b>✦ Bestiary</b>, one button over.</p></div>`;
   el('codex').classList.remove('hidden');
 }
 function closeCodex(){ el('codex').classList.add('hidden'); }
