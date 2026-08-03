@@ -7,6 +7,57 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### ◉ Singularity disabled — the free wipe was beating the earned one (2026-08-03)
+Player brief: *"actually i think singularity is too strong, i am even thinking about disabling it."*
+
+**Removed from the roster; the machinery is left in place behind a permanently-0 timer.** One line went.
+
+**Why it was too strong, in one number.** The devour horizon is **32px**. The largest contact envelope in
+the game is **also 32px** (Bomber `r`17 + `P.r`15), and a captured body's velocity is damped ×0.55/frame
+while infall walks it inward — so anything the well held died *at or before your skin*. Its immunity was
+**geometric, not tuned**: no balance pass reaches it, you would have to move the radii. The proof was
+already in this ledger from the 2026-07-29 pass — **12/12 hostiles + 6/6 Neutrals devoured, 0 HP lost**,
+against **−14 HP** in the control.
+
+**And it dominated its own sibling.** Aegis is 6s and 3 blocked hits. Singularity was 5s of *unlimited*
+blocked hits, plus a field wipe that killed regardless of toughness, plus a banked Mote per body — for
+zero input. One roster entry strictly dominating another is the roster being broken, not spicy.
+
+**The deeper reason, and why this is really a Collapse change.** For those 5 seconds the game's one rule
+is suspended: opposite matter cannot reach you, and your own colour was already spared, so **the flip
+decides nothing** and the star is a walking delete bubble. GLOSSARY §2 has carried an open question since
+Corona was removed — the most-*earned* action (Collapse) has the least identity among the "everything near
+me dies" effects. Singularity was the free, automatic, strongest member of that set. Removing it is the
+first half of the answer, not a separate nerf. Collapse's competitor count is now **two → one** (Nova).
+
+**A measurement failure worth recording alongside it.** The reason no bot data ever flagged either problem:
+the scripted pilot **has never picked up an orb** (the watch-list says so) and **has never detonated a
+Collapse**. `.oracle.js` calls `g.collapse()` every 311 frames, but `collapse()` refuses unless
+`P.charge>=1 && inhaleT<=0 && unstable<=0`, and the oracle drives `step()` directly so the real-time
+`inhaleT` countdown in `frameBody` never runs — `inhaleT` pins at 0.45 after the first successful call and
+every later one is refused. The blast never fires. Both sides of this comparison were invisible to the
+only instrument pointed at them.
+
+**How the disable works.** Deleting the `POW` entry is the whole change: `POWMAP` loses the key, so nothing
+rolls it and `__orbital.grant('blackhole')` no-ops; `FX.blackhole` stays 0 forever; and `stepFX` is the
+**only** writer of `P.ehorizon`, so every well path below it is unreachable. Nothing else force-grants it.
+
+**Verified** (muted, current build, in-engine — `node --check` proves nothing here): 3,600 frames of play
+with `FX.blackhole` max **0**, `P.ehorizon` max **0**, `heldByWell` **0**, `grant('blackhole',5)` → **0**,
+and **zero console errors**. All three surviving powerups force-drop, draw in and collect: Aegis → 6.0s,
+Overdrive → 6.0s, Nova → fires instantly.
+
+**Knock-on, measured not assumed.** With 3 entries the `noNova` down-weight redistributes. Over 6,000
+rolls: **Aegis 45.1%, Overdrive 43.9%, Nova 11.0%** (previously ~30.5 / 30.5 / 8.5). Aegis is now the most
+common pickup in the game — a much weaker one than what it replaced, so expect the powerup layer overall to
+read quieter. A second-order effect for the watch-list: with ◉ gone **nothing erases a Brute outright**, so
+the Brute is now the most durable body in the game.
+
+**Not deleted yet, on purpose.** The well (`stepEnemyForces`), `blackholeCollapse`, `drawEHorizon`, the
+Flare swallow and the Charger override all remain, so re-enabling is one line while the decision is being
+played. If it sticks, excise it the way the dormant arsenal went in `0b408c4` — git keeps it better than a
+comment does.
+
 ### The frame budget, measured — and a recorder that stops perturbing it (2026-08-03)
 Player brief: *"how can we manage this then?"* — after a reported ~10% frame-rate regression.
 

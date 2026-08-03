@@ -656,7 +656,6 @@ const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrad
 //  game already balanced, it simply expires.
 // =====================================================================
 const POW=[
-  {id:'blackhole', ic:'◉', nm:'Singularity', col:'#b98bff', dur:5.0, kind:'timed',   ds:'a black hole devours hostile matter · your own colour is spared'},
   {id:'aegis',     ic:'🛡', nm:'Aegis',       col:'#7fe9ff', dur:6.0, kind:'timed',   ds:'a shield turns aside every hit'},
   {id:'overdrive', ic:'⚡', nm:'Overdrive',   col:'#ffe36b', dur:6.0, kind:'timed',   ds:'faster star · wide, whirling rings'},
   {id:'nova',      ic:'✺', nm:'Nova',        col:'#ff6b9d', dur:0,   kind:'instant', ds:'a shockwave detonates everything near'},
@@ -670,6 +669,27 @@ const ORB_CAP=2;              // max orbs waiting on the field before drops paus
 const ORB_SAFETY_MIN=22, ORB_SAFETY_MAX=34; // safety-drop interval; only fires when the field is empty
 const FX={blackhole:0, aegis:0, overdrive:0}; // remaining seconds of each timed effect
 
+// ◉ SINGULARITY was DISABLED on 2026-08-03 — pulled from the roster, machinery left in place. Player
+// brief: "actually i think singularity is too strong, i am even thinking about disabling it."
+// It was Aegis plus a field wipe plus Mote income, for zero input. Capture was immunity BY GEOMETRY,
+// not by tuning: the devour horizon is 32px and the largest contact envelope in the game is also 32px
+// (Bomber r17 + P.r15), while a captured body's velocity is damped x0.55/frame — so anything the well
+// held died at or before your skin. Measured previously: 12/12 hostiles + 6/6 Neutrals devoured for
+// 0 HP, against -14 HP in the control. For its 5s the game's one rule is suspended — opposite matter
+// cannot reach you and your own colour was already spared, so the flip decides nothing and the star is
+// a walking delete bubble. That also starves the question GLOSSARY has carried since Corona went: the
+// most-EARNED action (Collapse) was the weakest of the three "everything near me dies" effects, and
+// the free automatic one was the strongest. Removing the entry is the whole disable: POWMAP loses the
+// key, so nothing rolls it and __orbital.grant('blackhole') no-ops; FX.blackhole stays 0 forever, so
+// stepFX never sets P.ehorizon, whose ONLY writer it is, and every well path below is unreachable.
+// The code stays for now (see the well in stepEnemyForces, blackholeCollapse, drawEHorizon, the Flare
+// swallow and the Charger override) so re-enabling is one line. If the removal sticks, excise it in a
+// follow-up commit the way the dormant arsenal went — git keeps it better than a comment does.
+// Consequence to watch: with 3 entries the noNova down-weight redistributes. Measured over 6000 rolls:
+// Aegis 45.1%, Overdrive 43.9%, Nova 11.0% (was ~30.5 / 30.5 / 8.5). Aegis is now the most common pickup
+// in the game, and a far weaker one than what it replaced. Second order: nothing erases a Brute outright
+// any more, so the Brute is now the most durable body in the game.
+//
 // CRYO was REMOVED on 2026-07-29 (freeze + mend + shatter, and the `enemySlow` multiplier that was
 // its only consumer). It had been reworked twice — 0.34 slow → 0.14 near-freeze → the game's only
 // in-combat heal — and each pass was answering the same complaint from a different angle. Integrity
