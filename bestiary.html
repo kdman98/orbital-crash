@@ -181,8 +181,11 @@
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5; ctx.beginPath();
       ctx.moveTo(x+Math.cos(na)*r, y+Math.sin(na)*r); ctx.lineTo(x-Math.cos(na)*r, y-Math.sin(na)*r); ctx.stroke();
     } else if(s.type==='bomber'){
-      // mirrors index.html: the dashed 1.55r standoff ring went with the death payload — it was a
-      // scale model of the 108px blast and promises a radius the Bomber no longer has.
+      // mirrors index.html: no standoff ring. The dashed 1.55r ring went in 2026-07-29 because it was a
+      // scale model of the blast radius, and any ring drawn outside a hull reads as "the edge where I
+      // die" — which is `e.r + P.r` = 32, not the blast. The blast is back (BOMB_R 120, 2026-08-03) and
+      // the ring still must not return: 1.55r = 26px would understate the 32px envelope AND bear no
+      // relation to the 120px blast, i.e. lie about both numbers at once.
       const bl=0.5+0.5*Math.sin(t*7);      // a blinking fuse, not another concentric ring
       ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
       ctx.beginPath(); ctx.arc(x,y,r*(0.26+0.16*bl),0,TAU); ctx.fill();
