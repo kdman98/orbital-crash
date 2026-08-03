@@ -2578,10 +2578,12 @@ function breakStreak(src){
 }
 function onKill(e){
   if(state==='dead')return; // stop awarding score/xp once the core is lost
-  // The BOMBER DEATH PAYLOAD was removed on 2026-07-29 ("bombers are all the same as other dots but
-  // just has critical impact dmg"). It was a 108px colour-blind blast: 30 to you through any shield,
-  // 3 to every Dot, 2 to the Anomaly. The Bomber is now an ordinary body that simply hits hardest on
-  // contact (ETYPE.bomber.dmg) — no exemptions anywhere, no explosion, no reward for herding it.
+  // THE BOMBER DETONATES. Removed 2026-07-29, restored 2026-08-03 at the player's call — but only the
+  // half that clears MATTER. See bomberBlast() for the full scoping and why each exclusion is there:
+  // it does not touch you, does not touch the Anomaly, pays nothing, and does not chain. The Bomber is
+  // still an ordinary dot in every stat (dmg 10, hp 1, no exemptions anywhere); the explosion is a
+  // field-clearing hazard, not a stat.
+  if(e.type==='bomber') bomberBlast(e);
   // splitter spawns minis
   if(e.type==='split' && !unstable){
     for(let i=0;i<2;i++){
@@ -2649,6 +2651,44 @@ function onKill(e){
 }
 
 // blasts / shockwaves
+// THE BOMBER DETONATES AGAIN (2026-08-03). Player brief: "bomber should destroy dots around it when it
+// explodes. this is for removing excessive ring shield and too much leftover dots / except that,
+// everything else is just a normal dot." This deliberately reverses part of the 2026-07-29 removal, at
+// the player's call, and the scoping is the whole design — the old payload was removed for the things
+// this one does NOT do:
+//   IT DOES NOT TOUCH YOU. The old one dealt 30 to the core THROUGH ANY SHIELD, which is why it read as
+//   an unfair body rather than a hazard. Contact damage stays ETYPE.bomber.dmg = 10, Drifter parity, and
+//   the blast is not a second damage channel at the core. "Everything else is just a normal dot."
+//   IT DOES NOT TOUCH THE ANOMALY. The old one chipped it for 2, which is a straight violation of the
+//   two-channel rule (§7): a boss walks the arena through a field full of matter, so any rule of the
+//   form "things exploding near it hurt it" means density kills bosses, not skill.
+//   IT PAYS NOTHING. `dead` alone, never queueKill — no score, no combo, no Mote, no Capacitor. This is
+//   the point, not a limitation. The brief is "remove excessive ring shield", i.e. the blast is a COST
+//   to the hoarder; if it paid, hoarding-then-popping would be a score fountain that rewards the exact
+//   behaviour it exists to punish, and a Bomber in a 20-body crowd would pay 200+ and a 20-combo off
+//   density rather than skill. Same principle as the Sorter's self-collision and the comet's exit.
+//   IT DOES NOT CHAIN. A Bomber killed by another Bomber's blast dies via `dead`, so onKill never runs
+//   and it never detonates. One press, one explosion — no whole-swarm cascade.
+// COLOUR-BLIND, and that is load-bearing: your rings are your OWN colour, so a blast that respected
+// polarity could not remove ring shield at all, which is the brief. Ring orbit radius is
+// `P.fieldR*0.6` = 114, so BOMB_R is sized just past it — a Bomber that reaches your core clears the
+// hoard, one popped out on the ring itself takes a bite of it. 2 damage is Collapse parity: trash dies,
+// a Brute (3hp) crawls out burned. Deliberately ONE blast strength in the game rather than a third.
+const BOMB_R=120, BOMB_DMG=2;
+function bomberBlast(e){
+  spawnRing(e.x,e.y,'#fff',BOMB_R*0.5); spawnRing(e.x,e.y,COL[e.color]||'#fff',BOMB_R);
+  spawnBurst(e.x,e.y,'#fff',18,5.4); spawnBurst(e.x,e.y,COL[e.color]||'#fff',14,3.6);
+  trauma=Math.min(1,trauma+0.30); hitstop=Math.max(hitstop,0.06); flash=Math.max(flash,0.16);
+  if(typeof sfx!=='undefined') sfx.bomb();
+  for(const o of enemies){
+    if(o===e || o.dead || o.queued || o.type==='boss') continue;
+    const dx=o.x-e.x, dy=o.y-e.y;
+    if(dx*dx+dy*dy > BOMB_R*BOMB_R) continue;
+    o.hp-=BOMB_DMG;
+    if(o.hp<=0){ o.dead=true; spawnBurst(o.x,o.y,COL[o.color]||'#fff',5,2.6); }
+    else spawnBurst(o.x,o.y,'#fff',3,2.0);        // burned, not destroyed — reads as survived, not ignored
+  }
+}
 function ruptureBlast(x,y,R){
   spawnRing(x,y,'#fff',R);
   for(const o of enemies){ if(o.dead||o.type==='boss')continue;
@@ -4223,6 +4263,11 @@ const sfx={
   buy(){ beep(660,0.07,'square',0.12,880); },
   lance(){ beep(180,0.12,'sawtooth',0.14,520); noise(0.1,0.08); },
   bosshit(){ beep(300,0.09,'square',0.12,180); noise(0.12,0.1); },
+  // THE BOMBER'S DETONATION. Must not be mistaken for sfx.collapse(), which is YOURS and the biggest
+  // thing you can press: collapse runs 0.5s of noise under a 0.6s 90->400 sweep plus a 220 sine, a long
+  // swelling event. This is short, dry and entirely downward — a crack rather than a swell, over in
+  // 0.3s, so a Bomber going off in the crowd never reads as "did I just spend my Capacitor?".
+  bomb(){ beep(88,0.30,'sawtooth',0.22,28); noise(0.26,0.20); beep(190,0.14,'square',0.09,52); },
   // THE BAITED CHARGE. It has to be tellable from bosshit() while your eyes are on the far side of the
   // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
   // in 0.09s), this is a heavy low SLAM that falls much further and much longer, and then RISES. The

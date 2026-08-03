@@ -7,6 +7,53 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Bomber detonates again — but only the half that clears matter (2026-08-03)
+Player brief: *"bomber should destroy dots around it when it explodes. this is for removing excessive ring shield and too much leftover dots / except that, everything else is just a normal dot."* Told plainly that this reverses the 2026-07-29 removal: *"yeah some patches might collide - but this way was what i meant actually."*
+
+**The scoping is the whole design.** The old payload was removed for specific reasons, and this one keeps
+none of the offending parts. It is a 120px, colour-blind, 2-damage blast on death, and:
+
+- **It does not touch you.** The old one dealt **30 to the core through any shield**, which is why it read
+  as an unfair body rather than a hazard. Contact stays `ETYPE.bomber.dmg` = 10, Drifter parity, and the
+  blast adds no second damage channel at the core. Verified: a Bomber detonating **99px** from the star —
+  well inside the 120px radius — costs **0 HP** while clearing 8 dots.
+- **It does not touch the Anomaly.** The old one chipped it for 2, a straight violation of the
+  two-channel rule: a boss walks the arena through a field full of matter, so "things exploding near it
+  hurt it" means density kills bosses, not skill. Verified **27 → 27**.
+- **It pays nothing.** `dead` alone, never `queueKill` — no score, no combo, no Mote, no Capacitor. This
+  is the point rather than a limitation. The brief is to *punish* hoarding; a paying blast would make
+  hoard-then-pop a score fountain that rewards the very behaviour it exists to remove, and a Bomber in a
+  20-body crowd would pay 200+ off density. Same principle as the Sorter's self-collision.
+- **It does not chain.** A Bomber killed by another's blast dies via `dead`, so `onKill` never runs and it
+  never detonates. Verified: the second Bomber died and **8 dots 160px away all survived**.
+
+**Colour-blind is load-bearing, not an oversight.** Your rings are *your own colour*, so a blast that
+respected polarity could not remove ring shield at all — which is the entire brief.
+
+**Sizing is measured, not picked.** The ring orbit radius is `P.fieldR*0.6` = **114**. `BOMB_R=120` sits
+just past it, so a Bomber that reaches your core clears the hoard, while one popped out on the ring takes
+a bite. `BOMB_DMG=2` is Collapse parity — trash dies, a Brute (3hp) crawls out burned — chosen so the game
+has **one** blast strength rather than inventing a third.
+
+**Measured:**
+
+| | |
+|---|---|
+| 16-body ring at radius 114, Bomber popped at the core | **0 survivors** |
+| paid by that blast | **0** — the 11 score alongside is the Bomber's own death by core contact, a real kill |
+| Brute in the blast | **survives at 1 hp**, while 6/6 trash die |
+| Anomaly in the blast | **27 → 27** |
+| second Bomber in the blast | dies, **does not detonate** |
+| ordinary field (median 22 bodies) | clears a median of **2**, up to **9** in a dense field |
+
+The bite scaling with local density is the desired shape: sparse field, small declutter; packed ring,
+total. 300s run to Epoch II at 36,933 with no console errors.
+
+*Measurement note.* The crowd figure first came back as "clears −1", i.e. the field growing. Cause: the
+star had died during the 100s warm-up, and `onKill` returns early on `state==='dead'`, so the blast never
+fired at all. Pinning HP was what made the test real — the third time this session a measurement has been
+silently voided by the pilot dying inside the warm-up.
+
 ### The Sorter stops invoicing you for its own suicide · Escape works inside the Bestiary (2026-08-03)
 Player report: *"the sorter will collide each other, making significant score."* · *"close bestiary or codex via esc doesnt work if i clicked page once."*
 
