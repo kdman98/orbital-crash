@@ -68,7 +68,7 @@
     {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism cannot hold. It draws its lane before dashing: step <b>off</b> it, or stand so that lane crosses an <b>Anomaly</b> for <b>8 dmg</b>.'},
     {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'Uncharged, and it <b>wears both poles</b> on a turning seam: no colour makes it safe or makes it ammunition, and your magnetism cannot move it.'},
   ];
-  // r 44 → 37 on 2026-08-03: one number for hull AND collider, same law as every dot row.
+  // r is the hull AND the collider, same law as every dot row.
   const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:37,hp:'10+epoch·5',dmg:30,
     tag:'The boss of each Epoch, and it never leaves. Gather your colour into your <b>rings</b>, then flip to <b>VOLLEY</b> them at it — <b>2 dmg</b> each. Nothing else lands.'};
   // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
@@ -182,11 +182,9 @@
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5; ctx.beginPath();
       ctx.moveTo(x+Math.cos(na)*r, y+Math.sin(na)*r); ctx.lineTo(x-Math.cos(na)*r, y-Math.sin(na)*r); ctx.stroke();
     } else if(s.type==='bomber'){
-      // mirrors index.html: no standoff ring. The dashed 1.55r ring went in 2026-07-29 because it was a
-      // scale model of the blast radius, and any ring drawn outside a hull reads as "the edge where I
-      // die" — which is `e.r + P.r` = 32, not the blast. The blast is back (BOMB_R 120, 2026-08-03) and
-      // the ring still must not return: 1.55r = 26px would understate the 32px envelope AND bear no
-      // relation to the 120px blast, i.e. lie about both numbers at once.
+      // mirrors index.html: NO STANDOFF RING. Any ring drawn outside a hull reads as "the edge where I
+      // die", which is `e.r + P.r` = 32. A 1.55r ring scaled to the blast would be 26px — understating
+      // the 32px envelope AND bearing no relation to the 120px blast, i.e. lying about both at once.
       const bl=0.5+0.5*Math.sin(t*7);      // a blinking fuse, not another concentric ring
       ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
       ctx.beginPath(); ctx.arc(x,y,r*(0.26+0.16*bl),0,TAU); ctx.fill();
@@ -194,8 +192,7 @@
       const tt=Math.sin(t*3)*0.5+0.5;
       ctx.strokeStyle=hexA('#ffffff',0.4+0.5*tt); ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,r+4+6*tt,0,TAU); ctx.stroke();
       // mirrors index.html's wind-up: the lane runs FORWARD along the aim, dashed, out to the collapsing
-      // reticle that marks where the dash ends. It used to draw a solid line pointing BACKWARDS, which
-      // contradicted this card's own copy ("draws the whole thing, out to a reticle").
+      // reticle that marks where the dash ends — which is what this card's copy promises.
       const ha=0, ex=x+Math.cos(ha)*(30+18*tt), ey=y+Math.sin(ha)*(30+18*tt);
       ctx.strokeStyle=hexA(c,0.35+0.4*tt); ctx.lineWidth=2; ctx.setLineDash([9,9]);
       ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.stroke(); ctx.setLineDash([]);
@@ -240,10 +237,9 @@
     ctx.globalCompositeOperation='source-over';
     // draws the EMITTER silhouette on purpose: there is no generic Anomaly body any more, and the
     // first Anomaly of every run is always the Emitter, so this is the one you actually meet first.
-    // mirrors index.html 2026-08-03: the integrity ring sits on the true contact envelope `b.r + P.r`
-    // = 52 rather than the old `b.r+11`, which sat 4px INSIDE the edge that kills you. `r` here is a
-    // card-fitted 28 against the game's 37, so the ratio travels rather than the pixel value:
-    // 52/37 = 1.41r. It is the one stroke in the fight that says where you die, and it is now the same
+    // mirrors index.html: the integrity ring sits on the true contact envelope `b.r + P.r` = 52. `r`
+    // here is a card-fitted 28 against the game's 37, so the ratio travels rather than the pixel value:
+    // 52/37 = 1.41r. It is the one stroke in the fight that says where you die, and it is the same
     // stroke as the HP bar.
     anomBody(ctx,x,y,r*pulse,'emitter',c,lc,t);
     const frac=0.68, IR=r*1.41;
@@ -367,7 +363,6 @@
       // Two nested arcs washing outward from a source off the card, ONE COLOUR PER ARC and
       // alternating arc to arc, starting red — `(k%2===0)?'red':'cyan'` in formPulse(). k=0 is the
       // OUTERMOST and therefore lands first, which is why it carries the largest radius here too.
-      // Was three until 2026-08-03; PULSE_ARCS is 2 now and the band here follows it.
       // The span is the game's real PULSE_ARC (2.62 rad ≈ 150°); the radii are not to scale, because
       // the real thing travels ~500px to reach you and the card is 190 tall.
       const ox=x, oy=y+105, SPAN=2.62, N=19;                    // the source sits below; the front faces up

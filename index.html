@@ -373,10 +373,6 @@ function resize(){
 }
 
 // ---------- the starfield ----------
-// The background used to be a radial gradient, three nebula blobs and a 54px SQUARE GRID. The grid was
-// the most structured thing on screen and it read as arcade playfield — a Cartesian lattice is the
-// visual language of a scoreboard, not of space — and there were no stars anywhere in the file.
-//
 // Three depth layers, offset against the Star's position so moving shifts the near layer further than
 // the far one. That parallax is the whole trick: it is what makes the sky read as something you are
 // moving THROUGH rather than a backdrop painted behind a box, and it costs nothing in rules.
@@ -478,15 +474,6 @@ const ACHV=[
   {id:'firstBoss',   nm:'Purge an Anomaly', ds:'Defeat a boss Anomaly'},
   {id:'combo60',     nm:'Chain Reactor',    ds:'Land a 60-chain'},
   {id:'act3',        nm:'Deep Field',       ds:'Reach Epoch III'},
-  // 'Danger Close' ("Take a Bomber's impact and live") was RETIRED 2026-08-03. It was written when a
-  // Bomber hit for 26 and its payload did 30 through shields; at Drifter parity (10 vs 100 max HP) it
-  // fired on essentially every Bomber contact, so it certified nothing. It was kept one pass longer on
-  // the argument that "the roster count is documented (six, one secret)" — which is backwards: the docs
-  // describe the game, not the other way round. Roster is now **five, one secret**. Nothing in code
-  // counts the rows (the Codex maps over ACHV), so this is the only edit. A stored `bomberPoint` in
-  // localStorage is simply never looked up again — `grantAchv` is the only reader and it is gone.
-  // NOT repointed at the Brute (22, now the hardest contact hit) in the same pass: "survive one hit
-  // from the heaviest body" is a different achievement and deserves to be designed, not find-replaced.
   {id:'supercollapse', nm:'Supercollapse',  ds:'Annihilate 40 in one Collapse'},
   // hidden feats — discovered, never assigned. Each pays a shard bounty when found (hid:true
   // renders as "???" in the Codex until earned).
@@ -516,7 +503,7 @@ let grazeN=0, grazeT=0;                // near-miss ladder (pitch rises, decays 
 let gildTimer=14;                      // seconds until the next Gilded Bounty spawns
 let motes=[];                          // Flux Motes: annihilation loot; banking them drives the score mult
 let motesBank=0;                       // motes collected this life (HALVED on hit, not reset) -> mult = 1 + 0.1/mote
-// The multiplier law has ONE home. It used to be spelled out at five sites, so a change to the cap or
+// The multiplier law has ONE home. Spelled out at five sites, a change to the cap or
 // the per-mote rate had to be found five times.
 const recalcMult=()=>{ mult=Math.min(15, 1+motesBank*0.1); };
 const bankMote=()=>{ motesBank++; recalcMult(); };
@@ -532,48 +519,25 @@ let keys={};
 const DOTSPD=1.22; // livelier field: speeds up rings, neutrals & wandering matter — NOT the opposite-charge inward pull
 const RING_FIRE_HC=0.5; // a flip only FLINGS once hold-charge passes this — quick taps just reverse; a Hungry (held) flip clears
 // THE FLING — the hungry flip's burst. Radius = a floor set by charge, plus a bonus for every body you
-// actually gathered into your rings, so holding a pole still pays twice (armour on the way in, reach on
-// the way out). Tuned against BASE_FIELDR=190: even a max-investment burst stays inside your own Field.
-// 80 (barely loaded) → 210 (full charge, 10+ rings). It used to top out at 170, deliberately INSIDE the
-// 190px Field — which turned out to be the bug rather than the tuning. Ring capture is `d<P.fieldR`, the
-// whole Field, so every body the fling was written for was already ring-flagged and diverted to the ring
-// branch: measured on a full-charge flip with 30 bodies around the core, 25 ringed and **0 flung**. The
-// burst now reaches slightly PAST the Field, so the circle you can actually see is the promise, and a
-// full-charge reversal clears your own perimeter instead of stopping just short of it.
+// gathered into your rings, so holding a pole pays twice: armour on the way in, reach on the way out.
+// 80 (barely loaded) → 210 (full charge, 10+ rings) against BASE_FIELDR=190, so the burst reaches
+// slightly PAST your own Field and the circle you can see is the promise.
+// IT MUST STAY PAST IT. Ring capture is `d<P.fieldR` — the whole Field — so a fling radius inside 190
+// diverts every body this exists for to the ring branch instead: at 170 a full-charge flip with 30
+// bodies around the core measured 25 ringed and 0 flung.
 const PURGE_R0=80, PURGE_RCHG=70, PURGE_RPER=6, PURGE_RING_CAP=10;
 // Impulse, not damage. `flung` skips the speed clamp, drops friction to 0.985 and zeroes seek, so the
-// throw distance is `v0 · (1-0.985^N)/0.015` with `N = FLING_HOLD·60`.
-// Widened once: at 6.4→10.6 over 0.9s a mid-range body only travelled ~210px net, because the proximity
-// scale below also cuts the impulse to 45% out at the rim — so the bodies furthest from you, the ones a
-// wider push is actually for, were thrown the least. Now 7.2→12.0 over 1.4s with a 65% rim floor:
-// roughly **370px at the rim, 575px point-blank**. Still well short of the ~900px that once threw your
-// own matter clean off a 1280px screen, and unlike that case this is matter you WANT gone.
-// SPEED ×1.5 AT THE SAME REACH. `7.2→12.0` became `10.8→18.0`, and the hold was solved back down to
-// hold the distance constant rather than left to multiply it: throw distance is `v0·(1-0.985^N)/0.015`,
-// so a 1.5× impulse needs that sum cut to 2/3 — `(1-0.985^N)/0.015 = 34.0` → `N ≈ 47` frames. The matter
-// leaves half again as fast and arrives in half the time; where it lands does not move.
+// throw distance is `v0 · (1-0.985^N)/0.015` with `N = FLING_HOLD·60` — roughly 370px at the rim and
+// 575px point-blank. Reach and pace are separable through that sum: change `v0` and solve `FLING_HOLD`
+// back to hold the distance constant, or the two multiply.
+// The 65% rim floor is load-bearing. The proximity scale cuts the impulse with distance, so a lower
+// floor throws the bodies furthest from you — exactly the ones a wide push is for — the least.
 const FLING_V0=10.8, FLING_VCHG=7.2;
 const FLING_HOLD=0.8;           // 1.6 → 0.8s: the reach was already right, only the pace was wrong.
-// (FLING_DMG_T removed with FLING_DMG — a flung body is not a shot. See the two-channel rule in the
-// boss-contact block: only a VOLLEY and a RING GRIND erode an Anomaly.)
-// THE CLOSE REVERSAL IS GONE (2026-07-31). A charged reversal used to chip the Anomaly for 1 if its
-// shockwave reached the body. It shipped at 2, measured DOMINANT (solo-killed an Epoch I Anomaly in 26s
-// for 5 HP), was cut to 1 — and then removed outright, because the argument that kept it was always the
-// weakest one on the page: it existed as a consolation for having no rings. The Shockwave's job is
-// Neutrals and repositioning; erosion belongs to matter you gathered or aimed. A player stripped of
-// rings gathers more — that IS the loop — or spends a Collapse. Removing it also ends the standing
-// temptation to park at 150px and spam the flip, which every repricing only slowed down.
-// (FLING_DMG and the Brute's BARGE_DMG both removed — see the two-channel rule in the boss-contact
-// block. Both were latent "contact = damage" holes, and once the Hunt began walking the Anomaly across
-// the arena a boss could farm them off its own travel. Measured over 6 idle fights before removal:
-// 13 grind contacts, **0 barge, 0 fling** — they were paying nothing and risking everything.)
 // The Star's pull on its OWN colour, outside the Field (see the force loop). Deliberately small next to
-// a Drifter's own 0.22 seek: this is meant to read as your colour leaning toward you, not as a vacuum.
-// 0.16 → 0.30, reach 1.5x → 1.8x. The gentle version was right for a stationary Star and wrong for one
-// that has to dodge: grinding an Anomaly means holding close range under point-blank fire, and a player
-// weaving to survive gathered a measurably smaller ring (avg 3.2 / peak 10, against 4.3 / 15 standing
-// still). Gathering and surviving were pulling against each other. Stronger pull plus the ring-grade
-// speed headroom in the force loop lets your own colour actually follow you while you move.
+// a Drifter's own 0.22 seek: this reads as your colour leaning toward you, not as a vacuum. Sized for a
+// Star that has to DODGE, not a stationary one — with the ring-grade speed headroom in the force loop it
+// gathers 3.3 bodies while weaving against 2.6 standing still.
 const LIKE_GRAV=0.30, LIKE_GRAV_R=1.8;   // full strength at the Field rim, fading to 0 at 1.8x the Field
 // Once a body is IN your ring it stays yours for this long after a move outruns it, and keeps being
 // reeled back the whole time. Sized against the thing it exists for: a corner-to-corner flick peaks at
@@ -582,106 +546,67 @@ const LIKE_GRAV=0.30, LIKE_GRAV_R=1.8;   // full strength at the Field rim, fadi
 const RING_GRACE=0.8, RING_GRACE_R=2.4;
 // THE RING GRINDS — one of the only two ways to erode an Anomaly. A body whirling in your rings that
 // sweeps through it cuts it: you did not aim it, but you spent a hold gathering that ring and you have
-// to carry it into contact range, which is what makes it yours rather than an accident. Before this the
-// spin was the one thing rings could NOT do — only the flip-burst connected, so a loaded ring was inert
-// until you spent it. The body is consumed on contact (the shared `d>0` branch), which bounds a grind
-// to the size of the hoard you actually built.
+// to carry it into contact range, which is what makes it yours rather than an accident. The body is
+// consumed on contact (the shared `d>0` branch), which bounds a grind to the hoard you actually built.
 //
-// 2 → 1 → 0.5 → 1. At 2 a hoarded ring dumped 24-34 in a single pass — an outright kill on an 18 HP
-// Epoch I boss. Halving to 1 fixed the burst but left the SUSTAINED rate too high against 18 HP, which a
-// single trial had hidden: repeated six times per kind, a bot orbiting at 130px that **never fired a
-// volley at all** still took the Anomaly down in 2-4 fights out of 6, median damage **11 / 17 / 14**.
-// That is what drove it to 0.5.
-//
-// Back to 1 (2026-07-31) — the objection was never the number on its own, it was the number against the
-// health pool. Boss HP is now ×1.5, so the same 11/17/14 lands against 27 rather than 18, and the grind
-// pays roughly a third of a fight instead of most of one. Watch this pair together: if the grind is ever
-// repriced again, check it against the CURRENT HP curve rather than the numbers above.
+// THIS NUMBER ONLY MEANS ANYTHING AGAINST THE HP CURVE — never read or reprice it alone. At 1 against an
+// 18 HP Epoch I pool, a bot orbiting at 130px that never fires a volley solo-kills the boss; that is why
+// it once sat at 0.5, and it is back at 1 only because the pool was raised above it.
+// ⚠️ OPEN: the pool has since dropped to 15, BELOW that 18, and this was not repriced with it. Re-ran
+// the same test at the current numbers — 5 of 9 runs solo-killed the Epoch I Anomaly, median ~30s. See
+// the ROADMAP balance watch-list; the fix, if it is wanted, is 1 → 0.5.
 const RING_GRIND_DMG=1;
-// A COMMITTED CHARGE driven into the Anomaly. Above a volley body on purpose: a volley is one of a dozen
-// you fire from a hoard, while this is a single body you had to keep alive, read, and then stand in front
-// of so its locked lane ran through the boss. Since the close reversal was removed it is also the ONLY
-// erosion that costs you no ammunition and no Capacitor — the whole of the answer for a player stripped
-// of everything — which is why it went 4 → 5 in the same pass.
-//
-// 5 → 12 (2026-08-03). Player brief: "make charger dash into anormaly stronger... this build-up for
-// attack is hard." It is, and the price never reflected it. Read the setup honestly: the lane locks at
-// wind-up along the charger→YOU ray, so the only way it crosses the Anomaly is to put the Anomaly on
-// that line — which means STANDING IN THE KILL LANE and leaving it late. You are paying 16 damage and a
-// broken streak if you misread the timing, to buy one body's worth of erosion.
-// At 5 that was 12-18% of a bar (HP was (13+act*5)*1.5 → 27/35/42). At 12 it was 44% / 34% / 29%: three
-// or four baits end any Anomaly, and one is unmistakably a chunk of the bar rather than a rounding
-// error. 12 was also exactly 4 volley bodies, which is the ratio the risk deserves — a volley body is
-// one of a dozen thrown from a hoard you already had, this is a single body bought with position.
-//
-// 12 → 8 (2026-08-03), and NOT a nerf — the line above said "sized against the pool it faces; if boss
-// HP moves again, re-price this with it", and the pool just moved to 15/20/25 with VOLLEY_DMG at 2.
-// This holds BOTH invariants that set 12 in the first place: still exactly 4 volley bodies (4×2=8), and
-// still the biggest single hit in the game. Against the new pool a bait is worth MORE of a bar than it
-// has ever been — **53% / 40% / 32%** at Epoch I / II / III, against 44 / 34 / 29 before.
-// Leaving it at 12 would have broken the setup outright: 12 against an Epoch I Pulsar (11 hp after its
-// ×0.75) is a ONE-SHOT PURGE, and 12 against a 15 hp Epoch I is 80% of the fight for one lane read.
-// The bait is meant to be the hardest thing in the game to arrange and worth arranging — not a way to
-// skip the Anomaly. If the pool moves again, this is 4 × VOLLEY_DMG; keep it that.
+// A COMMITTED CHARGE driven into the Anomaly — the biggest single hit in the game, and the only erosion
+// that costs you no ammunition and no Capacitor, so it is the whole answer for a player stripped of
+// everything. Above a volley body on purpose: a volley is one of a dozen fired from a hoard you already
+// had, this is a single body you kept alive, read, and then stood in front of. The lane locks at wind-up
+// along the charger→YOU ray, so the only way it crosses the Anomaly is to put the Anomaly on that line —
+// STANDING IN THE KILL LANE and leaving it late, for 16 damage and a broken streak if you misread it.
+// PINNED AT 4 × VOLLEY_DMG. That ratio is the constant, not the number: it is what makes a bait worth
+// 53% / 40% / 32% of an Epoch I / II / III bar — three or four baits end any Anomaly, which is what the
+// risk earns. If the pool or the volley moves, move this with them. At 12 against the current pool it
+// would one-shot an Epoch I Pulsar (11 hp), i.e. become a way to skip the fight rather than win it.
 const CHARGE_DMG=8;
-// NO PER-KIND BONUS — and the "runner" bonus that seemed obvious was measurably backwards. The idea was
-// that the Sentinel spends the fight circling, so a ring you finally land on it should be worth more.
-// Measured, closing on the Sentinel is the CHEAPEST of the three: hoard a ring, walk in and hold contact
-// for 5s and you pay **-27 HP** (you regenerate — its orbit carries it away instead of parking on you and
-// firing), against **82** for the Emitter and **66** for the Pulsar, which sit still and shoot you at
-// point-blank. At x2 that turned into a free 18-damage kill for less than no cost. Being hard to CATCH
-// and being dangerous to STAND NEXT TO are different axes, and the grind is priced on the second one.
+// EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
+// Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
+// CHEAPEST of the three, costing -27 HP for 5s of contact (you regenerate; its orbit carries it away)
+// against 82 for the Emitter and 66 for the Pulsar, which sit still and shoot you point-blank. Hard to
+// CATCH and dangerous to STAND NEXT TO are different axes; the grind is priced on the second.
 const GRIND_MULT={};
 const NEUTRAL_POP=2;            // one Shockwave pops a Neutral outright — its full hp, as the Codex has always claimed
-// (RING_SCATTER0/RING_SCATTERC removed — spent rings take the full fling now, see flip(). The old 8→32
-// impulse threw them ~900px clean off a 1280px screen; the 3→8 replacement went too far the other way.)
 // THE VOLLEY — the boss fight's erosion path. With an Anomaly alive, a hungry flip does not merely
 // scatter your rings: every gathered body that is NOT the Anomaly's colour is LAUNCHED AT IT and guided
-// for a moment. This is the answer to the old projectile problem recorded in flip(): firing rings in a
-// radial spray "exported" them off-screen and paid nothing, because they had no target. Aimed at
-// something, the same act becomes the reason you were hoarding matter in the first place.
-// 7.2 → 8.4 px/frame (~504px/s). Speed is the half of this that fights the Anomaly's MOVEMENT: a volley
-// is aimed by where you stand, and the longer it is in the air the more of its lane the boss can have
-// left. The Sentinel orbits, so it was the one that most often stepped out of a shot already fired.
+// for a moment, which is the reason you were hoarding matter in the first place.
+// 8.4 px/frame (~504px/s). Speed is the half of this that fights the Anomaly's MOVEMENT: a volley is
+// aimed by where you stand, so the longer it is in the air the more of its lane the boss can have left.
+// The Sentinel orbits, so it is the one that most often steps out of a shot already fired.
 const VOLLEY_SPD=8.4;
 // How long fired matter holds its launch vector: un-clamped, 0.985 friction, seek suppressed. Straight
-// travel is `v0·(1-0.985^N)/0.015` with `N = VOLLEY_HOLD·60`, so 1.5s at 7.2 was 357px of dead-straight
-// flight and a measured **449px** peak reach once the shockwave's own push on the same flip is added.
-// 1.5 → 1.75s, which with the faster launch measures a **542px** peak (launch 9.05 → 10.25 px/frame,
-// and it is still un-clamped at 1.5s, where before it was already being reeled home).
-// (The comment here used to claim "~640px of dead-straight travel" at the OLD values, which was never
-// true — it read the asymptote of the friction series instead of its 90-frame sum. Measured this time.)
+// travel is `v0·(1-0.985^N)/0.015` with `N = VOLLEY_HOLD·60` — 542px peak reach once the shockwave's own
+// push on the same flip is added, and still un-clamped at the 1.5s mark. Read that sum, not its
+// asymptote: the difference is roughly 2× and the asymptote is what an earlier figure here got wrong.
 //
-// WHAT THIS DOES NOT DO: it does not make long-range fighting work. Measured across 8 seeded fights per
-// kind at 150 / 300 / 400px, before and after, the outcomes are IDENTICAL at every range — because the
-// binding constraint out there was never reach, it is that ring fire is radial and the Anomaly subtends
-// ~4.6% of the circle at 300px. More reach delivers more shots to where you were already not aiming.
+// REACH IS NOT RANGE, and more of it does not make long-range fighting work. Measured across 8 seeded
+// fights per kind at 150 / 300 / 400px, before and after the buff, outcomes are IDENTICAL at every
+// range — the binding constraint out there is that ring fire is RADIAL and the Anomaly subtends ~3.9%
+// of the circle at 300px. More reach delivers more shots to where you were already not aiming.
 // There is deliberately no steering term — see flip().
 const VOLLEY_HOLD=1.75;
-// EROSION PRICES (2026-07-29). The two deliberate channels were worth 2 and 1 against a boss of
-// 13+act*5 HP, so an Epoch IV Anomaly cost 17 connecting bodies — the fight read as a chip-damage
-// slog, and the only thing that actually killed bosses was the Collapse cascade bug fixed below.
-// With that cascade gone the intended path has to carry the whole fight, so both channels are
-// repriced UP while keeping the ordering that gives them meaning: aimed beats opportunistic beats
-// drift (which still pays nothing — GLOSSARY §7, "drifting into it pays nothing").
-// 3 → 2, and the HP pool went 27/35/42 → 15/20/25 in the same pass (see spawnBoss). Read the two
-// numbers together or neither makes sense: a fight is priced in CONNECTING BODIES, not in damage.
-//   Epoch I   27 hp ÷ 3 = 9 bodies   →   15 ÷ 2 = 8
-//   Epoch III 42 hp ÷ 3 = 14 bodies  →   25 ÷ 2 = 13
-// So the fight is barely shorter. What moved is the GRAIN. At 3 into a 27 pool, one connecting body is
-// 11% of the bar and the last body is worth 3 into a 2-HP boss — a third of every purge was overkill
-// thrown at a corpse. At 2 into 15 the same body is 13% but the pool divides evenly, so the bar steps
-// in units it actually has. The smaller unit also means a radial discharge that lands 3 bodies instead
-// of 4 costs you a smaller fraction of the shot, which is the difference range already punishes.
+// EROSION PRICES. The ordering is what gives the three channels meaning: aimed beats opportunistic
+// beats drift, which pays nothing at all (GLOSSARY §7).
+// A FIGHT IS PRICED IN CONNECTING BODIES, NOT IN DAMAGE — read this against the pool in spawnBoss or
+// neither number means anything. 15 ÷ 2 = 8 bodies at Epoch I, 25 ÷ 2 = 13 at Epoch III.
+// 2 also divides the pool evenly, so the bar steps in units it actually has and the last body of a
+// purge is not overkill thrown at a corpse. Keep that property if either number moves.
 const VOLLEY_DMG=2;      // per body that connects — aimed and guided, the highest price in the game
 const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrades) — Overdrive widens it only while its timer runs
 
 // =====================================================================
 //  POWERUPS  — the ONLY progression. No level-ups, no permanent upgrades.
 //  Matter occasionally drops a glowing orb; steer your star into it for an
-//  INSTANT, TEMPORARY effect. Timed effects just toggle the tuned physics
-//  flags that used to be permanent perks — so every effect rides code the
-//  game already balanced, it simply expires.
+//  INSTANT, TEMPORARY effect. Timed effects just toggle tuned physics
+//  flags, so every effect rides code the game already balanced — it
+//  simply expires.
 // =====================================================================
 const POW=[
   {id:'aegis',     ic:'🛡', nm:'Aegis',       col:'#7fe9ff', dur:6.0, kind:'timed',   ds:'a shield turns aside every hit'},
@@ -699,8 +624,7 @@ const FX={aegis:0, overdrive:0}; // remaining seconds of each timed effect
 
 // THE ROSTER IS THREE, AND A THREE-WIDE BAG IS THE THING TO WATCH. The noNova down-weight spreads over
 // three entries, so over 6000 rolls: Aegis 45.1%, Overdrive 43.9%, Nova 11.0% — the most common pickup
-// in the game is also the dullest one. (Singularity and Cryo were removed and excised; ROADMAP has the
-// dated entries and `git log` has the code.)
+// in the game is also the dullest one.
 
 // map the live effect timers onto the physics flags every frame, then tick them down
 function stepFX(dt){
@@ -803,13 +727,11 @@ const ETYPE={
   mini:   {r:7,  hp:1, mass:0.6,  maxsp:5.2, seek:0.38, dmg:6},
   neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:15},
   orbiter:{r:10, hp:1, mass:0.9,  maxsp:4.7, seek:0.30, dmg:11}, // curves around the core
-  // BOMBER, 2026-08-02: dmg 26 -> 10, Drifter parity. Player brief: "reduce bomber damage to normal
-  // dots ... removing shield and player intentions." The impact was never only its HP cost — every hit
-  // also zeroes `combo` and HALVES `motesBank` (see breakStreak), so at 26 the Bomber was the body most
-  // likely to land the blow that deletes the multiplier you spent the run building. It is now an
-  // ordinary dot in every stat, and its spiked hull is species identity rather than a threat warning.
-  // NOTE this leaves it strictly weaker than a Drifter — same damage, slower (2.5 vs 3.4), lower seek,
-  // and a much bigger target at r=17. That is a deliberate consequence of the brief, not an oversight.
+  // BOMBER at Drifter parity (10) on purpose. A hit costs more than its HP: it also zeroes `combo` and
+  // HALVES `motesBank` (see breakStreak), so a big number here makes this the body most likely to delete
+  // the multiplier a whole run built. Contact is deliberately NOT where the Bomber is dangerous —
+  // strictly weaker than a Drifter (same damage, slower, lower seek, far bigger target at r17). Its
+  // threat is the 120px detonation in bomberBlast, which costs you no health at all, only your hoard.
   bomber: {r:17, hp:1, mass:1.5,  maxsp:2.5, seek:0.17, dmg:10},
   charger:{r:13, hp:1, mass:1.0,  maxsp:3.0, seek:0.14, dmg:16}, // telegraphs then dashes; ignores your field
 };
@@ -827,12 +749,9 @@ function spawnEnemy(type,color,x,y){
   enemies.push(e);
   return e;   // formations need the body back so they can place it and hold it in shape
 }
-// Ambient matter must ARRIVE, not appear. `m` was a flat 30 for every species, so a body's leading edge
-// broke the screen almost immediately: a Brute (r=20) had 10px of clearance, a Drifter 19, a Bomber 13.
-// Bodies spawn at rest, but the eye still reads a shape that is half on-screen on its first frame as
-// having popped into existence rather than come from somewhere. The margin is now the body's OWN radius
-// plus a fixed clearance, so every species — Drifter to Brute — enters with the same off-screen approach
-// regardless of how big it is, which a single flat number cannot give you.
+// Ambient matter must ARRIVE, not appear. The margin is the body's OWN radius plus a fixed clearance,
+// so every species from Drifter to Brute enters with the same off-screen approach regardless of size —
+// a single flat number cannot do that, and leaves a Brute breaking the screen edge almost immediately.
 // Formations are deliberately NOT covered by this: the Noose and the Pulse materialise around you on
 // purpose and cannot come from off-screen without ceasing to be what they are. That is a telegraph
 // problem, not a spawn-position one.
@@ -845,17 +764,15 @@ function spawnAtEdge(type,color){
   else if(side===2){x=rand(-m,W+m);y=H+m;}
   else{x=-m;y=rand(-m,H+m);}
   const e=spawnEnemy(type,color,x,y);
-  // ENTER MOVING. Bodies spawn at rest and accelerate under seek, so the extra clearance above would
-  // otherwise be crossed as a slow crawl — pure added grace. Measured over 8 seeded 40s runs, the
-  // margin alone lifted median HP-at-40s from 42.0 to 63.1 (+50%) while leaving median score flat at
-  // ~6790: the same game, just softer. Handing each body the inward velocity it would have built over
-  // that distance keeps the arrival clock roughly where it was, and reads better besides — matter now
-  // flies in from off-screen instead of drifting in.
-  // Straight in along the EDGE NORMAL, not toward the centre and not at you. Aiming at the centre was
-  // measured and rejected: it funnels every side into one point, so opposite colours meet and delete
-  // each other before reaching you — median HP went the wrong way (63.1 -> 77.2) and live bodies FELL
-  // 41 -> 36.5. Aiming at the player would make every body a homing shot from birth; seek already does
-  // the tracking. The normal just carries it across its own margin and leaves the spread intact.
+  // ENTER MOVING. Bodies accelerate under seek from rest, so without this the clearance above would be
+  // crossed as a slow crawl — pure added grace, worth +50% median HP-at-40s on its own. Handing each
+  // body the inward velocity it would have built over that distance keeps the arrival clock where it
+  // was, and matter flies in rather than drifting in.
+  // Straight in along the EDGE NORMAL, not toward the centre and not at you. Aiming at the centre
+  // funnels every side into one point, so opposite colours delete each other before reaching you
+  // (measured: live bodies fell 41 → 36.5). Aiming at the player makes every body a homing shot from
+  // birth, and seek already does the tracking. The normal carries it across its own margin and leaves
+  // the spread intact.
   if(e){ const sp=e.maxsp*0.55;
          if(side===0) e.vy=sp; else if(side===1) e.vx=-sp;
          else if(side===2) e.vy=-sp; else e.vx=sp; }
@@ -893,23 +810,16 @@ function spawnStormSurge(col,n){
 // one way through, a noose closing on you — and you get a beat of "...what?" before you read the
 // shape and solve it.
 //
-// TWO shapes, not four. The old roster had four names for two ideas: GATE and COMB were both "a line
-// marches across the arena with holes in it" (13 dense slots vs 4 sparse lanes, otherwise identical),
-// and VICE was a NOOSE that only closed on one axis — and stopped 200px short of closing at all.
-// Merged down, each survivor gets to be solid instead of decorative.
-//
-// Three rules make a shape a shape. All three were broken before, and every old shape could be beaten
-// by standing still or pressing one key:
+// THREE RULES MAKE A SHAPE A SHAPE. Break any one and it is decoration:
 //   1. SPACING UNDER 52px. Contact is core r15 + body r11 = 26px centre-to-centre, so any pair spaced
-//      wider than 52 has a walkable midpoint. The old shapes sat at 66-200px — picket fences you could
-//      stroll through anywhere, which made "one gap" purely decorative.
+//      wider than 52 has a walkable midpoint and "one gap" becomes purely decorative.
 //   2. ALTERNATE EVERY BODY. Same-colour matter passes through the core untouched (and loads your
-//      rings), so ANY run of two same-colour bodies is a free door that costs one keypress. Blocks of
-//      two were coarser than the player's own 30px footprint, so you only ever met one colour at a
-//      time. Per-body alternation means you always straddle two opposites: no polarity is ever safe.
-//   3. NEVER END ON A TIMER ALONE. Every old shape crossed, dissolved, and that was that. Now the
-//      Wall's gap SHUTS as it advances and the Wall turns around for a second pass, and the Noose's
-//      seam ROTATES as it closes. Ignoring a shape makes it worse instead of making it go away.
+//      rings), so ANY run of two same-colour bodies is a free door that costs one keypress — and blocks
+//      of two are coarser than the player's own 30px footprint, so you would only ever meet one colour
+//      at a time. Per-body alternation means you always straddle two opposites: no polarity is safe.
+//   3. NEVER END ON A TIMER ALONE, or standing still beats it. The Wall's gap SHUTS as it advances and
+//      the Wall turns around for a second pass; the Noose's seam ROTATES as it closes. Ignoring a shape
+//      has to make it worse rather than make it go away.
 const FORM_SPD=2.4;
 const FORM_STEP=44;                          // < 52 (= 2x contact radius): no walkable midpoint anywhere
 const formAlt=i=>(i%2===0)?'red':'cyan';     // every body flips — no safe polarity on any shape
@@ -925,8 +835,7 @@ function holdOrbit(e,cx,cy,a,r,vr,va,secs){
 // THE WALL — a solid line spans the arena and marches across. One gap, and the gap SHUTS behind it:
 // the two bodies flanking it slide inward over the crossing, so the door is widest the moment it
 // arrives and a squeeze by the far side. Reaching the far edge the whole line TURNS and comes back
-// once, door still narrowed. (Absorbs the old GATE and COMB, which were the same object at two
-// densities.)
+// once, door still narrowed.
 function formWall(){
   const horiz=Math.random()<0.5, dir=Math.random()<0.5?1:-1, m=80;
   const span=horiz?H:W;
@@ -936,13 +845,10 @@ function formWall(){
   const hold=cross*2+0.6;                          // out AND back — ignoring it does not end it
   const CLOSE=Math.max(0,(3*step-FORM_STEP*1.6)/2);// px each flank slides toward the gap
   const lat=CLOSE/(cross*60);                      // per-frame lateral drift
-  // THE WALL LETS GO IN TWO POLARITY WAVES, for the same reason the Noose does (NOOSE_WAVE, 2026-07-31).
-  // `formAlt` makes every neighbour the opposite charge, so when the whole line lapsed on ONE frame it
-  // became a row of ordinary bodies each standing next to its own annihilator: they converge down the
-  // field, interleave, and delete each other. MEASURED before the fix, over 6 Lab walls: the vertical
-  // orientation lost 16-22 of 29 bodies IN PAIRS, all of it after the flight ended — 55-76% of the shape
-  // killing itself with the player uninvolved. (The horizontal wall is the same shape with twice the
-  // traverse; it simply had not got there yet inside the measurement window.)
+  // THE WALL LETS GO IN TWO POLARITY WAVES, for the same reason the Noose does (NOOSE_WAVE). `formAlt`
+  // makes every neighbour the opposite charge, so a line that lapsed on ONE frame would be a row of
+  // ordinary bodies each standing next to its own annihilator — they converge, interleave and delete
+  // each other, which measured 55-76% of the shape killing itself with the player uninvolved.
   // Staggering the release by colour means adjacent bodies are never loose in the field together. Keyed
   // off gapAt's parity so it varies per wall without spending another rand(), exactly as the Noose does.
   const late=(gapAt%2===0)?'red':'cyan';
@@ -964,29 +870,23 @@ function formWall(){
 }
 // THE NOOSE — a ring shuts on where you stand and its seam ROTATES as it comes in, so the way out is
 // never where you last looked. It stops at the tightest radius it can hold and CAGES you there; the seam
-// is the answer. (Absorbs the old VICE, which was this shape flattened onto one axis.)
+// is the answer.
 //
-// WHY IT STOPS. Bodies on a ring of S slots sit a chord of 2R·sin(π/S) apart, so a ring that keeps its
-// body count while it shrinks runs its own spacing down to nothing. Two thresholds bracket that number:
-// 52px (2× core contact) is where a gap becomes walkable, and 22px (2× body radius) is where the ring
-// ANNIHILATES ITSELF on the colour law — the same rule that makes the Sorter's two walls end each other.
-// The old Noose ignored the lower one and aimed at the centre, so every single body died in the SAME
-// frame at R=77 (measured: 20 of 20), and it never came within 77px of a player standing perfectly still
-// at the centre. The shape deleted itself, and the comment here claimed it "travels past the centre, so
-// standing still is not an option". Both halves of that were false for the shape's whole life.
+// WHY IT STOPS, and why it cannot simply be tightened. Bodies on a ring of S slots sit a chord of
+// 2R·sin(π/S) apart, so a ring that keeps its body count while it shrinks runs its own spacing down to
+// nothing. Two thresholds bracket that: 52px (2× core contact) is where a gap becomes walkable, and 22px
+// (2× body radius) is where the ring ANNIHILATES ITSELF on the colour law — the same rule that ends the
+// Sorter. A ring of N converging bodies self-annihilates at 22/(2·sin(π/N)) and only touches you at 26,
+// and those cross ONLY FOR N<8. Any ring dense enough to be a wall deletes itself before it arrives.
+// Hence the design: the RING stops at NOOSE_MIN_R where it is still a wall, and FIVE STRANDS keep going,
+// because five is under eight and can therefore reach you. Stopping the ring alone leaves a still player
+// untouched at 104px, so the bite is not optional.
 //
-// A ring of N converging bodies self-annihilates at 22/(2·sin(π/N)) and only touches you at 26, and
-// those two cross only for N<8. That is the whole design: the RING stops at NOOSE_MIN_R, where it is
-// still a wall, and FIVE STRANDS keep going, because five is under eight and can therefore arrive.
-// Stopping the ring alone was measured and rejected — it left a still player untouched at 104px, which
-// is worse than the bug, since the old shape at least reached 77.
-//
-// Peeling the bite out of the ring costs the cage five one-slot doors, and that is the good half of the
-// trade. Measured on the locked cage: one 88px seam with 36px of clearance, four 59.7px needles whose
-// midpoints sit 29.9px from each flank against a 26px contact (a 7.7px thread), and eleven 30.2px spans
-// that are simply wall. A bot bolting blind on each of 24 bearings at the moment of the lock was stopped
-// on 22 and on 18 across two sweeps — the spread is ambient traffic and where the bite slots fall against
-// the seam. The shape asks three questions at once: dodge the bite, thread a needle, or find the seam.
+// Peeling the bite out costs the cage five one-slot doors, which is the good half of the trade. Measured
+// on the locked cage: one 88px seam with 36px of clearance, four 59.7px needles whose midpoints sit
+// 29.9px from each flank against a 26px contact (a 7.7px thread), and eleven 30.2px spans that are
+// simply wall. A bot bolting blind on each of 24 bearings at the lock was stopped on 22 and on 18 across
+// two sweeps. The shape asks three questions at once: dodge the bite, thread a needle, or find the seam.
 const NOOSE_SLOTS=22;
 const NOOSE_CHORD=2*Math.sin(Math.PI/NOOSE_SLOTS);   // spacing per unit radius (0.285) — both thresholds divide by this
 const NOOSE_MIN_R=Math.ceil(30/NOOSE_CHORD);         // 106px: 30px spacing, 8px clear of self-contact, well inside walkable
@@ -996,44 +896,30 @@ const NOOSE_BITE_R=24;                               // inside core contact (26)
 const NOOSE_CAGE=1.6;                                // seconds the ring holds shut before the flight lapses
 const NOOSE_BITE_DWELL=1.4;                          // the bite sits on you a beat longer than the ring holds
 const NOOSE_SPIN=0.38;                               // rad/s of seam rotation — ~130 deg over a full closure
-// HOW IT LETS GO — and this is where a shape lives or dies, not where it stops. Released as one
-// synchronised shell a body-gap apart, the cage funnels straight back down the polarity field onto the
-// core, and since rule 2 alternates every body, adjacent neighbours are ALWAYS opposite. The field then
-// moves the two colours at completely different speeds — same-colour is hauled in and captured into your
-// rings, opposite only drifts at 1.35 px/frame — so neighbours interleave and detonate within five frames
-// of release. Measured: 12 of 20 dying in pairs at the cage radius, which is the "it pops at the end" the
-// shape was reported for.
+// HOW IT LETS GO — and this is where a shape lives or dies, not where it stops. Rule 2 makes every
+// neighbour opposite, and the field then moves the two colours at completely different speeds
+// (same-colour hauled in and ring-captured, opposite only drifting at 1.35 px/frame), so a cage released
+// as one shell interleaves and detonates within five frames.
 //
-// Two fixes were built and measured before this one, and both are recorded because both were wrong:
-//   RELEASE EARLIER, at a wide radius. Swept over release radii 106/150/200/300 x stagger 0/0.6/1.5s, a
-//     cut at 300px left as few survivors as one at 106. Chord scales with radius, so a converging ring
-//     always meets itself at R=77 no matter where it was set free.
-//   BLOOM OUTWARD on release, 112px of `flung` travel. It separated the ring exactly as intended (peak
-//     radius 223) and still lost 7.4 bodies to each other, because the field simply re-converged them —
-//     and it threw them out through your ring orbit and back, so MORE of them died to the grind (6.4 vs
-//     4.4) and FEWER ever reached you (2.8 vs 4.8).
+// The fix comes from the colour law, not from geometry: SAME-COLOUR MATTER CANNOT ANNIHILATE ITSELF, so
+// letting the two polarities go in separate waves means adjacent pairs are never in the field together.
+// Of ~15.5 cage bodies, mutual kills 4.0 standing still, and 2.3 reach you.
+// TWO GEOMETRIC ALTERNATIVES DO NOT WORK, both measured: releasing at a wider radius changes nothing,
+// because chord scales with radius and a converging ring always meets itself at R=77 wherever it was set
+// free; and blooming outward on release separates the ring exactly as intended and the field simply
+// re-converges it, while throwing it out through your own ring orbit so MORE of it dies to the grind.
 //
-// What helps costs one line and comes from the colour law rather than from geometry: SAME-COLOUR MATTER
-// CANNOT ANNIHILATE ITSELF. Let the two polarities go in separate waves and adjacent pairs are never in
-// the field together. Of ~15.5 cage bodies, mutual kills fall 9.7 -> 4.0 with you standing still and
-// 6.5 -> 5.3 with you moving; bodies that reach you rise 0.7 -> 2.3.
-//
-// AND THE PART THAT IS NOT THIS SHAPE'S FAULT, measured with a control: sixteen ORDINARY bodies simply
-// placed on the same 106px ring around a still player — never in a formation, no flight, no script —
-// annihilate **16 of 16**. A dense alternating group near your core always eats itself, because the field
-// moves the two colours at different speeds and they cross. That is the game's physics, not the Noose's
-// bug. The shape cannot beat the field; it can only be less bad than it. It now loses 4 of 15.5 where
-// raw matter in the same place loses everything, and closing the rest would mean breaking either rule 2
-// or the colour law. Do not chase it to zero.
+// AND THE PART THAT IS NOT THIS SHAPE'S FAULT, measured with a control: sixteen ORDINARY bodies placed
+// on the same 106px ring around a still player — no formation, no flight, no script — annihilate 16 of
+// 16. A dense alternating group near your core always eats itself. The shape cannot beat the field, only
+// be less bad than it; closing the last 4 would mean breaking rule 2 or the colour law. Do not chase it.
 const NOOSE_WAVE=0.8;                                // seconds between the two polarities letting go
 function formNoose(){
   const cx=P?P.x:W/2, cy=P?P.y:H/2;
-  // START CLEAR OF THE SCREEN. It was max(W,H)*0.58 — a constant that ignored where you actually are,
-  // so at 1280x800 the ring spawned at 742 against a 754 corner distance and its four diagonal arcs were
-  // ON SCREEN from the first frame. Stand off-centre and a whole flank of it materialised in open space.
-  // Measuring from the FARTHEST CORNER guarantees every slot starts outside the viewport wherever you
-  // are standing. The cage geometry is untouched (NOOSE_MIN_R still 106) — only the approach lengthens,
-  // and `close` derives from R, so the ring simply spends longer visibly coming for you.
+  // START CLEAR OF THE SCREEN. Measured from the FARTHEST CORNER, not from a constant fraction of the
+  // viewport: a constant ignores where you are standing, so an off-centre player gets a whole flank of
+  // the ring materialising in open space. The cage geometry is untouched (NOOSE_MIN_R still 106) — only
+  // the approach lengthens, and `close` derives from R, so the ring spends longer visibly coming.
   const R=Math.max(Math.hypot(cx,cy), Math.hypot(W-cx,cy),
                    Math.hypot(cx,H-cy), Math.hypot(W-cx,H-cy)) + 70;
   const N=NOOSE_SLOTS, gapAt=irand(0,N-1);
@@ -1067,19 +953,15 @@ function formNoose(){
 // And an arc is honest about what it is: a front arriving from one direction, which leaves running
 // around its edge as a real second answer beside flipping.
 const PULSE_ARC=2.62;                              // ~150° of front
-// ARC COUNT AND SPACING (2026-08-03). Player brief: "gap between pulse walls are too short, and let's
-// reduce them to 2 walls. it would be hard if done in complex fights."
-// Both halves of that are the same complaint. Three arcs at 70px apart arrive **0.49s** apart — and the
-// game's own standard for "a warning you can act on" is CHG_WIND 0.9s and LUNGE_TEL 1.3s, set by the two
-// telegraphs that were explicitly retuned until they were actionable. The Pulse was asking for a polarity
-// decision on less than half the notice the Charger gives you for a dodge, three times in a row, and the
-// answer to an arc is a FLIP — the one input with a cooldown on it.
-// 2 arcs at 150px is **1.04s** apart, inside that established band, and it drops the shape from 3N to 2N
-// bodies (up to 102 -> 68), which is the "complex fights" half.
-// The spacing must stay in RADIUS, not time: every arc passes through the player's radius `arrive`, so
-// per-arc density at the moment it reaches you is identical whatever R is (PULSE_ARC*arrive/(N-1)). R
-// buys arrival time and nothing else. R must also stay under `back` (190-230) or the outer arc pokes
-// back on-screen at spawn and loses the 0%-visible-at-birth property.
+// ARC COUNT AND SPACING. Arrival gap is `ΔR/FORM_SPD` and nothing else, because every arc passes through
+// the player's radius `arrive` at `(arrive-R)/FORM_SPD`. At 2 arcs 150px apart that measures 1.22s, which
+// sits inside this game's own band for an actionable warning — CHG_WIND 0.9s, LUNGE_TEL 1.3s, both set by
+// telegraphs retuned until they could be answered. The Pulse asks for a POLARITY decision and the answer
+// is a flip, the one input carrying a cooldown, so it needs the full warning.
+// THE SPACING MUST STAY EXPRESSED IN RADIUS, NOT TIME: per-arc density where it reaches you is
+// PULSE_ARC*arrive/(N-1) whatever R is, so R buys arrival time and nothing else. R must also stay under
+// `back` (190-230) or the outer arc pokes back on-screen at spawn and loses the 0%-visible-at-birth
+// property.
 const PULSE_ARCS=2;                                // was 3
 const PULSE_GAP=150;                               // px between arcs -> 150/FORM_SPD/60 = 1.04s (was 70 -> 0.49s)
 function formPulse(){
@@ -1090,12 +972,11 @@ function formPulse(){
   // walkable. Measured bound is ~675, so 620 is the ceiling with margin. This is why the Pulse CANNOT
   // originate fully off-screen the way the Noose and the Wall do: it would stop being a wall. Same
   // family of result as the Noose's N<8 bound — geometry, not tuning.
-  // Pick an EDGE to come from, rather than a free bearing. A random bearing at a fixed distance put the
-  // origin on-screen whenever it pointed along the long axis (500-620 against a 640 half-width), and the
-  // arcs live within 170 of the origin, so they spawned in open space: 45.8% of Pulse bodies were
-  // visible on the frame they were created. Measuring to the edge instead makes the required distance
-  // depend on where you actually are, which is also what keeps `arrive` inside the density bound — the
-  // nearest edge is always closer than the far corner.
+  // Pick an EDGE to come from, rather than a free bearing. A random bearing at a fixed distance puts the
+  // origin on-screen whenever it points along the long axis, and the arcs live within 170 of it, so they
+  // spawn in open space. Measuring to the edge makes the required distance depend on where you actually
+  // are, which is also what keeps `arrive` inside the density bound — the nearest edge is always closer
+  // than the far corner.
   const cand=[[px,-1,0],[W-px,1,0],[py,0,-1],[H-py,0,1]];   // [distance to that edge, outward x, outward y]
   let pool=cand.filter(c=>c[0]<=420);                        // edges close enough to stay dense
   if(!pool.length) pool=[cand.reduce((a,b)=>b[0]<a[0]?b:a)]; // dead centre of a huge arena: nearest wins
@@ -1111,27 +992,21 @@ function formPulse(){
   // spaced for the radius where it MEETS you, not where it spawns: it fans out as it expands, so
   // sizing at spawn would leave it walkable by the time it mattered
   const N=clamp(Math.ceil(PULSE_ARC*arrive/FORM_STEP), 10, 34);
-  // THE PULSE LEAVES THE SKY (2026-08-03). Player brief: "too many bullets when pulse finished, what
-  // about just let it go away in screen and disappear."
-  // It used to expand to 300px past you and then LAPSE — and a lapsed formation body becomes an ordinary
-  // hunter. Three arcs of up to 34 is up to 102 bodies, so the shape's aftermath was bigger than the
-  // shape, and it arrived all at once with no telegraph of its own. That is the "bullets": not the wave,
-  // the sediment behind it. It sweeps THROUGH now and keeps going until it is off-screen, then retires.
+  // THE PULSE LEAVES THE SKY. It sweeps THROUGH and keeps going until off-screen, then retires — a
+  // lapsed formation body becomes an ordinary hunter, so letting 68 of them lapse over you drops an
+  // aftermath bigger than the shape, arriving with no telegraph of its own.
   // `far` is the distance from the origin to the furthest padded corner, so an arc at ANY bearing is
-  // guaranteed to be outside the viewport before its hold can run out — the timer is only a failsafe,
-  // the position test below does the real work. Bounded expansion also answers the old worry recorded
-  // here (an arc at R=1700 whipping its own tangential speed absurd): `va` is 0.14/frames ≈ 0.0008
-  // rad/frame, so even at the far corner the tangential is ~1.9 px/frame, under FORM_SPD itself.
+  // guaranteed outside the viewport before its hold can run out — the timer is only a failsafe, the
+  // position test below does the real work. Expansion stays bounded enough that tangential speed never
+  // runs away: `va` ≈ 0.0008 rad/frame, so even at the far corner that is ~1.9 px/frame, under FORM_SPD.
   const PM=60;
   const far=Math.max(Math.hypot(-PM-cx,-PM-cy), Math.hypot(W+PM-cx,-PM-cy),
                      Math.hypot(-PM-cx,H+PM-cy), Math.hypot(W+PM-cx,H+PM-cy));
   for(let k=0;k<PULSE_ARCS;k++){
-    // Nested, outermost oldest so it lands first — but sized from the ORIGIN now, not backwards from
-    // you. It used to be `arrive-140-k*130`, which put the leading arc 140px from your face: the shape
-    // did not travel, it materialised on top of you and then expanded. Starting near the origin instead
-    // puts the fronts hundreds of px away at spawn — at or past the screen edge for most bearings — so
-    // they sweep in across the sky. Spacing at the meeting radius is untouched, because N is sized on
-    // `arrive` and `arrive` has not moved.
+    // Nested, outermost oldest so it lands first, and sized from the ORIGIN rather than backwards from
+    // you — sizing from the player puts the leading arc a fixed distance from your face, so the shape
+    // materialises on top of you and then expands instead of travelling. Spacing at the meeting radius
+    // is unaffected either way, because N is sized on `arrive`.
     const R=170-k*PULSE_GAP;                       // 170 / 20 from the origin; 1.04s apart on arrival
     const col=(k%2===0)?'red':'cyan';              // ONE colour per arc — the whole point
     // `o.a += o.va` steps PER FRAME, so the drift has to be divided by frames of flight, not seconds.
@@ -1178,9 +1053,8 @@ function formSorter(){
 // decoration. Its nucleus is a Brute, so intercepting it is a real hit and not a tap.
 // IT CROSSES AND LEAVES. The flight is solved to end past the FAR edge, and a comet that gets there is
 // retired (see the lapse in the flight branch of stepEnemies). Miss it and you lost the opportunity
-// rather than gained an enemy — which is what an event is, and what the sentence above always claimed
-// it was. It used to strand itself mid-sky and hunt you as one more Brute, i.e. become exactly the
-// "this turn's shape" the timer below exists to stop it being.
+// rather than gained an enemy — which is what makes it an event. Strand it mid-sky and it is just one
+// more Brute hunting you, i.e. exactly the "this turn's shape" the timer below exists to prevent.
 const COMET_SPD=7.6;
 function formComet(){
   const edge=irand(0,3), m=120;
@@ -1195,8 +1069,8 @@ function formComet(){
   const ux=dx/d, uy=dy/d;
   // Distance to clear the far side, SOLVED rather than guessed: ray-vs-box against the viewport padded
   // by the same margin it spawned outside of. One fixed distance cannot serve both a level crossing and
-  // a steep corner-to-corner one, which is why the old `d+m*3` left it on screen — it is aimed at a
-  // point near the middle, so the far half of the journey is never the same length as the near half.
+  // a steep corner-to-corner one — it is aimed at a point near the middle, so the far half of the
+  // journey is never the same length as the near half.
   // Both components are finite-guarded: (ux,uy) is a unit vector, so at least one axis always crosses.
   const ex = ux>0 ? (W+m-x)/ux : ux<0 ? (-m-x)/ux : Infinity;
   const ey = uy>0 ? (H+m-y)/uy : uy<0 ? (-m-y)/uy : Infinity;
@@ -1256,22 +1130,20 @@ function director(dt){
   if(elapsed>42 && wavePhase!=='boss' && !labMode){   // in the Lab nothing arrives unless you press for it
     formT-=dt;
     if(formT<=0){ formT=rand(30,46); spawnFormation(); }
-    // The comet on its own, much longer clock. MEASURED, because the first attempt at "rarer" was
-    // wrong: in the formation rotation it was 1-in-5 of ~6.8 formations per 10 minutes = **1.4**, and a
-    // 75-120s timer produced **3**, i.e. twice as often as before. Note this timer only advances outside
-    // a boss, which is just ~301s of any 600s run, so the wall-clock gap is about double the interval.
+    // The comet on its own, much longer clock, tuned to ~1 per 10 minutes. NOTE THIS TIMER ONLY ADVANCES
+    // OUTSIDE A BOSS — roughly half a run — so the wall-clock gap is about double the interval, which is
+    // what makes a naive "make it rarer" pass land at twice the intended rate.
     cometT-=dt;
     if(cometT<=0){ cometT=rand(200,300); formComet(); }
   }
   // phase timing
   if(wavePhase!=='boss'){ phaseT-=dt; if(phaseT<=0) advancePhase(); }
-  // THE ANOMALY NO LONGER LEAVES (2026-08-03). It used to flee at 60s, and fleeing called
-  // onBossCleared() — which increments `act`. So running out the clock handed you the Epoch advance for
-  // free, and the fight had a second win condition that asked nothing of you. There is now exactly one
-  // way past an Anomaly: purge it. `bossTime` still ticks, because the HUD and the ledger read it.
+  // THERE IS EXACTLY ONE WAY PAST AN ANOMALY: PURGE IT. No clock, no flee — a second win condition that
+  // runs on a timer asks nothing of the player, and the one that existed here also handed out the Epoch
+  // advance for free, because leaving called onBossCleared(). `bossTime` still ticks; the HUD reads it.
   // No soft-lock: Collapse chips a flat 15% whatever the field looks like, so seven of them end any
-  // Anomaly on their own, and every other erosion path (volley, ring grind, the baited charge) is still
-  // open. The failure mode is losing the run, which is the correct failure mode for a boss.
+  // Anomaly unaided, and volley / ring grind / baited charge are all still open. The failure mode is
+  // losing the run, which is the correct failure mode for a boss.
   else { bossTime+=dt; if(!boss || boss.dead) onBossCleared(); }
   // STORM SHIFT: halfway through a storm the colour flips — re-decide your polarity mid-wave
   if(wavePhase==='storm' && stormShiftT>0){
@@ -1317,9 +1189,9 @@ function doSpawns(dt){
 // so you counter it by DODGING or by flipping to its colour (same-colour contact is harmless).
 // One source of truth for the dash, because the render draws the lane the physics must fly.
 // CHG_REACH is DECLARED, and the dash ends on DISTANCE COVERED rather than on a clock — the clock is
-// only a failsafe. Deriving the reach from a 0.5s timer instead was measured landing 30px short of the
-// drawn reticle against a 28px contact radius: dead on the lane, and still unable to touch a stationary
-// target. When the render promises a point, the body has to actually get there.
+// only a failsafe. Deriving the reach from a timer instead lands ~30px short of the drawn reticle
+// against a 28px contact radius: dead on the lane and still unable to touch a stationary target.
+// When the render promises a point, the body has to actually get there.
 const CHG_WIND=0.9, CHG_SPD=9.5, CHG_DECAY=0.99, CHG_REACH=250, CHG_DASH=1.2;
 // Seconds a Charger spends SPENT before it re-arms. The armed cycle is ~3.1s (approach 0.8 + wind 0.9 +
 // dash 0.5 + rest 0.9), so 5 makes the majority of its life the window where it is yours, without
@@ -1344,10 +1216,10 @@ function stepCharger(e,dt){
       e.tgx=e.x+e.aimx*CHG_REACH; e.tgy=e.y+e.aimy*CHG_REACH;
     }
   } else if(e.cst==='wind'){
-    // The aim used to be rewritten every frame of the wind-up and only froze on commit — the same defect
-    // the Anomaly's dash had. The line you were shown was never a commitment, so moving during the
-    // wind-up did nothing at all and the telegraph carried no information you could act on. It is locked
-    // on entry now, and the render draws that locked lane out to where the dash actually ends.
+    // THE AIM IS LOCKED ON ENTRY, and the render draws that locked lane out to where the dash actually
+    // ends — the same rule as the Anomaly's dash. Re-aiming during the wind-up makes the line something
+    // other than a commitment, so moving while it winds does nothing and the telegraph carries no
+    // information you can act on.
     e.vx*=0.8; e.vy*=0.8; e.ct+=dt;
     if(e.ct>CHG_WIND){ e.cst='dash'; e.ct=0;
       // re-derive the heading from where it ACTUALLY is to the locked point, so the dash arrives at the
@@ -1361,19 +1233,18 @@ function stepCharger(e,dt){
     if(e.dleft<=0 || e.ct>CHG_DASH){ e.cst='rest'; e.ct=0; }
   } else {                                        // rest — and then it is SPENT
     e.vx*=0.84; e.vy*=0.84; e.ct+=dt;
-    // It used to loop straight back to 'approach', forever. Nothing ended a Charger except killing it,
-    // and killing it is the one thing your Field cannot help with — so the answer to a Charger was to
-    // dodge, and then dodge again, with no point at which the exchange resolved. ("sometimes dodging
-    // just continues so long cuz it survives too long.")
-    // Now the wind-up buys ONE committed dash, and the recovery hands the body back to the field:
+    // A CHARGER MUST NOT LOOP STRAIGHT BACK TO 'approach'. Nothing else ends one except killing it, and
+    // killing it is the one thing your Field cannot help with — so the answer becomes dodge, and dodge
+    // again, with no point at which the exchange ever resolves.
+    // The wind-up buys ONE committed dash, and the recovery hands the body back to the field:
     // `spent` drops it out of stepCharger for good, after which it is ordinary matter — your magnetism
     // reaches it, your rings gather or grind it, a Collapse takes it. Survive the lunge and it becomes
     // yours. That makes the Charger an exchange with an ending instead of a standing tax, and it costs
     // nothing from its dangerous half: the telegraph, the commitment and the kill-lane are untouched.
-    // SPENT IS A COOLDOWN, NOT A RETIREMENT. Retiring it permanently was the first attempt and it solved
-    // the Charger in 3.13s — the threat did not resolve, it was deleted, which is a different and worse
-    // thing. It re-arms after CHG_COOL, so the window is an *opportunity* rather than an ending: kill it
-    // while it is ordinary matter and it is gone for good; ignore it and you buy the lunge again.
+    // SPENT IS A COOLDOWN, NOT A RETIREMENT. Retiring it permanently solves the Charger in ~3s — the
+    // threat does not resolve, it is deleted, which is a different and worse thing. It re-arms after
+    // CHG_COOL, so the window is an *opportunity* rather than an ending: kill it while it is ordinary
+    // matter and it is gone for good; ignore it and you buy the lunge again.
     if(e.ct>0.9){ e.spent=true; e.cool=CHG_COOL; e.cst='approach'; e.ct=0; }
   }
   e.x+=e.vx; e.y+=e.vy;
@@ -1382,17 +1253,15 @@ function stepCharger(e,dt){
 // ---- boss "anomaly" ----
 const bossOpp=c=>c==='red'?'cyan':'red';   // the colour that erodes an Anomaly of colour c
 // Anomaly roster — three kinds, one verb each: CROSS the crossfire, CHASE the orbit, DODGE the rings.
-// THREE kinds, not five. The roster had five names for three fights: four of the five fired the same
-// aimed shots from the same hover, and differed only in a bolted-on gimmick. LUNGER was the Emitter
-// plus a dash; SEEDER was the Sentinel's pincers from a standstill plus a pile of adds. Folded in,
-// nothing is lost — the dash and the adds both survive, attached to the fight they belong to.
+// Three kinds is the ceiling that keeps them distinct: a fourth that fires aimed shots from a hover is
+// the Emitter with a gimmick bolted on, not a fight.
 //
-// THESE `tip` STRINGS RENDER ON THE BOSS'S INTEGRITY BAR (see the bossbar draw), so they are the most
-// -read text in the fight and they must describe something the code can actually produce. Twice now
-// they have not: they said REFLECT TO ERODE after Reflect was removed, and then BAIT ITS FLARES INTO
-// IT after every missile moved to launching from the boss's own body — which is precisely the change
-// that makes baiting impossible. Erosion is the Volley, the ring grind, the baited charge and Collapse;
-// a tip may name a movement answer or the Volley, never a bait.
+// ⚠️ THESE `tip` STRINGS RENDER ON THE BOSS'S INTEGRITY BAR (see the bossbar draw), so they are the most
+// -read text in the fight and they must describe something the code can actually produce. Twice they
+// have gone stale against a mechanic change and told players to do the impossible. Erosion is the
+// Volley, the ring grind, the baited charge and Collapse; a tip may name a movement answer or the
+// Volley, NEVER a bait — every missile launches from the boss's own body, so nothing can be baited
+// back through it.
 const ANOM={
   // EMITTER — the teacher, and always the first Anomaly of a run, so its tip carries the loop itself.
   // Hovers, alternates a hexagon crossfire BURST and a sweeping spiral STREAM. From Epoch II it also
@@ -1449,30 +1318,22 @@ function testPick(i){                          // 1-3 → jump to a specific kin
 function spawnBoss(forceVariant){
   const col=Math.random()<0.5?'red':'cyan';
   const variant = forceVariant || pickAnomalyVariant();
-  // `round((13+act*5)*1.5)` → `10+act*5` (2026-08-03). 27/35/42/50/57 → **15/20/25/30/35**.
-  // The ×1.5 went on in 2026-07-31 for a reason that has since been paid for twice over: the grind had
-  // doubled to 1 and the baited charge had gone to 5, so an 18 HP Epoch I boss would have fallen to a
-  // hoard alone. Since then the baited charge went 5 → 12 and the Anomaly stopped fleeing — it has no
-  // clock and no second win condition, so the ONLY way out is purging it. A pool sized for "long enough
-  // to ask the loop for more than one answer" and a fight with no exit are different problems, and
-  // stacking them made the third answer a chore rather than a question.
-  // The slope is the ORIGINAL +5/Epoch, restored; only the intercept moved (13 → 10, then no multiplier).
-  // Priced in connecting bodies against VOLLEY_DMG 2 — see there — the purge cost barely changes: 9 → 8
-  // at Epoch I, 14 → 13 at Epoch III. The fight is not shorter so much as it is no longer padded.
+  // 15 / 20 / 25 / 30 / 35 across Epochs, +5 per Epoch. THIS POOL AND THE EROSION PRICES ARE ONE NUMBER
+  // IN TWO PLACES — price it in CONNECTING BODIES against VOLLEY_DMG (8 at Epoch I, 13 at Epoch III),
+  // never in raw HP, and reprice the charge with it. The Anomaly has no clock and no second win
+  // condition, so the pool is the entire length of the fight: padding it makes the third answer a chore
+  // rather than a question.
   let hp=10+act*5;
   if(variant==='pulsar') hp=Math.round(hp*0.75); // the kind that moves you rather than out-damaging you — footwork is its answer, so it should not also be the longest fight
   bossN++;
-  // r 44 → 37 (2026-08-03, −15.9%). Player brief: "reduce anomaly size by 15%… contact range is same
-  // as anomaly's visual size." So this is ONE number, not a render scale over an unchanged collider —
-  // the Anomaly obeys the same law as every other body in the sky: what you see is what hits you.
-  // A draw-only shrink was built first and thrown away; it would have put the star's kill edge 22px
-  // outside a hull that looked safe, which is the exact false-radius defect §3 of the glossary exists
-  // to ban. Everything downstream follows the one number, as it should: the star's contact envelope
-  // (`e.r+P.r`) 59 → **52**, the volley/grind connect radius (`e.r+o.r`) drops 7 with it, the hunt's
-  // contact floor, the bounce-out push, the missile launch offset (`b.r+14`, so muzzle-to-launch stays
-  // the 14px it always was) and every shock ring keyed to `b.r*k`.
-  // The cost, stated: ring fire is radial, so a smaller boss is a smaller target — it subtends ~3.9%
-  // of the circle at 300px against 4.6% before. Paid for several times over by the HP cut above.
+  // ⚠️ `r` IS THE HULL *AND* THE COLLIDER — never split them into a draw scale over a separate hitbox.
+  // The Anomaly obeys the same law as every other body: what you see is what hits you. A draw-only
+  // shrink puts the star's kill edge outside a hull that looks safe, the false-radius defect GLOSSARY §2
+  // bans. Everything downstream follows this one number: the contact envelope (`e.r+P.r` = 52), the
+  // volley/grind connect radius (`e.r+o.r`), the hunt's contact floor, the bounce-out push, the missile
+  // launch offset (`b.r+14`) and every shock ring keyed to `b.r*k`.
+  // Its size is also its hittability — ring fire is radial, so this body subtends ~3.9% of the circle at
+  // 300px. Shrinking it makes the fight longer for free; read it against the pool above.
   boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0, dmg:30,
     x:W/2, y:-60, vx:0, vy:0, dead:false, queued:false, ph:0, hexRot:rand(0,TAU), variant, spiral:null,
     fireT:2.2, emitMode:true,                 // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
@@ -1487,11 +1348,10 @@ function spawnBoss(forceVariant){
 // =====================================================================
 //  MISSILES — the Anomaly's entire offence
 // =====================================================================
-// Every missile now launches from the Anomaly's OWN BODY. That single change ends the old bait loop by
-// construction: a shot that starts at the boss cannot be walked back through the boss, so its fire no
-// longer erodes it. The Anomaly is brought down with YOUR matter instead (see the volley in `flip()`),
-// which finally makes the boss fight run on the game's actual weapon rather than on a separate
-// positioning puzzle bolted to the side of it.
+// Every missile launches from the Anomaly's OWN BODY, which closes the bait loop by construction: a
+// shot that starts at the boss cannot be walked back through the boss, so its fire cannot erode it.
+// The Anomaly is brought down with YOUR matter instead (see the volley in `flip()`), so the boss fight
+// runs on the game's actual weapon rather than on a separate puzzle bolted to the side of it.
 //
 // The colours line up on their own, and the loop falls out of rules that already existed:
 //   · a missile is `bossOpp(boss.color)` — the same colour you want to HOLD, because your rings only
@@ -1500,9 +1360,7 @@ function spawnBoss(forceVariant){
 //     your polarity.
 //   · a missile passes straight THROUGH every body — it kills none of them and none of them stops it.
 //     Nothing on the field is cover, so a missile is answered only by moving. Matter is answered by
-//     colour, missiles by position, and the two systems never touch. (This was the third rule tried
-//     here and the only one that reads: annihilate-on-hit cleared your threats for free, and
-//     absorb-on-hit killed nothing yet still looked exactly like the Dot popping.)
+//     colour, missiles by position, and the two systems never touch.
 //
 // FIVE KINDS, each with a different answer, so a fight asks more than one question:
 //   volley — a spread that LEADS your motion.        Answer: cross it; move through the gaps.
@@ -1544,11 +1402,10 @@ function fireMissile(b,a,kind,spOverride){
 }
 // --- the patterns each kind throws ---
 function fireHexVolley(b){                                     // EMITTER: its silhouette, fired
-  // ORIENT the hexagon so one arm leads the Star. Fired at a free-running rotation it was a decorative
-  // starburst that sprayed empty space — measured at 1.8 dps, and *dodging made no difference*, which is
-  // the signature of a pattern that was never aimed at anything. Anchoring one spoke keeps the hexagon
-  // read (it is the Emitter's whole silhouette) while making it a question: one arm is for you, the
-  // other five close the angles you might run to.
+  // ORIENT the hexagon so one arm leads the Star. On a free-running rotation it is a decorative
+  // starburst spraying empty space — 1.8 dps, and dodging makes no difference, which is the signature of
+  // a pattern aimed at nothing. Anchoring one spoke keeps the hexagon read (it is the Emitter's whole
+  // silhouette) while making it a question: one arm is for you, the other five close your exits.
   b.hexRot = leadAngle(b, MSL.volley.sp);
   for(let i=0;i<6;i++) fireMissile(b, b.hexRot + i/6*TAU, 'volley');
   spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*2.4); bossFlash=0.4; sfx.lance();
@@ -1565,8 +1422,8 @@ function firePincer(b){                                        // SENTINEL: two 
 }
 const SPEAR_N=3, SPEAR_SPREAD=0.20;                            // three bullets, 0.20 rad apart
 function fireSpear(b){                                         // EMITTER (Epoch II): the dash, announced
-  // THREE spears, not one. The dash is heavily telegraphed now (LUNGE_TEL) and drives straight past you,
-  // so its punctuation has to cover the angles you might leave BY rather than the single point you are
+  // THREE spears, not one. The dash is heavily telegraphed (LUNGE_TEL) and drives straight past you, so
+  // its punctuation has to cover the angles you might leave BY rather than the single point you are
   // standing ON — the same logic as the hex burst, where one arm leads you and the rest close the exits.
   // Each spear carries its own angular offset (`aoff`) through the re-aim in stepLances, or all three
   // would converge on the identical player-facing angle during their charge and land as one.
@@ -1579,8 +1436,8 @@ function fireSpear(b){                                         // EMITTER (Epoch
 }
 function fireMines(b,n){                                       // PULSAR: ground denial between rings
   // Mines have to arm on ground you might actually WANT, so they are lobbed at scattered points around
-  // the Star, not sprinkled around the Anomaly. Dropped at the boss they armed 270px from anyone and
-  // measured 12 damage across a 40s fight — denying territory nobody was standing in denies nothing.
+  // the Star, not sprinkled around the Anomaly — denying territory nobody is standing in denies nothing
+  // (dropped at the boss they arm ~270px from anyone and measure 12 damage across a 40s fight).
   // Speed is solved from the arming decay so each one arrives and settles roughly where it was aimed:
   // travel = sp * (1-0.965^N)/0.035 with N = arm*60, i.e. ~26.3*sp.
   if(!P) return;
@@ -1629,10 +1486,8 @@ function mineBlast(L){
   if(typeof sfx!=='undefined') sfx.lance();
   if(P && Math.hypot(L.x-P.x,L.y-P.y) < L.blast+P.r) coreHit(20,'Anomaly Mine');
   // The blast touches YOU and nothing else. A mine is a missile, and missiles do not interact with
-  // matter — see stepLances. It used to delete every non-matching body inside the radius, then briefly
-  // scattered them instead; both were the same category error, and a blast that shoves the swarm around
-  // is still the Anomaly's fire reaching into the matter economy. Dots standing in a detonation are
-  // simply unaffected.
+  // matter — see stepLances. A blast that deletes or even shoves the swarm is still the Anomaly's fire
+  // reaching into the matter economy. Dots standing in a detonation are simply unaffected.
 }
 
 // ---- movement: updateBoss owns the Anomaly's position (seek:0), varying by type ----
@@ -1641,44 +1496,34 @@ function mineBlast(L){
 // and comes for you. It is deliberately a walk, not a dash — the Emitter's lunge is the unavoidable
 // committed thing, and there should only be one of those.
 //
-// IT NOW GOES FOR THE CORE. It used to halt at `b.r + P.r + 58` = 117px and merely crowd you, on the
-// reasoning that its touch is 30 and it is never consumed, so a boss parked on your skin would be an
-// unanswerable hit. That reasoning was sound about *parking* and wrong about *arriving* — and the
-// standoff had two costs. It made the Hunt a non-event you could ignore (a player who had put hours in
-// did not know the behaviour existed), and 117px is almost exactly the ring radius (`fieldR*0.6` = 114),
-// so once rings started grinding it would have sat inside the grinder taking free damage for nothing.
-// Committing to the core fixes both: the Hunt is now a real threat with a real answer (move), and it
-// has to cross your rings to reach you, which is a trade rather than a gift in either direction.
-// The parking problem is solved where it actually lives — ON CONTACT it lands its hit and BREAKS OFF
-// (see the player-contact path). One big readable hit, never a grinder on your skin.
-// px/frame. Slowed from 1.35/1.9/1.15 now that it closes all the way — but not as far as first tried:
-// at 0.95/1.15/0.85 a hunt from a real station (measured ~400px, not the ~300 assumed) took 6.3-6.7s to
-// arrive and the Pulsar sometimes ran out of hunt window without reaching the core at all, which makes
-// the whole approach a bluff. These land it at ~5s from 400px, still a walk you can stroll away from.
+// IT GOES ALL THE WAY TO THE CORE, and must not be given a standoff instead. Its touch is 30 and it is
+// never consumed, so a boss parked on your skin would be an unanswerable hit — but that is a problem
+// with PARKING, not with ARRIVING, and it is solved where it lives: ON CONTACT it lands its hit and
+// BREAKS OFF (see the player-contact path). One big readable hit, never a grinder on your skin.
+// A standoff costs twice over. It makes the Hunt a non-event you can ignore, and any halt distance near
+// the ring radius (`fieldR*0.6` = 114) parks the boss inside your own grinder for free.
+// px/frame, sized so a hunt from a real ~400px station arrives in ~5s — still a walk you can stroll away
+// from. Slower than this and the Pulsar runs out of hunt window without reaching the core, which makes
+// the whole approach a bluff.
 const HUNT_SPD={emitter:1.15, sentinel:1.3, pulsar:1.05};
 const HUNT_BREAK=1.1;                                          // seconds it recoils after landing its hit
-// The Sentinel spirals rather than walks, and that shape hid two ways for it to move much faster than
-// the walk the Hunt is supposed to be (measured: median 2.68 px/frame against the Emitter's flat 1.15,
-// peaking at 10.71, covering 825px of ground to close 350px).
-//   HUNT_ORB   the angular rate. A FIXED rad/s means tangential speed scales with radius — 4.96 px/frame
-//              at 350px, 2.13 at 150 — so it swept fastest when it was furthest away, which is backwards
-//              for something closing on you. It is now an upper bound, reached only at close range.
-//   HUNT_TANG  the cap that does the real work: the sideways sweep in px/frame, held constant at every
-//              radius, so the spiral reads as one steady speed instead of a whip that slows as it lands.
-//   HUNT_STEP  a ceiling on total body movement per frame. The follow was `dt*6` — 10% of the gap — which
-//              is proportional, not a speed: it sprinted to whatever point on the circle it had been
-//              assigned (the whole opening lurch), and a player flick of 400px would have moved it 40px
-//              in a single frame. It must stay above the target point's own speed (radial 1.17 +
-//              tangential 1.1 ≈ 1.6) or the body trails its own target and never arrives.
+// The Sentinel spirals rather than walks, and a spiral has two ways to move much faster than the walk
+// the Hunt is supposed to be. Both are capped here, in px/frame rather than in rates:
+//   HUNT_ORB   the angular rate, now only an UPPER BOUND. A fixed rad/s makes tangential speed scale
+//              with radius, so it would sweep fastest when furthest away — backwards for something
+//              closing on you.
+//   HUNT_TANG  the cap that does the real work: sideways sweep in px/frame, constant at every radius, so
+//              the spiral reads as one steady speed instead of a whip that slows as it lands.
+//   HUNT_STEP  a ceiling on total body movement per frame. A proportional follow (10% of the gap) is not
+//              a speed: a 400px player flick would move the boss 40px in one frame. It must stay ABOVE
+//              the target point's own speed (radial 1.17 + tangential 1.1 ≈ 1.6) or the body trails its
+//              own target and never arrives.
 const HUNT_ORB=0.85, HUNT_TANG=1.1, HUNT_STEP=2.0;
 // THE DASH is the Emitter's one committed, unavoidable-once-launched move, so its warning has to be
-// information you can act on. It was not. `tx,ty` were snapshotted when the wind-up EXPIRED, while the
-// warning line was drawn to your LIVE position — so the line tracked you for 0.5s and then locked
-// wherever you happened to be standing. Moving during the wind-up did nothing whatsoever; the only dodge
-// was to move AFTER the lock, and the dash covers 63% of its run in 0.15s and reaches contact range in
-// ~0.17s (both measured). That is not a telegraph, it is a coin flip with a red line drawn on it.
-// The lane is locked when the warning STARTS now, and the warning draws THAT lane — so the wind-up says
-// where the dash is going, and stepping off the line is a real answer to it.
+// information you can act on. THE LANE LOCKS WHEN THE WARNING STARTS, and the warning draws THAT lane —
+// never your live position. Locking on expiry instead makes the line track you and then freeze wherever
+// you happen to be standing, so moving during the wind-up does nothing: the dash covers 63% of its run
+// in 0.15s and reaches contact in ~0.17s, which is a coin flip with a red line drawn on it.
 const LUNGE_TEL=1.3;      // 0.5 → 0.9 → 1.3s of warning, and every frame of it is now actionable
 const LUNGE_OVER=150;     // it drives PAST the locked point: the threat is the LANE, not the dot, so
                           // backing straight down the line does not save you — you have to leave it
@@ -1727,10 +1572,10 @@ function bossMove(b,dt){
     b.vx=b.vy=0; return;
   }
   if(b.variant==='sentinel'){                                  // circle the arena
-    // Slowed 0.55 → 0.40 when ring fire went radial. A moving target is far harder to line a straight
+    // Slower than the other kinds on purpose. A moving target is far harder to line a straight radial
     // shot on than a hovering one, and the Sentinel already stacks seekers (the most punishing missile)
-    // and a swarmer trail that denies your regen window. Measured at 0.55 it went **0-for-8** while the
-    // Emitter and Pulsar sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
+    // with a swarmer trail that denies your regen window. At 0.55 it measured 0-for-8 while the Emitter
+    // and Pulsar sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
     // Its identity is that you must chase it, not that it cannot be hit.
     b.orbA += dt*0.40;
     const cx=W/2, cy=H*0.42, R=Math.min(W,H)*0.34;
@@ -1743,12 +1588,10 @@ function bossMove(b,dt){
 }
 function updateBoss(dt){
   const b=boss;
-  // DESTABILIZE IS GONE (2026-08-03). `fast` used to be `bossTime>45 ? 0.62 : 1` — every cadence in the
-  // fight multiplied by 0.62 once the clock passed 45s. It was the partner of the 60s flee: a 15-second
-  // "finish it" window before the boss left. With the flee removed there is nothing to race, so a
-  // cadence ramp is just a difficulty spike on a timer rather than on anything the player did. Kept as a
-  // named constant instead of inlining 1, because it is threaded through ~12 cadence expressions below
-  // and a future ramp (on the Anomaly's own HP, say) belongs here rather than re-derived at each site.
+  // The cadence multiplier, flat at 1 and threaded through the ~12 cadence expressions below. Kept as a
+  // named constant rather than inlined so a ramp has one home. NOT on a timer: with no clock in the
+  // fight there is nothing to race, so a timed ramp is a difficulty spike attached to nothing the player
+  // did. If a ramp is wanted, hang it on the Anomaly's own HP.
   const fast = 1;
   // schedule the hunt BEFORE moving, so the move this frame already reflects it. A hunt never STARTS
   // mid-dash or mid-charge (both are commitments the player has already read and answered), but one
@@ -1776,10 +1619,10 @@ function updateBoss(dt){
     b.fireT-=dt; if(b.fireT<=0){ firePincer(b); b.fireT=rand(2.2,3.0)*fast; }
     b.seedT-=dt; if(b.seedT<=0){ b.seedT=rand(2.4,3.4)*fast;
       // the trail leans toward YOUR ammo colour, exactly as ambient spawn already does during a boss.
-      // At a flat 50/50 the Sentinel stacked three pressures at once (seekers + swarmers + its orbit)
-      // and never let you go 3.8s untouched, so Integrity regen never started — measured 0-for-4 against
-      // a bot that went 4-for-4 on the other two kinds. Leaning the trail makes it half threat and half
-      // VOLLEY AMMO, which is also the better read: chasing it through its own trail should feed you.
+      // At a flat 50/50 the Sentinel stacks three pressures at once (seekers + swarmers + its orbit) and
+      // never lets you go 3.8s untouched, so Integrity regen never starts — 0-for-4 against a bot that
+      // went 4-for-4 on the other two kinds. Leaning the trail makes it half threat and half VOLLEY
+      // AMMO, which is also the better read: chasing it through its own trail should feed you.
       const opp=bossOpp(b.color);
       const n=2+(act>=3?1:0), kinds=['fast','mini','orbiter'];
       for(let i=0;i<n && enemies.length<300;i++){ const a=rand(0,TAU);
@@ -1849,33 +1692,28 @@ function stepLances(dt){
         mineBlast(L); lances.splice(i,1); continue;
       }
     }
-    // `life` is a DISTANCE budget, not a clock. If a time-scale multiplier is ever reintroduced here
-    // it must scale this tick too — Cryo shipped slowing L.vx/L.vy while ticking L.life at full speed,
-    // which drained it 2.5x too fast and fizzled missiles mid-flight (regression, 2026-07-28).
+    // ⚠️ `life` is a DISTANCE budget, not a clock. Any time-scale multiplier applied to L.vx/L.vy MUST
+    // scale this tick too, or the budget drains at full speed against a slowed body and missiles fizzle
+    // mid-flight.
     L.px=L.x; L.py=L.y; L.x+=L.vx; L.y+=L.vy; L.life-=dt;
     const M=48, inb=(L.x>-M && L.x<W+M && L.y>-M && L.y<H+M);  // on-screen (with margin)?
     if(inb) L.seen=true;                                       // it has now entered the arena
-    // NOTE: there is deliberately no "missile strikes the Anomaly" case any more. Every missile is
-    // launched from the Anomaly's own body, so baiting one back through it is not a thing that can
-    // happen — the erosion path is your ring volley (`flip()`), not its own fire.
     // MISSILES AND MATTER DO NOT INTERACT. AT ALL. A missile passes straight through every Dot on the
     // field: it does not kill them, it is not stopped by them, and nothing is drawn when it crosses one.
     // Missiles are aimed at YOU and are answered by moving; matter is answered by colour. Two systems,
-    // one arena, no overlap.
+    // one arena, no overlap. There is also no "missile strikes the Anomaly" case: every missile launches
+    // from its own body, so nothing can be baited back through it.
     //
-    // There is deliberately no collision loop here, and it should stay that way. Every version of one
-    // caused the same class of bug — not in the physics, which was verified correct three separate
-    // times, but in the *reading*. First it annihilated on a colour rule that was backwards twice over
-    // (a missile is `bossOpp(boss.color)`, the colour you HOLD, so it killed the matter about to hurt
-    // you — the Anomaly's fire was clearing your threats for free, invisibly, since missiles wear
-    // neutral livery). Then absorption, which killed nothing and was measured killing nothing (lance
-    // deaths: 0, 0, 0 across the three kinds with nothing stripped from the arena) and still read as
-    // annihilation, because a bolt vanishing on a Dot looks like the Dot did it — through two separate
-    // attempts at fixing the effect. Matter that a missile simply flies through cannot be misread.
+    // ⚠️ DO NOT ADD A COLLISION LOOP HERE. Every version of one failed on the READING rather than the
+    // physics. Annihilate-on-hit is backwards twice over — a missile is `bossOpp(boss.color)`, the
+    // colour you HOLD, so it kills the matter about to hurt you and the Anomaly's fire clears your
+    // threats for free, invisibly, since missiles wear neutral livery. Absorb-on-hit kills nothing,
+    // measures killing nothing, and still reads as annihilation, because a bolt vanishing on a Dot looks
+    // like the Dot did it — two separate attempts at fixing that effect did not change the read.
+    // Matter a missile simply flies through cannot be misread.
     //
-    // The cost is real and was accepted knowingly: Rings are no longer armour against the Anomaly's fire
-    // and a Neutral is no longer cover. Nothing on the field blocks a missile. Positioning is the whole
-    // defence.
+    // The cost is real and was accepted knowingly: Rings are not armour against the Anomaly's fire and a
+    // Neutral is not cover. Nothing on the field blocks a missile. Positioning is the whole defence.
     // strike the core
     if(!gone){
       const dx=L.x-P.x, dy=L.y-P.y, rr=L.r+P.r;
@@ -1911,7 +1749,7 @@ function stepMotes(dt){
     m.x+=m.vx; m.y+=m.vy;
     if(d<P.r+8){
       motes.splice(i,1);
-      bankMote(); moteN++; moteT=0.8;   // recompute NOW — the HUD, graze and deflect all read mult
+      bankMote(); moteN++; moteT=0.8;   // recompute NOW — the HUD and graze both read mult
       if(!unstable) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
       score+=Math.round(mult*P.scoreMult); // Motes bank into the score mult and pay directly (no XP/levels anymore)
       sfx.mote(moteN);
@@ -2027,8 +1865,6 @@ function stepEnemyForces(dt){
   const attractors=[[P.x,P.y,P.fieldR,P.fieldK,1]];
   for(const e of enemies){
     if(e.dead)continue;
-    // a live Singularity overrides the dash: a charger that strays into the well's reach is gripped
-    // (falls through to the devour below) instead of plowing on — matter near the black hole IS eaten
     // A SPENT CHARGER RE-ARMS. While the cooldown runs it falls through to the ordinary force loop, so
     // the Field owns it like anything else: it can be reeled into your ring, ground against an Anomaly,
     // or simply annihilated — and killing it there is what ends it permanently. `ring` is cleared on
@@ -2078,15 +1914,13 @@ function stepEnemyForces(dt){
       // destroyed, it simply left. The dead sweep at the end of the frame culls it. Intercepting it in
       // flight is untouched and still pays in full, because that path never reaches this line.
       if(e.comet && e.hold<=0) e.dead=true;
-      // THE PULSE LEAVES THE SKY TOO, on the same terms — but positionally rather than on a clock,
+      // THE PULSE LEAVES THE SKY TOO, on the same terms — but POSITIONALLY rather than on a clock,
       // because its arcs fan across ~150° and a body on the near edge of the front clears the viewport
-      // long before one aimed down the long axis. Same `seen`-then-gone idiom the Anomaly's missiles
-      // already use (`L.seen`): a Pulse body is BORN off-screen (arcs start 40-170px from an origin
-      // 190-230px outside the edge), so "outside" alone would kill the whole shape on frame one — it
-      // has to have entered the arena first. Retirement, not a kill: `dead` alone and never queueKill,
-      // so nothing is scored, banked or detonated. Intercepting one in flight is untouched and still
-      // pays in full — opposite-colour annihilation is not gated on `hold`, so the wave is still worth
-      // meeting with the right polarity. What it no longer does is leave up to 102 hunters behind it.
+      // long before one aimed down the long axis. Same `seen`-then-gone idiom the Anomaly's missiles use
+      // (`L.seen`), and the `seen` half is required: a Pulse body is BORN off-screen (arcs start
+      // 40-170px from an origin 190-230px outside the edge), so a bare "outside" test would kill the
+      // whole shape on frame one. Retirement, not a kill. Intercepting one in flight is untouched and
+      // still pays in full — opposite-colour annihilation is not gated on `hold`.
       if(e.pulse){
         const M=60;
         if(e.x>-M && e.x<W+M && e.y>-M && e.y<H+M) e.seen=1;
@@ -2134,31 +1968,26 @@ function stepEnemyForces(dt){
     // radius and a tangential shove spins it. Holds even when matter is fast; on a pole reversal the
     // ring becomes opposite-charge ammunition. (Only like-charge is ring-captured; opposite matter is
     // neither ringed NOR pulled in — it just drifts toward you.)
-    // EDDY keystone now shapes THE RINGS (not opposite matter, so it no longer fights Event Horizon):
-    // it whirls your ring WIDE and FAST — a broad, sweeping perimeter shield that annihilates threats
-    // farther out. HEAVY STAR stacks on top (grip/spin via ringMul).
-    // CORE GRAVITY — like-charge only, and only OUTSIDE the Field. The Star had no pull whatsoever on
-    // its own colour until a body crossed the Field edge: the magnetic loop skips like-charge (it is
-    // ring-captured instead) and ring capture is gated on `d<P.fieldR`. Measured, the two colours
-    // approached at rates identical to the frame — from 300/260/220px, same-colour and opposite-colour
-    // both entered the Field at **1.47 / 0.97 / 0.48s** — so everything you gathered arrived purely
-    // under its own drift, and holding a pole exerted no claim on the matter it was supposed to attract.
-    // A gentle inward term reaching half again past the Field fixes that without touching either the
-    // hostile side (which must never be vacuumed in) or the ring's tuned equilibrium inside.
+    // EDDY shapes THE RINGS rather than opposite matter: it whirls your ring WIDE and FAST, a broad
+    // sweeping perimeter shield that annihilates threats farther out. `ringMul` stacks on top.
+    // CORE GRAVITY — like-charge only, and only OUTSIDE the Field, because inside it ring capture owns
+    // the body. Without it, holding a pole exerts no claim at all on the matter it is supposed to
+    // gather: the magnetic loop skips like-charge and capture is gated on `d<P.fieldR`, so both colours
+    // approach at rates identical to the frame (1.47 / 0.97 / 0.48s from 300/260/220px) and everything
+    // you gather arrives purely under its own drift. A gentle inward term reaching half again past the
+    // Field fixes that without touching the hostile side — which must NEVER be vacuumed in — or the
+    // ring's tuned equilibrium inside.
     if(ringing && d>=P.fieldR && d<P.fieldR*LIKE_GRAV_R){
       const t=1-(d-P.fieldR)/(P.fieldR*(LIKE_GRAV_R-1));   // full at the rim, zero at the outer edge
       ax+=dx/d*LIKE_GRAV*t; ay+=dy/d*LIKE_GRAV*t;
     }
-    // RING HYSTERESIS. Ring membership used to be re-decided from scratch every frame — `d < fieldR` or
-    // you are not in the ring — and that quietly punished the exact input dodging is made of. Sustained
-    // speed was never the problem: strafing at 13/25/45/80 px/frame keeps **93-100%** of the ring,
-    // because the bodies settle into a steady lag and stay inside the Field. A **direction reversal** is
-    // the problem. A real mouse flick corner-to-corner peaks at **135 px/frame** (the follow is
-    // `(pointer-P)*0.185`, uncapped), which leaves the whole ring several hundred px behind on the wrong
-    // side for a moment — and measured, **only 36% of it survived**. So a player weaving to evade shed
-    // two thirds of their hoard every flick, which is what "you have to move slow to keep a ring"
-    // actually meant. Once gathered, a body now KEEPS its membership for RING_GRACE while it chases you
-    // back, and the spring keeps pulling it home instead of letting go the instant it falls behind.
+    // RING HYSTERESIS. Membership must not be re-decided from scratch each frame (`d < fieldR` or you
+    // are out), because that punishes the exact input dodging is made of. SUSTAINED SPEED IS NOT WHAT
+    // SHEDS A RING — strafing at 13/25/45/80 px/frame keeps 93-100%, since bodies settle into a steady
+    // lag inside the Field. A DIRECTION REVERSAL is: the follow is `(pointer-P)*0.185` uncapped, so a
+    // corner-to-corner flick peaks at 135 px/frame and leaves the whole ring hundreds of px behind on
+    // the wrong side — only 36% survived without this. A body now KEEPS membership for RING_GRACE while
+    // it chases you back, with the spring still pulling it home.
     const inField = ringing && d<P.fieldR;
     const inGrace = ringing && !inField && e.ring && e.ringGrace>0 && d<P.fieldR*RING_GRACE_R;
     if(inField) e.ringGrace=RING_GRACE; else if(e.ringGrace>0) e.ringGrace-=dt;
@@ -2166,17 +1995,12 @@ function stepEnemyForces(dt){
       const rm=P.ringMul||1;
       const orbR=P.fieldR*(P.eddy?0.85:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
       ax+=(dx/d)*toRing*err*0.03*rm; ay+=(dy/d)*toRing*err*0.03*rm;   // spring onto the ring radius
-      // Spin 0.9 → 1.6 (Eddy 1.7 → 2.8). Rings sat at a measured **3.6 px/frame, 3.2s per revolution**
-      // — slow enough to read as matter parked around you rather than a ring whipping. That was never a
-      // deliberate speed choice: it fell out of the `0.80` velocity bleed added when rings were made to
-      // firmly HOLD their radius (ordinary matter bleeds at 0.86), and steady state is `spin/(1-bleed)`.
-      // Raising the spin rather than the bleed keeps the hold — the grip is what stops rings drifting
-      // off — and pays the speed straight into the tangential term.
-      // 1.6 → 1.2 (Eddy 2.8 → 2.1). 1.6 measured **6.4 px/frame, one revolution every 2.05s**, which
-      // overshot: a ring whipping that fast around a core you are also steering is a genuine comfort
-      // problem, not just a taste one. The pre-fix 3.6 px/frame read as matter parked on you; this sits
-      // between the two. `reduceMotion` (the existing comfort toggle) takes another 30% off, so the
-      // players who need it can have the slow ring without flattening it for everyone.
+      // Ring whirl is `spin/(1-bleed)` where the `0.80` bleed below (ordinary matter gets 0.86) is what
+      // pins rings to their radius. TUNE THE SPIN, NOT THE BLEED: the bleed is the grip that stops rings
+      // drifting off, so changing it moves the hold and the speed together. 1.2 measures 4.8 px/frame,
+      // one revolution every 2.49s — fast enough not to read as matter parked on you, slow enough that a
+      // core you are also steering stays comfortable. `reduceMotion` takes another 30% off, so players
+      // who need a calm ring get one without flattening it for everyone.
       const spin=(P.eddy?2.1:1.2)*rm*(store.reduceMotion?0.7:1);
       ax+=-dy/d*spin; ay+=dx/d*spin;
       e.ring=1;
@@ -2191,18 +2015,15 @@ function stepEnemyForces(dt){
     const fr=e.flung>0?0.985:(e.ring?0.80:0.86); e.vx*=fr; e.vy*=fr;
     // speed clamp — OPPOSITE (attracted) inward pace is held at 1.25 (never sped up: "don't suck in another
     // colour"). Everything else — rings, neutrals, wandering matter — is livelier via DOTSPD.
-    // Ringed matter gets its own headroom (2.9 vs 1.9): at 1.9 a Drifter caps at 7.9 px/frame, which the
-    // faster spin would saturate — flattening every body to the same whirl and squashing EDDY's "wide
-    // AND fast" down to a ~1.2x edge over the base ring. At 2.9 nothing clamps at base spin (measured
-    // 5.5-6.3 across Drifter/Dart/Brute), and under EDDY only the **Brute** hits its own cap — 6.92
-    // against a 7.08 ceiling, while a Drifter reaches 10.75. So mass shows in the ring, but only when
-    // the ring is running fast enough to out-pace the slowest bodies in it.
-    // Like-charge that is closing on you under CORE GRAVITY gets ring-grade headroom (2.9) rather than
-    // the ordinary 1.9. Without it your own ammunition simply cannot keep up: a Drifter capped at
-    // `3.4*1.9` ≈ 6.5 px/frame while the Star moves at up to 18.5% of the pointer gap per frame — well
-    // past 13 — so any player dodging at speed outruns the matter they are trying to gather. That is the
-    // "you have to move slow to keep a ring" problem: it was never about LOSING ring members (measured
-    // 100% retention at every speed up to 13 px/frame), it was about never catching new ones.
+    // Ringed matter gets its own headroom (2.9 vs 1.9). At 1.9 a Drifter caps at 7.9 px/frame, which the
+    // spin saturates — every body flattens to the same whirl and EDDY's "wide AND fast" collapses to a
+    // ~1.2x edge. At 2.9 nothing clamps at base spin (5.5-6.3 across Drifter/Dart/Brute) and under EDDY
+    // only the Brute hits its own cap (6.92 against 7.08) while a Drifter reaches 10.75, so mass shows in
+    // the ring — but only once the ring out-paces the slowest bodies in it.
+    // Like-charge CLOSING under core gravity gets the same 2.9, or your own ammunition cannot keep up: a
+    // Drifter capped at `3.4*1.9` ≈ 6.5 px/frame against a Star moving up to 18.5% of the pointer gap
+    // per frame means a player dodging at speed outruns the matter they are gathering. That is the real
+    // shape of "you have to move slow to keep a ring" — not losing members, never catching new ones.
     const closing=(ringing && d>=P.fieldR && d<P.fieldR*LIKE_GRAV_R);
     const sp=Math.hypot(e.vx,e.vy), mx=e.maxsp*(attracted?1.25:((e.ring||closing)?2.9:1.9)*DOTSPD);
     if(e.flung>0){ e.flung-=dt; }               // freshly FIRED ring matter keeps its shot speed briefly
@@ -2215,7 +2036,7 @@ function stepEnemyForces(dt){
 }
 
   // ----- collapse shockwave: a BLAST, not an eraser — 2 damage as it sweeps. Trash dies;
-  // Brutes (3hp) crawl out burned and flung. The Singularity's horizon is the true eraser. -----
+  // a Brute (3hp) crawls out burned and flung. -----
 function stepCollapseWave(){
   cwave.r+=42;
   const r2=cwave.r*cwave.r;
@@ -2274,18 +2095,11 @@ function stepAnnihilation(){
               //  YOU carried. A volley you fired and a ring you gathered and steered are both things
               //  you did. Drifting, being flung past it, and being heavy are things that merely happen.
               //
-              //  Two channels were removed here on exactly that reasoning, and measurement said the
-              //  removal costs nothing: across 6 idle 45s fights the self-inflicted contacts were
-              //  **13 grind, 0 barge, 0 fling** — the FLING and the Brute BARGE were already worth
-              //  nothing in practice, they were only ever latent holes waiting for the boss to walk
-              //  into them. (The Brute barge in particular was added when the Hunt still halted 117px
-              //  short; a boss that now crosses the whole arena would have farmed it.)
-              //
-              //  This is the fourth time this exact rule has had to be re-tightened. A flat
-              //  1-per-contact chip once let ambient traffic take an Epoch I Anomaly from 18 to 12 HP
-              //  in 15s with the player standing still; and an `unstable>0 ? 2 : 0` in the last slot
-              //  paid drift-in matter DOUBLE a deliberate hit for the 2.4s of a Collapse, on top of the
-              //  flat 15% chip. Contact is not achievement. Keep this expression at two branches.
+              //  THIS RULE HAS HAD TO BE RE-TIGHTENED FOUR TIMES. The test for any proposed channel is
+              //  one question: COULD THE ANOMALY EARN THIS BY MOVING? If yes, it does not belong — a
+              //  flat 1-per-contact chip once let ambient traffic take an Epoch I Anomaly from 18 to 12
+              //  HP in 15s with the player standing still. Contact is not achievement.
+              //  Keep this expression at two branches.
               // ==========================================================================
               // THE BAITED CHARGE — the one sanctioned exception to the two-channel rule, and it passes
               // that rule's own test. A Charger locks its lane at wind-up and commits; you cannot aim it,
@@ -2299,13 +2113,10 @@ function stepAnnihilation(){
                       : (X.ring ? RING_GRIND_DMG*(GRIND_MULT[B.variant]||1) : 0));
               // the grind pays a half, so the readout has to survive a fraction without printing "-0.5000000001"
               if(d>0){ damageBoss(B,d); pushText(B.x,B.y-B.r-8,'-'+(Number.isInteger(d)?d:d.toFixed(1)),COL[X.color],0.45,15);
-                // THE BAIT LANDS, AND YOU KNOW IT. The connect used to be a 15px damage number in the
-                // enemy's own colour — the same readout a 1-damage grind prints — dropped into the
-                // busiest moment the game has. The hardest erosion in the fight was the least legible
-                // one, which is the player's report: "make it stronger, with visually (or sonically) i
-                // can realize." Damage alone would not have fixed that; a number nobody sees is not a
-                // reward. So the impact gets its own signature on every channel the game already uses to
-                // mean "that mattered", and no new one:
+                // THE BAIT LANDS, AND YOU KNOW IT. This is the hardest erosion in the fight and it
+                // arrives in the busiest moment the game has, so damage alone cannot carry it — a number
+                // nobody sees is not a reward. It gets its own signature on every channel the game
+                // already uses to mean "that mattered", and no new one:
                 //   HITSTOP  0.09 — above the shield block (0.05), below a 50-combo (0.12). The frame
                 //            hangs, which is this engine's whole vocabulary for weight.
                 //   TRAUMA   the screen kicks, scaled by nothing — a bait is a bait.
@@ -2327,18 +2138,15 @@ function stepAnnihilation(){
                   pushText(B.x,B.y-B.r-34,'◆ BAITED  -'+d,COL.gold,1.15,22);
                   if(typeof sfx!=='undefined') sfx.baited();
                 }
-                // 'Skeet Shooter' has now outlived two rules. It fired when an Anomaly missile POPPED
-                // your Gilded Bounty, then when your Bounty BLOCKED one; missiles no longer touch matter
-                // at all, so both are gone. It lands on the surviving sense of the name — you fired your
-                // bounty as ammunition and it connected. The jackpot still pays out in onKill.
+                // 'Skeet Shooter' — you fired your Gilded Bounty as ammunition and it connected. The
+                // jackpot itself still pays out in onKill.
                 if(X.gild>0 && X.vdmg) grantAchv('lancegild');
                 queueKill(X); }
               else {
-                // Drift-in pays nothing, so CONSUMING it was pure theft — the Anomaly quietly deleted the
-                // matter you were about to gather or hide behind and handed you nothing for it. That was
-                // also the one place the Anomaly still erased matter at all, which is why its fire got
-                // blamed for annihilation its missiles do not do: the deletions were real, they just came
-                // from the body, not the bullets. It is a solid object, not a vacuum — matter bounces.
+                // Drift-in pays nothing, so it must not be CONSUMED either — that is pure theft, the
+                // Anomaly quietly deleting matter you were about to gather and handing you nothing. It
+                // is also the only way the Anomaly can erase matter at all, which gets its fire blamed
+                // for annihilation its missiles do not do. Solid object, not a vacuum: matter bounces.
                 // (Consumption still applies above, where it must: a flung body left inside the skin
                 // would otherwise chip every single frame.)
                 const bx=X.x-B.x, by=X.y-B.y, bd=Math.hypot(bx,by)||1, push=B.r+X.r+2;
@@ -2356,24 +2164,17 @@ function stepAnnihilation(){
               const v=eDash?o:e; queueKill(v);
               const s=eDash?e:o; spawnBurst(s.x,s.y,COL[s.color],5,2.6);
             }
-            // A SHAPE THAT KILLS ITSELF PAYS NOTHING (2026-08-03). Player report: "the sorter will
-            // collide each other, making significant score."
-            // Measured with the star parked in a corner touching nothing, per Sorter: median **454
-            // score, 4 Motes and +0.58 Capacitor** — over half a Collapse — and one run in six built a
-            // **41-combo**, crossing the 25 streak milestone with its fanfare and capacitor chunk. The
-            // Sorter is two walls in opposite colours converging, so its ending IS a mutual
-            // annihilation ("what ends the shape: not a timer"), and every one of those ~20 pairs was
-            // being invoiced to the player, who did not do it.
-            // This is the two-channel rule again, one level down: that rule exists because a moving
-            // Anomaly would otherwise damage ITSELF and pay you for it. Same defect, same answer — you
-            // are paid for what you did, and two bodies flying their assigned vectors into each other
-            // is the field resolving itself.
-            // So the collision still HAPPENS (it must — it is the shape's ending) and still READS as an
+            // A SHAPE THAT KILLS ITSELF PAYS NOTHING. The Sorter is two opposite-colour walls
+            // converging, so its ENDING is a mutual annihilation — ~35 of its 40 bodies, worth a median
+            // 454 score, 4 Motes and +0.58 Capacitor per shape if it paid, all of it invoiced to a
+            // player who did not do it.
+            // This is the two-channel rule one level down: you are paid for what you did, and two bodies
+            // flying their assigned vectors into each other is the field resolving itself.
+            // The collision still HAPPENS (it must — it is the shape's ending) and still READS as an
             // annihilation, it just does not pay: `dead` alone, never queueKill, so no score, no combo,
-            // no Mote, no Capacitor, no blast chain. Exactly the comet/pulse retirement, applied to a
-            // pair. Gated on BOTH being in formation flight, so nothing the player owns is caught:
-            // your ring bodies have no `hold`, so ring-vs-formation still pays in full. Gated on
-            // `!unstable` so a Collapse — which is yours — is never silenced.
+            // no Mote, no Capacitor, no blast chain. Gated on BOTH being in formation flight, so nothing
+            // the player owns is caught — your ring bodies have no `hold`, so ring-vs-formation still
+            // pays in full. Gated on `!unstable` so a Collapse, which is yours, is never silenced.
             // In practice this is the Sorter alone: the Wall's two-wave release already measures 0
             // pair-kills, the Noose's `rmin` floors it out of self-contact, and the Pulse puts one
             // colour per arc at different radii.
@@ -2385,9 +2186,8 @@ function stepAnnihilation(){
             }
             else if(unstable>0 || opposite){ queueKill(e); queueKill(o); }
             else if(!(e.hold>0) && !(o.hold>0)){
-              // SAME COLOUR TAKES UP SPACE. Rule 1 says like charges cannot annihilate, and until now
-              // that meant they did not interact AT ALL — two same-colour bodies simply overlapped, so a
-              // crowd of one polarity stacked into one smeared blob instead of reading as a dozen dots.
+              // SAME COLOUR TAKES UP SPACE. Like charges cannot annihilate, so without this they do not
+              // interact at all and a crowd of one polarity stacks into one smeared blob.
               // A soft POSITIONAL shove, split by mass so a Brute shoulders a Drifter aside instead of
               // being nudged equally by it. Positions only, never velocity: the polarity field owns
               // velocity, and injecting impulse here would pump energy into the ring orbit that carries
@@ -2446,23 +2246,20 @@ function stepPlayerContact(){
           trauma=Math.min(1,trauma+0.32); flash=0.5; flashCol=COL.red;
           hitstop=Math.max(hitstop,0.05);
           sfx.hurt();
-          // The game's only damage readout. It used to live inside the Bomber payload (the one hit big
-          // enough to be worth naming); with the payload gone it belongs on the ordinary contact path,
-          // where a 22 Brute and an 8 Dart now have to be told apart by the number alone.
+          // The game's only damage readout, and it belongs on the ordinary contact path: a 22 Brute and
+          // an 8 Dart have to be told apart by the number alone.
           pushText(P.x,P.y-P.r-18,'-'+Math.round(dmg),COL.red,0.9,16);
           spawnBurst(P.x,P.y,COL.red,14,3.2);
           if(P.hp<=0){ P.hp=0; die(); return true; }
-          // ('Danger Close' was granted here. Retired 2026-08-03 — see the ACHV roster for why.)
         }
       }
       if(e.type!=='boss') queueKill(e);      // boss is not consumed on contact
       else if(e.hunt>0 || e.huntBreak>0){
-        // A HUNT LANDS ONCE, THEN BREAKS OFF. This is the whole reason the Anomaly is now allowed to
-        // reach the core at all. Its touch is 30 and it is never consumed, so a boss that simply stopped
-        // on your skin would deal 30 every 0.55s of i-frames — about 55 dps, an unanswerable hit rather
-        // than a threat. That was the original justification for halting it 117px out; the standoff was
-        // the wrong cure for a real disease. Recoiling on contact treats the disease directly: the hunt
-        // is one big readable hit you could have walked away from, never a grinder parked on the core.
+        // A HUNT LANDS ONCE, THEN BREAKS OFF. This is the whole reason the Anomaly is allowed to reach
+        // the core at all. Its touch is 30 and it is never consumed, so a boss that simply stopped on
+        // your skin would deal 30 every 0.55s of i-frames — about 55 dps, an unanswerable hit rather
+        // than a threat. Recoiling on contact treats that directly, and where it lives: the hunt is one
+        // big readable hit you could have walked away from, never a grinder parked on the core.
         e.hunt=0; e.huntBreak=HUNT_BREAK; e.huntR=undefined;
       }
     }
@@ -2525,9 +2322,6 @@ function stepDecay(dt){
   if(flash>0) flash=Math.max(0,flash-dt*2.4);
 }
 
-// `byContact` used to matter: it denied the Point-Blank bonus to a body consumed by crashing INTO the
-// core, so courage was paid and collisions were not. With that bonus gone the flag has no reader, and
-// the one caller that passed it (player contact) no longer needs to.
 function queueKill(e){
   if(!e || e.dead || e.queued) return;
   e.queued=true; killQ.push(e);
@@ -2550,17 +2344,12 @@ function processKills(){
         if(o.dead||o.queued)continue;
         const dx=o.x-e.x,dy=o.y-e.y;
         if(dx*dx+dy*dy < bR*bR){
-          // THE ANOMALY IS NOT IN THIS BLAST. A Collapse's price against a boss is the flat 15% chip
-          // in detonateCollapse() and nothing else (GLOSSARY §7: "Collapse chips 15%"). This branch
-          // used to hand it `bd` per opposite-colour death inside `bR`, with no per-wave dedupe and
-          // — the real defect — NO decay on `bd` itself: only the radius shrinks by 0.7^gen, so
-          // every generation of a cascade chipped the full 3. Since a Collapse kills the whole
-          // screen at once, the wave's own kills were laundered back into boss damage in a single
-          // frame. Measured on an Epoch I Anomaly (18 HP, intended loss 3):
-          //     12 Dots at 68px (blast only, no contact) → 21 damage
-          //     12 Dots at 50px (contact + blast)        → 33 damage — purged, one frame
-          //     24 Dots at 50px                          → 95 damage — 5x the boss
-          // That is the "Collapse deletes bosses" bug. `unstable` blasts now stop at its skin.
+          // ⚠️ THE ANOMALY IS NOT IN THIS BLAST, and must never be put back in. A Collapse's price
+          // against a boss is the flat 15% chip in detonateCollapse() and nothing else (GLOSSARY §7).
+          // Chain-blasts that chip the boss launder the wave's own kills back into boss damage in a
+          // single frame, because a Collapse kills the whole screen at once: 12 Dots on its skin
+          // measured 33 damage against an 18 HP boss — purged in one frame — and 24 Dots measured 95.
+          // Density, not skill. `unstable` blasts stop at its skin.
           if(o.type==='boss'){
             if(unstable<=0 && e.color!=='neutral' && e.color!==o.color) damageBoss(o,bd);
             continue;
@@ -2597,8 +2386,8 @@ function breakStreak(src){
 }
 function onKill(e){
   if(state==='dead')return; // stop awarding score/xp once the core is lost
-  // THE BOMBER DETONATES. Removed 2026-07-29, restored 2026-08-03 at the player's call — but only the
-  // half that clears MATTER. See bomberBlast() for the full scoping and why each exclusion is there:
+  // THE BOMBER DETONATES — but only the half that clears MATTER.
+  // See bomberBlast() for the full scoping and why each exclusion is there:
   // it does not touch you, does not touch the Anomaly, pays nothing, and does not chain. The Bomber is
   // still an ordinary dot in every stat (dmg 10, hp 1, no exemptions anywhere); the explosion is a
   // field-clearing hazard, not a stat.
@@ -2628,9 +2417,9 @@ function onKill(e){
   // the score multiplier is BANKED MOTES this life (Flip-vacuum loot), not the streak —
   // streak feeds the Capacitor, motes feed the mult; two currencies, two behaviours
   recalcMult();
-  // POINT-BLANK RESONANCE REMOVED (2026-07-31). An annihilation used to pay ×2 inside the Field and ×3
-  // deep inside it, on the argument that diving for the kill is the skill in a game where you steer INTO
-  // the sky. Every kill is now worth the same wherever it happens.
+  // Every kill is worth the same wherever it happens. Where you stand is already priced by the things
+  // that decide the fight: closing the range is how a Volley connects, and it is what walks you into an
+  // Anomaly's point-blank fire.
   const gain=Math.round(10*mult*P.scoreMult);
   score+=gain;
   // Flux Motes: annihilations shed collectible loot carrying the body's colour.
@@ -2649,13 +2438,12 @@ function onKill(e){
     pushText(e.x,e.y-30,'BOUNTY +'+rew,COL.gold,1.4,17);
     spawnRing(e.x,e.y,COL.gold,90); trauma=Math.min(1,trauma+0.2);
     sfx.streakMile(2);
-    // ('lancegild' moved to the missile-BLOCK path in stepLances — the Anomaly's fire no longer kills.)
   }
   // POWERUP DROP: the ONLY progression, kept OCCASIONAL. A small per-kill chance, capped on the field.
   // Never during a Collapse sweep — that would rain a dozen at once. (Anomaly caches still drop on purge.)
   if(!unstable && e.type!=='neutral' && orbs.length<ORB_CAP && Math.random()<ORB_DROP_CHANCE) dropOrb(e.x,e.y);
   // charge — kills during a collapse don't refund the capacitor (no back-to-back collapses).
-  // base rate trimmed 0.008->0.006: graze/deflect/motes are new income, Collapse must stay earned.
+  // Deliberately low: Motes and streak milestones are the other income, and Collapse must stay earned.
   if(!unstable) P.charge=Math.min(1,P.charge + (0.006 + combo*0.0002)*P.chargeGain);
   // visuals
   const c=COL[e.color];
@@ -2670,29 +2458,24 @@ function onKill(e){
 }
 
 // blasts / shockwaves
-// THE BOMBER DETONATES AGAIN (2026-08-03). Player brief: "bomber should destroy dots around it when it
-// explodes. this is for removing excessive ring shield and too much leftover dots / except that,
-// everything else is just a normal dot." This deliberately reverses part of the 2026-07-29 removal, at
-// the player's call, and the scoping is the whole design — the old payload was removed for the things
-// this one does NOT do:
-//   IT DOES NOT TOUCH YOU. The old one dealt 30 to the core THROUGH ANY SHIELD, which is why it read as
-//   an unfair body rather than a hazard. Contact damage stays ETYPE.bomber.dmg = 10, Drifter parity, and
-//   the blast is not a second damage channel at the core. "Everything else is just a normal dot."
-//   IT DOES NOT TOUCH THE ANOMALY. The old one chipped it for 2, which is a straight violation of the
-//   two-channel rule (§7): a boss walks the arena through a field full of matter, so any rule of the
-//   form "things exploding near it hurt it" means density kills bosses, not skill.
-//   IT PAYS NOTHING. `dead` alone, never queueKill — no score, no combo, no Mote, no Capacitor. This is
-//   the point, not a limitation. The brief is "remove excessive ring shield", i.e. the blast is a COST
-//   to the hoarder; if it paid, hoarding-then-popping would be a score fountain that rewards the exact
-//   behaviour it exists to punish, and a Bomber in a 20-body crowd would pay 200+ and a 20-combo off
-//   density rather than skill. Same principle as the Sorter's self-collision and the comet's exit.
-//   IT DOES NOT CHAIN. A Bomber killed by another Bomber's blast dies via `dead`, so onKill never runs
-//   and it never detonates. One press, one explosion — no whole-swarm cascade.
+// THE BOMBER DETONATION. It exists to clear excessive ring shield and leftover dots; the SCOPING is the
+// whole design, and each exclusion is load-bearing:
+//   IT DOES NOT TOUCH YOU. Contact stays ETYPE.bomber.dmg = 10, Drifter parity, and the blast is not a
+//   second damage channel at the core. A blast that pierces to the core reads as an unfair body rather
+//   than a hazard. Everything else about a Bomber is just a normal dot.
+//   IT DOES NOT TOUCH THE ANOMALY — a straight two-channel violation (§7), since a boss walks the arena
+//   through a field full of matter, so "things exploding near it hurt it" means density kills bosses.
+//   IT PAYS NOTHING. `dead` alone, never queueKill — no score, combo, Mote or Capacitor. This is the
+//   point, not a limitation: the blast is a COST to the hoarder, and if it paid, hoard-then-pop would be
+//   a score fountain rewarding the exact behaviour it punishes (a Bomber in a 20-body crowd would pay
+//   200+ off density). Same principle as the Sorter's self-collision and the comet's exit.
+//   IT DOES NOT CHAIN. A Bomber killed by another's blast dies via `dead`, so onKill never runs and it
+//   never detonates. One press, one explosion — no whole-swarm cascade.
 // COLOUR-BLIND, and that is load-bearing: your rings are your OWN colour, so a blast that respected
-// polarity could not remove ring shield at all, which is the brief. Ring orbit radius is
+// polarity could not remove ring shield at all, which is the point. Ring orbit radius is
 // `P.fieldR*0.6` = 114, so BOMB_R is sized just past it — a Bomber that reaches your core clears the
-// hoard, one popped out on the ring itself takes a bite of it. 2 damage is Collapse parity: trash dies,
-// a Brute (3hp) crawls out burned. Deliberately ONE blast strength in the game rather than a third.
+// hoard, one popped out on the ring itself takes a bite. 2 damage is Collapse parity: trash dies, a
+// Brute (3hp) crawls out burned. Deliberately ONE blast strength in the game rather than a third.
 const BOMB_R=120, BOMB_DMG=2;
 function bomberBlast(e){
   spawnRing(e.x,e.y,'#fff',BOMB_R*0.5); spawnRing(e.x,e.y,COL[e.color]||'#fff',BOMB_R);
@@ -2739,20 +2522,19 @@ function flip(){
   // every opposite-charge body inside the burst is FLUNG outward, alive, in the same frame. Quick
   // taps just reverse (reposition, colour-swap), so flip-spam can't cheaply sustain you.
   //
-  // It used to fire the rings outward as projectiles instead. That failed twice over: the impulse ran
-  // 8→32 px/frame, which under the 0.985 flung-friction carries a body ~900px — clean off a 1280px
-  // screen — so every hungry flip EXPORTED the ammo you had just spent a hold gathering; and a volley
-  // resolves over the following second, which is useless as a panic button. The rings are still the
-  // ammunition, they just pay for RADIUS now instead of becoming bullets.
+  // ⚠️ IT MUST NOT FIRE THE RINGS OUTWARD AS PROJECTILES when there is no Anomaly to aim at. That fails
+  // twice over: an 8→32 px/frame impulse under the 0.985 flung-friction carries a body ~900px, clean off
+  // a 1280px screen, so every hungry flip EXPORTS the ammo you just spent a hold gathering — and a
+  // volley resolves over the following second, which is useless as a panic button. The rings are still
+  // the ammunition; with no target they pay for RADIUS instead of becoming bullets.
   hungryFlipBurst(hc);
   flipShockwave(hc);
 }
 
 // THE HUNGRY FLIP itself: the burst that purges loose matter and spends the rings.
 function hungryFlipBurst(hc){
-  // ONE fling law. The two sites below used to spell it out separately; the only textual difference
-  // was a Math.min(dist,R) clamp that is a no-op at the loose-matter site, whose loop has already
-  // skipped everything outside R.
+  // ONE fling law, shared by both sites below. The Math.min(dist,R) clamp is a no-op at the loose-matter
+  // site, whose loop has already skipped everything outside R.
   const flingSpeed=(chg,dist,R)=>(FLING_V0+chg*FLING_VCHG)*(0.65+0.35*(1-Math.min(dist,R)/R));
   let purged=0, volleyed=0;   // both still gate feedback (ring, kick, sfx) — neither is printed any more
   if(hc>=RING_FIRE_HC){
@@ -2761,25 +2543,18 @@ function hungryFlipBurst(hc){
     for(const e of enemies) if(e.ring && !e.dead && !e.queued) ringN++;
     // charge sets the floor, the matter you actually gathered sets the ceiling: 80 → 210px
     const R=PURGE_R0 + chg*PURGE_RCHG + Math.min(ringN,PURGE_RING_CAP)*PURGE_RPER;
-    // THE FLING. A reversal REPELS the matter that just turned hostile — it does not vaporise it. Three
-    // reasons this replaced the old kill-everything Purge:
-    //   1. It was eating your own ammunition. The Purge ran BEFORE the volley and skipped only bodies
-    //      matching your NEW polarity — but your rings are the OLD colour, so they were killed and the
-    //      volley then skipped them as `queued`. Measured: 10 rings gathered → 10 popped → **0 volleyed**.
-    //      The boss-fight volley was barely firing at all.
-    //   2. It is what a wandering star should do. Annihilating everything in a radius was the game's
-    //      fifth "everything near me dies" effect, which the glossary already flagged as the reason
-    //      Collapse has no identity left. Repulsion is a verb nothing else in the game owns.
-    //   3. It leaves the matter ALIVE, so a hungry flip under pressure buys you space instead of paying
-    //      for it in destroyed ammunition.
-    // The fling is DEFENCE, and only defence — now literally, not just in practice. It used to carry a
-    // damage window (`e.fdmg`) so a flung body that struck the Anomaly chipped it; that window is gone.
-    // A body you shoved away from yourself is not a shot you took at something, and once the Hunt began
-    // walking the Anomaly across the whole arena, any "contact hurts it" clause meant the boss could
-    // earn your damage for you by travelling. Erosion is the VOLLEY and the RING GRIND, nothing else.
-    // Bombers are ordinary matter here and need no special case. The death payload went on 2026-07-29
-    // and the outsized contact hit went on 2026-08-02, so the fling is the only way to
-    // get one off your skin without eating it.
+    // THE FLING. A reversal REPELS the matter that just turned hostile — it does not vaporise it, and it
+    // must not. Killing in a radius here would eat your own ammunition (rings are the OLD colour, so a
+    // kill-first burst pops them and the volley then skips them as `queued` — 10 gathered, 0 volleyed),
+    // and it would be a fifth "everything near me dies" effect in a game where that crowding is already
+    // the reason Collapse has no identity. Repulsion is a verb nothing else here owns, and leaving the
+    // matter ALIVE means a hungry flip under pressure buys space instead of paying for it in ammunition.
+    // THE FLING IS DEFENCE, AND ONLY DEFENCE. It carries no damage window: a body you shoved away from
+    // yourself is not a shot you took at something, and with the Hunt walking the Anomaly across the
+    // arena any "contact hurts it" clause lets the boss earn your damage for you by travelling.
+    // Erosion is the VOLLEY and the RING GRIND, nothing else.
+    // Bombers are ordinary matter here and need no special case — the fling is the only way to get one
+    // off your skin without eating it.
     for(const e of enemies){
       if(e.dead||e.queued||e.type==='boss')continue;
       if(e.ring)continue;                            // rings are the volley's business, handled below
@@ -2800,12 +2575,12 @@ function hungryFlipBurst(hc){
     // spend the rings. With no Anomaly on the field this is the tuned short outward scatter (a discharge
     // that reads, and stays on screen). With one alive, every body that can chip it is VOLLEYED at it
     // instead — the hoard you built by holding a pole becomes the thing that brings the Anomaly down.
-    // Rings fire STRAIGHT AWAY from the core, along the radius each one already sits on — no target, no
-    // guidance, no curve. This is the old ring discharge, restored on purpose. Homing them onto the
-    // Anomaly made the fight trivial: every gathered body was a guaranteed hit, so the whole boss came
-    // down to "hold a pole, press flip", with no question of where you were standing. Radial fire puts
-    // that question back — a ring only reaches the Anomaly if you PUT it between you and the Anomaly,
-    // which means closing the range (a bigger subtended angle) under its own point-blank fire.
+    // ⚠️ RINGS FIRE STRAIGHT AWAY FROM THE CORE, along the radius each one already sits on — no target,
+    // no guidance, no curve, and it must stay that way. Homing them onto the Anomaly makes every
+    // gathered body a guaranteed hit, so the whole boss comes down to "hold a pole, press flip" with no
+    // question of where you were standing. Radial fire IS the question: a ring only reaches the Anomaly
+    // if you PUT it between you and the Anomaly, which means closing the range — a bigger subtended
+    // angle — under its own point-blank fire.
     const tgt=(boss && !boss.dead) ? boss : null;
     for(const e of enemies){
       if(!e.ring||e.dead||e.queued)continue;
@@ -2818,11 +2593,9 @@ function hungryFlipBurst(hc){
       } else {
         // No Anomaly to volley at, so these are not ammunition any more — the reversal just turned every
         // one of them hostile and they are sitting ON you. They get the FULL fling, radially.
-        //
-        // They used to get a 3→8 px/frame nudge for 0.25s (~107px, and then friction and seek pulled
-        // them straight back), and THAT is why the hungry flip read as having no reach: because ring
-        // capture covers the entire Field, this branch — not the fling loop above — is where practically
-        // every body ends up. The flip's headline verb was running at a seventh of its own strength.
+        // This branch, not the fling loop above, is where practically every body ends up, because ring
+        // capture covers the entire Field. Give it a nudge instead of the full throw and the flip's
+        // headline verb runs at a fraction of its own strength.
         const pw=flingSpeed(chg,ed,R);
         e.vx=ex/ed*pw; e.vy=ey/ed*pw; e.flung=FLING_HOLD;
       }
@@ -2846,40 +2619,33 @@ function hungryFlipBurst(hc){
 }
 
 function flipShockwave(hc){
-  // Deflect (last-instant parry) and Lance Reflect were REMOVED on 2026-07-29. Both were real and both
-  // worked, but neither was reachable as a skill: the reflect window measured a flat 4 frames (66.7ms)
-  // across 19 consecutive samples — shorter than human reaction time and 4.25x shorter than the 280ms
-  // flip cooldown that gates it — and Deflect's only feedback was a white ring and a sound already
-  // owned by the ring discharge, so a parry was indistinguishable from a normal charged flip. The verb
-  // set is now exactly two: reverse, and reverse-while-loaded.
+  // THE VERB SET IS EXACTLY TWO: reverse, and reverse-while-loaded. A third input gated behind the
+  // 0.28s flip cooldown cannot be reachable as a skill — a parry window measured a flat 4 frames
+  // (66.7ms), shorter than human reaction time and 4.25x shorter than the cooldown that gates it.
   if(P.pulseCd<=0){
     const amp=1+hc*P.conduitAmp;    // a charged flip fires a bigger, stronger shockwave
     const R=Math.min(310, 104*amp);
     spawnRing(P.x,P.y,COL[P.polarity],R);
     if(hc>0.4){ spawnRing(P.x,P.y,'#fff',R*0.7); trauma=Math.min(1,trauma+hc*0.12); }
     // The Shockwave does NOT touch the Anomaly. It repels matter and pops a Neutral outright; that is
-    // the whole of it. The close-reversal chip that used to live here is gone — see CLOSE_REVERSAL_DMG's
-    // tombstone above. Erosion is matter you gathered or aimed, and nothing else.
+    // the whole of it. Erosion is matter you gathered or aimed, and nothing else.
     const force=Math.min(15, 4.6*amp);
     for(const o of enemies){ if(o.dead||o.type==='boss')continue;
       const dx=o.x-P.x,dy=o.y-P.y,d=Math.hypot(dx,dy)||1;
       if(d<R){
         const f=(1-d/R)*force;
         o.vx+=dx/d*f; o.vy+=dy/d*f;
-        // A Neutral dies to ONE reversal. It used to take 1.2 off a 2hp body, i.e. two shockwaves — but
-        // the pulse only fires every 0.5s however fast you flip, and a half-killed Neutral is drawn
-        // identically to a fresh one, so the first hit was invisible and the body read as immune. The
-        // Codex and Bestiary both say "pop it with a reversal", singular; now that is true.
+        // A Neutral dies to ONE reversal, and NEUTRAL_POP must stay equal to its full hp. The pulse only
+        // fires every 0.5s however fast you flip, and a half-killed Neutral is drawn identically to a
+        // fresh one — so a two-hit kill makes the first hit invisible and the body read as immune.
+        // The Codex and Bestiary both say "pop it with a reversal", singular.
         if(o.type==='neutral'){ o.hp-=NEUTRAL_POP; if(o.hp<=0) queueKill(o); else spawnBurst(o.x,o.y,COL.neutral,5,2.6); }
       }
     }
     // NOTE: the *swarm* loop above skips the boss on purpose (`o.type==='boss'` is filtered out) — the
-    // Anomaly shrugs off the shockwave's push and its Neutral-pop, and since the close reversal was
-    // removed a flip now does NOTHING to it at all. The hungry flip still hurts it, but as the VOLLEY:
-    // it is the rings that erode the Anomaly, never the reversal itself. (This comment once read
-    // "flipping does NOT damage the anomaly — bait its own lances into it instead", which was wrong
-    // twice over even then: the close reversal existed, and baiting stopped existing when every missile
-    // moved to launching from the boss's own body.)
+    // Anomaly shrugs off the shockwave's push and its Neutral-pop, so a flip does NOTHING to it. The
+    // hungry flip still hurts it, but as the VOLLEY: it is the rings that erode the Anomaly, never the
+    // reversal itself.
     // FLIP-VACUUM: the Shockwave sweeps up every mote it touches, whatever its colour
     for(const m of motes){ const mdx=m.x-P.x,mdy=m.y-P.y; if(mdx*mdx+mdy*mdy<R*R) m.vac=0.9; }
     P.iframe=Math.max(P.iframe,0.12);
@@ -2972,11 +2738,10 @@ function pushText(x,y,txt,color,life,size){
   }
   texts.push({x,y,txt,color,life,max:life,vy:-0.8,size:size||14});
 }
-// The centre banner is GONE. Every beat it used to announce — storms, epochs, the Anomaly's arrival,
-// Collapse, streak tiers — already lands as matter, colour, ring, shake and sound, and a word across
-// the middle of the screen only pulled your eyes off the field at the exact moment you needed them on
-// it. The world says what it is by doing it. Pickups keep a channel because a powerup's EFFECT is the
-// one thing you can't read off the screen.
+// THERE IS NO CENTRE BANNER. Storms, epochs, the Anomaly's arrival, Collapse and streak tiers all land
+// as matter, colour, ring, shake and sound; a word across the middle of the screen only pulls your eyes
+// off the field at the exact moment you need them on it. The world says what it is by doing it.
+// Pickups keep a channel because a powerup's EFFECT is the one thing you can't read off the screen.
 // You gained something — flies in on the left and lands on the chip column that tracks it.
 function pickupToast(p,note){
   const pk=el('pickup'); if(!pk)return;
@@ -3046,11 +2811,10 @@ function render(){
     ctx.globalAlpha=(store.reduceMotion?0.05:0.07)+0.03*Math.sin(elapsed*8); ctx.fillStyle=COL.cyan; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
   }
 }
-// (drawGrid removed 2026-07-31. A 54px Cartesian lattice at 0.035–0.085 alpha was the most structured
-// thing on screen, and a square grid is the visual language of a scoreboard — it read as arcade
-// playfield laid over a nebula. It did carry one real job, giving you something fixed to judge your own
-// motion against; the parallax starfield does that job better, because the layers move at different
-// rates and so encode distance as well as movement.)
+// (No background lattice, deliberately: a square grid is the visual language of a scoreboard and reads
+// as arcade playfield laid over a nebula. The one job it does — something fixed to judge your own
+// motion against — the parallax starfield does better, because layers moving at different rates encode
+// distance as well as movement.)
 function easeArr(a,b,e){ for(let i=0;i<3;i++) a[i]+=(b[i]-a[i])*e; }
 function easePalette(){
   const inMenu=(state==='menu'); // 'ready' and 'paused' are IN-RUN — the biome must not lurch back to Act I
@@ -3081,9 +2845,9 @@ function drawNebula(){
   }
   ctx.globalCompositeOperation='source-over';
 }
-// PER-KIND SILHOUETTES. Every Anomaly used to render as the same glowing disc with a white pip, so
-// until it fired you could not tell which fight you were in — and by then you had already picked your
-// position. Each kind now has a shape that IS its mechanic, readable from across the arena:
+// PER-KIND SILHOUETTES. You have to know which fight you are in BEFORE it fires, because by then you
+// have already picked your position. Each kind has a shape that IS its mechanic, readable from across
+// the arena:
 //   EMITTER  — a faceted HEXAGON that turns on `hexRot`, the same value that aims its crossfire. The
 //              shell you watch rotating is literally the volley it is about to throw.
 //   SENTINEL — a hollow RING with two opposed pincer wings sitting on its firing axis. Never solid: it
@@ -3135,9 +2899,9 @@ function drawBoss(){
   const pulse=1+0.06*Math.sin(elapsed*4);
   // LUNGER telegraph: a taut aim-line + swelling warning ring toward your core, so the dash is readable
   if(b.telegraph>0){
-    // normalised against LUNGE_TEL. It used to divide by a stale 0.65 while the timer actually ran 0.5,
-    // so the warning opened at 23% lit instead of 0 and never reached full — it appeared rather than
-    // wound up, which is the opposite of what a telegraph is for.
+    // ⚠️ NORMALISED AGAINST LUNGE_TEL, and it must stay tied to the same constant the timer runs on.
+    // Divide by a stale literal and the warning opens part-lit and never reaches full — it APPEARS
+    // rather than winds up, which is the opposite of what a telegraph is for.
     const g=1-b.telegraph/LUNGE_TEL;                    // 0→1 as it winds up
     ctx.save(); ctx.globalCompositeOperation='lighter';
     // THE LANE — drawn to the LOCKED point, not to wherever you happen to be standing. This line is now
@@ -3163,10 +2927,10 @@ function drawBoss(){
   }
   // HUNT wake: while it is coming for you, echo rings stream off its trailing edge. The silhouette says
   // WHICH Anomaly it is; this says it is no longer holding station.
-  // THE HUNT, TELEGRAPHED. This used to be three echo rings at 0.34 alpha and nothing else — so quiet
-  // that a player who had put hours into the game did not know the behaviour existed at all. It is the
-  // moment the Anomaly is closest and most dangerous, and now that it commits all the way to the core it
-  // has to announce itself: a brighter, longer wake, plus a literal line to the thing it is coming for.
+  // THE HUNT HAS TO ANNOUNCE ITSELF LOUDLY. It is the moment the Anomaly is closest and most dangerous
+  // and it commits all the way to the core, so a quiet wake is not enough — a player with hours in the
+  // game will not know the behaviour exists. A bright, long wake plus a literal line to the thing it is
+  // coming for.
   if(b.hunt>0 && P){
     const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1, ux=dx/d, uy=dy/d;
     ctx.save(); ctx.globalCompositeOperation='lighter';
@@ -3191,13 +2955,10 @@ function drawBoss(){
   ctx.save(); ctx.globalCompositeOperation='source-over';
   bossBody(b, b.r*pulse, c, oc);
   ctx.restore();
-  // INTEGRITY RING — `b.r+11` → `b.r+P.r`, i.e. **52**, the real contact envelope (2026-08-03).
-  // It was the last of the false radii §3 of the glossary lists: at `b.r+11` it sat 4px INSIDE the edge
-  // that kills you, and a ring drawn outside a hull reads as "the edge where I die" whether or not it
-  // is one. Fixed in the same pass as the r 44 → 37 shrink because that shrink is the reason the ring
-  // can be trusted at all: hull and collider are one number again, so the only stroke standing off the
-  // body is this one, and it is now true. The bar that tells you how much fight is left is the same
-  // stroke as the perimeter you must not cross. Cf. `RET=e.r+P.r` in the retire draw.
+  // INTEGRITY RING, drawn at `b.r+P.r` — the real contact envelope, and it must stay there. A ring drawn
+  // outside a hull reads as "the edge where I die" whether or not it is one, so this one is made true:
+  // the bar telling you how much fight is left is the same stroke as the perimeter you must not cross.
+  // Cf. `RET=e.r+P.r` in the retire draw, and the reticle below.
   const frac=clamp(b.hp/b.maxHp,0,1), IR=b.r+(P?P.r:15);
   ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=4;
   ctx.beginPath(); ctx.arc(b.x,b.y,IR,0,TAU); ctx.stroke();
@@ -3226,17 +2987,13 @@ function drawField(){
     ctx.setLineDash([]); ctx.restore();
   }
 }
-// THE HALO HAS NO EDGE ANY MORE. It used to be `fillStyle=hexA(c,0.28)` + `arc(e.r*1.9)` — a FLAT-alpha
-// disc, so it had a hard visible boundary, and a visible boundary reads as a statement about reach. The
-// statement was false in both directions, because the real contact envelope is `e.r + P.r` (P.r = 15,
-// set once at boot and never reassigned) while the halo was `e.r * 1.9`. Those agree only at r = 16.67:
-//   Mini   13.3 drawn vs 22 lethal — 8.7px of killing space OUTSIDE the halo
-//   Dart   15.2 vs 23  · Drifter 20.9 vs 26  · Bomber 32.3 vs 32  · Brute 38.0 vs 35 (3px to SPARE)
-// One cue, opposite lessons: clip a Brute's halo and live, keep clear of a Mini's and die. That is the
-// 1.55r standoff-ring trap generalised to every body on screen.
-// The fix is to remove the EDGE, not to move it. Sizing the halo to `e.r+15` would put a 22px cloud
-// around a 7px Mini and turn a 40-body field into fog — and it would make a HUD element of every body,
-// which is how you end up with nothing standing out. A gradient promises nothing, so it cannot lie.
+// ⚠️ THE HALO MUST HAVE NO EDGE. A flat-alpha disc has a hard visible boundary, and a visible boundary
+// reads as a statement about reach — which at `e.r*1.9` is false in both directions against the real
+// envelope `e.r+P.r`. They agree only at r=16.67: a Mini draws 13.3 against 22 lethal (8.7px of killing
+// space OUTSIDE the halo) while a Brute draws 38.0 against 35 (3px to spare). One cue, opposite lessons.
+// The fix is to remove the EDGE, not to move it. Sizing the halo to `e.r+15` puts a 22px cloud around a
+// 7px Mini, turns a 40-body field into fog, and makes a HUD element of every body, which is how you end
+// up with nothing standing out. A gradient promises nothing, so it cannot lie.
 // Cached one sprite per polarity and blitted: `drawImage` of a prepared canvas beats arc+fill at these
 // radii, and it never pays `createRadialGradient` per body per frame.
 const GLOW={};
@@ -3288,14 +3045,12 @@ function drawEnemies(){
       ctx.fillStyle=COL.cyan;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na+Math.PI, na+TAU); ctx.fill();
     } else if(e.type==='charger'){
-      // SPENT CHARGERS KEEP THE HULL AND LOSE THE FILL. The first attempt dropped them past this branch
-      // to be drawn as plain discs, reasoning that the arrowhead says "not yours to gather" and that is
-      // false while the cooldown runs. The reasoning was right and the execution was not: a plain disc at
-      // r=13 IS a Drifter (r=11), so a dmg:16 body spent ~62% of its life wearing the exact drawing of the
-      // dmg:10 body — and the contact check has no spent exemption. A HOLLOW hull says the true thing
-      // without lying about which species it is: the shell is inert, the Field owns it, but it is still a
-      // Charger and it is still going to re-arm. The re-arm tell gets louder too — the outline floods
-      // solid on a single frame, which is a stronger snap than the 33% size change it used to be.
+      // SPENT CHARGERS KEEP THE HULL AND LOSE THE FILL. They must not drop to a plain disc: at r=13 that
+      // IS a Drifter (r=11), so a dmg:16 body would spend ~62% of its life wearing the exact drawing of
+      // the dmg:10 body — and the contact check has no spent exemption. A HOLLOW hull says the true
+      // thing without lying about the species: the shell is inert and the Field owns it, but it is still
+      // a Charger and it is still going to re-arm. The outline flooding solid on a single frame is also
+      // a stronger re-arm tell than a size change.
       // Field does not touch. Every other body is a soft disc that your magnetism owns: like-charge gets
       // reeled into your rings, opposite-charge drifts in and dies on them. The Charger ignores all of
       // that and travels on a line of its own, so drawing it as one more disc set the wrong expectation
@@ -3318,19 +3073,17 @@ function drawEnemies(){
       if(e.spent){ ctx.strokeStyle=c; ctx.lineWidth=Math.max(2,e.r*0.22); ctx.stroke(); }
       else ctx.fill();
     } else if(e.type==='bomber'){
-      // THE BOMBER IS A MINE — a spiked hull, not a disc. It carries the hardest contact hit in the sky
-      // (26, against a Drifter's 10) and was drawn as a plain circle wearing a faint pulsing ring, which
-      // is very nearly what a GILDED BOUNTY looks like: a big dot wearing a ring. One of those you steer
-      // into for a jackpot and the other ends your run, so they must not share a silhouette.
-      // The spikes are cut at exactly e.r and never reach past the hull. That is deliberate, and it is
-      // the same trap the old dashed standoff ring fell into (removed 2026-07-29): anything drawn
-      // OUTSIDE the body reads as "the danger edge", and the real contact envelope is e.r + P.r — much
-      // wider than any decoration would imply, so a player who trusts the drawing dies just outside it.
-      // A jagged outline changes the read without promising a distance.
-      // SEVEN DEEP SPIKES, not nine shallow ones. The first pass used 9 teeth at 0.72r, which at speed
-      // and at a distance still integrates to "a circle with a rough edge" — the exact read it existed to
-      // break. Fewer, deeper points (0.50r) give a silhouette that survives peripheral vision, and an odd
-      // count keeps it from reading as a symmetrical flower at any rotation.
+      // THE BOMBER IS A MINE — a spiked hull, not a disc. A plain circle wearing a faint ring is very
+      // nearly what a GILDED BOUNTY looks like, and one of those you steer into for a jackpot while the
+      // other blows your hoard apart, so they must not share a silhouette.
+      // The spikes are cut at exactly e.r and NEVER reach past the hull: anything drawn outside a body
+      // reads as "the danger edge", and the real envelope is e.r + P.r — wider than any decoration would
+      // imply, so a player who trusts the drawing dies just outside it. A jagged outline changes the read
+      // without promising a distance.
+      // SEVEN DEEP SPIKES, not nine shallow ones: 9 teeth at 0.72r still integrate to "a circle with a
+      // rough edge" at speed and at distance, which is the exact read this exists to break. Fewer,
+      // deeper points (0.50r) survive peripheral vision, and an odd count keeps it from reading as a
+      // symmetrical flower at any rotation.
       const NB=7, spin=e.ph+elapsed*0.7, inr=e.r*0.50;
       ctx.beginPath();
       for(let k=0;k<NB*2;k++){
@@ -3340,11 +3093,9 @@ function drawEnemies(){
       }
       ctx.closePath(); ctx.fill();
     } else if(e.type==='orbiter'){
-      // THE ORBITER IS AN ANNULUS — a ring of matter with a hole through it. Its identity used to be an
-      // arc drawn at 1.5r, which was the deleted standoff ring's radius almost exactly, sat at 60% of the
-      // radius that actually kills, and was near-identical to the spent Charger's mark. Worse, it encoded
-      // nothing: the angles were fixed in WORLD space, so every Orbiter on screen had its gap pointing the
-      // same way forever regardless of which way it curved.
+      // THE ORBITER IS AN ANNULUS — a ring of matter with a hole through it, marked by negative space
+      // rather than by an arc outside the hull (which would sit near 60% of the radius that actually
+      // kills, and collide with the spent Charger's mark).
       // Negative space is the right channel here. Under `lighter` a hole costs nothing and cannot smear
       // into a neighbour the way a stacked fill does, and it stays legible when bodies overlap. The
       // reversed winding on the inner circle is what punches it.
@@ -3395,21 +3146,18 @@ function drawEnemies(){
       ctx.lineTo(e.x-Math.cos(na)*e.r, e.y-Math.sin(na)*e.r);
       ctx.stroke();
     } else if(e.type==='orbiter'){
-      // A PIP RUNNING THE HOLE, replacing the 1.5r trail arc. The arc was drawn at essentially the
-      // deleted standoff ring's radius, sat at 60% of the radius that kills, and — the part that made it
-      // worthless as a mark — used FIXED WORLD ANGLES, so every Orbiter's gap pointed the same way
-      // forever no matter which way the body was curving. The tangential push that defines this species
-      // has a fixed handedness (a +90° rotation of the radial vector, i.e. clockwise on screen); an
-      // increasing pip angle matches it, so for the first time the mark states the behaviour it exists
-      // to advertise. Inside the hull, and it rides the negative space rather than competing with it.
+      // A PIP RUNNING THE HOLE. The tangential push that defines this species has a fixed handedness (a
+      // +90° rotation of the radial vector, i.e. clockwise on screen), and an increasing pip angle
+      // matches it — so the mark states the behaviour it exists to advertise, which a fixed world-space
+      // angle cannot. Inside the hull, riding the negative space rather than competing with it.
       const oa=e.ph+elapsed*2.6;
       ctx.fillStyle='rgba(255,255,255,0.9)';
       ctx.beginPath(); ctx.arc(e.x+Math.cos(oa)*e.r*0.74, e.y+Math.sin(oa)*e.r*0.74, e.r*0.20,0,TAU); ctx.fill();
     } else if(e.type==='fast'){
-      // THE DART GETS A WAKE. It and the Drifter are the two most common bodies in the sky — measured at
-      // 8.1 and 20.1 per sample, sharing the screen in 77% of samples — and they were separated by radius
-      // alone, 8 against 11. Aspect ratio is the one silhouette cue that still resolves at ~3.9 CSS px on
-      // a phone, where a 3px internal mark cannot. It also encodes the actual difference: this is the
+      // THE DART GETS A WAKE. It and the Drifter are the two most common bodies in the sky (8.1 and 20.1
+      // per sample, sharing the screen in 77% of them) and radius alone — 8 against 11 — cannot separate
+      // them. Aspect ratio is the one silhouette cue that still resolves at ~3.9 CSS px on a phone, where
+      // a 3px internal mark cannot. It also encodes the actual difference: this is the
       // fastest ordinary body in the game (maxsp 6.4 against a Drifter's 3.4), so the thing that marks it
       // is its own speed. Drawn backward along the path already travelled, which is the one exemption to
       // "nothing outside the hull" the file already relies on for the Charger's dash streak — a trail
@@ -3420,27 +3168,23 @@ function drawEnemies(){
         ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x-e.vx*2.2, e.y-e.vy*2.2); ctx.stroke();
       }
     } else if(e.type==='bomber'){
-      // A BLINKING FUSE, not a ring. The old 0.7r pulsing ring was one more concentric circle on a body
-      // in a sky full of them — it marked the Bomber with the same vocabulary the Gilded Bounty uses.
-      // A core that visibly TICKS says "armed" instead, and it is a second, redundant channel: even where
-      // the silhouette is ambiguous (crowded, overlapped, far away) the blink still reads.
-      // Everything stays inside the hull. The dashed 1.55r standoff ring was deleted with the death
-      // payload on 2026-07-29 because it promised a danger radius that no longer existed, and anything
-      // drawn outside the body invites the player to hold station just outside it — which is well inside
-      // the real contact envelope of e.r + P.r.
+      // A BLINKING FUSE, not a ring. A concentric ring here marks the Bomber with the same vocabulary the
+      // Gilded Bounty uses; a core that visibly TICKS says "armed" instead, and it is a second, redundant
+      // channel — even where the silhouette is ambiguous (crowded, overlapped, far away) the blink reads.
+      // Everything stays inside the hull. A standoff ring invites the player to hold station just outside
+      // it, which is well inside the real contact envelope of e.r + P.r — and it would bear no relation
+      // to the 120px blast either, i.e. lie about both numbers at once.
       const bl=0.5+0.5*Math.sin(elapsed*7+e.ph);
       ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.26+0.16*bl),0,TAU); ctx.fill();
     } else if(e.type==='charger' && e.spent){
-      // COOLDOWN CLOCK, as a WEDGE FROM THE CENTRE rather than an arc around the rim.
-      // The arc it replaces sat at 1.18r and was defended in this very comment as safe because it was "a
-      // PARTIAL sweep, not a closed ring". That defence was wrong on its own terms: the sweep is TAU*frac
-      // and frac starts at exactly 1.0, so it WAS a closed ring at the instant every cooldown began, and
-      // still read closed for the first second of five. It also sat 0.34 units from the Orbiter's arc,
-      // making the two species' only marks near-identical.
-      // A pie has no rim. It cannot be mistaken for a radius, it cannot collide with any other ring in the
-      // game's vocabulary, and it lives entirely inside the hull. Running `1-frac` fills it as the body
-      // re-arms, so the wedge completing and the outline flooding solid are one gesture.
+      // COOLDOWN CLOCK, as a WEDGE FROM THE CENTRE rather than an arc around the rim. An arc is not a
+      // safe alternative even as a "partial sweep": the sweep is TAU*frac and frac starts at exactly 1.0,
+      // so it is a CLOSED RING at the instant every cooldown begins and still reads closed for the first
+      // second of five.
+      // A pie has no rim. It cannot be mistaken for a radius, it cannot collide with any other ring in
+      // the game's vocabulary, and it lives entirely inside the hull. Running `1-frac` fills it as the
+      // body re-arms, so the wedge completing and the outline flooding solid are one gesture.
       const frac=clamp((e.cool||0)/CHG_COOL,0,1);
       ctx.fillStyle=hexA(c,0.55);
       ctx.beginPath(); ctx.moveTo(e.x,e.y);
@@ -3454,13 +3198,10 @@ function drawEnemies(){
         // CHG_REACH it is honest in both directions: it shows the lane to leave, and when the Charger
         // has wound up from too far out it visibly falls SHORT of you, which is worth knowing.
         const t=clamp((e.ct||0)/CHG_WIND,0,1);
-        // THE WIND-UP TELL IS A HEATING NOSE, INSIDE THE HULL. It was a closed white ring swelling from
-        // 17px to 23px and brightening to 0.9 alpha — against a 28px kill radius (e.r 13 + P.r 15). So
-        // the brightest, most attention-grabbing mark on screen stopped 5px SHORT of the lethal edge, at
-        // the exact moment the player is looking for that edge hardest. Hold station just outside the
-        // ring, visibly clear of it, and take 16 damage. That is the deleted 1.55r standoff ring rebuilt
-        // closed, brighter, and animated to draw the eye. No comment defended it; it simply escaped the
-        // rule the Bomber and the spent arc were both written to obey.
+        // THE WIND-UP TELL IS A HEATING NOSE, INSIDE THE HULL — never a swelling ring. A ring here is the
+        // worst case of the standoff trap in the game: it would be the brightest, most attention-grabbing
+        // mark on screen, stopping short of the 28px lethal edge (e.r 13 + P.r 15) at the exact moment
+        // the player is looking for that edge hardest. Stand visibly clear of it and take 16 damage.
         // A glow at the nose says "this end is about to happen to you" and states no distance at all.
         // Peak extent 0.55r + 0.38r = 0.93r, inside the hull by construction.
         const nha=(e.aimx!==undefined)?Math.atan2(e.aimy,e.aimx):e.ph;
@@ -3473,14 +3214,13 @@ function drawEnemies(){
                                                         // not a stub that slides as the body drifts
           ctx.strokeStyle=hexA(c,0.28+0.42*t); ctx.lineWidth=1.5+1.5*t; ctx.setLineDash([9,9]);
           ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(ex,ey); ctx.stroke(); ctx.setLineDash([]);
-          // Reticle collapsing onto the end of the lane — the countdown made spatial. It used to shrink
-          // to 8px, against the 28px envelope the arriving dash actually carries: a player standing 20px
-          // off centre was unambiguously OUTSIDE the drawn mark and still got hit. It now settles on
-          // exactly `e.r + P.r`, so what it collapses to IS the radius that kills.
-          // This is the one ring outside a hull the rule should permit, and the distinction is worth
-          // stating: it is drawn on the GROUND, not on a body, and it marks a place rather than implying
-          // a standoff — and it is true. The file already has this precedent in the mine telegraph,
-          // which is drawn at exactly the radius it will cover.
+          // Reticle collapsing onto the end of the lane — the countdown made spatial. It settles on
+          // exactly `e.r + P.r`, so what it collapses to IS the radius that kills; shrink it further and
+          // a player standing 20px off centre is unambiguously OUTSIDE the drawn mark and still hit.
+          // This is the one ring outside a hull the rule permits, and the distinction is worth stating:
+          // it is drawn on the GROUND rather than on a body, so it marks a place instead of implying a
+          // standoff — and it is true. Same precedent as the mine telegraph, drawn at exactly the radius
+          // it will cover.
           const RET=e.r+(P?P.r:15);
           ctx.strokeStyle=hexA(c,0.3+0.45*t); ctx.lineWidth=1.5;
           ctx.beginPath(); ctx.arc(ex,ey, RET+26*(1-t), 0, TAU); ctx.stroke();
@@ -3740,9 +3480,9 @@ function updateHUD(){
   // act label + biome tint (Arena shows its controls instead of the Epoch)
   const info=actInfo();
   const al=el('actlab');
-  // The top-centre slot NAMES where you are — an Epoch, or the mode standing in for one. It used to
-  // carry the mode's keymap as well, which put 60 characters of "1 WALL · 2 NOOSE · …" in the one
-  // place the eye checks mid-fight. Keys now sit with the other keys, in the control legend.
+  // The top-centre slot NAMES where you are — an Epoch, or the mode standing in for one, and nothing
+  // else. A keymap here puts 60 characters of "1 WALL · 2 NOOSE · …" in the one place the eye checks
+  // mid-fight; keys belong with the other keys, in the control legend.
   const mk=el('modeKeys');
   if(labMode){ al.textContent='✳ PATTERN LAB'; al.style.color=COL.violet;
     mk.innerHTML='<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd> Wall · Noose · Pulse · Sorter · Comet'; }
@@ -3755,10 +3495,9 @@ function updateHUD(){
   if(boss){ bb.classList.remove('hidden'); bb.querySelector('i').style.transform=`scaleX(${clamp(boss.hp/boss.maxHp,0,1)})`;
     const ak=ANOM[boss.variant]||ANOM.emitter;
     const tip=(ak.tip3 && (act>=2||testMode)) ? ak.tip3 : ak.tip;   // the Emitter's tip grows with it, on the epoch the dash arrives
-    // The hunt outranks the standing tip: it is the only time the Anomaly is actively walking onto your
-    // core, it is over in a few seconds, and the answer is a movement answer — which is exactly what
-    // this line is allowed to name. (The DESTABILIZING line outranked both until 2026-08-03; it went
-    // with the mechanic, so the hunt is now the only thing that can displace the tip.)
+    // The hunt outranks the standing tip, and is the only thing that may displace it: it is the one
+    // time the Anomaly is actively walking onto your core, it is over in a few seconds, and the answer
+    // is a movement answer — which is exactly what this line is allowed to name.
     bb.querySelector('.bl').textContent = boss.hunt>0 ? '◆ IT IS COMING FOR THE CORE — MOVE' : tip;
     bb.querySelector('.bl').style.color = boss.hunt>0 ? COL.red : ''; }
   else bb.classList.add('hidden');
@@ -3811,9 +3550,9 @@ function frameBody(now){
   if(state==='play'||state==='ready') updateHUD();
   if(AC) updateAmbient((state==='play')?intensity:0.08, dt);
 }
-// One uncaught throw anywhere in the frame path used to break the rAF chain permanently: frozen
-// canvas, ambient still humming, no message. Now a bad frame is DROPPED and the loop survives; only
-// a persistent fault (8 in a row) halts — and it says so, instead of pretending to still run.
+// One uncaught throw anywhere in the frame path would break the rAF chain permanently: frozen canvas,
+// ambient still humming, no message. A bad frame is DROPPED and the loop survives; only a persistent
+// fault (8 in a row) halts — and it says so, instead of pretending to still run.
 let frameErrs=0;
 function frame(now){
   try{ frameBody(now); frameErrs=0; }
@@ -3850,8 +3589,8 @@ requestAnimationFrame(frame);
 // =====================================================================
 // See the .titlewrap block in <style> for what the two orbits are saying. This half just moves them.
 // Called only from frameBody while state==='menu', so a run pays nothing for it.
-// FLAT was .30, which made the outer ring 258px tall against a 132px wordmark: it hung 12px off the
-// top of the screen and its lower arc cut 41px into the body copy, reading as a strikethrough
+// FLAT is the one to leave alone. At .30 the outer ring stands 258px tall against a 132px wordmark: it
+// hangs off the top of the screen and its lower arc cuts into the body copy, reading as a strikethrough
 // through the first line. .19 keeps the ring framing the words and clear of both.
 const TITLE={IN:.62, CYCLE:7.6, DIE:.62, SPREAD:Math.PI*.82, SPIN:.30, FLAT:.19};
 const tWrap=el('titleLock');
@@ -3872,10 +3611,10 @@ const tHit =[tMk('c'),tMk('r')];   // inner: counter-rotating — always do
 // lockup's centre, which CSS already holds at left:50%/top:56% — so nothing to cache, nothing to
 // invalidate on resize, and no per-frame offsetWidth read forcing a synchronous layout.
 function tPlace(p,x,y,a,alpha,boost){
-  // Depth is CONTINUOUS in sin(a) — 0 on the far side of the ellipse, 1 on the near side — which is
-  // also the physically right falloff for a circle seen at an angle. It used to be the boolean
-  // sin(a)>0, so scale AND opacity both snapped (.62→1.18, .45→1) on the single frame a charge
-  // crossed either horizontal extreme: a hard flicker twice a lap, at the ends of the outer ring.
+  // ⚠️ DEPTH IS CONTINUOUS IN sin(a) — 0 on the far side of the ellipse, 1 on the near side — which is
+  // also the physically right falloff for a circle seen at an angle. Never a boolean `sin(a)>0`: that
+  // snaps scale AND opacity (.62→1.18, .45→1) on the single frame a charge crosses either horizontal
+  // extreme, a hard flicker twice a lap at the ends of the outer ring.
   const d=(Math.sin(a)+1)/2;
   const k=(.62+.56*d)*(boost||1);                 // near side reads bigger…
   p.el.style.transform=`translate(${x}px,${y}px) scale(${k})`;
@@ -4017,14 +3756,11 @@ el('resumeBtn').onclick=resumeGame;
 el('quitBtn').onclick=()=>{ el('pause').classList.add('hidden'); if(AC&&AC.state==='suspended')AC.resume(); toMenu(); };
 // bestiary overlay: lazy-load the standalone page; ✕ or Escape closes
 //
-// ESCAPE HAS TO BE BOUND INSIDE THE IFRAME TOO (2026-08-03). Player report: "close bestiary or codex via
-// esc doesnt work if i clicked page once." Reproduced exactly, and it is the Bestiary only — the Codex is
-// a plain div in this document and was never affected. The Bestiary is an <iframe>, and **one click
-// anywhere inside it moves `document.activeElement` to IFRAME#bestiaryFrame**, which means the keystroke
-// is delivered to the CHILD document. A `window` listener in the parent never sees it, so Escape is dead
-// until you click back out — and there is nothing obvious to click back out ONTO, because the overlay
-// fills the screen. Verified before the fix: open → click inside → activeElement is the iframe → Escape →
-// still open.
+// ESCAPE HAS TO BE BOUND INSIDE THE IFRAME TOO. The Bestiary is an <iframe>, and ONE CLICK ANYWHERE
+// INSIDE IT moves `document.activeElement` to IFRAME#bestiaryFrame, so the keystroke is delivered to the
+// CHILD document and a `window` listener in the parent never sees it. Escape is then dead until you
+// click back out, and there is nothing obvious to click back out ONTO because the overlay fills the
+// screen. (The Codex is a plain div in this document and is not affected.)
 // Same-origin, so the parent can simply listen on the child document as well. Bound on every `load` (the
 // src is set once, but a reload would replace the document) and again on open, which covers the second
 // and later opens where the load event has long since fired. A WeakSet keyed on the document makes it
@@ -4115,11 +3851,10 @@ el('codexBtn').onclick=openCodex;
 el('codexClose').onclick=closeCodex;
 // stopIMMEDIATEPropagation, not stopPropagation. Both of these and the main input handler are registered
 // on the SAME target (window), and `stopPropagation` only stops the walk to the NEXT target — it does
-// nothing to other listeners already attached to this one. So Escape was closing the overlay and then
-// also reaching `if(k==='p'||k==='escape') togglePause()` on the way past. It is invisible today because
-// these overlays only open from the menu, where togglePause is inert; it would have become a real bug the
-// moment either one became reachable mid-run. The code always intended "Escape closes the overlay and
-// does nothing else" — this is the call that actually says that.
+// nothing to other listeners already attached to this one. With plain stopPropagation, Escape closes the
+// overlay and then also reaches `if(k==='p'||k==='escape') togglePause()` on the way past. Latent today,
+// because these overlays only open from the menu where togglePause is inert; a real bug the moment
+// either becomes reachable mid-run.
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('bestiary').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeBestiary(); }});
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeCodex(); }});
 
@@ -4134,8 +3869,8 @@ function setPointer(x,y){ pointer.x=x/S; pointer.y=y/S; pointer.has=true; }
 function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; }
 
 // TOUCH. A mouse reports a position without being pressed; a finger does not. So on touch, steering and
-// flipping arrive through the SAME gesture, and firing flip() on pointerdown reversed your poles every
-// time you reached for the stick — measured, not guessed: the first touch of a drag flipped cyan→red.
+// flipping arrive through the SAME gesture, and firing flip() on pointerdown reverses your poles every
+// time you reach for the stick — the first touch of a drag flips cyan→red.
 //   They are split by intent instead. A finger that MOVES is steering and never flips. A finger that
 // presses and lifts without travelling is a tap, and taps flip. A tap deliberately does NOT move the
 // steer target: you flip constantly in this game, and having every flip also yank the core toward your
@@ -4167,7 +3902,7 @@ canvas.addEventListener('pointerdown',e=>{
   setPointer(e.clientX,e.clientY);
   if(state==='ready'){ skipReady(); return; }
   if(e.button===2){ collapse(); return; }
-  if(state==='play') flip(); // a pure tap now — reverse poles (the black hole is a powerup, not a hold)
+  if(state==='play') flip(); // a pure tap — reverse poles
 });
 function endTouch(e){
   if(e.pointerId!==touchId) return;
@@ -4296,8 +4031,8 @@ const sfx={
   // THE BAITED CHARGE. It has to be tellable from bosshit() while your eyes are on the far side of the
   // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
   // in 0.09s), this is a heavy low SLAM that falls much further and much longer, and then RISES. The
-  // rise is the part that carries the meaning — every reward voice in this game goes up (deflect,
-  // graze, capFull, level) and every damage voice goes down (hurt, dead, streakLost). A baited charge
+  // rise is the part that carries the meaning — every reward voice in this game goes up (graze,
+  // capFull, level) and every damage voice goes down (hurt, dead, streakLost). A baited charge
   // is the rare event that is both an impact and a reward, so it does both, in that order.
   baited(){ beep(110,0.20,'sawtooth',0.26,44); noise(0.20,0.18);
             beep(523,0.16,'triangle',0.13,784); beep(784,0.22,'sine',0.10,1175); },
@@ -4313,15 +4048,15 @@ const sfx={
     beep(b,0.1,'triangle',0.14); beep(b*1.25,0.12,'triangle',0.12); beep(b*1.5,0.18,'triangle',0.12,b*2); },
   shield(){ beep(600,0.16,'sine',0.13,960); beep(940,0.12,'triangle',0.07,1320); },
   dead(){ beep(300,0.7,'sawtooth',0.25,70); noise(0.6,0.2); },
-  // THE WELL STRAINS — deliberately the mirror of inhale(): where that sweeps 55→220 and 200→1800 to
-  // say "pressure building", this falls in octave-paired voices to say "the thing you were holding is
-  // going". Falling+noise is already this game's grammar for loss (hurt, streakLost, dead).
+  // A CLOSING WINDOW — the mirror of inhale(): where that sweeps 55→220 and 200→1800 to say "pressure
+  // building", this falls in octave-paired voices to say "your moment is going". Falling+noise is this
+  // game's grammar for loss (hurt, streakLost, dead). Shared by the Charger wind-up and the Pulsar's
+  // station break.
   closing(){ beep(330,0.85,'sine',0.11,88); beep(99,0.85,'triangle',0.075,50); noise(0.3,0.07); },
   // ...and it lets go. Short, low, no rise anywhere in it.
   release(){ beep(180,0.34,'sawtooth',0.2,44); beep(70,0.5,'sine',0.15,30); noise(0.3,0.16); },
   // CELESTIAL HARP: plucked arpeggio in stacked fifths (quintal harmony — "the planets arrange").
-  // The voice of cosmic wins: keystone takes, the Singularity's evaporation, secret feats — and
-  // reserved for future alignments (Syzygy). n = arpeggio length, 3..7.
+  // The voice of cosmic wins — currently the orb pickup, at harp(5). n = arpeggio length, 3..7.
   harp(n){
     if(!AC)return;
     const base=392;                         // G4 — bright but not shrill
