@@ -64,12 +64,13 @@
     {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Shrapnel from a Splitter, and the only body with <b>no white core</b> — a solid pellet. Tiny hit, but it arrives in pairs.'},
     {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Circles you instead of charging. Its mark is the <b>hole through the middle</b>, and the pip running that hole turns the way it curves.'},
     {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:10,
-     tag:'<b>Spiked mine</b>, and it does go off. Contact is only a Drifter\'s hit — the danger is the <b>detonation</b>, which clears every dot within ~120px, <b>your own ring included</b>. Never pop one inside your hoard.'},
-    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism cannot hold. It draws its lane before dashing: step <b>off</b> it, or stand so that lane crosses an <b>Anomaly</b> for <b>12 dmg</b>.'},
+     tag:'<b>Spiked mine</b> that really does go off — though <b>never at you</b>. The blast costs no health; it wipes every dot within ~120px, <b>your own ring included</b>. Only a <b>Brute</b> survives it. Don\'t pop one in your hoard.'},
+    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism cannot hold. It draws its lane before dashing: step <b>off</b> it, or stand so that lane crosses an <b>Anomaly</b> for <b>8 dmg</b>.'},
     {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'Uncharged, and it <b>wears both poles</b> on a turning seam: no colour makes it safe or makes it ammunition, and your magnetism cannot move it.'},
   ];
-  const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:44,hp:'(13+epoch·5)×1.5',dmg:30,
-    tag:'The boss of each Epoch, and it never leaves. Gather your colour into your <b>rings</b>, then flip to <b>VOLLEY</b> them at it — <b>3 dmg</b> each. Nothing else lands.'};
+  // r 44 → 37 on 2026-08-03: one number for hull AND collider, same law as every dot row.
+  const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:37,hp:'10+epoch·5',dmg:30,
+    tag:'The boss of each Epoch, and it never leaves. Gather your colour into your <b>rings</b>, then flip to <b>VOLLEY</b> them at it — <b>2 dmg</b> each. Nothing else lands.'};
   // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
   const ANOMS=[
     {kind:'anom',key:'emitter', name:'Emitter', col:'cyan', meta:'volleys · hovers · burst & stream',
@@ -239,10 +240,15 @@
     ctx.globalCompositeOperation='source-over';
     // draws the EMITTER silhouette on purpose: there is no generic Anomaly body any more, and the
     // first Anomaly of every run is always the Emitter, so this is the one you actually meet first.
+    // mirrors index.html 2026-08-03: the integrity ring sits on the true contact envelope `b.r + P.r`
+    // = 52 rather than the old `b.r+11`, which sat 4px INSIDE the edge that kills you. `r` here is a
+    // card-fitted 28 against the game's 37, so the ratio travels rather than the pixel value:
+    // 52/37 = 1.41r. It is the one stroke in the fight that says where you die, and it is now the same
+    // stroke as the HP bar.
     anomBody(ctx,x,y,r*pulse,'emitter',c,lc,t);
-    const frac=0.68;
-    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x,y,r+11,0,TAU); ctx.stroke();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x,y,r+11,-Math.PI/2,-Math.PI/2+frac*TAU); ctx.stroke();
+    const frac=0.68, IR=r*1.41;
+    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x,y,IR,0,TAU); ctx.stroke();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x,y,IR,-Math.PI/2,-Math.PI/2+frac*TAU); ctx.stroke();
   }
 
   // The per-kind silhouette, mirroring bossBody() in index.html. Each shape IS the mechanic:

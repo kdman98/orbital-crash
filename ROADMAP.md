@@ -7,6 +7,68 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Anomaly gets smaller, cheaper, and stops lying about its edge (2026-08-03)
+Player brief: *"change volley damage to 2, reduce anomaly hp, starting from 15. also reduce anomaly size by 15%. make sure contact range is same."* Then, on seeing the first build: *"what i meant was contact range is same as anomaly's visual size."*
+
+**That clarification reversed the implementation, and the discarded version is worth recording.** The
+first build read "contact range is same" as *unchanged*, so it shrank only the drawing and left `b.r` at
+44 — a render-only scale. That is exactly the defect [GLOSSARY §3](GLOSSARY.md) exists to ban: it would
+have put the star's kill edge **22px outside a hull that looked safe**. The correct reading is the
+stronger one — **the Anomaly obeys the same law as every other body in the sky: what you see is what
+hits you.** So it is one number.
+
+| | before | after |
+|---|---|---|
+| `boss.r` | 44 | **37** (−15.9%) |
+| contact envelope `b.r+P.r` | 59 | **52** |
+| integrity ring | `b.r+11` = 55 (**4px inside lethal**) | `b.r+P.r` = **52** (exact) |
+| `VOLLEY_DMG` | 3 | **2** |
+| `CHARGE_DMG` | 12 | **8** |
+| boss HP | `round((13+act*5)*1.5)` → 27/35/42/50/57 | `10+act*5` → **15/20/25/30/35** |
+| Pulsar (×0.75) | 20/26/32/38/43 | **11/15/19/23/26** |
+| purge cost, Epoch I | 9 connecting volley bodies | **8** |
+| purge cost, Epoch III | 14 | **13** |
+
+**The pool and the price moved together on purpose.** Read apart the change looks enormous; read together
+the purge cost barely moves. What changed is the **grain**: at 3 into 27 the pool did not divide by the
+price, so the last body of every purge was 3 thrown at a 2 HP boss. At 2 into 15 the bar steps in units
+it actually has. The ×1.5 that made 27 went on in 2026-07-31 to stop a hoard alone killing an 18 HP boss;
+since then the baited charge went 5 → 12 **and** the Anomaly stopped fleeing, so a pool sized for length
+was sitting on top of a fight with no exit.
+
+**`CHARGE_DMG` was repriced because its own comment pre-registered the rule** — *"sized against the pool
+it faces; if boss HP moves again, re-price this with it"* — and 8 holds both invariants that chose 12:
+still exactly 4 × `VOLLEY_DMG`, still the biggest single hit in the game. Against the new pool a bait is
+worth **more of a bar than it ever has been — 53% / 40% / 32%** at Epoch I / II / III, against 44/34/29
+before. Left at 12 it would have been a **one-shot purge on an Epoch I Pulsar** (11 HP).
+
+**'Danger Close' retired.** *"Take a Bomber's impact and live"* was written when a Bomber hit 26 with a
+30-through-shields payload; at Drifter parity (10 vs 100 max HP) it certified nothing. It had survived one
+pass longer on the argument that *"the roster count is documented (six, one secret)"* — which is backwards,
+and is the actual lesson: **the docs describe the game, not the other way round.** Roster is now **five,
+one secret**. Deliberately *not* find-replaced onto the Brute; that is a different achievement and
+deserves designing.
+
+**Measured** (mute on, new-code marker `boss.r === 37` asserted before trusting any number):
+
+| check | result |
+|---|---|
+| contact envelope, 93 one-frame trials × 3 bearings | largest separation that **hit 51.6**, smallest that **missed 52.2** — predicted `b.r+P.r` = **52.0** |
+| volley, per connecting body | **2** (body consumed) |
+| baited charge, `cst==='dash'` | **8** (charger consumed) |
+| drift-in contact | **0** — two-channel rule intact |
+| boss HP at Epoch I | **15** / **15** / **11** (emitter / sentinel / pulsar) |
+| Codex "Ways in" rows | **2 · 1 · 8 · 15%** |
+| Codex achievements | **5 rows, exactly 1 secret**, no 'Danger Close' |
+| console | clean, both pages |
+
+**The envelope measurement needed a better instrument than the first attempt.** Seeding `P.x` and reading
+the result is wrong, because the star **chases the pointer** — it is yanked up to 18.5% of the way toward
+a stale pointer position *before* `stepPlayerContact` runs, so the distance tested is not the distance
+seeded. (The same class of error as pinning `P` outside the arena and forgetting it is clamped.) The fix
+is to bracket on the separation that **actually existed at the end of the frame**, which is why the
+threshold lands inside a 0.6px band instead of a 2px one. Boss drift while hovering: **1.08 px/frame**.
+
 ### The Bomber detonates again — but only the half that clears matter (2026-08-03)
 Player brief: *"bomber should destroy dots around it when it explodes. this is for removing excessive ring shield and too much leftover dots / except that, everything else is just a normal dot."* Told plainly that this reverses the 2026-07-29 removal: *"yeah some patches might collide - but this way was what i meant actually."*
 
@@ -1252,6 +1314,19 @@ Pre-fork history; they were never this game's plan.
 Live flags for *this* game. The list that used to be here tracked Deflect, Reflect, Offers, rarity pity
 and keystone power — most of those systems no longer exist.
 
+- 🔴 **`RING_GRIND_DMG` is stranded above its pool (2026-08-03) — the top item on this list.** The grind
+  sat at **0.5** while Epoch I was **18 HP**, and was raised back to **1** for one stated reason: *"the
+  pool moved underneath it: boss HP is now ×1.5."* That ×1.5 is gone — Epoch I is **15**, *below* the 18
+  that made 0.5 necessary — and `RING_GRIND_DMG` was **not** touched in that pass, so this is an
+  oversight of the HP change rather than a decision about the grind. **Re-ran the historical test:** an
+  immortal bot orbiting at 130px that never fires a volley and never Collapses, 60s cap, 3 phases × 3
+  kinds — **5 of 9 runs solo-killed the Epoch I Anomaly**, median ~30s (emitter 32.6 / 39.1s, sentinel
+  25.8s, pulsar 30.8 / 28.7s). That is the exact failure mode that forced 1 → 0.5 the first time.
+  **Both caveats stated, because they decide whether to act:** the bot is *immortal*, and a real player
+  holding that orbit pays **−27 HP** against the Sentinel and **−82** against the Emitter — so this
+  demonstrates the strategy *exists*, not that it is free. Left unchanged deliberately: the brief was HP
+  and volley damage, and the pilot has said difficulty tuning is theirs. The one-line fix if it should
+  not exist is **`RING_GRIND_DMG` 1 → 0.5**.
 - **The four-powerup bag** — the roster went six → four (Cryo and Corona removed 2026-07-29) and Aegis is
   now exception-free. Watch whether four reads as too few over a long run.
 - **No heal beats the lockout** — since Cryo went, Integrity regenerates only after 3.8s untouched and
