@@ -40,18 +40,46 @@
   document.addEventListener('visibilitychange', () => add(K.visibilitychange, [document.hidden ? 1 : 0]), true);
 
   // One row per frame: quanta since the previous frame, plus the events that fired in the gap before it.
+  // Also track the peak live body count, because that is the one number that predicts step() cost. Read
+  // enemies.length off the seam directly rather than calling diag(), which allocates an object and walks
+  // the whole array to build its colour census — 60x/second inside the thing we are trying not to perturb.
   H.onFrame = nowQ => {
     if (!REC.recording) return;
     REC.rows.push([nowQ - REC.prevQ, REC.pend]);
     REC.prevQ = nowQ;
     REC.pend = [];
+    const n = g.enemies.length;
+    if (n > REC.peakBodies) REC.peakBodies = n;
+  };
+
+  // Frame-time summary, computed from the dt column the tape already carries.
+  //
+  // WHY THIS IS IN THE TAPE. Frame health was once reconstructed by comparing `elapsed` against
+  // frames/60 — and that inference is WRONG, because `elapsed` advances 1/60 per *step* while slowmo and
+  // hitstop make steps-per-frame vary. It read a run that was fine as a 10% frame-rate regression. The dt
+  // column is ground truth and was in the tape the whole time; nothing should ever infer it again.
+  //
+  // The distribution is bimodal in practice (one cluster at the vsync interval, one at whatever the
+  // machine drops to under contention), so the MEDIAN is the honest headline and the mean is not: a run
+  // that holds 58.8fps for two thirds of its length still reports a mean near 47.
+  const frameStats = rows => {
+    const ms = rows.map(r => r[0] / H.Q).slice(30);      // drop boot warm-up: first frames run 40-90ms
+    if (!ms.length) return null;
+    const s = [...ms].sort((a, b) => a - b);
+    const at = p => s[Math.min(s.length - 1, Math.floor(s.length * p))];
+    const sum = ms.reduce((a, b) => a + b, 0);
+    return { n: ms.length, wallS: +(sum / 1000).toFixed(1),
+             medianMs: +at(0.5).toFixed(2), meanMs: +(sum / ms.length).toFixed(2),
+             p90Ms: +at(0.9).toFixed(2), p99Ms: +at(0.99).toFixed(2), maxMs: +s[s.length - 1].toFixed(1),
+             medianFps: +(1000 / at(0.5)).toFixed(1), meanFps: +(ms.length * 1000 / sum).toFixed(1),
+             overBudgetPct: +(ms.filter(x => x > 17.5).length / ms.length * 100).toFixed(1) };
   };
 
   REC.start = (opts) => {
     opts = opts || {};
     const seed = opts.seed == null ? ((Math.random() * 2147483647) | 0) >>> 0 : opts.seed;
     H.seed(seed);
-    REC.rows = []; REC.pend = []; REC.prevQ = H.nowQ;
+    REC.rows = []; REC.pend = []; REC.prevQ = H.nowQ; REC.peakBodies = 0;
     REC.header = {
       v: 3,
       build: H.build || 'unknown',
@@ -77,8 +105,9 @@
       ...REC.header,
       frames: REC.rows,
       end: { frames: REC.rows.length, state: d.state, score: d.score, t: d.t,
-             hp: d.hp, act: d.act, draws: H.draws,
+             hp: d.hp, act: d.act, draws: H.draws, peakBodies: REC.peakBodies,
              lastDmg: g.lastDmg ? { src: g.lastDmg.src, act: g.lastDmg.act, phase: g.lastDmg.phase } : null },
+      perf: frameStats(REC.rows),
       fpEnd: H.fp()
     };
   };

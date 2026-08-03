@@ -7,6 +7,84 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The frame budget, measured — and a recorder that stops perturbing it (2026-08-03)
+Player brief: *"how can we manage this then?"* — after a reported ~10% frame-rate regression.
+
+**There was no regression, and the game is nowhere near its budget.** Both claims are now measured
+rather than inferred.
+
+**The false alarm.** Frame rate had been reconstructed by comparing `elapsed` against `frames/60`. That
+inference is invalid: `elapsed` advances 1/60 per **step**, and slowmo (`timeScale`) plus hitstop make
+steps-per-frame vary, so the ratio measures *how much time the run spent in slow motion*, not how fast it
+drew. It read a healthy run as a 10% regression. The tape carried per-frame `dt` in quanta the whole
+time — ground truth that never needed inferring.
+
+**Real frame times, from the dt column:**
+
+| tape | build | median | mean | p90 | max |
+|---|---|---|---|---|---|
+| 1 (old) | c76dd415 | 17.0ms | 20.43 | 29 | 95 |
+| 2 (old) | c76dd415 | 17.0ms | 20.97 | 28 | 54 |
+| 3 (current) | 54852171 | 17.0ms | 21.08 | 29 | 43 |
+
+Old-vs-old differs by 2.6%; old-vs-current by 0.5%. **No build regression.** The median is a clean
+58.8fps in all three; the mean is dragged down by a bimodal tail — 61.6% of frames at ~17ms, 38.3% at
+~28ms, almost nothing between.
+
+**The 28ms stretches are environmental, not ours.** Three independent proofs:
+1. **Anticorrelated with load.** Tape 3 ran at 36fps from 15.3–44.8s (the sparse opening, before
+   formations start at ~42s) and at 58.8fps from 44.8–90.3s — the heaviest 45 seconds of the run,
+   spanning formations, Chargers and Bombers. A cost that scaled with bodies would do the opposite.
+2. **Not per-frame.** Only 9 fast/slow runs across 5,925 frames; blocks of 1060, 611, 430 frames, and one
+   unbroken 2,730-frame stretch (46s) at full rate. Per-frame cost interleaves; this switches modes.
+3. **Same signature on both builds.** Slow blocks of 1032 / 1056 / 1060 / 1031 frames recur across three
+   tapes and two builds.
+
+**What the game actually costs** (in-engine, 1710×842 @ dpr 2 = 3420×1684, same viewport as the tapes;
+run driven to Act 4 / t=267s with realistic director spawns, peak 132 live bodies):
+
+- **step(): 0.10ms worst** · **render(): 0.70ms, flat** · **total 0.80ms = 4.8% of the 16.7ms budget.
+  21× headroom.**
+- Render is flat from 50 to 596 bodies (0.64–0.87ms) — the cached gradient sprite did its job.
+
+**The cost driver is overlapping pairs, not body count.** Controlled sweep, single colour so rule 2
+prevents annihilation from changing the population mid-measurement:
+
+| bodies | uniform (spread) | edge band (packed) |
+|---|---|---|
+| 50 | 0.057ms | 0.32ms |
+| 137 | 0.113ms | 2.23ms |
+| 300 | 0.265ms | 10.16ms |
+| 600 | 0.618ms | 40.64ms |
+
+Spread is **linear** (12× bodies → 10.8× cost): the 64px spatial hash in `stepAnnihilation` works. The
+quadratic branch is real but only reachable by packing bodies tightly enough that O(n²) genuinely
+*overlapping* pairs exist. Two existing decisions already prevent that in play: the same-colour shove
+lives **inside** the grid-accelerated pair loop rather than in a pass of its own, and formation bodies
+(`hold>0`) are exempt from it, so staged arcs never pay. **Rejected: optimising anything here.** At 21×
+headroom it would be effort spent against a non-problem.
+
+**Rejected measurements, recorded so they are not repeated.** A first sweep reported step() as quadratic
+in body count (596 bodies → 37.9ms). It spawned everything at the edges, which packs the spawn band; the
+uniform control above is 66× cheaper at the same count. A second attempt read 0.015ms for 600 bodies —
+`step()` early-returns when `state !== 'play'`, and nothing had checked. Every timing loop here now
+asserts the state before and after, and keeps `diag()` out of the timed region (it allocates and walks
+the enemy array).
+
+**The recorder was competing with the game it records.** `record.html`'s status loop ran every rAF: a
+`diag()` call, a `reduce` over **every row recorded so far** to re-count events (an O(frames) scan that
+grew unbounded — by frame 6000 it re-summed 6000 rows sixty times a second), then an `innerHTML` write
+forcing an HTML parse and layout in the parent document while the game rendered 3420×1684 beside it. Now
+4Hz with a running event total. A recorder that steals frames from its subject makes every frame-time
+number in the tape a measurement of the recorder.
+
+**Tapes now self-report frame health.** `tape.perf` carries median/mean/p90/p99/max ms, median and mean
+fps, and `overBudgetPct`, computed from the dt column with the first 30 warm-up frames dropped (boot
+frames run 40–90ms). `tape.end.peakBodies` tracks the peak live count — the one number that predicts
+step() cost. **The median is the headline, not the mean:** a run holding 58.8fps for two thirds of its
+length still reports a mean near 47. Validated against a synthetic bimodal input (⅓ slow frames): median
+60fps, mean 48.9fps, overBudget 33.2%.
+
 ### The danger edge stops lying (2026-08-02)
 Player brief: *"can we fix this? or is fixing this right?"*
 

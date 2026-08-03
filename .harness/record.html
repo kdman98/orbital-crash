@@ -128,13 +128,27 @@ async function boot() {
   tick();
 }
 
-function tick() {
-  if (REC) {
+// THE STATUS BAR MUST NOT COMPETE WITH THE GAME. This ran every rAF: it called diag() (which allocates
+// and walks the enemy array), reduced over EVERY row recorded so far to re-count events — an O(frames)
+// scan that grows without bound, so by frame 6000 it was re-summing 6000 rows sixty times a second — and
+// then wrote innerHTML, forcing an HTML parse plus layout in the parent document while the game rendered
+// 3420x1684 in the iframe next to it. A recorder that steals frames from the thing it is recording makes
+// every frame-time number in the tape a measurement of the recorder.
+//
+// 4Hz instead, with the event count carried as a running total rather than recomputed. The number on
+// screen is a progress indicator a human glances at, and nobody reads it sixty times a second.
+const UI_HZ = 4;
+let uiNext = 0, evCount = 0, evRows = 0;
+
+function tick(now = 0) {
+  if (REC && now >= uiNext) {
+    uiNext = now + 1000 / UI_HZ;
     const d = G.diag(), fr = REC.rows.length;
-    const ev = REC.rows.reduce((a, r) => a + r[1].length, 0);
+    for (; evRows < fr; evRows++) evCount += REC.rows[evRows][1].length;   // incremental, not a re-scan
+    const p = REC.rows.length > 60 ? REC.rows[fr - 1][0] / H.Q : 0;
     stat(`seed <b>${REC.header.seed}</b> · build <b>${H.build}</b> · ${silent ? 'silent' : 'sound on'}` +
-         ` — <b>${fr}</b> frames, <b>${ev}</b> events, ${(fr / 60).toFixed(1)}s` +
-         ` · state <b>${d.state}</b> score <b>${d.score}</b>` +
+         ` — <b>${fr}</b> frames, <b>${evCount}</b> events, ${(fr / 60).toFixed(1)}s` +
+         ` · state <b>${d.state}</b> score <b>${d.score}</b> · <b>${p ? (1000 / p).toFixed(0) : '–'}</b>fps` +
          (d.state === 'dead' ? ' — <b>save it</b>' : ''));
   }
   requestAnimationFrame(tick);
