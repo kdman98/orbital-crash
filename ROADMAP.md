@@ -7,6 +7,54 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The Pulse sweeps through and leaves the sky (2026-08-03)
+Player brief: *"too many bullets when pulse finished, what about just let it go away in screen and disappear."*
+
+**The aftermath was bigger than the shape.** The Pulse expanded to 300px past you and then **lapsed** — and
+a lapsed formation body becomes an ordinary hunter. Three arcs of up to 34 meant **up to 102 hunters
+appearing in a single frame**, with no telegraph of their own, at the exact moment the player had just
+finished answering the wave. That sediment is the "bullets": not the Pulse, the debris field behind it.
+
+**It now sweeps through and retires once it has left the padded viewport.** Two things forced the shape of
+the fix, and both are worth keeping:
+
+1. **It has to be positional, not a clock.** The front fans across 150°, so a body on the near edge of the
+   arc clears the screen long before one aimed down the long axis. A single timer would either strand the
+   near bodies visibly or leave the far ones lapsing on screen.
+2. **It has to require having entered the arena first.** Pulse bodies are *born* off-screen — the arcs
+   start 40–170px from an origin placed 190–230px outside the edge — so a bare "is it outside?" test would
+   delete the entire shape on frame one. This is the same `seen`-then-gone idiom the Anomaly's missiles
+   already use (`L.seen`), reused rather than reinvented.
+
+`hold` is now sized to the furthest padded corner, so it can only ever act as a failsafe — it catches the
+body whose bearing misses the arena entirely and therefore never sets `seen`, which would otherwise lapse
+off-screen and walk back in later as a hunter (the exact failure the comet's note warns about).
+
+**Retirement, not a kill.** `dead` alone, never `queueKill` — no score, no Mote, no blast, no death FX.
+Nothing was destroyed; it left. Intercepting one in flight is completely untouched and still pays in full,
+because opposite-colour annihilation is not gated on `hold`. The wave is still worth meeting with the right
+polarity; it just leaves no wreckage.
+
+**Measured, 8 trials per condition, control run in the same build by clearing the tag:**
+
+| | Pulse bodies left behind 20s after the wave |
+|---|---|
+| before | 24, 28, 27, 29, 30, 31, 32, 24 — **median 29** |
+| after | 0, 0, 0, 0, 0, 0, 0, 0 — **median 0** |
+
+Zero variance in the new condition. A first pass at this measurement read **8 left behind** and was wrong:
+it counted every live body, and the Lab still runs ambient traffic. Re-run against only the 102 bodies born
+from that Pulse, the figure is 0 — the residual was unrelated dots.
+
+**The sweep itself is unchanged** — same flight speed, same time on screen, same three-arc read (confirmed
+visually mid-sweep); the extra `hold` is spent entirely off-screen. Verified over **400s of real play to
+Epoch IV**: zero leftover Pulse bodies, zero console errors, peak field 97 bodies.
+
+**What it costs, stated plainly:** the Pulse is no longer an **ammunition** source. A held body ignores the
+Field and so can never be ring-captured, and previously the lapse handed you a hoard of up to 102 gatherable
+dots. That is a real loss of income during and after the shape, and it is the intended trade — but if the
+Pulse starts to feel like an event with no upside, that is the reason.
+
 ### The Anomaly stops leaving; the bait starts landing; the well is excised (2026-08-03)
 Player brief: *"remove the dead code too"* · *"make charger dash into anormaly stronger, with visually (or sonically) i can realize. this build-up for attack is hard"* · *"remove Anomaly Destabilization and flee, and i'll handle difficulty more detailed."*
 

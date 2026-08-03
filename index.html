@@ -1089,6 +1089,20 @@ function formPulse(){
   // spaced for the radius where it MEETS you, not where it spawns: it fans out as it expands, so
   // sizing at spawn would leave it walkable by the time it mattered
   const N=clamp(Math.ceil(PULSE_ARC*arrive/FORM_STEP), 10, 34);
+  // THE PULSE LEAVES THE SKY (2026-08-03). Player brief: "too many bullets when pulse finished, what
+  // about just let it go away in screen and disappear."
+  // It used to expand to 300px past you and then LAPSE — and a lapsed formation body becomes an ordinary
+  // hunter. Three arcs of up to 34 is up to 102 bodies, so the shape's aftermath was bigger than the
+  // shape, and it arrived all at once with no telegraph of its own. That is the "bullets": not the wave,
+  // the sediment behind it. It sweeps THROUGH now and keeps going until it is off-screen, then retires.
+  // `far` is the distance from the origin to the furthest padded corner, so an arc at ANY bearing is
+  // guaranteed to be outside the viewport before its hold can run out — the timer is only a failsafe,
+  // the position test below does the real work. Bounded expansion also answers the old worry recorded
+  // here (an arc at R=1700 whipping its own tangential speed absurd): `va` is 0.14/frames ≈ 0.0008
+  // rad/frame, so even at the far corner the tangential is ~1.9 px/frame, under FORM_SPD itself.
+  const PM=60;
+  const far=Math.max(Math.hypot(-PM-cx,-PM-cy), Math.hypot(W+PM-cx,-PM-cy),
+                     Math.hypot(-PM-cx,H+PM-cy), Math.hypot(W+PM-cx,H+PM-cy));
   for(let k=0;k<3;k++){
     // Nested, outermost oldest so it lands first — but sized from the ORIGIN now, not backwards from
     // you. It used to be `arrive-140-k*130`, which put the leading arc 140px from your face: the shape
@@ -1103,13 +1117,14 @@ function formPulse(){
     // error compounds with radius: measured 210 px/frame once an arc had expanded past R≈1700.
     const frames=Math.max(1,(arrive-R)/FORM_SPD);
     const spin=(k%2?1:-1)*0.14/frames;
-    // Live exactly long enough to sweep past you and clear, rather than expanding forever offscreen —
-    // an arc at R=1700 is doing nothing except making its own tangential speed absurd.
-    const hold=(arrive-R+300)/FORM_SPD/60;
+    // Long enough to clear the furthest corner, so the arc never lapses into hunters while still on
+    // screen. The retirement is positional (see the e.pulse block in stepEnemyForces); this is its bound.
+    const hold=(far-R)/FORM_SPD/60+0.5;
     for(let i=0;i<N;i++){
       const a=bear+(i/(N-1)-0.5)*PULSE_ARC;
-      holdOrbit(spawnEnemy('drift',col, cx+Math.cos(a)*R, cy+Math.sin(a)*R),
+      const e=holdOrbit(spawnEnemy('drift',col, cx+Math.cos(a)*R, cy+Math.sin(a)*R),
                 cx,cy,a,R,-FORM_SPD,spin, hold);   // negative vr = expanding
+      if(e) e.pulse=1;                             // marks it for the leaves-the-sky retirement
     }
   }
 }
@@ -2024,6 +2039,24 @@ function stepEnemyForces(dt){
       // destroyed, it simply left. The dead sweep at the end of the frame culls it. Intercepting it in
       // flight is untouched and still pays in full, because that path never reaches this line.
       if(e.comet && e.hold<=0) e.dead=true;
+      // THE PULSE LEAVES THE SKY TOO, on the same terms — but positionally rather than on a clock,
+      // because its arcs fan across ~150° and a body on the near edge of the front clears the viewport
+      // long before one aimed down the long axis. Same `seen`-then-gone idiom the Anomaly's missiles
+      // already use (`L.seen`): a Pulse body is BORN off-screen (arcs start 40-170px from an origin
+      // 190-230px outside the edge), so "outside" alone would kill the whole shape on frame one — it
+      // has to have entered the arena first. Retirement, not a kill: `dead` alone and never queueKill,
+      // so nothing is scored, banked or detonated. Intercepting one in flight is untouched and still
+      // pays in full — opposite-colour annihilation is not gated on `hold`, so the wave is still worth
+      // meeting with the right polarity. What it no longer does is leave up to 102 hunters behind it.
+      if(e.pulse){
+        const M=60;
+        if(e.x>-M && e.x<W+M && e.y>-M && e.y<H+M) e.seen=1;
+        else if(e.seen) e.dead=true;
+        // A body whose bearing misses the arena entirely never sets `seen`, so the clock has to catch
+        // it — otherwise it lapses off-screen and walks back in later as an ordinary hunter, which is
+        // the exact failure the comet's note warns about.
+        if(e.hold<=0) e.dead=true;
+      }
       continue;
     }
     // (There is no guided-volley branch any more. Fired matter is ordinary flung matter now — it keeps
