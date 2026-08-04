@@ -7,6 +7,64 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### Every hull tells the truth, and the Neutral pop stops being a number (2026-08-03)
+Two follow-ups from the comment pass. Pilot: *"is this ok?"* on the missile-life rule, *"should we manage this with HP? not system adjustment?"* on the Neutral, and *"all hitbox should have same size with visual, i think?"*
+
+**The missile-`life` rule needed no change, and that is worth recording so it is not re-investigated.**
+`step()` opens with `const dt=1/60`, a literal, and `timeScale` is applied to the *accumulator*
+(`acc += dt*timeScale`), so slow-motion runs **fewer steps**, never shorter ones. `L.life -= dt` and
+`L.x += L.vx` are therefore locked together by construction. The comment is a guardrail against a future
+per-missile speed multiplier, not a description of a live bug.
+
+**The Neutral pop is now structural.** `NEUTRAL_POP` (2) had to equal Neutral HP (2) or the first
+shockwave becomes invisible — the pulse fires only every 0.5s however fast you flip, and a damaged
+Neutral is drawn identically to a fresh one, so a two-hit kill reads as "Neutrals are immune". Nothing
+enforced that equality, and three places promise *"one reversal, not two"*.
+
+Re-tuning HP would only re-couple the two numbers, so the subtraction became `queueKill(o)` and the
+constant is gone. **Sim-identical today** — at HP 2 the old expression already killed in one hit, same
+frame; it diverges only if Neutral HP is ever raised, which is the point.
+
+Worth recording from the audit: **Neutral HP 2 currently changes nothing.** Every damage source against a
+regular body is Collapse wave **2**, Collapse chain **3**, Bomber blast **2**, shockwave **2** — and
+`P.blastDmg` = 1 exists but is **unreachable**, because `P.blastR` is 0 so the non-Collapse chain never
+clears its `bR>18` gate. A Neutral dies to all of them at HP 1 or 2 alike; only the Brute at 3 survives
+anything. HP 2 is the largest value that still dies to everything, which is a defensible place to sit.
+
+**Hitbox parity: it was already true almost everywhere.** `e.r` is both the drawn hull and the collider
+for six of nine dots plus the Anomaly. Three silhouettes overhang — Brute hexagon 1.15×, Charger
+arrowhead ~1.33×, Splitter lobes 1.07× — but those draw *bigger* than they collide, which is the
+forgiving direction and is their species identity, so they were left alone.
+
+**Exactly two things were drawn smaller than the radius that kills, and both were fixed:**
+
+| | was | now |
+|---|---|---|
+| the star's crisp white rim | `P.r*0.86` = 12.9 against a real 15 — **you died 2.1px before your own edge touched** | outer edge of the stroke on exactly `P.r` |
+| Gilded Bounty ring | `e.r*1.8` = 19.8 on a Drifter against a 26px kill radius — **keeping clear of the gold still killed you** | `e.r + P.r` = 26 |
+
+The star was not a one-liner: the rim is stroked 0.6px outside a solid fill, so moving it alone detaches
+it into a floating ring. Body fills to `P.r`, rim inset by half its 2.2 stroke width, specular highlight
+scaled ×1.22 to keep the sphere read.
+
+**What this buys is one rule with no exceptions: two hulls meeting on screen IS the frame of contact.**
+15 + 11 = 26 = `e.r + P.r`.
+
+**Measured** (mute on; the HP-99 pop below is also the new-code marker, since the old code could not
+produce it):
+
+| check | result |
+|---|---|
+| Neutral pop at HP 2 / 5 / 99 | **dead in one reversal in all three**, and `hp` left untouched — a kill, not a subtraction |
+| contact threshold, all 9 dots + Anomaly | lands on `e.r + P.r` for **10 of 10** (drift 25→26.6 vs 26 · dart 21.7→23.3 vs 23 · brute 34.7→36.4 vs 35 · split 28.2→29.8 vs 29 · mini 21.7→23.3 vs 22 · orbiter 25→26.6 vs 25 · bomber 31.5→33.1 vs 32 · charger 26.4→28.1 vs 28 · neutral 29.8→31.5 vs 30 · boss 51.9→52.1 vs 52) |
+| star rim, pixel-probed | full-bright to 14.44, boundary pixel at **15.00**, atmosphere plateau beyond — edge is `P.r` |
+| Gilded ring, pixel-probed | stroke spans 25.0–26.66, centred on **26** = `e.r + P.r` |
+| console | clean |
+
+**Flagged, not fixed:** the star's `1.45r` atmosphere layer is a *flat* 0.30-alpha fill, so it still has a
+hard boundary at 21.75px — the same defect the enemy halo was converted to a gradient sprite to remove.
+It errs wide (the safe side), so it is a separate pass.
+
 ### The Anomaly gets smaller, cheaper, and stops lying about its edge (2026-08-03)
 Player brief: *"change volley damage to 2, reduce anomaly hp, starting from 15. also reduce anomaly size by 15%. make sure contact range is same."* Then, on seeing the first build: *"what i meant was contact range is same as anomaly's visual size."*
 
@@ -530,7 +588,7 @@ The cliff landed at exactly the predicted 20.9 edge. Extent is unchanged, so it 
 
 **The reticle: now true.** It collapsed to **8px** against a 28px envelope, so a player 20px off centre was visibly outside the mark and still took 16 damage. It now settles on exactly `e.r + P.r` = **28**. This is the legitimate exception to the rule: it marks the **ground**, not a body, and it is honest — the same precedent the mine telegraph already set.
 
-Still outstanding in this class: the Gilded Bounty ring (1.8r, closed and dashed — the standoff ring's exact form, on the one body the game baits you toward) and the boss integrity ring (`b.r+11` against a `b.r+15` envelope).
+*(Both remaining items in this class were closed on 2026-08-03: the boss integrity ring moved to `b.r+P.r`, and the Gilded Bounty ring — the standoff ring's exact form, on the one body the game baits you toward — moved from 1.8r to `e.r+P.r`. See "Every hull tells the truth" above.)*
 
 ### The Wall stops eating itself (2026-08-02)
 Player brief: *"wall pattern collides each other in conclusion. should we have same color in same axis? idk"*

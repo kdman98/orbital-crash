@@ -573,7 +573,6 @@ const CHARGE_DMG=8;
 // against 82 for the Emitter and 66 for the Pulsar, which sit still and shoot you point-blank. Hard to
 // CATCH and dangerous to STAND NEXT TO are different axes; the grind is priced on the second.
 const GRIND_MULT={};
-const NEUTRAL_POP=2;            // one Shockwave pops a Neutral outright — its full hp, as the Codex has always claimed
 // THE VOLLEY — the boss fight's erosion path. With an Anomaly alive, a hungry flip does not merely
 // scatter your rings: every gathered body that is NOT the Anomaly's colour is LAUNCHED AT IT and guided
 // for a moment, which is the reason you were hoarding matter in the first place.
@@ -2635,11 +2634,13 @@ function flipShockwave(hc){
       if(d<R){
         const f=(1-d/R)*force;
         o.vx+=dx/d*f; o.vy+=dy/d*f;
-        // A Neutral dies to ONE reversal, and NEUTRAL_POP must stay equal to its full hp. The pulse only
-        // fires every 0.5s however fast you flip, and a half-killed Neutral is drawn identically to a
-        // fresh one — so a two-hit kill makes the first hit invisible and the body read as immune.
-        // The Codex and Bestiary both say "pop it with a reversal", singular.
-        if(o.type==='neutral'){ o.hp-=NEUTRAL_POP; if(o.hp<=0) queueKill(o); else spawnBurst(o.x,o.y,COL.neutral,5,2.6); }
+        // A REVERSAL POPS A NEUTRAL OUTRIGHT, whatever its hp — a kill, not damage that happens to equal
+        // the hp. Damage cannot express this rule safely: the pulse fires only every 0.5s however fast
+        // you flip, and a damaged Neutral is drawn identically to a fresh one, so ANY multi-hit kill
+        // makes the first hit invisible and the body reads as immune. As a subtraction this was a silent
+        // coupling between two constants in different parts of the file; as a kill it cannot go stale.
+        // The Codex and the Bestiary both say "pop it with a reversal", singular.
+        if(o.type==='neutral') queueKill(o);
       }
     }
     // NOTE: the *swarm* loop above skips the boss on purpose (`o.type==='boss'` is filtered out) — the
@@ -3231,10 +3232,16 @@ function drawEnemies(){
       }
     }
     if(e.gild>0){ // Gilded Bounty: pulsing gold ring, frantic in its final seconds
+      // ON THE ENVELOPE, not on a multiple of `e.r`. This is the one mark in the game drawn outside a
+      // hull, so it has to obey the rule the rest of the file obeys: `e.r + P.r` or nothing. At the old
+      // 1.8r it read as the danger edge — every ring outside a body does — while sitting 6px INSIDE the
+      // radius that kills (19.8 against 26 on a Drifter), so keeping clear of the gold still killed you.
+      // Now it is both things at once: the bounty's mark AND the true contact edge. Affordable only
+      // because a Gilded body is rare and unique — 40 of these would be a HUD, not a cue.
       const urg=e.gild<2?14:7;
       ctx.strokeStyle=hexA(COL.gold,0.55+0.35*Math.sin(elapsed*urg));
       ctx.lineWidth=2.5; ctx.setLineDash([5,4]);
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*1.8,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+(P?P.r:15),0,TAU); ctx.stroke(); ctx.setLineDash([]);
     }
   }
 }
@@ -3260,20 +3267,30 @@ function drawPlayer(){
   const blink = P.iframe>0 && Math.floor(elapsed*20)%2===0;
   ctx.globalAlpha=blink?0.4:1;
   // ---- THE STAR: atmosphere, body, lit hemisphere, ring halo ----
-  // atmosphere glow (two soft layers)
+  // ⚠️ THE STAR'S CRISP EDGE IS EXACTLY `P.r`, and it has to be. Contact is `e.r + P.r`, so if the hull
+  // you can see is smaller than P.r you die BEFORE your own edge touches anything — which is the one
+  // direction a drawing must never lie in (§2 of the glossary; the enemy hulls all draw at `e.r`). With
+  // the rim on P.r, two hulls meeting on screen IS the frame of contact, for every circular body, with
+  // no extra cue: star 15 + Drifter 11 = 26 = `e.r + P.r`.
+  // The rim is a STROKE, so its outer edge is `radius + lineWidth/2` — the arc is drawn inset by half
+  // the width and the body fills to P.r underneath it. Move one without the other and the rim either
+  // detaches into a floating ring or overshoots the envelope.
+  const SRW=2.2;
+  // atmosphere glow (two soft layers, both outside the hull — they err wide, which is the safe side)
   ctx.fillStyle=hexA(c,0.40);
   ctx.beginPath(); ctx.arc(P.x,P.y,P.r*2.4,0,TAU); ctx.fill();
   ctx.fillStyle=hexA(c,0.30);
   ctx.beginPath(); ctx.arc(P.x,P.y,P.r*1.45,0,TAU); ctx.fill();
-  // body
+  // body — fills to the true radius
   ctx.fillStyle=c;
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r*0.82,0,TAU); ctx.fill();
-  // lit hemisphere — a bright offset cap fakes a sphere under additive blending
+  ctx.beginPath(); ctx.arc(P.x,P.y,P.r,0,TAU); ctx.fill();
+  // lit hemisphere — a bright offset cap fakes a sphere under additive blending. Scaled with the body
+  // (was 0.42/0.26 against a 0.82 hull) so the sphere read survives the larger disc.
   ctx.fillStyle=hexA('#ffffff',0.45);
-  ctx.beginPath(); ctx.arc(P.x-P.r*0.26,P.y-P.r*0.26,P.r*0.42,0,TAU); ctx.fill();
-  // atmosphere rim
-  ctx.strokeStyle=hexA('#ffffff',0.85); ctx.lineWidth=2.2;
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r*0.86,0,TAU); ctx.stroke();
+  ctx.beginPath(); ctx.arc(P.x-P.r*0.32,P.y-P.r*0.32,P.r*0.51,0,TAU); ctx.fill();
+  // atmosphere rim — inset by half the stroke so its OUTER edge lands on P.r
+  ctx.strokeStyle=hexA('#ffffff',0.85); ctx.lineWidth=SRW;
+  ctx.beginPath(); ctx.arc(P.x,P.y,P.r-SRW/2,0,TAU); ctx.stroke();
   // tilted ring halo — you are a ringed star even before matter gathers
   ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(-0.22); ctx.scale(1,0.36);
   ctx.strokeStyle=hexA(c,0.55); ctx.lineWidth=2.4;
