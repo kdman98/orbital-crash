@@ -23,7 +23,7 @@ player.
 
 ## The laws
 
-Fifteen rules the game is built on. Each has been broken at least once, and most were expensive to
+Sixteen rules the game is built on. Each has been broken at least once, and most were expensive to
 find. Read this before touching anything.
 
 ### 1. The colour law
@@ -182,6 +182,23 @@ fizzling missiles mid-flight. The mechanic that caused it is gone; the trap is n
 Today this is safe by construction — `step()` opens with a literal `dt=1/60` and `timeScale` is
 applied to the *accumulator*, so slow motion runs **fewer steps, never shorter ones**.
 
+### 16. Every combo-driven income term must be capped
+`combo` is a *no-hit* streak: nothing decays it and nothing times it out, so it only falls when you are
+hit, and on a clean run it climbs without bound. **Any income term linear in it compounds across the run
+rather than converging.** Both such terms are capped at combo ~90 and must stay in step —
+`CHG_KILL_CAP` on the per-kill award in `onKill`, and the streak trickle's own inline cap in
+`stepRunTimers`. The trickle was always capped; the per-kill term was not, and the asymmetry was
+invisible because both read the same counter.
+
+Uncapped, the Capacitor was two different systems wearing one bar: time-to-fill fell **elevenfold within
+a single run**, so a player taking hits sat near the bottom of the curve and rarely filled it at all
+while a clean run filled it every couple of seconds. **A cap makes skill *raise* the rate; no cap makes
+skill *change the game being played*.** Reintroducing an uncapped combo term is the same defect in a new
+place, whatever it pays into.
+
+*Catch it:* run an untouchable pilot for 180s and read time-to-fill at the start against the end. They
+should be the same number.
+
 ---
 
 ## The star
@@ -279,18 +296,8 @@ A Collapse of 8+ kills pays a **tally** bonus that grows with the *square* of th
 the point, since a Collapse is meant to reward the wave you set up rather than the one you fell into.
 Kills during a Collapse pay **no** Capacitor — the next one must be earned.
 
-**⚠️ Every combo-driven income term must be capped.** `combo` is a *no-hit* streak: nothing decays it and
-nothing times it out, so it only falls when you are hit, and on a clean run it climbs without bound.
-Any income term linear in it therefore compounds across the run rather than converging. Both such terms
-are now capped at combo ~90 and must stay in step — `CHG_KILL_CAP` on the per-kill award in `onKill`,
-and the streak trickle's own inline cap in `stepRunTimers`. The trickle was always capped; the per-kill
-term was not, and the asymmetry was invisible because both read the same counter.
-
-This is a **law, not a tuning preference**. Uncapped, the meter was two different systems wearing one
-bar: time-to-fill fell elevenfold within a single run, so a player taking hits sat near the bottom of
-the curve and rarely filled it at all while a clean run filled it every couple of seconds. A cap makes
-skill *raise* the rate; no cap makes skill *change the game being played*. Reintroducing an uncapped
-combo term is the same defect in a new place, whatever it pays into.
+**The per-kill Capacitor award is capped** (`CHG_KILL_CAP`), as is the streak trickle — see law 16.
+Uncapped, this meter was two systems wearing one bar.
 
 ---
 
@@ -933,8 +940,18 @@ recorded runs was that it does not feel like a reward. **There is no measurement
 the reason in *Traps*: the scripted pilot has never detonated one, so every Collapse number rests on human
 play alone.
 
-**The powerup roster is still mundane.** Three temporary drops, all straightforward, and the most common
-one is the dullest. Noted repeatedly, never designed.
+**The powerup roster is still mundane, and only one third of it is load-bearing.** Suppressing **Aegis**
+costs **−32.8% survival** (Welch t=4.06, n=30). Overdrive (t=1.12) and Nova (t=1.56) are both
+indistinguishable from noise — so the most common drop is not merely the dullest, it is close to
+measurably nothing. *Caveat: the scripted pilot is open-loop and cannot exploit a movement buff, so
+Overdrive is understated; Aegis is passive and measures correctly for any pilot.*
+
+**The stated direction is to replace Aegis rather than rework it: a close call generating a shield** —
+grazes earning defence instead of a score crumb, so the reward for cutting it fine is the thing that
+lets you keep cutting it fine. Explicitly not now. Worth writing down because it decides what happens to
+Aegis when the time comes — removal, not iteration — and because Graze currently pays deliberately
+little (score and a sound, no Capacitor, so charge income stays chosen rather than lucked into); that
+pricing is what would change.
 
 **The Moment Engine's audio half was never built.** The time side is live (`timeScale`, `slowmo`); the
 sound side — stereo-panned kill pops, a low-HP heartbeat with a lowpass, a storm drum layer — is agreed

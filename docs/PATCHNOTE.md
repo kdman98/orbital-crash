@@ -35,13 +35,21 @@ on a clean run goes **18 → 14 per 180s**.
 
 *Found while measuring a proposal to replace Collapse and the powerups with a charged Overdrive. Three
 other measurements from that pass, recorded because they constrain any future version of it:* kill
-throughput is **spawn-limited, not player-limited** — 216–230 kills/min in every condition tested,
-including no-Collapse and Overdrive held at 4× strength — so removing Collapse costs **2.7% of kills**
-but **71% of score** (the tally) and **doubles standing crowd density** (17.1 → 33.5). No setting of
-Overdrive's existing levers moves crowd density; at 4× it is worse than baseline, and tripling the Field
-is worse still because a wider Field pulls more matter onto you. And of the three powerups only **Aegis**
-is measurably load-bearing: suppressing it costs **−32.8% survival, Welch t=4.06 at n=30**, against
-t=1.12 for Overdrive and t=1.56 for Nova.
+throughput is **spawn-limited, not player-limited** — 216–230 kills/min in every condition tested — so
+removing Collapse costs **2.7% of kills** but **71% of score** (the tally) and **doubles standing crowd
+density** (17.1 → 33.5). Widening the Field does not help and hurts: a wider Field pulls more matter
+onto you at the same rate it catches more. And of the three powerups only **Aegis** is measurably
+load-bearing: suppressing it costs **−32.8% survival, Welch t=4.06 at n=30**, against t=1.12 for
+Overdrive and t=1.56 for Nova.
+
+**Correction, recorded because the retracted version is the more quotable one.** That same pass first
+concluded that *no setting of Overdrive's levers moves crowd density* and that it is worse than baseline
+at 4× strength. **That is wrong and was withdrawn by its author.** A 2×3 factorial found the cause: the
+arms were run at different **flip cadences**, and flip cadence moves standing population more than
+Overdrive does. Overdrive does reduce it — independently reproduced at −17.8% while flipping and −24.5%
+while not — because its real lever is the ring shell, which pays in proportion to rings held, which the
+flip dumps. It still does not reach Collapse's number. See `MECHANICS.md` *Pressure is spawn-limited*
+for the standing rule that came out of it.
 
 ### The Bomber gets rarer
 `BOMB_RARITY` scales the Bomber's spawn weight in **both** bands — the time-ramped intro table and the

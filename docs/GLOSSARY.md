@@ -17,10 +17,9 @@ paragraph goes in MECHANICS and this line points at it.
   It never means an enemy, because *its body* (the boss) and *a body* (an enemy) collided in the same
   sentence too often. (The ordinary English senses — a *commit body*, *body copy* — are not the game's
   vocabulary and are left alone.)
-- **This rename has not reached the code.** `index.html` says `body`/`bodies` **140** times meaning an
-  enemy and `Dot` 17 times; `bestiary.html` is `body` **23** times and `Dot` never. The identifiers
-  already agree with the docs (`DOTNAME`, `DOTSPD`) — the comments and the player-facing Bestiary copy
-  do not. Tracked in [MECHANICS.md](MECHANICS.md#open).
+  The code agrees: identifiers were always `Dot`-shaped (`DOTNAME`, `DOTSPD`), and the comments and
+  Bestiary copy were brought into line — what `body` survives in either file is a hull, a CSS selector,
+  or the `PRICED IN CONNECTING BODIES` unit of account.
 
 ---
 
