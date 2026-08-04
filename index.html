@@ -653,6 +653,12 @@ const VOLLEY_HOLD=1.75;
 // purge is not overkill thrown at a corpse. Keep that property if either number moves.
 const VOLLEY_DMG=2;      // per Dot that connects — aimed and guided, the highest price in the game
 const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrades) — Overdrive widens it only while its timer runs
+// CAPACITOR INCOME IS BOUNDED. Both combo-driven streams cap at combo ~90, and they must stay in step:
+// this one in onKill (`Math.min(CHG_KILL_CAP, 0.006 + combo*0.0002)`, binding at 90) and the streak
+// trickle in stepRunTimers (`Math.min(0.035, combo*0.0004)`, binding at ~88). `combo` is a no-hit streak
+// with no decay and no timeout, so ANY uncapped term in it compounds without limit across a clean run —
+// see the measurement written up at the onKill site.
+const CHG_KILL_CAP=0.024;
 
 // =====================================================================
 //  POWERUPS  — the ONLY progression. No level-ups, no permanent upgrades.
@@ -2509,7 +2515,19 @@ function onKill(e){
   if(!unstable && e.type!=='neutral' && orbs.length<ORB_CAP && Math.random()<ORB_DROP_CHANCE) dropOrb(e.x,e.y);
   // charge — kills during a collapse don't refund the capacitor (no back-to-back collapses).
   // Deliberately low: Motes and streak milestones are the other income, and Collapse must stay earned.
-  if(!unstable) P.charge=Math.min(1,P.charge + (0.006 + combo*0.0002)*P.chargeGain);
+  //   ⚠️ THE COMBO TERM IS CAPPED, AND IT MUST STAY CAPPED. `combo` is a NO-HIT streak: nothing decays
+  // it and nothing times it out, so it only ever falls when you are hit. Uncapped, this line ran away
+  // with it — measured on an untouchable pilot, combo climbed 0 → 699 over 180s and the time to fill
+  // the meter fell from 20.1s to 1.8s, an ELEVEN-FOLD swing inside a single run. That is the whole
+  // reason the Capacitor read as two different systems: a player taking hits sits near combo 0 and
+  // rarely fills it at all, while a clean run fills it every other second.
+  //   The cap is not a new rule. The streak trickle in stepRunTimers is already
+  // `Math.min(0.035, combo*0.0004)`, which binds at combo ~88 — this one was simply the stream nobody
+  // capped. CHG_KILL_CAP binds at combo 90 so the two agree: past ~90 kills without being hit you have
+  // proved it, and more does not pay more.
+  //   IT CANNOT TOUCH A WEAK RUN. The cap only engages above combo 90; below that the expression is
+  // bit-identical to what it always was.
+  if(!unstable) P.charge=Math.min(1,P.charge + Math.min(CHG_KILL_CAP, 0.006 + combo*0.0002)*P.chargeGain);
   // visuals
   const c=COL[e.color];
   spawnBurst(e.x,e.y,c,e.type==='heavy'?18:9,e.type==='heavy'?4:2.6);

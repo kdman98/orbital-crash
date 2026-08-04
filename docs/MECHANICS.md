@@ -279,6 +279,19 @@ A Collapse of 8+ kills pays a **tally** bonus that grows with the *square* of th
 the point, since a Collapse is meant to reward the wave you set up rather than the one you fell into.
 Kills during a Collapse pay **no** Capacitor — the next one must be earned.
 
+**⚠️ Every combo-driven income term must be capped.** `combo` is a *no-hit* streak: nothing decays it and
+nothing times it out, so it only falls when you are hit, and on a clean run it climbs without bound.
+Any income term linear in it therefore compounds across the run rather than converging. Both such terms
+are now capped at combo ~90 and must stay in step — `CHG_KILL_CAP` on the per-kill award in `onKill`,
+and the streak trickle's own inline cap in `stepRunTimers`. The trickle was always capped; the per-kill
+term was not, and the asymmetry was invisible because both read the same counter.
+
+This is a **law, not a tuning preference**. Uncapped, the meter was two different systems wearing one
+bar: time-to-fill fell elevenfold within a single run, so a player taking hits sat near the bottom of
+the curve and rarely filled it at all while a clean run filled it every couple of seconds. A cap makes
+skill *raise* the rate; no cap makes skill *change the game being played*. Reintroducing an uncapped
+combo term is the same defect in a new place, whatever it pays into.
+
 ---
 
 ## Matter

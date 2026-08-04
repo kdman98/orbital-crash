@@ -14,6 +14,35 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-04
 
+### The Capacitor stops being two systems wearing one bar
+`CHG_KILL_CAP` bounds the per-kill charge award, which was `0.006 + combo*0.0002` — linear in `combo`
+and uncapped. `combo` is a *no-hit* streak with no decay and no timeout, so on a clean run it compounds:
+measured on an untouchable pilot it climbed **0 → 699 over 180s**, and time-to-fill fell from **20.1s to
+1.8s — an elevenfold swing inside one run**. That single line, not the Collapse design, is what made the
+meter read as two different systems: a pilot taking hits sits near combo 0 and fires **0 times in 8 of 10
+runs**, while a clean run fires every couple of seconds.
+
+Not a new rule — the streak trickle in `stepRunTimers` was **already** capped, binding at combo ~88. The
+per-kill term was simply the stream nobody capped. `CHG_KILL_CAP` binds at combo 90 so the two agree.
+
+**It cannot touch a run that takes hits, by construction.** Verified per-kill at combo 0 / 50 / 89 / 90:
+identical to the old expression to four decimals, with the cap engaging only at 150 and 400 (0.024 where
+the old paid 0.036 and 0.086). And across 25 blind-pilot runs the **peak combo reached was 78 — 0 of 25
+ever reached 90**, so the capped branch is unreachable without a long clean streak.
+
+Per-kill income is now flat from combo 50 up (~0.037–0.049) instead of climbing to 0.145. Spend cadence
+on a clean run goes **18 → 14 per 180s**.
+
+*Found while measuring a proposal to replace Collapse and the powerups with a charged Overdrive. Three
+other measurements from that pass, recorded because they constrain any future version of it:* kill
+throughput is **spawn-limited, not player-limited** — 216–230 kills/min in every condition tested,
+including no-Collapse and Overdrive held at 4× strength — so removing Collapse costs **2.7% of kills**
+but **71% of score** (the tally) and **doubles standing crowd density** (17.1 → 33.5). No setting of
+Overdrive's existing levers moves crowd density; at 4× it is worse than baseline, and tripling the Field
+is worse still because a wider Field pulls more matter onto you. And of the three powerups only **Aegis**
+is measurably load-bearing: suppressing it costs **−32.8% survival, Welch t=4.06 at n=30**, against
+t=1.12 for Overdrive and t=1.56 for Nova.
+
 ### The Bomber gets rarer
 `BOMB_RARITY` scales the Bomber's spawn weight in **both** bands — the time-ramped intro table and the
 Epoch-scaled one past it — so the species is reduced by the same factor at every Act. Halving only the

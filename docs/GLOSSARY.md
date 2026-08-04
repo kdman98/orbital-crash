@@ -183,7 +183,8 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 
 ## Meters and pickups
 
-- **Capacitor** — the meter that fills toward a Collapse. (`P.charge`, `chgbar`)
+- **Capacitor** — the meter that fills toward a Collapse. Both combo-driven income terms cap at combo
+  ~90; see MECHANICS.md. (`P.charge`, `chgbar`, `CHG_KILL_CAP`)
 - **Streak** — a no-hit combo; resets only on real damage. Named tiers each pay a Capacitor chunk.
   (`combo`, `streakTier`, `breakStreak`)
 - **Score** — **addition, with no multiplier anywhere.** A kill, a Mote and a graze each pay a flat
