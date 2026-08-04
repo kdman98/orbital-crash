@@ -2401,9 +2401,11 @@ function stepRunTimers(dt){
   // not be part-paid, which is why a player taking hits never heard it.
   //   THE WORLD TEXT IS GONE. It was 14px alive for 1.3s over a busy field and, in play, announced itself
   // about once a run — the reset below only clears BELOW the floor, which under Collapse was every spend
-  // and under a bankable drain is almost none. The HUD already carries availability at the identical
-  // threshold: `#collapseBtn` gains `.show` and `#chgbar` gains `.full` on `P.charge>=OD_MIN` in
-  // updateHUD. One channel, and it is the one that persists instead of blinking.
+  // and under a bankable drain is almost none. The HUD already carries availability, and unlike the text
+  // it keeps carrying it: `#chgbar` gains `.full` on exactly this test (`armed` in updateHUD), so the bar
+  // is the availability channel. ⚠️ `#collapseBtn` is NOT — it shows on `armed||odOn`, because it is also
+  // the BANK control and must stay pressable through the tail of a ride below the floor. The two
+  // deliberately disagree there: the bar means "you can ignite", the button means "you can press this".
   //   The chime's cadence is right as it stands: burn to zero and it re-announces on the next fill; bank
   // above the floor and it stays quiet, because you never stopped being armed.
   if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); }
@@ -2850,9 +2852,10 @@ function pushText(x,y,txt,color,life,size){
 //   Nor does Overdrive get a word for its AVAILABILITY. An '⚡ OVERDRIVE READY ⚡' stood over the core and
 // was measured as near-useless in play: 14px for 1.3s over the busiest part of the field, and it announced
 // itself about once a run because its flag only reset BELOW the arming floor — every Collapse spend
-// crossed that line, almost no bankable Overdrive does. The HUD says it instead, and keeps saying it:
-// the button appears and the bar shines on the same `P.charge>=OD_MIN` test, in updateHUD. A cue that
-// persists beats a cue that blinks, for a state that persists.
+// crossed that line, almost no bankable Overdrive does. `#chgbar.full` says it instead and keeps saying
+// it — same test, in updateHUD, held for as long as the state holds. (The button next to it answers a
+// different question; see the note at the chime.) A cue that persists beats a cue that blinks, for a
+// state that persists.
 function showAchvToast(txt){
   const a=el('achv'); if(!a)return;
   a.textContent=txt;
