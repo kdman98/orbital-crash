@@ -532,6 +532,10 @@ colour law itself.
 
 The boss. **Immune to your pole reversal** — you cannot flip it to death. Position-controlled; it never
 merely chases. **There is no clock in the fight and it never leaves: the only exit is purging it.**
+That is a deliberate property, not an oversight — a second win condition on a timer asks nothing of the
+player, and the one that used to exist here handed out the Epoch advance for free. **The failure mode is
+losing the run, which is the correct failure mode for a boss; it is never being stuck in one.** See
+*Ways in* for the measurement that keeps it true now that the Capacitor buys no boss damage.
 
 **Three kinds, one verb each** — volleys · chase · ground denial:
 
@@ -1009,13 +1013,30 @@ measured hole, and it changes Graze's deliberately thin pricing (score and a sou
 meter income stays chosen rather than lucked into). The old shield-block shape is described in a comment
 where it was deleted, as the thing to bring back. Not started.
 
-**🔴 The Splitter lost its only named answer, and its replacement was halved one commit earlier.** Popping
-a Splitter adds 2 Minis; the only death that skips `onKill` and so leaves no fragments used to be a
-Collapse or a Bomber blast. Collapse is gone, so **the Bomber blast is now the sole clean kill** — and
-`BOMB_RARITY` had just cut Bombers by 47.8%, priced against the Bomber's own role with no knowledge that
-it was about to become the only answer to another species. Two independently reasonable changes that
-compound. Measure standing Minis and standing Splitters before deciding; `BOMB_RARITY` is the cheap lever
-to pay it back with if they moved.
+**The Splitter has no answer the player can aim — and this is an agency problem, not a population one.**
+Popping a Splitter adds 2 Minis. The only death that skips `onKill` and so leaves no fragments used to
+be a Collapse or a Bomber blast; Collapse is gone, so **the Bomber blast is the sole clean kill**, and
+`BOMB_RARITY` had cut Bombers 47.8% one commit earlier, priced against the Bomber's own role with no
+knowledge it was about to become the only answer to another species.
+
+**Measured against a real pre-change baseline, the Splitter did *not* get disproportionately worse.**
+Standing Minis rose 86.7% and Splitters 60.0% — but the **whole crowd rose 60.1%**, which is the intended
+consequence of deleting Collapse. As a *share* of the crowd, across two replications: Minis 5.87→6.83%
+(*t*=1.28) and 5.76→6.44% (*t*=1.68), Splitters 5.02→5.05% (*t*=0.06) and 6.03→5.55% (*t*=−0.97).
+Minis-as-share leans up both times, which is the direction the mechanism predicts, but neither reaches
+significance and Splitters-as-share **flips sign** between replications. Both replications are reported
+rather than the friendlier one; do not quote a single figure.
+
+**So `BOMB_RARITY` is not owed a payback** — the Splitter got exactly as much worse as everything else,
+and re-tuning Bomber frequency to compensate for a Collapse deletion is the cross-purpose lever this
+file argues against elsewhere.
+
+**What survives measurement is the legibility.** Population statistics say nothing about agency. The
+Splitter's answer went from *a verb the player owns* to *a coincidence they can occasionally set up*.
+That is why its Bestiary card no longer names an escape: *"a Bomber blast kills it clean"* is technically
+true and practically misleading, since the player cannot reach it on purpose. The open item is that **the
+one Dot whose death makes the field worse has no on-demand answer** — which is a species-identity
+question, not a spawn-weight one.
 
 **The Moment Engine's audio half was never built.** The time side is live (`timeScale`, `slowmo`); the
 sound side — stereo-panned kill pops, a low-HP heartbeat with a lowpass, a storm drum layer — is agreed
