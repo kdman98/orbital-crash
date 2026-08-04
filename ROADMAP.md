@@ -7,6 +7,43 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### Getting hit says one thing (2026-08-03)
+Pilot, after playing the contact ghost and not being able to pick it out: *"i dont feel red sparks are good for this. too much informations are popping up then getting hit. only damage, size dependent to its amount would be good. / not screen shake, for now. / blinking + immune - a little more immune time, with blinking frames same as immune / no frame freeze on contact."*
+
+They were right, and it explains the previous entry's failure. A hit used to fire **five** cues at once — a
+full-screen red flash, 12–14 red sparks at the core, a screen shake, a 0.05s freeze, and the damage
+number — and the contact ghost was a sixth, small, and often red-on-red. It was not invisible because it
+was short. It was invisible because it was buried.
+
+**A hit now says three things and nothing else:** the hurt sound, one damage number, and the star blinking
+through its immunity. Applied to **both** damage paths — body contact and `coreHit` — which also fixes an
+old inconsistency: the readout used to be contact-only, so a 20-damage mine gave no number at all. With
+the flash and the burst gone that would have been silence.
+
+**The number carries the magnitude**, since it is now the only readout — `14 + dmg × 0.40` clamped 14–28,
+so 6 (Mini) → 16px, 10 (Drifter or a missile) → 18, 20 (mine) → 22, 22 (Brute) → 23, 30 (the Anomaly's
+body) → 26. Size is the one channel a number has that a shake or a colour does not.
+
+**Immunity 0.55 / 0.5 → one `IFRAME` of 0.8**, and the blink now runs off `P.iframe` itself instead of the
+global clock. On the global clock a hit lands mid-cycle, so the first thing you see can be the star fully
+lit — the cue drifts out of phase with the thing it reports. Off the timer it starts on the frame you are
+hit and ends on the frame you are vulnerable, for **any** source that sets `iframe`, with none of them
+needing to know: damage 0.8, a shield block 0.7, an orb pickup 0.14.
+
+Kept deliberately: the shield-block branch still flashes, shakes and fires `ruptureBlast`. A block is not
+damage — it is the powerup doing its job, and it should feel like an event.
+
+**Measured** (mute on; `iframe === 0.8` on every species is the new-code marker):
+
+| check | result |
+|---|---|
+| 7 species, contact | damage exact, `iframe` **0.8** on all, `trauma` **0**, `timeScale` **1** |
+| full-screen flash | corner pixel **rgb 5,11,22** — pure background, no tint |
+| number scales | text height 26.7 → 27.2 → 29.4 and width 23.9 → 33.3 → 42.2 for 6 / 10 / 22 damage |
+| blink tracks immunity | 12 of 12 sampled `iframe` values matched the prediction — dim **175**, lit **233**, cleanly separated, solid at `iframe` 0 |
+| what 0.8 cost | hits/min **26 → 22**, about **−15%**, five paired runs on a fixed flight path |
+| console | clean |
+
 ### You can finally see the thing that hit you (2026-08-03)
 Pilot: *"i still feel like i'm colliding a very little earlier. can we give a little mercy? about 2~3 px?"*
 It was real. It was never the hitbox.

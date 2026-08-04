@@ -510,6 +510,25 @@ const bankMote=()=>{ motesBank++; recalcMult(); };
 let moteN=0, moteT=0;                  // pickup ratchet ladder
 let score=0, mult=1;                   // no XP / levels — survival + annihilations + Mote mult ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
+// ONE HIT, ONE CUE. Player brief: "too much informations are popping up then getting hit. only damage,
+// size dependent to its amount would be good. / not screen shake, for now. / no frame freeze on contact."
+// Taking damage now says exactly three things and nothing else: the hurt sound, this number, and the star
+// blinking through its immunity. Removed from EVERY damage path — body contact and coreHit alike — the
+// 12-14 particle red burst, the full-screen red flash, the screen shake, and the hitstop.
+// Because the number is now the only readout, it has to carry the magnitude itself, which is the one
+// channel a number has and a shake or a colour does not: 6 (Mini) → 16px · 10 (Drifter, missile) → 18 ·
+// 15 (Neutral) → 20 · 20 (mine) → 22 · 22 (Brute) → 23 · 30 (the Anomaly's body) → 26.
+// It also has to appear on EVERY hit. It used to be contact-only, so a 20-damage mine gave no readout at
+// all; with the flash and burst gone that would have been silence.
+const HURT_SZ0=14, HURT_SZK=0.40;
+function hurtText(dmg){
+  pushText(P.x, P.y-P.r-18, '-'+Math.round(dmg), COL.red, 0.9,
+           Math.round(clamp(HURT_SZ0 + dmg*HURT_SZK, 14, 28)));
+}
+// ONE immunity window for every source of damage (was 0.55 on contact, 0.5 on a missile or mine).
+// The blink in drawPlayer is driven off this same timer, so "how long you flash" and "how long you are
+// safe" cannot drift apart — that is the brief's "blinking frames same as immune".
+const IFRAME=0.8;
 // THE CONTACT GHOST — one frozen frame of the body that just hit you, drawn where it actually touched.
 // Player report: "i still feel like i'm colliding a very little earlier."
 // It was real, and it was never the hitbox. `processKills()` and the dead sweep both run INSIDE step(),
@@ -521,10 +540,12 @@ let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 // contact happens but the body is still culled one frame before it, so the same gap survives — which is
 // why a 2.5px mercy measured as no change at all, on top of costing half the formation margin.
 // So this is a RENDER fix, and it changes nothing in the sim: snapshot the body, draw it one more time
-// at its true overlapping position, then cut. A contact hit already sets `hitstop` 0.05, and hitstop
-// skips the step loop while render() keeps going, so the ghost is held frozen for ~3 frames rather than
-// flashing for one. GHOST_HOLD outlives the hitstop by a frame or two so `reduceMotion` — which pins
-// hitstop to 0 — still gets to see it.
+// at its true overlapping position, then cut. GHOST_HOLD 0.07 is ~4 frames.
+// It originally leaned on the hitstop a contact used to set, which froze the world and held the ghost
+// still. That hitstop is gone (see IFRAME — the whole hit is one cue now), so the ghost is drawn over a
+// moving field instead. That is fine, and it is why it should read BETTER than before rather than worse:
+// what it was competing with — a full-screen red flash, 14 red sparks at the core, and a screen shake —
+// all went with it. It was never invisible because it was short; it was invisible because it was buried.
 let contactGhost=null, ghostT=0;
 const GHOST_HOLD=0.07;
 let unstable=0; // collapse window
@@ -1486,10 +1507,10 @@ function coreHit(dmg,src){
     ruptureBlast(P.x,P.y,150); sfx.shield();
     return false;
   }
-  P.hp-=dmg*P.armor; P.iframe=0.5; P.hurtT=0;
+  const d=dmg*P.armor;
+  P.hp-=d; P.iframe=IFRAME; P.hurtT=0;
   breakStreak(src);
-  trauma=Math.min(1,trauma+0.3); flash=0.5; flashCol=COL.red; hitstop=Math.max(hitstop,0.05);
-  sfx.hurt(); spawnBurst(P.x,P.y,COL.red,12,3);
+  sfx.hurt(); hurtText(d);            // same one cue as body contact — see IFRAME / hurtText
   if(P.hp<=0){ P.hp=0; die(); return true; }
   return false;
 }
@@ -2257,15 +2278,10 @@ function stepPlayerContact(){
           ruptureBlast(P.x,P.y,155); sfx.shield();
         } else {
           const dmg=e.dmg*P.armor;
-          P.hp-=dmg; P.iframe=0.55; P.hurtT=0;
+          P.hp-=dmg; P.iframe=IFRAME; P.hurtT=0;
           breakStreak((DOTNAME[e.type]||e.type)+(e.color!=='neutral'?' ('+e.color+')':'')); // a real hit severs the streak (a shield block does not)
-          trauma=Math.min(1,trauma+0.32); flash=0.5; flashCol=COL.red;
-          hitstop=Math.max(hitstop,0.05);
           sfx.hurt();
-          // The game's only damage readout, and it belongs on the ordinary contact path: a 22 Brute and
-          // an 8 Dart have to be told apart by the number alone.
-          pushText(P.x,P.y-P.r-18,'-'+Math.round(dmg),COL.red,0.9,16);
-          spawnBurst(P.x,P.y,COL.red,14,3.2);
+          hurtText(dmg);
           if(P.hp<=0){ P.hp=0; die(); return true; }
         }
       }
@@ -3290,7 +3306,12 @@ function drawPlayer(){
       ctx.strokeStyle=hexA('#ffffff',0.4); ctx.lineWidth=2;
       ctx.beginPath(); ctx.moveTo(P.x+Math.cos(a)*(rr-4),P.y+Math.sin(a)*(rr-4)); ctx.lineTo(P.x+Math.cos(a)*(rr+5),P.y+Math.sin(a)*(rr+5)); ctx.stroke(); }
   }
-  const blink = P.iframe>0 && Math.floor(elapsed*20)%2===0;
+  // BLINK OFF THE IMMUNITY TIMER, not the global clock. Driven by `elapsed` the flashing runs on its own
+  // phase, so a hit can land mid-cycle and the first thing you see is the star fully lit — the cue and the
+  // thing it reports drift apart. Off `P.iframe` it starts on the frame you are hit, ends on the frame you
+  // are vulnerable again, and needs no knowledge of who set it: damage 0.8, a shield block 0.7, an orb
+  // pickup 0.14 all get a blink exactly as long as their own window.
+  const blink = P.iframe>0 && Math.floor(P.iframe*20)%2===0;
   ctx.globalAlpha=blink?0.4:1;
   // ---- THE STAR: body, lit hemisphere, ring halo ----
   // ⚠️ THE STAR'S CRISP EDGE IS EXACTLY `P.r`, and it has to be. Contact is `e.r + P.r`, so if the hull
