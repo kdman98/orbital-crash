@@ -46,18 +46,26 @@ Overdrive and t=1.56 for Nova.
 concluded that *no setting of Overdrive's levers moves crowd density*. **That was withdrawn by its
 author after re-measurement, and Overdrive does reduce standing crowd.**
 
-The cause was not a confound — the original sweep held flip cadence constant across every arm. It was
-**over-generalisation from a single cadence**: it happened to be measured at a cadence where the effect
-is small, and reported as though it held everywhere. Three harnesses across three sessions later agree
-the effect is real while *not* flipping (−13.6%, −15.1%, −16.7%, and one −24.5% outlier) and cannot
-agree on its size while flipping (+0.3%, −6.6%, −7.0%, −20.7%). Treat the flipping figure as unsettled
-and near the detection floor; treat roughly **−15% while holding rings** as the reproducible one.
-Overdrive does not reach Collapse's number under any of them.
+**The cause was sample size, not a confound.** The original sweep held flip cadence constant across
+every arm and controlled everything it meant to; it simply read `n=4` of an effect sitting near the
+detection floor and stated the result as a fact. Re-run four times at identical cadence, that same cell
+gives **+0.3%, −1.2%, −4.7% and −7.0%**, with Welch *t* bouncing between 0.40 and 2.82. Star-stationary
+versus steering accounts for about 3 points of spread, not the rest.
 
-*Method note for anyone re-running this:* the arms must match on flip cadence **and** run length, and
-measurements taken before `CHG_KILL_CAP` are not comparable with ones after it on anything downstream of
-the Capacitor — a hungry flip's fling radius reads charge, so uncapped income changes the field. See
-`MECHANICS.md` *Pressure is spawn-limited* for the standing rule that came out of all this.
+Where the measurements do agree: the effect is **large when you never flip** — −13.6%, −15.1%, −16.7%,
+one −24.5% — and **small and barely detectable when you do**. One harness reported −17.8% and −20.7% for
+the flipping case, outside every other measurement of it and never explained; it is recorded here as an
+unreproduced outlier rather than a range endpoint. Overdrive does not reach Collapse's number under any
+of them.
+
+**Do not quote a single figure for the flipping case.** Seven independent measurements of it disagree.
+
+*Method note for anyone re-running this:* the arms must match on flip cadence **and** run length.
+Measurements straddling `CHG_KILL_CAP` **are** comparable unless the run spends the Capacitor — it
+changes fill rate and nothing else, and a run that never fires a Collapse never observes it. An earlier
+version of this note claimed the fling radius reads charge and so was affected; it does not. The flip
+path reads **hold-charge** (`P.holdT/P.holdMax`) and rings held, and `P.charge` appears nowhere in it.
+See `MECHANICS.md` *Pressure is spawn-limited* for the standing rule that came out of all this.
 
 ### The Bomber gets rarer
 `BOMB_RARITY` scales the Bomber's spawn weight in **both** bands — the time-ramped intro table and the

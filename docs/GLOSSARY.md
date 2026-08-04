@@ -13,6 +13,12 @@ paragraph goes in MECHANICS and this line points at it.
   the game's setting (*the silent world*). Your avatar is the **Star**.
 - **Sentinel** is an Anomaly; **Orbiter** is a Dot. Deliberately different words — they behave alike.
 - **Matter** is the mass noun, **Dot** the countable unit — *matter drifts in*, *a Dot hits you*.
+- **Never write "charge" unqualified.** Two unrelated quantities answer to it: **hold-charge**
+  (`P.holdT/P.holdMax`, time since your last flip, which arms the hungry flip) and the **Capacitor**
+  (`P.charge`, which pays for a Collapse). Nothing reads both — the flip path never touches `P.charge`
+  at all. Say *hold-charge* or *Capacitor*. This is not pedantry: the loose word has already produced a
+  confident, wrong, and entirely plausible claim in a ledger entry about which measurements were
+  comparable.
 - **body** in game vocabulary means a hull and only a hull: *the Anomaly's body*, *two hulls meeting*.
   It never means an enemy, because *its body* (the boss) and *a body* (an enemy) collided in the same
   sentence too often. (The ordinary English senses — a *commit body*, *body copy* — are not the game's

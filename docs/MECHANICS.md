@@ -691,13 +691,15 @@ Three more traps the table records:
   a bigger field pulls more matter onto you at the same rate it catches more.
 - **Flip cadence dominates everything else, so it must be held fixed.** Never flipping measures ~23–26
   standing against ~32 while flipping — a larger swing than most effects you would be testing. Two
-  measurements at different cadences are not comparable whatever else they controlled for, and a
-  measurement at *one* cadence does not generalise to the others.
-- **This measurement is noisier than it looks, so report a range.** Three independent harnesses measuring
-  the same Overdrive effect agreed while not flipping (−13.6%, −15.1%, −16.7%, one −24.5%) and did not
-  agree at all while flipping (+0.3%, −6.6%, −7.0%, −20.7%) — same game, same nominal conditions. n=4 is
-  not enough here, run length changes the answer, and a single figure quoted to one decimal is a claim
-  the method cannot support.
+  measurements taken at different cadences are not comparable, however carefully each one controlled
+  its own variables.
+- **An effect near the detection floor needs its replications reported, not its best run.** This is the
+  expensive one, and it caught three separate sessions in a single day in three different directions:
+  one concluded an effect was a no-op, one quoted it at −17.8%, and the true answer is "small, and we
+  cannot pin it." Seven measurements of the same cell under matched conditions ran +0.3%, −1.2%, −4.7%,
+  −6.6%, −7.0%, −17.8%, −20.7%, with Welch *t* between 0.40 and 2.82. **`n=4` is not enough here, run
+  length moves the answer, and one decimal place is a claim this method cannot support.** If you can
+  only report one number, report the range and the *n*.
 
 *Caveat that bounds the claim:* the star is stationary, so `moveMult`-style effects are worth nothing
 here and are understated. The constancy of throughput is not — it holds in every condition tested,
@@ -745,19 +747,26 @@ already balanced — it simply expires.
 - **🛡 Aegis** — a shield for a few hits. The only shield source, and exception-free: nothing pierces it.
 - **⚡ Overdrive** — faster star, wider and faster whirling rings.
 
-  **It quietly pays you for not flipping, which is a tension with the core verb.** Its real lever is the
-  ring shell: `P.eddy` moves the ring orbit from `0.6` to `0.85` of the Field, and a wider, faster shell
-  sweeps more matter — that is *reach*, the only thing the invariant above says moves standing
-  population. But a shell only pays in proportion to what is in it, and **the flip dumps your rings**:
-  rings held measure ~2.6–3.0 flipping every 47 frames against ~6.9–9.1 never flipping, a 2.7× gap that
-  every harness agrees on. So the effect is reproducible when you hold rings (**~−15% standing crowd**)
-  and unsettled to the point of disagreement when you flip. It does not reach Collapse under any
-  measurement.
+  **It quietly pays you for not flipping, which is a tension with the core verb.** The mechanism is the
+  finding here; the effect sizes downstream of it are noisy and partly disputed, so read them in that
+  order.
 
-  **And it consumes the hoard rather than growing it** — in the no-flip arm Overdrive *reduced* rings
-  held while reducing crowd (9.1 → 6.4, independently 6.9 → 4.5). The wider shell is converting held
-  rings into kills, not accumulating them. That is the better argument for Overdrive-as-ring-shell than
-  the crowd figure is, and it is the one number in this area that two harnesses reproduce cleanly.
+  Its real lever is the ring shell — `P.eddy` moves the ring orbit from `0.6` to `0.85` of the Field, and
+  a wider, faster shell sweeps more matter. That is *reach*, the only thing the invariant above says
+  moves standing population. **But a shell only pays in proportion to what is in it, and the flip dumps
+  your rings.** Rings held measure **~2.3–3.0 while flipping against ~6.9–9.1 while not** — a 3× swing,
+  larger and far cleaner than any crowd figure in this area, and every harness that has measured it
+  agrees. That is the whole shape: Overdrive's value is proportional to a hoard the game's central input
+  destroys.
+
+  **It also consumes the hoard rather than growing it.** In the no-flip arm Overdrive *reduced* rings
+  held while reducing crowd — 9.1 → 6.4, independently 6.9 → 4.5. The wider shell converts held rings
+  into kills instead of accumulating them, which is a better argument for Overdrive-as-ring-shell than
+  the crowd number ever was.
+
+  On crowd itself: the effect is **clear when you never flip** and **small and hard to measure when you
+  do** — see the replication trap above before quoting any figure for the second case. It does not reach
+  Collapse under any measurement.
 
   Not a bug and not a problem at six seconds. It is the shape to watch if the effect is ever made longer,
   stronger, or permanent: a second verb that pays you for not using the first verb is an identity
