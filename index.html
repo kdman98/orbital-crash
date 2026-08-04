@@ -37,10 +37,15 @@
   #score{left:18px;top:16px;}
   #score .v{font-size:clamp(28px,6.5vw,50px);letter-spacing:-.02em;text-shadow:0 0 18px rgba(56,224,255,.35);}
   #best{left:20px;top:74px;}#best .v{font-size:14px;color:var(--dim);}
-  #mult{right:18px;top:16px;align-items:flex-end;text-align:right;}
-  #mult .v{font-size:clamp(24px,6vw,44px);color:var(--gold);text-shadow:0 0 20px rgba(255,207,77,.5);transition:transform .07s;}
-  #mult.hot .v{color:#fff;text-shadow:0 0 22px var(--red),0 0 40px var(--red);}
-  #combo{right:20px;top:70px;text-align:right;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);}
+  /* NO SCORE MULTIPLIER. A `#mult` stat stood here in gold at 44px, the second-biggest number on
+     screen. Measured: it read a median ×1.9 over 12 runs and never once passed ×7 while taking hits,
+     against an advertised cap of ×15, and the whole system moved final score by 1.30×. It is gone;
+     the streak is now the only thing in this corner. See MOTE_SCORE / KILL_SCORE / GRAZE_SCORE. */
+  /* ⚠️ `position:absolute` is load-bearing. #combo carries no class, so without it the element is STATIC
+     and both offsets below are silently ignored — it laid out as a full-width in-flow block jammed into
+     the very top-right corner with no inset at all. That went unnoticed while #mult sat underneath and
+     took the eye; with the multiplier gone this line is the only thing in the corner. */
+  #combo{position:absolute;right:20px;top:18px;text-align:right;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);}
   #center{position:absolute;left:50%;top:14px;transform:translateX(-50%);text-align:center;}
   #actlab{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);font-weight:800;margin-bottom:6px;opacity:.85;transition:color .8s;}
   #time{font-size:13px;letter-spacing:.16em;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums;}
@@ -231,7 +236,6 @@
   <div id="powerups"></div>
   <div class="stat" id="score"><div class="k">Score</div><div class="v">0</div></div>
   <div class="stat" id="best"><div class="k">Best</div><div class="v">0</div></div>
-  <div class="stat" id="mult"><div class="k">Multiplier</div><div class="v">x1</div></div>
   <div id="combo"></div>
   <div id="center"><div id="actlab">EPOCH I · DRIFT</div><div id="time">0:00</div></div>
   <div id="bossbar" class="hidden"><span class="bl">◆ Anomaly</span><i></i></div>
@@ -501,14 +505,19 @@ let combo=0, peakCombo=0;
 let streakTier=0;                      // next streak-milestone index (25/50/100/200)
 let grazeN=0, grazeT=0;                // near-miss ladder (pitch rises, decays after 1.5s)
 let gildTimer=14;                      // seconds until the next Gilded Bounty spawns
-let motes=[];                          // Flux Motes: annihilation loot; banking them drives the score mult
-let motesBank=0;                       // motes collected this life (HALVED on hit, not reset) -> mult = 1 + 0.1/mote
-// The multiplier law has ONE home. Spelled out at five sites, a change to the cap or
-// the per-mote rate had to be found five times.
-const recalcMult=()=>{ mult=Math.min(15, 1+motesBank*0.1); };
-const bankMote=()=>{ motesBank++; recalcMult(); };
+let motes=[];                          // Flux Motes: annihilation loot. Worth points where they land.
 let moteN=0, moteT=0;                  // pickup ratchet ladder
-let score=0, mult=1;                   // no XP / levels — survival + annihilations + Mote mult ARE the score
+// SCORE IS ADDITIVE. THERE IS NO MULTIPLIER. `mult` was `min(15, 1+motesBank*0.1)`, banked by Motes and
+// HALVED on every hit, and it read as a curve you built across a run. Measured, it was a coin flip:
+// median ×1.9 with P99 ×7.0 over 12 runs that took hits, versus a hard cap at ×15 inside 46s on 6 of 6
+// runs that took none. Nothing in between, and 1.30× total effect on final score for a 44px HUD stat and
+// two popups. Worse, the halving punished backwards — a clean run banked 761 Motes against the 140 needed
+// to cap, so the first TWO hits cost a deep bank literally nothing while a shallow one lost half.
+//   These three are the whole income table now, priced at the old expressions evaluated at the measured
+// median so a median run scores about what it used to. A kill is the unit; a Mote is a quarter of one, and
+// a kill sheds 1-2 of them, so hoovering your debris is worth ~35% on top of the kill that made it.
+const KILL_SCORE=20, MOTE_SCORE=5, GRAZE_SCORE=10;
+let score=0;                           // no XP, no levels, no multiplier — survival and annihilations ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 // ONE HIT, ONE CUE. Player brief: "too much informations are popping up then getting hit. only damage,
 // size dependent to its amount would be good. / not screen shake, for now. / no frame freeze on contact."
@@ -764,9 +773,7 @@ const ETYPE={
   mini:   {r:7,  hp:1, mass:0.6,  maxsp:5.2, seek:0.38, dmg:6},
   neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:15},
   orbiter:{r:10, hp:1, mass:0.9,  maxsp:4.7, seek:0.30, dmg:11}, // curves around the core
-  // BOMBER at Drifter parity (10) on purpose. A hit costs more than its HP: it also zeroes `combo` and
-  // HALVES `motesBank` (see breakStreak), so a big number here makes this the body most likely to delete
-  // the multiplier a whole run built. Contact is deliberately NOT where the Bomber is dangerous —
+  // BOMBER at Drifter parity (10) on purpose. Contact is deliberately NOT where the Bomber is dangerous —
   // strictly weaker than a Drifter (same damage, slower, lower seek, far bigger target at r17). Its
   // threat is the 120px detonation in bomberBlast, which costs you no health at all, only your hoard.
   bomber: {r:17, hp:1, mass:1.5,  maxsp:2.5, seek:0.17, dmg:10},
@@ -1770,7 +1777,7 @@ function stepLances(dt){
 }
 // ---- Flux Motes: annihilation loot. Same-polarity motes hoover to the Core on their own;
 // opposite-colour motes lie inert until a Flip — the Shockwave vacuums everything it touches.
-// Banking motes drives the score multiplier (+0.1x each, HALVED on hit) AND is the sole XP source. Fighting IS harvesting.
+// A Mote pays MOTE_SCORE where it is picked up and a sliver of Capacitor. Fighting IS harvesting.
 function stepMotes(dt){
   for(let i=motes.length-1;i>=0;i--){
     const m=motes[i];
@@ -1786,11 +1793,12 @@ function stepMotes(dt){
     m.x+=m.vx; m.y+=m.vy;
     if(d<P.r+8){
       motes.splice(i,1);
-      bankMote(); moteN++; moteT=0.8;   // recompute NOW — the HUD and graze both read mult
+      moteN++; moteT=0.8;
       if(!unstable) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
-      score+=Math.round(mult*P.scoreMult); // Motes bank into the score mult and pay directly (no XP/levels anymore)
+      score+=Math.round(MOTE_SCORE*P.scoreMult);
       sfx.mote(moteN);
-      // (mult milestone text removed — it duplicated the live #mult HUD and painted over the Core, the exact pixels the flip read happens on)
+      // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
+      // several times a second, on top of the Core, on the exact pixels the flip read happens on.
     }
   }
   if(moteT>0){ moteT-=dt; if(moteT<=0) moteN=0; }
@@ -2261,7 +2269,7 @@ function stepPlayerContact(){
       if(d2<gb*gb){ e.grz=true; }
       else if(e.grz && d2>(gb+12)*(gb+12)){
         e.grz=false; grazeN++; grazeT=1.5;
-        score+=Math.round(5*mult*P.scoreMult);
+        score+=Math.round(GRAZE_SCORE*P.scoreMult);
         spawnBurst(P.x+dx*0.45, P.y+dy*0.45, '#fff', 3, 2.0);
         sfx.graze(grazeN);
       }
@@ -2402,6 +2410,17 @@ function processKills(){
 }
 // A real hit ends the no-hit streak — but a big streak SEVERS instead of vanishing:
 // it bursts into Capacitor (capped), so aggressive lure-play never pays out as pure loss.
+//   ⚠️ ONE HIT STILL SAYS ONE THING (see IFRAME / hurtText). This function runs from inside both damage
+// paths, so anything loud added here lands on top of the damage number and re-creates the pile-up the
+// player asked to be rid of. Three cues used to fire from here and all three are gone:
+//   'STREAK LOST' at combo 12-24  — pure scolding. The streak line in the HUD vanishing already says it.
+//   'MULT ×a → ×b'                — the multiplier is gone entirely; it also printed uncapped, so a
+//                                   saturated bank rendered the literal text 'MULT ×15.0 → ×39.0', a red
+//                                   penalty announcing a rise to a number the cap made impossible.
+//   hitstop 0.12 at combo ≥50     — a ~7-frame freeze on being hit, the exact thing the brief removed
+//                                   from the contact path. It leaked back in through here.
+// What survives is the BURST, and only because it reports Capacitor you can now spend: without it a 20%
+// jump in the charge bar has no cause on screen. It is a gain, printed in gold, over the hurt voice.
 const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',split:'Splitter',mini:'Mini',orbiter:'Orbiter',bomber:'Bomber',charger:'Charger',neutral:'Neutral'};
 let lastDmg=null; // {src, act, phase} — death receipt
 function breakStreak(src){
@@ -2410,17 +2429,8 @@ function breakStreak(src){
     const bonus=Math.min(0.20, combo*0.0015*P.chargeGain); // cap AFTER Overcharge — 20% is a hard ceiling
     if(!unstable) P.charge=Math.min(1,P.charge+bonus);
     pushText(P.x,P.y-P.r-46,'STREAK BURST ⚡+'+Math.round(bonus*100)+'%',COL.gold,1.4,15);
-    if(combo>=50) hitstop=Math.max(hitstop,0.12);
-    sfx.streakLost();
-  } else if(combo>=12){
-    pushText(P.x,P.y-P.r-32,'STREAK LOST',COL.red,1.1,15);
   }
   combo=0; streakTier=0; // reset here, not just in step() — a same-frame kill can restart combo first
-  // the Mote bank HALVES on a hit (streak carries perfection; the bank carries greed) —
-  // one clip must sting, not delete every system you built this life
-  const kept=Math.floor(motesBank/2);
-  if(motesBank>=10) pushText(P.x,P.y-P.r-60,'MULT ×'+mult.toFixed(1)+' → ×'+(1+kept*0.1).toFixed(1),COL.red,1.2,13);
-  motesBank=kept; recalcMult();
 }
 function onKill(e){
   if(state==='dead')return; // stop awarding score/xp once the core is lost
@@ -2452,13 +2462,10 @@ function onKill(e){
     sfx.streakMile(streakTier);
     streakTier++;
   }
-  // the score multiplier is BANKED MOTES this life (Flip-vacuum loot), not the streak —
-  // streak feeds the Capacitor, motes feed the mult; two currencies, two behaviours
-  recalcMult();
   // Every kill is worth the same wherever it happens. Where you stand is already priced by the things
   // that decide the fight: closing the range is how a Volley connects, and it is what walks you into an
   // Anomaly's point-blank fire.
-  const gain=Math.round(10*mult*P.scoreMult);
+  const gain=Math.round(KILL_SCORE*P.scoreMult);
   score+=gain;
   // Flux Motes: annihilations shed collectible loot carrying the body's colour.
   const moteCap=40, moteLife=()=>rand(4,8);
@@ -3518,14 +3525,11 @@ function hexA(hex,a){
 // =====================================================================
 const el=id=>document.getElementById(id);
 const hpI=el('hpbar').querySelector('i'), chgI=el('chgbar').querySelector('i'),
-      scoreV=el('score').querySelector('.v'), multV=el('mult').querySelector('.v');
+      scoreV=el('score').querySelector('.v');
 function fmtTime(s){ const m=Math.floor(s/60); const ss=Math.floor(s%60); return m+':'+(ss<10?'0':'')+ss; }
 function updateHUD(){
   scoreV.textContent=score.toLocaleString();
   el('best').querySelector('.v').textContent=store.best.toLocaleString();
-  multV.textContent='x'+(mult%1===0?mult:mult.toFixed(1));
-  el('mult').classList.toggle('hot',mult>=4);
-  const st=1+Math.min(0.3,combo*0.01); multV.style.transform=`scale(${st})`;
   const cEl=el('combo');
   cEl.textContent=combo>1?combo+' no-hit streak'+(combo>=5?' ⚡':''):'';
   cEl.style.color=['',COL.cyan,COL.gold,COL.violet,'#ffffff'][streakTier]||'';
@@ -3761,12 +3765,12 @@ function startRun(mode){
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
   grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
-  motes.length=0;motesBank=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
+  motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   inhaleT=0;collapseKills=0;chargeFull=false;deathRevealT=0;deadCountT=0;
   orbs=[];orbTimer=9;for(const k in FX)FX[k]=0;   // powerups: no drops, no active effects at the start
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
   cometT=rand(90,150);
-  score=0;mult=1;
+  score=0;
   trauma=0;hitstop=0;flash=0;unstable=0;cwave=null;timeScale=1;tsHold=0;contactGhost=null;ghostT=0;
   boss=null;bossFlash=0;lances.length=0;bossN=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
@@ -3872,8 +3876,8 @@ function openCodex(){
     <div class="cxa"><span class="st">→</span><span>Your star never pulls matter in. You <b>steer into</b> whatever you mean to hit.</span></div>
     <div class="cxa"><span class="st">◆</span><span>One exception — a <b>Charger</b> in its dash plows through opposite matter instead of dying to it.</span></div></div>
   <div class="cxs"><h3>Score</h3>
-    <p><b>Every annihilation pays the same</b>, wherever it happens — <span class="gold">10 × your multiplier</span>.</p>
-    <div class="cxa"><span class="st">✦</span><span><b>Multiplier = banked Motes.</b> Each banks <span class="gold">+0.1×</span> (cap ×15). A hit <b>halves the bank</b>.</span></div>
+    <p><b>Every annihilation pays the same</b>, wherever it happens — <span class="gold">20</span>. Score is plain addition; there is no multiplier to nurse.</p>
+    <div class="cxa"><span class="st">✦</span><span><b>Motes</b> — a kill sheds one or two, each worth <span class="gold">5</span>. Sweeping your own debris pays about a third again on top of the kill that made it.</span></div>
     <div class="cxa"><span class="st">✦</span><span>Your own colour hoovers Motes in by itself. The opposite colour waits for a <b>reversal-vacuum</b>.</span></div>
     <div class="cxa"><span class="st">◆</span><span><b>Gilded Bounty</b> — every ~15s a gold-ringed body arrives. Pop it within 6s for <span class="gold">250×epoch</span>.</span></div>
     <div class="cxa"><span class="st">◎</span><span><b>Collapse tally</b> — the wave pays <span class="gold">N²×4</span> for N kills, so herd a dense ring before spending it.</span></div></div>
@@ -4101,7 +4105,7 @@ const sfx={
   // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
   // in 0.09s), this is a heavy low SLAM that falls much further and much longer, and then RISES. The
   // rise is the part that carries the meaning — every reward voice in this game goes up (graze,
-  // capFull, level) and every damage voice goes down (hurt, dead, streakLost). A baited charge
+  // capFull, level) and every damage voice goes down (hurt, dead, closing). A baited charge
   // is the rare event that is both an impact and a reward, so it does both, in that order.
   baited(){ beep(110,0.20,'sawtooth',0.26,44); noise(0.20,0.18);
             beep(523,0.16,'triangle',0.13,784); beep(784,0.22,'sine',0.10,1175); },
@@ -4112,14 +4116,14 @@ const sfx={
   purge(){ beep(70,0.7,'sine',0.34,28); noise(0.5,0.3);
     [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'triangle',0.1,f*1.2), 120+i*90)); },
   deflect(n){ beep(780+Math.min(n,4)*90,0.06,'triangle',0.12,1300); beep(1170+Math.min(n,4)*90,0.08,'sine',0.07,1800); },
-  streakLost(){ beep(660,0.5,'sawtooth',0.16,110); noise(0.25,0.1); },
+  // (no streakLost voice — breaking a streak is a hit, and a hit has exactly one voice: hurt())
   streakMile(t){ const b=440*(1+t*0.3);
     beep(b,0.1,'triangle',0.14); beep(b*1.25,0.12,'triangle',0.12); beep(b*1.5,0.18,'triangle',0.12,b*2); },
   shield(){ beep(600,0.16,'sine',0.13,960); beep(940,0.12,'triangle',0.07,1320); },
   dead(){ beep(300,0.7,'sawtooth',0.25,70); noise(0.6,0.2); },
   // A CLOSING WINDOW — the mirror of inhale(): where that sweeps 55→220 and 200→1800 to say "pressure
   // building", this falls in octave-paired voices to say "your moment is going". Falling+noise is this
-  // game's grammar for loss (hurt, streakLost, dead). Shared by the Charger wind-up and the Pulsar's
+  // game's grammar for loss (hurt, dead). Shared by the Charger wind-up and the Pulsar's
   // station break.
   closing(){ beep(330,0.85,'sine',0.11,88); beep(99,0.85,'triangle',0.075,50); noise(0.3,0.07); },
   // ...and it lets go. Short, low, no rise anywhere in it.
@@ -4173,14 +4177,13 @@ window.__orbital=window.__polaris=window.__flux={
   spawnFormation, formWall, formNoose, formPulse, formSorter, formComet,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
-  get motes(){return motes;}, get motesBank(){return motesBank;}, get mult(){return mult;},
+  get motes(){return motes;}, KILL_SCORE, MOTE_SCORE, GRAZE_SCORE,
   get combo(){return combo;}, get inhaleT(){return inhaleT;}, get unstable(){return unstable;},
   get timeScale(){return timeScale;}, get lances2(){return lances;}, get lastDmg(){return lastDmg;},
   detonateCollapse, breakStreak,
   // powerup test accessors
   POW, get orbs(){return orbs;}, get FX(){return FX;}, dropOrb, collectOrb, fireNova,
   grant(id,dur){ const p=POWMAP[id]; if(!p)return; if(p.kind==='instant')fireNova(); else FX[id]=dur||p.dur; },
-  set motesBankV(v){motesBank=v; recalcMult();},
   get bossN(){return bossN;}, set bossN(v){bossN=v;},
   openCodex, queueKill,
   get flipCd(){return P&&P.flipCd;},

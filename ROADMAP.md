@@ -7,6 +7,63 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### The score multiplier was a coin flip pretending to be a curve (2026-08-04)
+Pilot: *"streak lost, mult decreasing - is also too much for this game, i think. is multiplier is even
+needed for our game?"* Both halves turned out to be right, for reasons that only showed up once measured.
+
+**They were never two scoring systems.** The Streak pays **zero score** — its whole output is Capacitor.
+`motesBank → mult` was the score system, and it scaled only **3 of 6** income sites; the Anomaly purge
+(200×act), the Gilded Bounty (250×act) and the Collapse tally (N²×4) were always flat. So the two were not
+redundant in what they paid. They were redundant in what they **punished**, and in how loudly. One hit at
+combo 15 with 12 Motes banked stacked **three** popups above the star — the damage number at `−18`,
+`STREAK LOST` at `−32`, `MULT ×… → ×…` at `−60`. That is the exact pile-up the previous entry removed;
+`breakStreak` runs inside both damage paths, so it was always the same rule, and it had been missed.
+
+**The multiplier was binary, not a curve.** 12 runs with a blind pilot that takes hits, against 6 with
+damage forced off:
+
+| | median mult | P90 | P99 | time at ≥×10 |
+|---|---|---|---|---|
+| taking hits (~8 halvings/run) | **1.9** | 4.6 | 7.0 | **0%** |
+| untouched | **×15 inside 46s, 6 of 6 runs** | — | — | 100% after 46s |
+
+Nothing in between. The advertised range's top two-thirds was a 25-second transit on a clean run and
+unreachable on a dirty one, and the whole system moved final score by **1.30×** (median 2,336 free vs
+1,795 pinned at ×1) — for a 44px gold HUD stat and two popups.
+
+**And the halving punished backwards.** An untouched 180s run banks **761** Motes against the **140**
+needed to cap, so: 761→380 still ×15, →190 still ×15, →95 ×10.5, →47 ×5.7. **Two entirely free hits when
+you are deep, then a cliff.** The player who least needed mercy got it.
+
+**Two bugs fell out of the measurement.** The penalty popup computed the new value *without* the cap, so a
+saturated bank rendered the literal string `MULT ×15.0 → ×39.0` — a red penalty announcing a rise to a
+number the cap makes impossible. And `breakStreak` still set `hitstop=0.12` at combo ≥50: the frame freeze
+the previous entry removed from the contact path, leaking back in through the streak.
+
+**Shipped:** `mult`, `motesBank`, `recalcMult`, `bankMote`, the `#mult` HUD stat and the `sfx.streakLost`
+voice are gone. Score is plain addition — `KILL_SCORE` 20, `MOTE_SCORE` 5, `GRAZE_SCORE` 10, priced at the
+old expressions evaluated at the measured median so a median run scores about what it used to. The Mote
+was raised 2.5× above that line (2 → 5) because it now has to justify its own collection: a kill sheds
+1–2, so sweeping your debris pays ~35% on top of the kill. `STREAK LOST` and the mult popup are gone;
+**`STREAK BURST` stays**, alone, because it reports Capacitor you can now spend and without it a 20% jump
+in the bar has no cause on screen.
+
+**Measured after:** median score **2,050 vs 2,336**, i.e. **0.88×** over 12 matched runs — held. On the
+contact frame, combo 5 / 15 / 24 draw **only** the damage number; combo 25 / 55 draw that plus the burst.
+All four surviving `hitstop` writes audited and every one is a non-hit event (purge, baited charge, Bomber
+blast, your own Collapse) — there is no longer a path from taking damage to a freeze.
+
+**A dead CSS rule surfaced while moving the HUD.** `#combo` carries no class, so it never picked up
+`.stat`'s `position:absolute` — which means its `right`/`top` had **always** been ignored and the streak
+line had been laying out as a full-width in-flow block flush into the corner with zero inset. Invisible as
+a bug while the Multiplier stat sat beneath it and took the eye; the sole occupant of that corner now.
+Fixed and verified at 20/18 inset across 1280 / 430 / 375 / 320px.
+
+**Flagged, not acted on:** the Collapse tally is quadratic against a now-flat income table — a 20-kill
+Collapse pays 1,600 on top of 400, **+400%**. Not a consequence of this change: at the multiplier's
+measured ×1.9 it was already **+421%**. It is what drives the 1,070–7,706 score spread across identical
+runs. Whether hoarding should dominate scoring is a design call; `N²×1` is the one-line change.
+
 ### Getting hit says one thing (2026-08-03)
 Pilot, after playing the contact ghost and not being able to pick it out: *"i dont feel red sparks are good for this. too much informations are popping up then getting hit. only damage, size dependent to its amount would be good. / not screen shake, for now. / blinking + immune - a little more immune time, with blinking frames same as immune / no frame freeze on contact."*
 
