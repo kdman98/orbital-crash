@@ -3266,7 +3266,7 @@ function drawPlayer(){
   }
   const blink = P.iframe>0 && Math.floor(elapsed*20)%2===0;
   ctx.globalAlpha=blink?0.4:1;
-  // ---- THE STAR: atmosphere, body, lit hemisphere, ring halo ----
+  // ---- THE STAR: body, lit hemisphere, ring halo ----
   // ⚠️ THE STAR'S CRISP EDGE IS EXACTLY `P.r`, and it has to be. Contact is `e.r + P.r`, so if the hull
   // you can see is smaller than P.r you die BEFORE your own edge touches anything — which is the one
   // direction a drawing must never lie in (§2 of the glossary; the enemy hulls all draw at `e.r`). With
@@ -3276,11 +3276,12 @@ function drawPlayer(){
   // the width and the body fills to P.r underneath it. Move one without the other and the rim either
   // detaches into a floating ring or overshoots the envelope.
   const SRW=2.2;
-  // atmosphere glow (two soft layers, both outside the hull — they err wide, which is the safe side)
-  ctx.fillStyle=hexA(c,0.40);
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r*2.4,0,TAU); ctx.fill();
-  ctx.fillStyle=hexA(c,0.30);
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r*1.45,0,TAU); ctx.fill();
+  // NO ATMOSPHERE DISCS. Two flat-alpha fills used to sit here at 1.45r and 2.4r, and flat alpha means a
+  // HARD boundary however soft the colour looks — measured luminance cliffs of 51 at 22px and 73 at 36px,
+  // against the 9 that the enemy glow's gradient measures. Both were outside the hull, so they were two
+  // more rings claiming to be an edge, on the one body whose edge now has to be unambiguous.
+  // They are not replaced. `drawField` already lays a real radial gradient under the star (0.16 → 0 over
+  // P.fieldR), so the soft light is there and it fades to nothing — a gradient promises no distance.
   // body — fills to the true radius
   ctx.fillStyle=c;
   ctx.beginPath(); ctx.arc(P.x,P.y,P.r,0,TAU); ctx.fill();

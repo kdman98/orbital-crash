@@ -61,9 +61,23 @@ produce it):
 | Gilded ring, pixel-probed | stroke spans 25.0–26.66, centred on **26** = `e.r + P.r` |
 | console | clean |
 
-**Flagged, not fixed:** the star's `1.45r` atmosphere layer is a *flat* 0.30-alpha fill, so it still has a
-hard boundary at 21.75px — the same defect the enemy halo was converted to a gradient sprite to remove.
-It errs wide (the safe side), so it is a separate pass.
+**And then the atmosphere discs went too, same day.** Flagged first, then measured, then removed on the
+pilot's call: *"i dont think we need that opacity circle around our star. that is not a hitbox, just
+design - but i dont think i works well."*
+
+Two flat-alpha fills sat at `1.45r` and `2.4r`. **Flat alpha means a hard boundary however soft the
+colour looks** — every pixel at the same opacity, then a cliff to zero at the rim. Measured on the
+rendered frame: **51** luminance at 22px and **73** across 35.6–36.7px, against the **9** that the
+enemy glow's gradient measures. Two more rings claiming to be an edge, on the one body whose edge has
+to be unambiguous.
+
+**Deleted rather than converted to a gradient sprite**, which was the other option on the table. Nothing
+replaces them: `drawField` already lays a real radial gradient under the star (0.16 → 0 across
+`P.fieldR`), so the soft light was already there, and a gradient promises no distance.
+
+**Measured after:** biggest cliff outside the hull **4** — below the enemy gradient's own residual — and
+the ray decays 51 → 47 → 46 → 45 → 44 → 43 monotonically from 16px to 40px. One crisp edge on the star,
+at exactly `P.r`, and nothing else. That was the last flat-alpha edge in the game.
 
 ### The Anomaly gets smaller, cheaper, and stops lying about its edge (2026-08-03)
 Player brief: *"change volley damage to 2, reduce anomaly hp, starting from 15. also reduce anomaly size by 15%. make sure contact range is same."* Then, on seeing the first build: *"what i meant was contact range is same as anomaly's visual size."*
