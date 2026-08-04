@@ -68,6 +68,9 @@ against it predicted.
 **Ring shell** 114 → **217px**, 95% of the way there in **0.18s** against a 1.5s cheapest ride; rim speed
 4.8 → 10.7 px/frame, but the *angular* rate rises only **1.17×** because the radius nearly doubled. The
 3.15× the raw multipliers suggest is arithmetic, not what a player sees.
+> ⚠️ *That last sentence was written as a design note and was actually the bug.* The spin was being eaten
+> by a speed clamp, and the widening was cancelling it. Fixed the same day — see **Overdrive gets faster
+> instead of only bigger** above, which is also where the ring numbers here stop being current.
 **Cost: −23.5% survival** (34.9 → 26.7s, Welch t=2.18, n=30) and **variance halved** (sd 18.8 → 8.5).
 Aegis was most of the long tail, so the best runs went rather than the average one getting worse.
 *One deliberate leak:* kill and Mote income are fully suppressed mid-burn, but a **streak milestone**
