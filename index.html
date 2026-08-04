@@ -632,18 +632,24 @@ const RING_GRIND_DMG=1;
 // had, this is a single Dot you kept alive, read, and then stood in front of. The lane locks at wind-up
 // along the charger→YOU ray, so the only way it crosses the Anomaly is to put the Anomaly on that line —
 // STANDING IN THE KILL LANE and leaving it late, for 16 damage and a broken streak if you misread it.
-// PINNED AT 4 × VOLLEY_DMG. That ratio is the constant, not the number.
-// ⚠️ THE TWO RULES IN THIS COMMENT NOW DISAGREE, and the disagreement is a live design question rather
-// than a stale figure. The ratio to VOLLEY_DMG still holds — the volley did not move. What the ratio was
-// CALIBRATED to did: a bait was worth 53% / 40% / 32% of an Epoch I / II / III bar, three or four baits
-// ending any Anomaly, and against the doubled pool it is 27% / 23% / 20% — four baits at Epoch I and
-// SEVEN at Epoch V. So "if the pool moves, move this with it" says raise it, and "pinned at 4 ×
-// VOLLEY_DMG" says leave it. The pool was raised for difficulty; halving the payoff of the one erosion
-// channel that costs no ammunition and no Capacitor was not the intent, and it is the channel a stripped
-// player has left. Decide before touching it — this is not a number to nudge.
-//   The old ceiling argument is void: at 12 it used to one-shot an Epoch I Pulsar, which had 11 hp. That
-// Pulsar has 23 now, so 12 no longer skips the fight and the cap needs a fresh reason if it is kept.
-const CHARGE_DMG=8;
+// THE PIN TO VOLLEY_DMG IS RELEASED, DELIBERATELY. This sat at 8 = 4 × VOLLEY_DMG and the ratio was
+// called the constant; it is 6 × now. When the Anomaly pool doubled, the two rules in this block came
+// apart — "pinned at 4 ×" said leave it at 8, "if the pool moves, move this with them" said raise it —
+// and only one of them was ever the point. The ratio existed to keep a bait worth a FIXED SHARE OF A BAR,
+// which is the thing a player feels; 4 × was how you got that share at the old pool, not a law. The share
+// is what is preserved here.
+//   ⚠️ SO DO NOT RE-DERIVE THIS FROM VOLLEY_DMG. Reprice it against the pool in spawnBoss:
+//     was  8 vs 15/20/25/30/35 → 53% / 40% / 32% / 27% / 23% of a bar, 2/3/4/4/5 baits
+//     then 8 vs 30/35/40/45/50 → 27% / 23% / 20% / 18% / 16%,          4/5/5/6/7 baits  (the buff, unfixed)
+//     now 12 vs 30/35/40/45/50 → 40% / 34% / 30% / 27% / 24%,          3/3/4/4/5 baits
+// A partial restoration on purpose: Epoch I is back to 3 baits rather than the old 2, because the pool
+// was raised for difficulty and the bait should not undo that — it should stay the answer a stripped
+// player has, not become the fast way past the fight.
+//   12 was explicitly REJECTED as a ceiling here once, on the grounds that it would one-shot an Epoch I
+// Pulsar with 11 hp. That Pulsar has 23 hp now, so 12 takes two baits to kill it — the exact count 8 took
+// against 11. The number the old comment named as too strong is the number that preserves what it was
+// protecting. That is the pool moving, not the argument being wrong.
+const CHARGE_DMG=12;
 // EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
 // Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
 // CHEAPEST of the three, costing -27 HP for 5s of contact (you regenerate; its orbit carries it away)
