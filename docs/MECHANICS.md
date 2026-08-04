@@ -943,6 +943,14 @@ sibling `.stat` class is where the other meters get theirs.
 **The browser can measure a build that is not on disk.** Assert a new-code marker — a value only the new
 build can produce — before trusting any number from a live probe.
 
+**A correct measurement of a broken thing reads as a specification unless you say which it is.** The
+sharpest example this file has: *"the angular rate rises only 1.17× because the radius nearly doubled"*
+was an accurate measurement, written as a design note, of a ring whose spin was being eaten by a clamp.
+Anyone reading it would have concluded the ring was *meant* to feel that way and left the fault alone —
+the sentence actively defended the bug. **Label every measurement write-up as a diagnosis or a
+specification**, because they are written in identical language and only the author knows which one it
+was. If you cannot tell which you meant, it is a diagnosis.
+
 **A constant sitting exactly on a clamp has no authority, and changing it reads as a no-op rather than as
 a mistake.** Under Overdrive a ringed Drifter sat on its speed ceiling *exactly* — 12.03 px/frame against
 a cap of 12.03 — so raising the spin 1.4× moved the measured result from 1.59 revolutions to 1.61. The
@@ -1027,13 +1035,19 @@ exploit and Overdrive's payoff scale with that hoard. **The game rewards hoard-a
 independent systems.** Whatever makes an indefinitely-held ring expensive fixes both; a damage number
 on either one fixes neither.
 
-**Overdrive's identity depends on not flipping, and the flip is the game.** It multiplies rings held,
-and the flip dumps them — so the second verb pays best when you stop using the first. Measured at ~2.3–3.0
-rings held while flipping against ~6.9–9.1 while not, and standing crowd −2% versus −18%. **This is the
-same defect as the grind exploit above**, and both should be fixed as one problem: whatever makes an
-indefinitely-held ring expensive fixes both, and a damage number on either fixes neither. Nothing here
-argues Overdrive is bad — it argues its *best* use and the game's *core* use point in opposite
-directions.
+**Overdrive pays roughly twice as well if you hoard, and the flip dumps the hoard.** It multiplies rings
+held — ~2.3–3.0 while flipping against ~6.9–9.1 while not — so the second verb rewards not using the
+first. Standing crowd falls about **−10% while flipping** (two harnesses: −9.9% at *t*=−4.36 and −12.4%
+at *t*=−3.98, both n=8) against roughly **−18% while hoarding**.
+
+**This is the same pressure as the grind exploit above** and the two are one problem: whatever makes an
+indefinitely-held ring expensive addresses both, and a damage number on either addresses neither.
+
+**But it is a trade, not a trap, and only since the ring-speed fix.** Before that the flipping case
+measured **+0.3%** — Overdrive was worth nothing at all unless you hoarded, which is a fault. At half
+the effect either way it is a legitimate risk/reward axis. Nothing here argues Overdrive is bad; it
+argues that its best use and the game's core use pull against each other, which is worth watching rather
+than correcting.
 
 **Nothing defends you any more, and the hole is measured.** The powerup roster was deleted rather than
 fixed, which was right — only Aegis was load-bearing (−32.8% survival when suppressed, Welch t=4.06 at
