@@ -43,13 +43,21 @@ load-bearing: suppressing it costs **−32.8% survival, Welch t=4.06 at n=30**, 
 Overdrive and t=1.56 for Nova.
 
 **Correction, recorded because the retracted version is the more quotable one.** That same pass first
-concluded that *no setting of Overdrive's levers moves crowd density* and that it is worse than baseline
-at 4× strength. **That is wrong and was withdrawn by its author.** A 2×3 factorial found the cause: the
-arms were run at different **flip cadences**, and flip cadence moves standing population more than
-Overdrive does. Overdrive does reduce it — independently reproduced at −17.8% while flipping and −24.5%
-while not — because its real lever is the ring shell, which pays in proportion to rings held, which the
-flip dumps. It still does not reach Collapse's number. See `MECHANICS.md` *Pressure is spawn-limited*
-for the standing rule that came out of it.
+concluded that *no setting of Overdrive's levers moves crowd density*. **That was withdrawn by its
+author after re-measurement, and Overdrive does reduce standing crowd.**
+
+The cause was not a confound — the original sweep held flip cadence constant across every arm. It was
+**over-generalisation from a single cadence**: it happened to be measured at a cadence where the effect
+is small, and reported as though it held everywhere. Three harnesses across three sessions later agree
+the effect is real while *not* flipping (−13.6%, −15.1%, −16.7%, and one −24.5% outlier) and cannot
+agree on its size while flipping (+0.3%, −6.6%, −7.0%, −20.7%). Treat the flipping figure as unsettled
+and near the detection floor; treat roughly **−15% while holding rings** as the reproducible one.
+Overdrive does not reach Collapse's number under any of them.
+
+*Method note for anyone re-running this:* the arms must match on flip cadence **and** run length, and
+measurements taken before `CHG_KILL_CAP` are not comparable with ones after it on anything downstream of
+the Capacitor — a hungry flip's fling radius reads charge, so uncapped income changes the field. See
+`MECHANICS.md` *Pressure is spawn-limited* for the standing rule that came out of all this.
 
 ### The Bomber gets rarer
 `BOMB_RARITY` scales the Bomber's spawn weight in **both** bands — the time-ramped intro table and the

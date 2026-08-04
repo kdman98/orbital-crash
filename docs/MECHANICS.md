@@ -681,16 +681,23 @@ the most control over it and the tightest variance of any condition (14.5–15.9
 
 **What this means for anything new.** A powerup or mechanic sold as "clears the field" has to be measured
 on *standing population*, not on kill rate — kill rate reads flat no matter how strong the effect is, so
-reporting it will make a real effect look like nothing. This is not hypothetical: two independent
-attempts to measure Overdrive concluded it was a no-op, and both were reading throughput-shaped numbers.
+reporting it will make a real effect look like nothing. This is not hypothetical: an attempt to measure
+Overdrive concluded it was a no-op while reading throughput-shaped numbers, and that conclusion was
+written into the docs before it was withdrawn.
 
-Two more traps the table records:
+Three more traps the table records:
 
 - **A wider gathering field is not reach.** Field ×2.2 alone is indistinguishable from baseline, because
   a bigger field pulls more matter onto you at the same rate it catches more.
-- **Flip cadence dominates everything else, so it must be held fixed.** Never flipping measures ~26
-  standing against ~32 while flipping — a larger swing than Overdrive itself. Any two measurements taken
-  at different flip cadences are not comparable, whatever else they controlled for.
+- **Flip cadence dominates everything else, so it must be held fixed.** Never flipping measures ~23–26
+  standing against ~32 while flipping — a larger swing than most effects you would be testing. Two
+  measurements at different cadences are not comparable whatever else they controlled for, and a
+  measurement at *one* cadence does not generalise to the others.
+- **This measurement is noisier than it looks, so report a range.** Three independent harnesses measuring
+  the same Overdrive effect agreed while not flipping (−13.6%, −15.1%, −16.7%, one −24.5%) and did not
+  agree at all while flipping (+0.3%, −6.6%, −7.0%, −20.7%) — same game, same nominal conditions. n=4 is
+  not enough here, run length changes the answer, and a single figure quoted to one decimal is a claim
+  the method cannot support.
 
 *Caveat that bounds the claim:* the star is stationary, so `moveMult`-style effects are worth nothing
 here and are understated. The constancy of throughput is not — it holds in every condition tested,
@@ -739,13 +746,22 @@ already balanced — it simply expires.
 - **⚡ Overdrive** — faster star, wider and faster whirling rings.
 
   **It quietly pays you for not flipping, which is a tension with the core verb.** Its real lever is the
-  ring shell: `P.eddy` moves the ring orbit from `0.6` to `0.85` of the Field, and a wider shell sweeps
-  more matter — that is *reach*, which the invariant above says is the only thing that moves standing
-  population. But a wider shell only pays in proportion to how much you are holding, and **flipping dumps
-  your rings**: measured rings held are ~2.8 flipping every 47 frames against ~8.1 never flipping. So
-  Overdrive's benefit roughly doubles when you stop using the game's central input, and it never reaches
-  Collapse's number either way. Not a bug and not currently a problem at six seconds — but it is the shape
-  to watch if this effect is ever made longer, stronger, or permanent.
+  ring shell: `P.eddy` moves the ring orbit from `0.6` to `0.85` of the Field, and a wider, faster shell
+  sweeps more matter — that is *reach*, the only thing the invariant above says moves standing
+  population. But a shell only pays in proportion to what is in it, and **the flip dumps your rings**:
+  rings held measure ~2.6–3.0 flipping every 47 frames against ~6.9–9.1 never flipping, a 2.7× gap that
+  every harness agrees on. So the effect is reproducible when you hold rings (**~−15% standing crowd**)
+  and unsettled to the point of disagreement when you flip. It does not reach Collapse under any
+  measurement.
+
+  **And it consumes the hoard rather than growing it** — in the no-flip arm Overdrive *reduced* rings
+  held while reducing crowd (9.1 → 6.4, independently 6.9 → 4.5). The wider shell is converting held
+  rings into kills, not accumulating them. That is the better argument for Overdrive-as-ring-shell than
+  the crowd figure is, and it is the one number in this area that two harnesses reproduce cleanly.
+
+  Not a bug and not a problem at six seconds. It is the shape to watch if the effect is ever made longer,
+  stronger, or permanent: a second verb that pays you for not using the first verb is an identity
+  problem, not a tuning one.
 - **✺ Nova** — an instant free Collapse wave at no charge cost. The rarer roll.
 
 *Watch item:* a three-wide bag means the most common pickup is also the dullest one.
