@@ -695,6 +695,22 @@ you point-blank. **Hard to catch and dangerous to stand next to are different ax
 priced on the second. `GRIND_MULT` is an empty table on purpose — the signpost that stops this being
 rebuilt.
 
+**The baited charge is priced as a share of a bar, not as a ratio to the volley.** `CHARGE_DMG` sat at
+4 × `VOLLEY_DMG` for a long time and the *ratio* was written down as the constant — but the ratio was
+only ever how you reached the share at the pool of the day. When the pool was raised, the two readings
+came apart: *hold the ratio* said leave the number alone, *reprice with the pool* said raise it, and
+only the second was ever the point. **The share is the invariant. The ratio was a way of computing it.**
+
+The bait is deliberately restored **short of** where it stood, because the pool went up for difficulty
+and the answer to a harder fight should not undo the difficulty. It is the one erosion channel costing
+**no ammunition and no Capacitor**, which makes it — with the grind — what a stripped player has left,
+and the same reason `RING_GRIND_DMG` is protected from being halved.
+
+*The ceiling that was once rejected is now the fix.* The current value was argued down, at the time, for
+one-shotting an Epoch I Pulsar. That Pulsar carries roughly twice the HP now, so the same value takes
+two baits — exactly what the old number took against the old Pulsar. **The argument was never wrong;
+the pool moved out from under it.**
+
 **The Fling never erodes.** Not "rarely" — never, by rule. A Dot you pushed *away from yourself* is not
 a shot you took at something. The Fling is defence, and only defence.
 
@@ -1109,6 +1125,27 @@ phrase. `The button appears the moment` returns nothing on a file that contains 
 `The <b class="gold">button</b> appears the moment you can`. Search the distinctive tail of a sentence,
 or strip tags first. A clean grep over prose proves much less than the same grep over identifiers.
 
+**A comment that quotes a derived number needs deriving, not re-reading.** Three comments survived the
+Anomaly buff still pricing a bait at half a bar, still calling an Epoch I Pulsar 11 HP, and still
+warning that the pool had *dropped below* a line it was now at double — and one of them contradicted
+another comment in the same file about the same number. Eyes do not catch this; the numbers look
+plausible because they once were. **Parse the constants out of the served document, recompute the
+table, and diff it against what the comments claim.** It is cheap enough to be the default any time a
+comment states a figure it does not itself define.
+
+*The comments that survived tell you the format that works.* Every one of them named the old value **as
+old** — "it bought 6.0s", "a bait *was* worth", "the global income rate, not an inert 1", "PRESS, not
+toggle". A comment carrying its own before-and-after cannot silently become wrong; it can only become
+history, which is what a comment is for.
+
+**And the same defect one level up: a *rule* that states a derived number.** `CHARGE_DMG` was recorded
+as "pinned at 4 × `VOLLEY_DMG`, and that ratio is the constant". It was not the constant — the bait's
+**share of a bar** was, and the ratio was how you reached that share at the pool of the day. Nothing was
+wrong until the pool moved, and then the block contradicted itself, because one rule in it was the goal
+and the other was an artefact of the goal, and they were written in the same voice. **When you pin a
+number to another number, write down what the pin is *for*** — the pin outlives its reason otherwise,
+and the reason is the thing you actually need when something moves.
+
 **The scripted pilot cannot see most of the game.** A 40s run stops before formations, Chargers and
 Bombers exist; the median pilot dies before the first Bomber can spawn. It has also **never picked up an
 Overdrive** — igniting is a keypress the scripted pilot does not make, so the whole second verb, its
@@ -1182,12 +1219,22 @@ the effect either way it is a legitimate risk/reward axis. Nothing here argues O
 argues that its best use and the game's core use pull against each other, which is worth watching rather
 than correcting.
 
-⚠️ *Every figure in this item predates the 4× repricing, and the repricing cuts at the tension directly.*
-A ride is now half as long and costs twice as much to earn, so there is far less run spent inside one —
-and hoarding rings to make a burn pay is worth less when there are a quarter as many burn-seconds in a
-run to spend them on. The crowd effects were measured over rides twice this length; the *direction* is
-the durable part, the magnitudes are not. **The tension may have narrowed on its own. Nobody has
-looked.** Re-run before anyone acts on this item.
+⚠️ *Every figure in this item predates the 4× repricing.* The crowd effects were measured over rides
+twice this length, so the magnitudes are stale; re-run before anyone acts on this item.
+
+*What the repricing did and did not change, because a first pass at this got it wrong.* The hoard in
+question is **rings**, not charge, and the ring physics did not move — so the incentive to hold rings
+**at the moment you are deciding whether to flip is exactly what it was**. What fell is the *per-run
+weight* of that incentive: a quarter as many burn-seconds means a quarter as much of a run spent where
+hoarding pays. Those are different quantities, and the decision this item drives is the per-moment one.
+
+Nor did the meter decision soften. Spending at the floor against saving to full is still the same
+**4:1** in ride length; what quadrupled is the play-time cost of reaching either end. **That is fewer
+occasions to wait for, not a smaller payoff for waiting.**
+
+*An earlier version of this note read "the tension may have narrowed on its own" — a direction asserted
+without a measurement, in the paragraph whose whole point is that the figures need re-running. It is
+recorded here rather than quietly removed, because the trap it walked into is two sections up.*
 
 **Nothing defends you any more, and the hole is measured.** The powerup roster was deleted rather than
 fixed, which was right — only Aegis was load-bearing (−32.8% survival when suppressed, Welch t=4.06 at

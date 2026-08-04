@@ -2149,6 +2149,10 @@ function stepEnemyForces(dt){
       // exactly right, measured at 1.59 revolutions per half gauge. A wider ring is a SLOWER-LOOKING one:
       // angular rate is v/r, so the 1.28x Field widening was cancelling most of the spin it was sold with.
       // Pulling the orbit in trades radius for visible rotation, and is also nearer "a little bigger".
+      // ⚠️ BOTH FIGURES ABOVE ARE PER HALF GAUGE, AND THE GAUGE HAS SINCE HALVED IN SECONDS. That was
+      // measured at OD_DRAIN 1/6; at 1/3 a half gauge buys half the ride it did, so a re-measurement here
+      // is not comparable to 1.59 unless you convert. The fix that followed took it to 2.78 revolutions
+      // per half gauge THEN, which is 2.78 per FULL gauge now — the geometry never moved, the seconds did.
       const orbR=P.fieldR*(P.eddy?0.72:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
       ax+=(dx/d)*toRing*err*0.03*rm; ay+=(dy/d)*toRing*err*0.03*rm;   // spring onto the ring radius
       // Ring whirl is `spin/(1-bleed)` where the `0.80` bleed below (ordinary matter gets 0.86) is what

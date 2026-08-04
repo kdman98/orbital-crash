@@ -12,6 +12,27 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-05
+
+### The baited charge is repriced, and the pin comes off on purpose `06fbc15`
+**`CHARGE_DMG` raised, and its pin to `VOLLEY_DMG` deliberately released.** The pool buff had halved the
+bait's share of a bar — the one erosion channel costing no ammunition and no Capacitor, and with the
+grind what a stripped player has left.
+
+**The pin was never the invariant.** *Pinned at 4 × `VOLLEY_DMG`, and that ratio is the constant* had
+been true and useful, but the ratio was only ever how you reached a **share of a bar** at the pool of
+the day. When the pool moved, *hold the ratio* and *reprice with the pool* pointed opposite ways, and
+only the second was the point.
+
+**Restored short of where it stood, on purpose.** Epoch I goes back to three baits rather than the old
+two: the pool went up for difficulty, and the answer to a harder fight should not undo the difficulty.
+
+*And the value now used was once rejected as a ceiling*, on the grounds that it would one-shot an Epoch
+I Pulsar. That Pulsar carries roughly twice the HP today, so it takes two baits — exactly what the old
+number took against the old Pulsar. The argument was never wrong; the pool moved out from under it.
+
+---
+
 ## 2026-08-04
 
 ### Overdrive is held, costs four times as much, and the Anomaly hits back `6eec910`
