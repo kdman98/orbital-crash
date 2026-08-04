@@ -329,12 +329,22 @@ earn.
 **The per-kill Capacitor award is capped** (`CHG_KILL_CAP`), as is the streak trickle — see law 16.
 Uncapped, this meter was two systems wearing one bar.
 
-**⚠️ The known tension, and it is now load-bearing rather than a footnote.** Overdrive multiplies *rings
-you are holding*, and the flip **dumps** your rings — measured, ~2.3–3.0 held while flipping against
-~6.9–9.1 while not. So the second verb pays best exactly when you are not using the first one. This was
-tolerable when Overdrive was a six-second pickup you did not choose; it is a real identity question now
-that it is the only thing the meter buys. **It is also the same defect as the grind exploit** — see
-*Open* — and the two should be fixed as one problem, not two numbers.
+**⚠️ The known tension — real, but a trade rather than a trap, and only since the spin fix.** Overdrive
+multiplies *rings you are holding*, and the flip **dumps** your rings: ~2.3–3.0 held while flipping
+against ~6.9–9.1 while not. So it pays more the less you flip, and that much has always been true.
+
+What changed is whether it pays *at all* to a player who flips. Before the ring-speed fix the flipping
+case measured **+0.3%** — a rounding error, so the tension was total and using the game's central input
+made the second verb worthless. After it, two harnesses measure **−9.9% (t=−4.36, n=8)** and **−16.0%
+(n=8)** — disagreeing on size, agreeing it is now a solid effect where it used to be nothing.
+
+So the honest statement is: **the payoff still scales with the hoard, so it rewards hoarding more — but
+it is no longer worthless to a player who flips.** Roughly half the effect either way. That is a
+legitimate risk/reward axis rather than a design fault, and it is worth noticing that the fix which
+bought it was not aimed at this at all — it was aimed at a pilot saying the ring felt slow.
+
+**The hoarding pressure is still shared with the grind exploit** — see *Open* — and the two are one
+problem whenever someone decides to act on either.
 
 ---
 
@@ -707,32 +717,37 @@ roughly an eighth of everything that arrives.
 
 **The single most useful fact about this game's difficulty, and it is counter-intuitive.** Throughput —
 how many Dots leave the field per minute — is set by the spawn system and is very nearly a constant. What
-actually varies is the **standing population**: how many are on screen at once. Seven conditions, four
-matched 180s runs each, damage off, star stationary:
+actually varies is the **standing population**: how many are on screen at once. Matched 180s runs, damage
+off, star stationary, n=8:
 
-| | Dots leaving /min | avg standing | avg rings held |
-|---|---|---|---|
-| baseline, flipping | 276 | 32.0 | 2.8 |
-| Overdrive burning, flipping | 299 | 31.3 | 3.1 |
-| baseline, never flipping | 226 | 25.4 | 9.9 |
-| Overdrive burning, never flipping | 209 | **20.8** | 9.1 |
+| | Dots leaving /min | avg standing |
+|---|---|---|
+| baseline, flipping | 292 | 32.6 |
+| Overdrive burning, flipping | 271 | 27.4 |
+| baseline, never flipping | 268 | 29.4 |
 
-**Reach moves standing population without moving throughput; the flip moves both.** Holding cadence
-fixed, Overdrive changes standing by −2% while flipping and **−18%** while not, and barely touches
-throughput either way. Change cadence instead and throughput moves 226 → 276, because flipping is
-itself a kill mechanism — the fling and the colour swap annihilate, so the player *is* a throughput
-lever, just not through being better at killing what arrives.
+**Throughput holds a narrow band while standing population moves several times as far.** 268–292 here,
+a ratio of 1.09; an independent harness sweeping flip cadence across four rates from every-20-frames to
+every-300 measured 209–230, ratio **1.10**. Different absolute scales, same tightness — which is the
+result that matters, since the two harnesses disagree on level and agree on shape.
 
-The structural half still holds and is the useful half: matter that reaches you already dies, so an
-effect that makes you deadlier *at the core* cannot reduce how many are standing. Only something acting
-at **range** can. That is why the ring shell is the lever that works and why a wider gathering Field is
-not one.
+The reason is structural: matter that reaches you already dies, so an effect that makes you deadlier *at
+the core* cannot reduce how many are standing — the queue is upstream of you. Only something acting at
+**range** can. That is why the ring shell is the lever that works and why a wider gathering Field is not
+one.
 
-**Correction to an earlier version of this section**, which claimed throughput sat in a ±6% band across
-every condition. It does not. That band came from a set of conditions that happened to contain no strong
-throughput lever, and adding flip cadence breaks it — 209 to 299 here. The narrower claim above is what
-the data supports, and the over-broad one is left recorded because it is the same failure the traps
-below describe: a result measured under one set of conditions and stated as though it held everywhere.
+**Every departure is a kill.** Splitting departures by whether the object was flagged `dead` gives the
+same number to the decimal in every condition — nothing leaves this field without dying, which is the
+same result as the 300s tracking run in law 8 (1,374 entered, 2 ever left). So "kills per minute" and
+"Dots leaving per minute" are the same measurement, and a harness that reports one can be compared with
+a harness that reports the other.
+
+**A retracted correction, kept because retracting it is the lesson.** An earlier version of this section
+claimed the band did *not* hold — that adding flip cadence broke it, 209 to 299. That was an n=6
+measurement; at n=8 the same harness gives 271 where it gave 299, and the spread collapses back to 1.09.
+**The band was retired on a number that does not reproduce, and "throughput is spawn-limited" is
+load-bearing in the reasoning for deleting Collapse** — so it nearly took a real conclusion with it. Read
+the replication trap below before quoting anything from this section, including this table.
 
 **What this means for anything new.** A powerup or mechanic sold as "clears the field" has to be measured
 on *standing population*, not on kill rate — kill rate reads flat no matter how strong the effect is, so

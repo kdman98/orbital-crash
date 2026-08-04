@@ -43,6 +43,12 @@ dodging, against 13 of 14 at base), and ring grind rises 2 damage over 10s — t
 slightly better while you burn, not a new one. `closing` is split off the clamp and keeps its old value,
 because like-charge on its way in is not a ring yet and ring-grade speed would make gathering feel like a
 vacuum.
+**And it is what finally made Overdrive worth using to a player who flips.** The same cell measured
+**+0.3%** on standing crowd before this change — a rounding error — and **−9.9% (Welch t=−4.36, n=8)**
+after, independently **−16.0%** on a second harness. The effect existed only for a hoarding player
+before; it is now roughly half-strength for a flipping one, which turns the Overdrive-rewards-hoarding
+tension from a trap into a trade. None of that was the goal: the change was aimed at a pilot saying the
+ring felt slow.
 
 ### Two verbs: flip, and Overdrive `b3a95a3`
 Collapse and the entire powerup system are deleted. The Capacitor now buys **Overdrive** — the effect the
