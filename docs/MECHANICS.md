@@ -1138,6 +1138,23 @@ old** — "it bought 6.0s", "a bait *was* worth", "the global income rate, not a
 toggle". A comment carrying its own before-and-after cannot silently become wrong; it can only become
 history, which is what a comment is for.
 
+**A number can go stale without changing, if its unit moves under it — and that is worse than a stale
+number.** A wrong figure announces itself the moment anyone re-measures. A renamed denominator lets
+both figures stay individually correct while **quietly deleting the relationship between them**, which
+is the only thing anyone reads a tuning comment for. The ring-speed measurements were recorded "per
+half gauge"; the drain later doubled, so the same phrase named a different duration and two results
+taken over *identical* wall-clock became incommensurable. The size of that fix — **1.75×** — sat
+unreadable in the file for a day, not because either number was wrong but because nothing said they
+could be compared.
+
+*The defence, which generalises well past that block:* **pick the unit that survives the constants
+around it, then pin the value with two independent restatements.** Ring physics belongs in rev/s, not
+in fractions of a meter whose seconds are a tunable — and `0.927 rev/s = one turn per 1.08s =
+5.82 rad/s` is one quantity said three ways. A re-measurement disagreeing with all three is the
+measurement's problem; disagreeing with one is a conversion error you can actually find. **Gauge
+fractions are the right unit for the meter and the wrong one for the ring**, and choosing by what the
+sentence is *about* rather than by what is convenient is most of this trap.
+
 **An incentive has a *strength* and a *weight*, and they travel together right up until they don't.**
 Strength is what a player feels at the moment of deciding; weight is strength × how many occasions a run
 gives them. Almost always they move the same way, which is exactly why they are easy to run together —
