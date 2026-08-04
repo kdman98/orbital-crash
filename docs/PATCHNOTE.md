@@ -14,6 +14,34 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-04
 
+### Two verbs: flip, and Overdrive `b3a95a3`
+Collapse and the entire powerup system are deleted. The Capacitor now buys **Overdrive** — the effect the
+orb used to grant free, made **drainable**: ignite from `OD_MIN` rather than only when full, `OD_DRAIN`
+empties the meter over the six seconds the orb gave, press again to bank the remainder. A spend that must
+be full and total is a button; a spend you can meter is a choice.
+**Deleted:** `unstable`, `cwave`, `stepCollapseWave`, `collapse`, `detonateCollapse`, `inhaleT`, the
+tally, `POW`/`POWMAP`/`orbs`/`FX`/`dropOrb`/`collectOrb`/`fireNova`, `pickupToast`, `ruptureBlast`,
+`P.shield`, `SHIELD_IFRAME`, `PICKUP_IFRAME`, `P.blastR`/`P.blastDmg`. `supercollapse` → **`redline`**.
+Nova going with the roster is what made this clean — it was the second writer of `unstable`/`cwave`, so
+the whole Collapse apparatus deleted rather than surviving for one orb.
+**The Anomaly is down to three channels** — Volley, ring grind, baited charge, law 2 exactly satisfied
+with nothing left over. No softlock: the Volley closes all three kinds unaided (**53.1s** Emitter,
+**39.8s** Sentinel, **33.4s** Pulsar), and grind alone takes the Sentinel and the Pulsar but **not** the
+Emitter — the kind that hovers and shoots point-blank, which is what the old note about holding an orbit
+against it predicted.
+**Ring shell** 114 → **217px**, 95% of the way there in **0.18s** against a 1.5s cheapest ride; rim speed
+4.8 → 10.7 px/frame, but the *angular* rate rises only **1.17×** because the radius nearly doubled. The
+3.15× the raw multipliers suggest is arithmetic, not what a player sees.
+**Cost: −23.5% survival** (34.9 → 26.7s, Welch t=2.18, n=30) and **variance halved** (sd 18.8 → 8.5).
+Aegis was most of the long tail, so the best runs went rather than the average one getting worse.
+*One deliberate leak:* kill and Mote income are fully suppressed mid-burn, but a **streak milestone**
+still pays through — it is a streak payout, fires ≤4× a run, and gating it would make the streak worth
+less during the thing you spent it to earn. `store.best` → `orbitalcrash_best2`; old scores carried the
+tally.
+*Doc-side consequence, recorded because it is a difficulty change wearing a copy edit:* the Splitter's
+only named clean death was a Collapse. It is now the Bomber blast alone — 47.8% rarer as of the previous
+commit. See `MECHANICS.md ## Open`.
+
 ### The Capacitor stops being two systems wearing one bar
 `CHG_KILL_CAP` bounds the per-kill charge award, which was `0.006 + combo*0.0002` — linear in `combo`
 and uncapped. `combo` is a *no-hit* streak with no decay and no timeout, so on a clean run it compounds:

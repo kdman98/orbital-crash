@@ -117,12 +117,14 @@ everywhere else — and a blanket version would quietly promote the Fling from "
 which law 2 does not allow.
 
 ### 9. The silent world
-**No centre banner, ever.** Storms, Epochs, the Anomaly's arrival, Collapse and streak tiers are
-announced by matter, colour, ring, shake and sound. Text across the middle pulls the eyes off the
+**No centre banner, ever.** Storms, Epochs, the Anomaly's arrival, an Overdrive igniting and streak
+tiers are announced by matter, colour, ring, shake and sound. Text across the middle pulls the eyes off the
 field at exactly the wrong moment.
 
-**Exactly two *persistent* text channels**, both outside the play area: the **pickup pill** (a powerup's
-effect is the one thing you genuinely cannot read off the screen) and the **achievement toast**.
+**One *persistent* text channel**, outside the play area: the **achievement toast**. It was two — the
+pickup pill named a powerup's effect, the one thing you genuinely could not read off the screen. With
+the powerups gone the pill had nothing left to say and went with them, which is the correct outcome: a
+channel exists to carry something unreadable, not to be preserved.
 
 **Everything else is floating text, and floating text must be drawn where its event happened.** That is
 the whole rule, and it is a rule about *position*, not about content — `-8` rises off the Anomaly you
@@ -286,18 +288,42 @@ instant you flip**, in close orbit. The Fling throws exactly that off you.
 **The Volley** — with an Anomaly alive, the same act launches every gathered Dot that is not the
 boss's colour **straight away from the core**, along the radius it already sat on. See *The Anomaly*.
 
-### Collapse
-Spend a full **Capacitor**. A short inhale under heavy slow-motion, then an arena-sweeping blast wave,
-one hit per wave — trash dies, Brutes crawl out burned and flung. Against the Anomaly it is a **flat
-percentage, whatever the field looks like**: the wave never touches the boss and neither do the
-chain-blasts its kills set off. Density must not be able to kill a boss.
+### Overdrive
+Spend the **Capacitor** to burn a wider, faster ring shell. It is the second verb, and the only thing
+the meter buys.
 
-A Collapse of 8+ kills pays a **tally** bonus that grows with the *square* of the count — the shape is
-the point, since a Collapse is meant to reward the wave you set up rather than the one you fell into.
-Kills during a Collapse pay **no** Capacitor — the next one must be earned.
+**It is a throttle, not a button.** Ignite from `OD_MIN` upward — you do not have to be full — and it
+**drains while it runs** (`OD_DRAIN`), so a full meter buys a fixed number of seconds and a quarter
+meter buys a quarter of them. Press again to **bank the remainder**. That is the whole decision: spend
+now at the pressure you can see, or hold for the pressure you expect. A spend that must be full and
+must be total is a button; a spend you can meter is a choice.
+
+**What it does is reach.** `P.eddy` moves the ring orbit from `0.6` to `0.85` of the Field, `P.ringMul`
+raises capacity, `P.fieldR` widens the catch and `P.moveMult` speeds the star. Measured, the shell goes
+**114 → 217px and gets 95% of the way there in 0.18s**, against a cheapest ride of 1.5s — so it arrives
+as a snap, not a drift. Linear speed at the rim roughly doubles, **4.8 → 10.7 px/frame**, but the
+*angular* rate rises only **1.17×** because the radius nearly doubled. The raw multipliers suggest a
+3.15× spin; that is not what a player sees, and quoting it would be describing arithmetic rather than
+the game.
+
+**It does not touch the Anomaly** — law 2, and no exception. The meter buys field control, never boss
+damage. Erosion stays Volley, ring grind, baited charge.
+
+**Income is suppressed while burning** (`odOn` gates the kill and Mote awards) — you cannot refill mid-burn,
+so the length of a burn is decided when you ignite it. One deliberate exception: a **streak milestone**
+still pays through, because it is a streak payout rather than a kill payout, it fires at most four times
+a run, and gating it would make the streak silently worth less during the thing you spent the streak to
+earn.
 
 **The per-kill Capacitor award is capped** (`CHG_KILL_CAP`), as is the streak trickle — see law 16.
 Uncapped, this meter was two systems wearing one bar.
+
+**⚠️ The known tension, and it is now load-bearing rather than a footnote.** Overdrive multiplies *rings
+you are holding*, and the flip **dumps** your rings — measured, ~2.3–3.0 held while flipping against
+~6.9–9.1 while not. So the second verb pays best exactly when you are not using the first one. This was
+tolerable when Overdrive was a six-second pickup you did not choose; it is a real identity question now
+that it is the only thing the meter buys. **It is also the same defect as the grind exploit** — see
+*Open* — and the two should be fixed as one problem, not two numbers.
 
 ---
 
@@ -312,8 +338,8 @@ Dots are your threat *and* your ammunition.
 |---|---|
 | **Drifter** | baseline Dot, steady approach — the deliberate unmarked null |
 | **Dart** | small, very fast, light hit; backward wake |
-| **Brute** | big, slow, 3 hp, the hardest contact hit in the sky; hexagon. The only Dot that walks out of a Collapse or a Bomber blast, and nothing erases it outright — it must be annihilated by colour like anything else |
-| **Splitter** | twin lobes; bursts into exactly 2 Minis when destroyed — unless killed by a Collapse or a Bomber blast, neither of which runs `onKill`, so neither leaves fragments |
+| **Brute** | big, slow, 3 hp, the hardest contact hit in the sky; hexagon. The only Dot that walks out of a Bomber blast, and nothing erases it outright — it must be annihilated by colour like anything else |
+| **Splitter** | twin lobes; bursts into exactly 2 Minis when destroyed — **unless** killed by a Bomber blast, which sets `dead` without running `onKill`. That is now its *only* clean death, and see *Open* |
 | **Mini** | tiny fast fragment; no white core, a solid pellet |
 | **Orbiter** | curves *around* the star instead of beelining; annulus with a clockwise pip |
 | **Bomber** | an ordinary Dot in every stat that **detonates when it dies** |
@@ -321,7 +347,7 @@ Dots are your threat *and* your ammunition.
 | **Neutral** | wears both poles on a turning seam; the one Dot the colour law does not reach |
 
 ### The Bomber's detonation
-Colour-blind, sized just past the ring orbit radius, at Collapse-parity damage — so trash dies and a
+Colour-blind, sized just past the ring orbit radius, and priced so trash dies and a
 Brute crawls out burned. **Colour-blind is load-bearing:** your rings are your own colour, so a blast
 that respected polarity could not remove ring shield at all, which is the entire point.
 
@@ -473,7 +499,7 @@ door if you are red; two, in opposite colours, cannot both be.
 The walls **annihilate each other** where they meet, which is what ends the shape rather than a timer —
 and that mutual annihilation **pays nothing** (law 8). It is gated on **both** Dots being in formation
 flight, so nothing you own is caught (your ring Dots carry no `hold`), and on `!unstable`, so a
-Collapse — which is yours — is never silenced.
+an Overdrive burn — which is yours — never silences it.
 
 ### The Comet
 Not a formation but an **event**, on its own much longer timer rather than in the shape rotation — and
@@ -608,19 +634,24 @@ rebuilt.
 **The Fling never erodes.** Not "rarely" — never, by rule. A Dot you pushed *away from yourself* is not
 a shot you took at something. The Fling is defence, and only defence.
 
-**Ways in:** two from matter you gathered (**Volley**, the main line, and **Ring grind**, for carrying a
-loaded ring into it), plus the **baited charge** (matter you did not gather but did aim), plus
-**Collapse** (a flat percentage, no matter at all). The grind is the only one needing neither a flip nor
-a Capacitor, which makes it the fallback when you have been stripped of everything else.
+**Ways in — three, and law 2 has nothing left over.** Two from matter you gathered (**Volley**, the main
+line, and **Ring grind**, for carrying a loaded ring into it), plus the **baited charge** (matter you did
+not gather but did aim). **The Capacitor buys no boss damage at all.** The grind needs neither a flip nor
+the meter, which makes it the fallback when you have been stripped of everything else — and now the
+*only* fallback, which is why halving it is not a free move.
+
+*No softlock:* the Volley closes all three kinds unaided — measured 53.1s Emitter, 39.8s Sentinel,
+33.4s Pulsar. Grind alone takes the Sentinel and the Pulsar but **not** the Emitter, which is the kind
+that hovers and shoots you point-blank; holding an orbit against it is the thing that does not work.
 
 **Purge** — destroying the boss; the word means only this. Pays score scaled by Epoch, an Integrity heal,
-a Capacitor chunk, and exactly one orb.
+and a Capacitor chunk.
 
 ### What still deletes matter near an Anomaly
 Worth naming, because none of it is the Anomaly's fire and all of it gets blamed on the Anomaly's fire.
 **Ambient opposite-colour traffic** is overwhelmingly the answer — ordinary matter meeting matter. The
 **Sentinel's swarmers** are the only boss-emitted eraser, and they are *matter* rather than shots, so the
-colour law owns them like anything else. Your own **Collapse** takes the rest.
+colour law owns them like anything else.
 
 The Anomaly's **body** is the one exception, and it is not fire: it consumes matter that actually chips
 it, or a flung Dot parked inside its skin would chip every frame. Matter that pays zero — ordinary
@@ -666,18 +697,27 @@ matched 180s runs each, damage off, star stationary:
 
 | | Dots leaving /min | avg standing | avg rings held |
 |---|---|---|---|
-| baseline, flipping | 290 | 31.9 | 2.8 |
-| baseline, never flipping | 270–294 | 25.6–26.1 | 8.1 |
-| Overdrive, flipping | 287 | 26.0 | 2.4 |
-| Overdrive, never flipping | 261 | **19.6** | 4.8 |
-| Field ×2.2 alone | 266 | 24.5 | — |
-| A Collapse every 8s | 282 | **15.2** | — |
+| baseline, flipping | 276 | 32.0 | 2.8 |
+| Overdrive burning, flipping | 299 | 31.3 | 3.1 |
+| baseline, never flipping | 226 | 25.4 | 9.9 |
+| Overdrive burning, never flipping | 209 | **20.8** | 9.1 |
 
-**Throughput stays inside 261–294 — a ±6% band — while standing population spans 15.2 to 31.9, better
-than a factor of two.** The reason is structural: you already annihilate essentially everything that
-reaches you, so making you *better* at killing cannot reduce how many are standing — the queue is
-upstream of you. Only something acting at **range** moves the standing count, which is why Collapse has
-the most control over it and the tightest variance of any condition (14.5–15.9).
+**Reach moves standing population without moving throughput; the flip moves both.** Holding cadence
+fixed, Overdrive changes standing by −2% while flipping and **−18%** while not, and barely touches
+throughput either way. Change cadence instead and throughput moves 226 → 276, because flipping is
+itself a kill mechanism — the fling and the colour swap annihilate, so the player *is* a throughput
+lever, just not through being better at killing what arrives.
+
+The structural half still holds and is the useful half: matter that reaches you already dies, so an
+effect that makes you deadlier *at the core* cannot reduce how many are standing. Only something acting
+at **range** can. That is why the ring shell is the lever that works and why a wider gathering Field is
+not one.
+
+**Correction to an earlier version of this section**, which claimed throughput sat in a ±6% band across
+every condition. It does not. That band came from a set of conditions that happened to contain no strong
+throughput lever, and adding flip cadence breaks it — 209 to 299 here. The narrower claim above is what
+the data supports, and the over-broad one is left recorded because it is the same failure the traps
+below describe: a result measured under one set of conditions and stated as though it held everywhere.
 
 **What this means for anything new.** A powerup or mechanic sold as "clears the field" has to be measured
 on *standing population*, not on kill rate — kill rate reads flat no matter how strong the effect is, so
@@ -706,8 +746,9 @@ here and are understated. The constancy of throughput is not — it holds in eve
 including the ones that move standing population the most.
 
 ### Meters
-- **Capacitor** — fills toward a Collapse, from kills, Motes, streak milestones and Epoch clears. Chimes
-  when full. Kills *during* a Collapse pay nothing.
+- **Capacitor** — fills from kills, Motes, streak milestones and Epoch clears, and pays for Overdrive.
+  Chimes at `OD_MIN`, the point it becomes spendable, rather than at full. Kills *during* a burn pay
+  nothing — you cannot refill while spending.
 - **Streak** — a no-hit combo, resets only on real damage (shield blocks do not break it). Named tiers,
   each paying a Capacitor chunk. Breaking a streak past the first tier **bursts** it into Capacitor
   instead of vanishing.
@@ -735,45 +776,16 @@ including the ones that move standing population the most.
 - **Achievement** — an in-run feat recorded in the Codex. **Flavour only; they unlock nothing.** There is
   no meta economy. Nothing counts the rows, so adding or retiring one is a single line.
 
-### Powerups — the only progression
-Any annihilation can shed an **orb**; steer into it to collect. Every effect is **instant and temporary**,
-and grabbing the same type again refreshes its timer. A purged Anomaly always drops one, and a safety orb
-floats in if the field has been bare a while. A drop is never a duplicate of something already active or
-already waiting.
+### Progression
+**There is none, and that is the design.** No meta-progression, no pickups, no upgrades — the Capacitor
+is the only thing that accumulates and it empties every time you use it. What improves across a run is
+your position and your hoard, both of which you can lose in a second.
 
-Timed effects just toggle already-tuned physics flags each frame, so every effect rides code the game has
-already balanced — it simply expires.
-
-- **🛡 Aegis** — a shield for a few hits. The only shield source, and exception-free: nothing pierces it.
-- **⚡ Overdrive** — faster star, wider and faster whirling rings.
-
-  **It quietly pays you for not flipping, which is a tension with the core verb.** The mechanism is the
-  finding here; the effect sizes downstream of it are noisy and partly disputed, so read them in that
-  order.
-
-  Its real lever is the ring shell — `P.eddy` moves the ring orbit from `0.6` to `0.85` of the Field, and
-  a wider, faster shell sweeps more matter. That is *reach*, the only thing the invariant above says
-  moves standing population. **But a shell only pays in proportion to what is in it, and the flip dumps
-  your rings.** Rings held measure **~2.3–3.0 while flipping against ~6.9–9.1 while not** — a 3× swing,
-  larger and far cleaner than any crowd figure in this area, and every harness that has measured it
-  agrees. That is the whole shape: Overdrive's value is proportional to a hoard the game's central input
-  destroys.
-
-  **It also consumes the hoard rather than growing it.** In the no-flip arm Overdrive *reduced* rings
-  held while reducing crowd — 9.1 → 6.4, independently 6.9 → 4.5. The wider shell converts held rings
-  into kills instead of accumulating them, which is a better argument for Overdrive-as-ring-shell than
-  the crowd number ever was.
-
-  On crowd itself: the effect is **clear when you never flip** and **small and hard to measure when you
-  do** — see the replication trap above before quoting any figure for the second case. It does not reach
-  Collapse under any measurement.
-
-  Not a bug and not a problem at six seconds. It is the shape to watch if the effect is ever made longer,
-  stronger, or permanent: a second verb that pays you for not using the first verb is an identity
-  problem, not a tuning one.
-- **✺ Nova** — an instant free Collapse wave at no charge cost. The rarer roll.
-
-*Watch item:* a three-wide bag means the most common pickup is also the dullest one.
+*The powerup roster was deleted rather than fixed.* Three temporary drops, of which measurement said only
+**Aegis** was load-bearing (−32.8% survival when suppressed, Welch t=4.06 at n=30, against t=1.12 and
+t=1.56 for the other two). Removing it cost **−23.5% survival** (34.9 → 26.7s, t=2.18, n=30) — and
+**halved the variance** (sd 18.8 → 8.5), because a free shield was most of the long tail. Runs are
+shorter and far more alike. See *Open* for what is meant to fill that hole.
 
 ### Modes
 | | |
@@ -796,7 +808,6 @@ already balanced — it simply expires.
   | | trauma | flash | hitstop |
   |---|---|---|---|
   | **Purge** (`killBoss`) | ✓ | ✓ | ✓ |
-  | **Collapse** (`detonateCollapse`) | ✓ | ✓ | ✓ |
   | **Baited charge** (`stepAnnihilation`) | ✓ | ✓ | ✓ |
   | **Bomber blast** (`bomberBlast`) | ✓ | ✓ | ✓ |
   | **Shield block** (`coreHit`, body contact) | ✓ | ✓ | — |
@@ -808,13 +819,13 @@ already balanced — it simply expires.
   hitstop is the loudest cue the engine has, and spending it on something that happens *to* you is how
   it leaked onto the damage path the first time. When adding a cue, read down this table rather than
   copying whichever line is nearest.
-- **Moment Engine** — global slow-motion dips. The Collapse breath is the big one.
+- **Moment Engine** — global slow-motion dips.
 - **Floating text** — small rising labels near the core.
 - **The sky** — three depths drawn *outside* the shake transform, so distance reads as distance rather
   than a backdrop wobbling. Stars in three parallax layers, gas clouds on their own slower parallax, the
   arena at your feet. Parallax also gives you something fixed to judge your own motion against, and does
   it better than a lattice would, because different rates encode distance as well as movement.
-- **The Spheres** — the celestial harp arpeggio, now a single cue: orb pickup. Achievements ring a
+- **The Spheres** — the celestial harp arpeggio, now a single cue: an Overdrive igniting. Achievements ring a
   different sound.
 - **Comfort mode** (`reduceMotion`) — two tiers, and the difference matters to someone relying on it.
   **Removed outright:** screen shake (the shake transform is skipped entirely, not scaled), hitstop,
@@ -942,9 +953,9 @@ fingerprints stop being comparable. That is a fresh baseline, not a regression.
 
 **The scripted pilot cannot see most of the game.** A 40s run stops before formations, Chargers and
 Bombers exist; the median pilot dies before the first Bomber can spawn. It has also **never picked up an
-orb** and **never detonated a Collapse** — the oracle drives `step()` directly, so the real-time inhale
-countdown never runs and every later call is refused. Anything touching those systems is unmeasured by
-the bot regardless of how green the suite looks.
+Overdrive** — igniting is a keypress the scripted pilot does not make, so the whole second verb, its
+drain, and everything gated on `odOn` are unmeasured by the bot regardless of how green the suite looks.
+Drive `overdrive()` by hand through the seam if you are testing anything downstream of it.
 
 ---
 
@@ -978,24 +989,33 @@ exploit and Overdrive's payoff scale with that hoard. **The game rewards hoard-a
 independent systems.** Whatever makes an indefinitely-held ring expensive fixes both; a damage number
 on either one fixes neither.
 
-**Collapse has the least distinct identity of any earned action.** It is one of two "everything near me
-dies" effects, it costs the most to reach, and its inhale is a dead pause. The pilot's verdict after three
-recorded runs was that it does not feel like a reward. **There is no measurement to argue with that**, for
-the reason in *Traps*: the scripted pilot has never detonated one, so every Collapse number rests on human
-play alone.
+**Overdrive's identity depends on not flipping, and the flip is the game.** It multiplies rings held,
+and the flip dumps them — so the second verb pays best when you stop using the first. Measured at ~2.3–3.0
+rings held while flipping against ~6.9–9.1 while not, and standing crowd −2% versus −18%. **This is the
+same defect as the grind exploit above**, and both should be fixed as one problem: whatever makes an
+indefinitely-held ring expensive fixes both, and a damage number on either fixes neither. Nothing here
+argues Overdrive is bad — it argues its *best* use and the game's *core* use point in opposite
+directions.
 
-**The powerup roster is still mundane, and only one third of it is load-bearing.** Suppressing **Aegis**
-costs **−32.8% survival** (Welch t=4.06, n=30). Overdrive (t=1.12) and Nova (t=1.56) are both
-indistinguishable from noise — so the most common drop is not merely the dullest, it is close to
-measurably nothing. *Caveat: the scripted pilot is open-loop and cannot exploit a movement buff, so
-Overdrive is understated; Aegis is passive and measures correctly for any pilot.*
+**Nothing defends you any more, and the hole is measured.** The powerup roster was deleted rather than
+fixed, which was right — only Aegis was load-bearing (−32.8% survival when suppressed, Welch t=4.06 at
+n=30, against t=1.12 and t=1.56 for the other two). But removing it cost **−23.5% survival** and, more
+tellingly, **halved the run-to-run variance** (sd 18.8 → 8.5): a free shield was most of the long tail,
+so the best runs are gone rather than the average one being worse.
 
-**The stated direction is to replace Aegis rather than rework it: a close call generating a shield** —
-grazes earning defence instead of a score crumb, so the reward for cutting it fine is the thing that
-lets you keep cutting it fine. Explicitly not now. Worth writing down because it decides what happens to
-Aegis when the time comes — removal, not iteration — and because Graze currently pays deliberately
-little (score and a sound, no Capacitor, so charge income stays chosen rather than lucked into); that
-pricing is what would change.
+**The intended replacement is a close call earning a shield** — grazes paying defence instead of a score
+crumb, so the reward for cutting it fine is what lets you keep cutting it fine. It has to fill that
+measured hole, and it changes Graze's deliberately thin pricing (score and a sound, no Capacitor, so
+meter income stays chosen rather than lucked into). The old shield-block shape is described in a comment
+where it was deleted, as the thing to bring back. Not started.
+
+**🔴 The Splitter lost its only named answer, and its replacement was halved one commit earlier.** Popping
+a Splitter adds 2 Minis; the only death that skips `onKill` and so leaves no fragments used to be a
+Collapse or a Bomber blast. Collapse is gone, so **the Bomber blast is now the sole clean kill** — and
+`BOMB_RARITY` had just cut Bombers by 47.8%, priced against the Bomber's own role with no knowledge that
+it was about to become the only answer to another species. Two independently reasonable changes that
+compound. Measure standing Minis and standing Splitters before deciding; `BOMB_RARITY` is the cheap lever
+to pay it back with if they moved.
 
 **The Moment Engine's audio half was never built.** The time side is live (`timeScale`, `slowmo`); the
 sound side — stereo-panned kill pops, a low-HP heartbeat with a lowpass, a storm drum layer — is agreed
@@ -1034,7 +1054,7 @@ Disengaging is the entire healing verb; watch that a bad Epoch is still recovera
 
 **Touch controls.** Parked pending the launch-environment decision. Every touch-down currently calls
 `flip()`, so steering re-grips reverse your polarity; Android long-press additionally synthesizes
-`contextmenu` → an unintended Collapse. The fix is either a real touch scheme or an honest desktop-only
+`contextmenu` → an unintended Overdrive ignition. The fix is either a real touch scheme or an honest desktop-only
 gate.
 
 **HUD hierarchy.** The meters read as equals; only Capacitor and Streak deserve to be loud.

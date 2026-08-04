@@ -15,7 +15,7 @@ paragraph goes in MECHANICS and this line points at it.
 - **Matter** is the mass noun, **Dot** the countable unit — *matter drifts in*, *a Dot hits you*.
 - **Never write "charge" unqualified.** Two unrelated quantities answer to it: **hold-charge**
   (`P.holdT/P.holdMax`, time since your last flip, which arms the hungry flip) and the **Capacitor**
-  (`P.charge`, which pays for a Collapse). Nothing reads both — the flip path never touches `P.charge`
+  (`P.charge`, which pays for Overdrive). Nothing reads both — the flip path never touches `P.charge`
   at all. Say *hold-charge* or *Capacitor*. This is not pedantry: the loose word has already produced a
   confident, wrong, and entirely plausible claim in a ledger entry about which measurements were
   comparable.
@@ -44,9 +44,8 @@ paragraph goes in MECHANICS and this line points at it.
   reels it back the whole time. (`RING_GRACE`, `RING_GRACE_R`, `e.ringGrace`)
 - **Integrity** — your health. Regenerates only after a quiet window; nothing else heals.
   (`P.hp`, `P.maxHp`, `P.hurtT`)
-- **Immunity** — the window after a hit during which you cannot be hurt again. One value for every
-  source of **damage**; a shield block sets its own, shorter window. The star's blink is driven off it
-  directly. (`IFRAME`, `P.iframe`)
+- **Immunity** — the window after a hit during which you cannot be hurt again. **One value for every
+  source**, now that nothing blocks. The star's blink is driven off it directly. (`IFRAME`, `P.iframe`)
 - **Contact envelope** — the separation at which two hulls touch: `e.r + P.r`. The one radius that
   matters. See *the danger edge*.
 
@@ -69,9 +68,10 @@ paragraph goes in MECHANICS and this line points at it.
   Dot. (`RING_GRIND_DMG`)
 - **Baited charge** — a Charger's committed dash driven through an Anomaly because you stood so its
   locked lane crossed it. (`CHARGE_DMG`)
-- **Collapse** — spend a full Capacitor: an inhale, then an arena-sweeping blast wave.
-  (`collapse()`, `detonateCollapse()`, `cwave`)
-- **Tally** — the bonus a Collapse of enough kills pays. (`collapseKills`)
+- **Overdrive** — the second verb: spend the Capacitor to burn a wider, faster ring shell. Drains
+  while it runs; press again to bank the remainder. (`overdrive()`, `odOn`, `OD_DRAIN`, `OD_MIN`)
+- **Burn** — the interval an Overdrive is running. **Ignite** starts one, **bank** ends one early.
+- **Redline** — igniting a full Capacitor and riding it to empty. (`redline`)
 - **Annihilation** — the core kill event: two opposite-charge things touch, both destroyed.
   (`queueKill`, `processKills`)
 - **Pop** — to destroy a Dot.
@@ -117,7 +117,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **The two-wave release** — formations let go by polarity, one colour after the other. (`NOOSE_WAVE`)
 - **Retirement** — a Dot finishing a committed trajectory dies via `dead` alone, never `queueKill`, so
   it pays nothing.
-- **The silent world** — no centre banner; exactly two text channels, both outside the play area.
+- **The silent world** — no centre banner; one text channel, outside the play area.
 
 ## Patterns
 
@@ -186,18 +186,16 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   (`labMode`, `LAB_SHAPES`)
 - **Game states** — `menu` · `play` · `ready` · `paused` · `dead`.
 
-## Meters and pickups
+## Meters
 
-- **Capacitor** — the meter that fills toward a Collapse. Both combo-driven income terms cap at combo
+- **Capacitor** — the meter that pays for Overdrive. Spendable from `OD_MIN`, not only when full, and
+  it drains as you burn. Both combo-driven income terms cap at combo
   ~90; see MECHANICS.md. (`P.charge`, `chgbar`, `CHG_KILL_CAP`)
 - **Streak** — a no-hit combo; resets only on real damage. Named tiers each pay a Capacitor chunk.
   (`combo`, `streakTier`, `breakStreak`)
 - **Score** — **addition, with no multiplier anywhere.** A kill, a Mote and a graze each pay a flat
   amount, wherever they happen. (`onKill`, `KILL_SCORE`, `MOTE_SCORE`, `GRAZE_SCORE`)
-- **Orb** — the floating powerup pickup. (`orbs`, `dropOrb`, `ORB_DROP_CHANCE`)
-- **🛡 Aegis** — a shield for a few hits. The only shield source. (`FX.aegis`, `P.shield`)
-- **⚡ Overdrive** — faster star, wide whirling rings. (`FX.overdrive`, `P.eddy`)
-- **✺ Nova** — an instant free Collapse wave at no charge cost. The rarer roll. (`fireNova()`)
+- **Ring shell** — the radius your Rings orbit at. Overdrive nearly doubles it. (`P.eddy`, `P.ringMul`)
 - **Achievement** — an in-run feat recorded in the Codex. Flavour only; unlocks nothing.
   (`ACHV`, `store.achv`)
 
@@ -213,9 +211,8 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   Its size scales with the amount. (`hurtText`, `HURT_SZ0`, `HURT_SZK`)
 - **Moment Engine** — global slow-motion dips. (`timeScale`, `slowmo()`)
 - **The sky** — three parallax depths drawn outside the shake transform. (`STAR_LAYERS`, `drawStars`)
-- **The Spheres** — the celestial harp arpeggio; a single cue, the orb pickup. (`sfx.harp`)
-- **Pickup pill** — the left-hand text channel, naming a powerup's effect. (`pickupToast()`)
-- **Achievement toast** — the top-centre gold text channel. (`showAchvToast()`)
+- **The Spheres** — the celestial harp arpeggio; a single cue, the Overdrive ignition. (`sfx.harp`)
+- **Achievement toast** — the top-centre gold text channel, and now the only one. (`showAchvToast()`)
 - **Comfort mode** — removes screen shake and hitstop outright; damps flash, ring spin and parallax
   travel. (`store.reduceMotion`)
 - **Core Fault** — the crash screen; a bad frame is dropped and the loop survives. (`crashHalt()`)
@@ -234,12 +231,18 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 ## Retired names
 
 Kept only so an old commit message reads correctly. None of these is the current word for the thing —
-which is not the same as none of them appearing anywhere: `P.eddy` is still the live code name, and
-`body` meaning an enemy is still all over `index.html` and `bestiary.html` (see *Naming conventions*).
+which is not the same as none of them appearing anywhere: `P.eddy` is still the live code name for
+Overdrive's ring behaviour, and a few of these survive in comments explaining their own removal.
 
-**Eddy** → Overdrive's ring behaviour (`P.eddy` survives as the code name only) · **body** (meaning an enemy) → Dot ·
-**cache** → the single orb an Anomaly drops on purge · **Flare** → missile · **World** → Star ·
-**Purge** (of matter) → Fling; *purge* now means destroying an Anomaly and nothing else ·
-**Anomaly Arena** → Boss Rush · **Lunger**, **Seeder**, **Spiral** → folded into Emitter and Sentinel ·
-**Corona**, **Cryo**, **Singularity** → removed powerups · **Deflect**, **Reflect** → removed verbs ·
-**Gate**, **Vice**, **Comb** → folded into the Wall and the Noose.
+**Removed with the powerup system:** **Collapse** → Overdrive is what the Capacitor buys now ·
+**Tally** → the Collapse kill bonus, gone with it · **Orb** and **powerup** → there are no pickups ·
+**🛡 Aegis**, **✺ Nova** → removed with the roster; nothing blocks a hit any more · **Pickup pill** →
+there is one text channel now, the achievement toast · **cache** → was the orb an Anomaly dropped on
+purge; a purge now pays score, an Integrity heal and a Capacitor chunk.
+
+**Older:** **Eddy** → Overdrive's ring behaviour · **body** (meaning an enemy) → Dot ·
+**Flare** → missile · **World** → Star · **Purge** (of matter) → Fling; *purge* now means destroying an
+Anomaly and nothing else · **Anomaly Arena** → Boss Rush · **Lunger**, **Seeder**, **Spiral** → folded
+into Emitter and Sentinel · **Corona**, **Cryo**, **Singularity** → removed powerups ·
+**Deflect**, **Reflect** → removed verbs · **Gate**, **Vice**, **Comb** → folded into the Wall and the
+Noose.
