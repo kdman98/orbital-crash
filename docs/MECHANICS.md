@@ -957,7 +957,26 @@ Questions the game has not answered. These are live; everything else in this fil
 had to be halved. An immortal bot orbiting close, never firing a volley and never Collapsing, solo-killed
 the Epoch I Anomaly in 5 of 9 runs. **Both caveats matter, because they decide whether to act:** the bot is
 immortal, and a real player holding that orbit pays a real HP cost — so the strategy *exists*, it is not
-free. The one-line fix, if it should not exist, is to halve `RING_GRIND_DMG`.
+free.
+
+**The direction is to make the orbit expensive, not to halve `RING_GRIND_DMG`.** Halving it taxes every
+player who earned the fallback in order to stop a bot that does not feel the cost — and the grind is the
+only Anomaly answer needing neither a flip nor a meter, so it is what a stripped player has left.
+**Raising boss HP does not fix it either:** HP is a scalar on every channel at once, so it slows the
+exploit and the intended loop by the same factor and moves no ratio. It would also have to preserve
+divisibility by `VOLLEY_DMG` and the `CHARGE_DMG` = 4 × `VOLLEY_DMG` pin, which is why the pool was cut
+in the first place.
+
+**Aim at *not flipping*, not at closeness.** Closing is measured as intended and rewarded — orbiting at
+270px gives 8 kills / 7 deaths against 11 / 4 at 150px — so a generic point-blank buff punishes the
+loop the game wants. What the exploit does that the loop does not is hold a large ring indefinitely
+without ever flipping.
+
+**This is the same defect as the Overdrive tension**, which is the reason to treat it as one problem.
+Rings held measure ~6.9–9.1 while never flipping against ~2.3–3.0 while flipping, and both the grind
+exploit and Overdrive's payoff scale with that hoard. **The game rewards hoard-and-don't-flip in two
+independent systems.** Whatever makes an indefinitely-held ring expensive fixes both; a damage number
+on either one fixes neither.
 
 **Collapse has the least distinct identity of any earned action.** It is one of two "everything near me
 dies" effects, it costs the most to reach, and its inhale is a dead pause. The pilot's verdict after three
