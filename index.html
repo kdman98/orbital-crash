@@ -204,7 +204,11 @@
   .cxs b{color:#fff;} .cxs .gold{color:var(--gold);} .cxs .vio{color:var(--violet);}
   .cxa{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.7;color:#c3ccdb;}
   .cxa .st{width:18px;flex:0 0 auto;} .cxa.got .st{color:var(--lime);} .cxa .rw{color:var(--dim);font-size:11.5px;}
-  #pBuild{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:min(560px,90vw);margin:0 0 22px;}
+  /* The run's event logs — Overdrive rides and Anomaly fights — on both the pause and death panels.
+     Four rows can stack here, so the bottom margin is tight on purpose: at 22px the death panel pushed
+     Reforge off a short phone screen. Wrapping is what keeps a 12-chip row honest at 375px. */
+  .chiplog{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:min(560px,90vw);margin:0 0 14px;}
+  .loglab{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
   .bchip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:100px;font-size:11.5px;font-weight:700;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#dfe6f2;}
   .bchip .n{color:var(--gold);font-weight:900;}
@@ -305,8 +309,10 @@
     <div class="ds"><div class="k">Score</div><div class="v" id="pScore">0</div></div>
     <div class="ds"><div class="k">Time</div><div class="v" id="pTime">0:00</div></div>
   </div>
-  <div id="pBuildLab" class="hidden" style="font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Overdrive</div>
-  <div id="pBuild"></div>
+  <div id="pOdLogLab" class="loglab hidden">Overdrive · <span id="pOdLogSum"></span></div>
+  <div id="pOdLog" class="chiplog"></div>
+  <div id="pAnomLogLab" class="loglab hidden">Anomalies · <span id="pAnomLogSum"></span></div>
+  <div id="pAnomLog" class="chiplog"></div>
   <button class="btn" id="resumeBtn">Resume</button>
   <button class="btn sm ghost" id="quitBtn" style="margin-top:14px;">Quit to menu</button>
   <div class="hint"><kbd>P</kbd> or <kbd>Esc</kbd> to resume</div>
@@ -322,6 +328,13 @@
     <div class="ds"><div class="k">Time Survived</div><div class="v" id="deadTime">0:00</div></div>
     <div class="ds"><div class="k">Peak Combo</div><div class="v" id="deadCombo">0</div></div>
   </div>
+  <!-- The receipt is a LOG, not a scoreboard. Four sips and a redline is a different run from two full
+       burns and they total the same, so the rides are listed one by one; likewise each Anomaly fight is
+       priced separately. Both rows hide themselves when the run had none of that event. -->
+  <div id="deadOdLogLab" class="loglab hidden">Overdrive · <span id="deadOdLogSum"></span></div>
+  <div id="deadOdLog" class="chiplog"></div>
+  <div id="deadAnomLogLab" class="loglab hidden">Anomalies · <span id="deadAnomLogSum"></span></div>
+  <div id="deadAnomLog" class="chiplog"></div>
   <button class="btn" id="againBtn">Reforge</button>
   <button class="btn sm ghost" id="deadMenuBtn" style="margin-top:12px;">Menu</button>
 </div>
@@ -706,6 +719,14 @@ const OD_DRAIN=1/6;          // charge per second while burning
 // 8 of 10 runs while a clean one fired every few seconds.
 const OD_MIN=0.25;
 const OD_COL='#ffe36b';      // the Overdrive orb's gold, kept so the cue vocabulary did not change
+// THE RIDE LOG. The run summary records the rides INDIVIDUALLY ("3.0s 1.5s 2.0s 0.7s"), not a total,
+// because the shape of the list is the interesting part: four sips and a redline is a different run from
+// two full burns, and both sum the same. `odT` is ACCUMULATED, never derived from `odFrom - P.charge` —
+// streak milestones (onKill/MCHG) and the purge reward (killBoss) both still pay THROUGH a burn, so charge
+// does not fall monotonically while it runs.
+let odT=0;                   // seconds burned in the ride currently under way
+let odLog=[];                // one entry per COMPLETED ride, in run order — display only, bounded
+let odCount=0, odTotal=0;    // tallies. odLog stops growing at 40; these never do, so they stay honest
 
 // Overdrive state -> physics flags, then the drain. ⚠️ RE-DERIVE EVERY TICK, NEVER EDGE-TRIGGER.
 // `P.fieldR` alone gates twelve things — ring capture, the grace band, the orbit radius, like-charge
@@ -713,10 +734,10 @@ const OD_COL='#ffe36b';      // the Overdrive orb's gold, kept so the cue vocabu
 // crash, it is enemy spacing quietly feeling wrong for the rest of the run.
 function stepOverdrive(dt){
   if(odOn){
+    odT+=dt;                                   // sim seconds: timeScale scales the ACCUMULATOR, not dt
     P.charge=Math.max(0, P.charge-OD_DRAIN*dt);
     if(P.charge<=0){                           // land on EXACTLY 0 — `P.charge>=OD_MIN` gates read it
-      P.charge=0; odOn=false;
-      if(odFrom>=0.99) grantAchv('redline');   // ignited full and rode it to empty
+      P.charge=0; endOverdrive();
     }
   }
   P.eddy      = odOn ? 1 : 0;                  // wide, fast rings — see the ring block in stepEnemyForces
@@ -729,13 +750,27 @@ function stepOverdrive(dt){
 // the orb pickup used to own.
 function overdrive(){
   if(state!=='play') return;
-  if(odOn){ odOn=false; return; }
+  if(odOn){ endOverdrive(); return; }
   if(P.charge<OD_MIN) return;
-  odOn=true; odFrom=P.charge;
+  odOn=true; odFrom=P.charge; odT=0;
   spawnRing(P.x,P.y,OD_COL,BASE_FIELDR*1.28); spawnRing(P.x,P.y,'#fff',P.r+18);
   spawnBurst(P.x,P.y,OD_COL,14,3.4);
   slowmo(0.5,0.14);
   if(typeof sfx!=='undefined') sfx.harp(5);
+}
+// THE ONE PLACE A RIDE ENDS. Three things stop a burn — it drains to zero, you press again to bank the
+// remainder, or you die mid-ride — and the third is the one that bites: die() cleared `odOn` directly, so
+// the ride a player was actually in when they lost silently never reached the log. Any future stop path
+// (a pause that refunds, a state change) must come through here too.
+function endOverdrive(){
+  if(!odOn) return;
+  odOn=false;
+  // Redline is still "ignited FULL and rode it to nothing". Banking at 0.4 must not grant it and neither
+  // must dying mid-ride, so the empty test stays — this grant MOVED here out of stepOverdrive's zero
+  // branch rather than being copied, or the rule would live in two places and drift.
+  if(P && P.charge<=0 && odFrom>=0.99) grantAchv('redline');
+  if(odT>=0.1){ odCount++; odTotal+=odT; if(odLog.length<40) odLog.push(odT); }
+  odT=0;                     // under 0.1s is a double-tap, not a ride — logging it would be noise
 }
 // ---- acts / biomes / pacing (mood + depth) ----
 const ACTS=[
@@ -748,6 +783,11 @@ const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
 let act=1, wavePhase='calm', phaseT=6, intensity=0.14, intensityTarget=0.14;
 let boss=null, bossFlash=0, bossTime=0;
 let bossN=0;  // Anomalies faced this run — the first always fires the teaching hexagon
+// WHAT EACH ANOMALY COST YOU, one entry per encounter. The window is the whole fight, not just damage the
+// Anomaly itself dealt: the field does not stop while you deal with it, and the Dots that punish you while
+// you are busy are the real price of the fight. `boss` is a single slot, so encounters never overlap and
+// the fight under way is always the last entry.
+let anomLog=[];
 let lances=[]; // anomaly's outer-screen projectiles: opposite-colour, hurt the core AND the anomaly
 function actInfo(){ return ACTS[(act-1)%ACTS.length]; }
 function hx(h){ const n=parseInt(h.slice(1),16); return [n>>16&255,n>>8&255,n&255]; }
@@ -1401,6 +1441,7 @@ function spawnBoss(forceVariant){
   let hp=10+act*5;
   if(variant==='pulsar') hp=Math.round(hp*0.75); // the kind that moves you rather than out-damaging you — footwork is its answer, so it should not also be the longest fight
   bossN++;
+  anomLog.push(0);   // opens this fight's tab — see the two `boss &&` accumulators in the damage paths
   // ⚠️ `r` IS THE HULL *AND* THE COLLIDER — never split them into a draw scale over a separate hitbox.
   // The Anomaly obeys the same law as every other Dot: what you see is what hits you. A draw-only
   // shrink puts the star's kill edge outside a hull that looks safe, the false-radius defect law 3
@@ -1545,6 +1586,7 @@ function coreHit(dmg,src){
   if(P.iframe>0) return false;
   const d=dmg*P.armor;
   P.hp-=d; P.iframe=IFRAME; P.hurtT=0;
+  if(boss && anomLog.length) anomLog[anomLog.length-1]+=d;   // this fight's tab — mines and missiles land here
   breakStreak(src);
   sfx.hurt(); hurtText(d);            // same one cue as Dot contact — see IFRAME / hurtText
   if(P.hp<=0){ P.hp=0; die(); return true; }
@@ -2321,6 +2363,7 @@ function stepPlayerContact(){
         // (No shield branch — see coreHit. Nothing in the game can turn a hit aside now.)
         const dmg=e.dmg*P.armor;
         P.hp-=dmg; P.iframe=IFRAME; P.hurtT=0;
+        if(boss && anomLog.length) anomLog[anomLog.length-1]+=dmg;  // this fight's tab — the Anomaly's own 30-damage body lands here, and so does every Dot that punishes you while you are busy with it
         breakStreak((DOTNAME[e.type]||e.type)+(e.color!=='neutral'?' ('+e.color+')':'')); // every real hit severs the streak
         sfx.hurt();
         hurtText(dmg);
@@ -2353,10 +2396,17 @@ function stepRunTimers(dt){
   // ⚠️ This cap and CHG_KILL_CAP are one rule in two places — see law 16. Both bind at combo ~90.
   if(combo>=5 && !odOn && P.charge<1)
     P.charge=Math.min(1, P.charge + Math.min(0.035, combo*0.0004)*P.chargeGain*dt); // trickle cap trimmed with the new income streams
-  // OVERDRIVE READY. Announced once, at the ARMING FLOOR rather than at a full bar, because a partial
-  // meter is spendable now — the old chime fired at 1.0 because Collapse could not be part-paid, which is
-  // why a player taking hits never heard it.
-  if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); pushText(P.x,P.y-P.r-36,'⚡ OVERDRIVE READY ⚡',OD_COL,1.3,14); }
+  // OVERDRIVE READY — a CHIME, and nothing on the field. It fires at the ARMING FLOOR rather than at a
+  // full bar, because a partial meter is spendable now; the old one fired at 1.0 because Collapse could
+  // not be part-paid, which is why a player taking hits never heard it.
+  //   THE WORLD TEXT IS GONE. It was 14px alive for 1.3s over a busy field and, in play, announced itself
+  // about once a run — the reset below only clears BELOW the floor, which under Collapse was every spend
+  // and under a bankable drain is almost none. The HUD already carries availability at the identical
+  // threshold: `#collapseBtn` gains `.show` and `#chgbar` gains `.full` on `P.charge>=OD_MIN` in
+  // updateHUD. One channel, and it is the one that persists instead of blinking.
+  //   The chime's cadence is right as it stands: burn to zero and it re-announces on the next fill; bank
+  // above the floor and it stays quiet, because you never stopped being armed.
+  if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); }
   else if(P.charge<OD_MIN) chargeReady=false;
   if(grazeT>0){ grazeT-=dt; if(grazeT<=0) grazeN=0; }
   // Gilded Bounty: every 12-18s one Dot arrives gilded — annihilate it within 6s for a jackpot (not in the Arena)
@@ -2421,7 +2471,10 @@ function processKills(){
 //                                   from the contact path. It leaked back in through here.
 // What survives is the BURST, and only because it reports Capacitor you can now spend: without it a 20%
 // jump in the charge bar has no cause on screen. It is a gain, printed in gold, over the hurt voice.
-const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',split:'Splitter',mini:'Mini',orbiter:'Orbiter',bomber:'Bomber',charger:'Charger',neutral:'Neutral'};
+// ⚠️ `boss` BELONGS IN HERE. The Anomaly's body damages you through the Dot-contact path like everything
+// else, so a missing key printed the raw type on the death screen — "Lost to boss (red)" — the same class
+// of internal-identifier leak that put `phase` behind DEV two lines below the receipt.
+const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',split:'Splitter',mini:'Mini',orbiter:'Orbiter',bomber:'Bomber',charger:'Charger',neutral:'Neutral',boss:'Anomaly'};
 let lastDmg=null; // {src, act, phase} — death receipt
 function breakStreak(src){
   lastDmg={src, act, phase:wavePhase};
@@ -2734,7 +2787,8 @@ function die(){
   if(state==='dead')return; // guard against double-entry
   state='dead';
   killQ.length=0;  // cancel any queued kills
-  odOn=false;      // stop the drain — a dead star does not burn Capacitor
+  endOverdrive();  // stop the drain AND bank the ride into the log — a dead star does not burn Capacitor,
+                   // and the ride you died in is the one you most want to see on the receipt
   let nb=false;
   if(score>store.best && !testMode && !labMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
   save();
@@ -2749,6 +2803,8 @@ function die(){
   el('deadTime').textContent=fmtTime(elapsed);
   el('deadCombo').textContent=peakCombo;
   el('deadBest').classList.toggle('hidden',!nb);
+  showRunLogs('dead',false);   // endOverdrive() above already closed the final ride into odLog
+
   // the shatter
   spawnBurst(P.x,P.y,COL[P.polarity],26,5.2); spawnBurst(P.x,P.y,'#fff',18,3.6);
   spawnRing(P.x,P.y,COL[P.polarity],180);
@@ -2791,6 +2847,12 @@ function pushText(x,y,txt,color,life,size){
 //   THERE IS NOW ONE PERSISTENT TEXT CHANNEL, not two. The other was the pickup pill, and it was
 // justified on the grounds that a powerup's EFFECT is the one thing you cannot read off the screen. That
 // argument does not transfer to Overdrive: you pressed it, and the field visibly swells when you do.
+//   Nor does Overdrive get a word for its AVAILABILITY. An '⚡ OVERDRIVE READY ⚡' stood over the core and
+// was measured as near-useless in play: 14px for 1.3s over the busiest part of the field, and it announced
+// itself about once a run because its flag only reset BELOW the arming floor — every Collapse spend
+// crossed that line, almost no bankable Overdrive does. The HUD says it instead, and keeps saying it:
+// the button appears and the bar shines on the same `P.charge>=OD_MIN` test, in updateHUD. A cue that
+// persists beats a cue that blinks, for a state that persists.
 function showAchvToast(txt){
   const a=el('achv'); if(!a)return;
   a.textContent=txt;
@@ -3718,6 +3780,40 @@ function titleOrbit(tt){
 //  UI: menu / pause / death
 // =====================================================================
 
+// ---------- the run's event logs, as chip rows ----------
+// Both panels show the same two rows, so they are built in one place. Ids are `<prefix>OdLog…` /
+// `<prefix>AnomLog…` with the prefix 'dead' or 'p'.
+function chip(html,cls,op){
+  const c=document.createElement('span');
+  c.className=cls||'bchip'; c.innerHTML=html;
+  if(op!=null) c.style.opacity=op;
+  return c;
+}
+const CHIP_SHOW=12;   // past a dozen a row stops being readable and starts being wallpaper
+// `done` is how many entries the run actually produced, which can EXCEED arr.length — odLog stops growing
+// at 40 while odCount does not. The '+N' overflow chip must read the counter, or a marathon run quietly
+// under-reports how much it is hiding.
+function fillChips(wrap,arr,done,fmt){
+  wrap.innerHTML='';
+  const hid=done-Math.min(arr.length,CHIP_SHOW);
+  if(hid>0) wrap.appendChild(chip('+'+hid,'bchip',0.45));
+  const shown=arr.slice(-CHIP_SHOW), base=arr.length-shown.length;
+  shown.forEach((v,i)=>wrap.appendChild(chip(fmt(v,base+i))));
+}
+// `live` prepends the ride still under way. Only the pause panel ever has one — death ends the ride
+// through endOverdrive() before the receipt is written, which is exactly why it lands in the log at all.
+function showRunLogs(pfx,live){
+  const n=odCount+(live?1:0), t=odTotal+(live?odT:0);
+  el(pfx+'OdLogLab').classList.toggle('hidden', n===0);
+  el(pfx+'OdLogSum').textContent = n ? '×'+n+' · '+t.toFixed(1)+'s' : '';
+  fillChips(el(pfx+'OdLog'), n?odLog:[], odCount, v=>`<span class="n">${v.toFixed(1)}s</span>`);
+  if(live) el(pfx+'OdLog').prepend(chip(`⚡ <span class="n">${(P.charge/OD_DRAIN).toFixed(1)}s</span> left`,'bchip key'));
+  el(pfx+'AnomLogLab').classList.toggle('hidden', anomLog.length===0);
+  el(pfx+'AnomLogSum').textContent = anomLog.length ? '×'+anomLog.length : '';
+  // Roman numerals because the Epoch label and the death cause already number the run this way.
+  fillChips(el(pfx+'AnomLog'), anomLog, anomLog.length, (v,i)=>`${ROMAN[i%12]} <span class="n">${Math.round(v)}</span>`);
+}
+
 // `mode`: falsy = a normal run · 'boss' = Boss Rush · 'lab' = Pattern Lab.
 // It was a boolean; a third testing mode is worth one string compare, and every existing caller
 // (including the debug seam's start() and start('boss')) keeps working unchanged.
@@ -3732,11 +3828,12 @@ function startRun(mode){
   motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   chargeReady=false;deathRevealT=0;deadCountT=0;
   odOn=false;                                      // never start a run already burning
+  odT=0;odLog.length=0;odCount=0;odTotal=0;        // and never carry the last run's receipt into this one
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
   cometT=rand(90,150);
   score=0;
   trauma=0;hitstop=0;flash=0;timeScale=1;tsHold=0;contactGhost=null;ghostT=0;
-  boss=null;bossFlash=0;lances.length=0;bossN=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
+  boss=null;bossFlash=0;lances.length=0;bossN=0;anomLog.length=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;
   el('menu').classList.add('hidden');
@@ -3760,16 +3857,7 @@ function pauseGame(){
   state='paused';
   el('pScore').textContent=score.toLocaleString();
   el('pTime').textContent=fmtTime(elapsed);
-  // Overdrive, if it is burning — one chip, showing what is left of it in seconds
-  const wrap=el('pBuild'); wrap.innerHTML='';
-  el('pBuildLab').classList.toggle('hidden',!odOn);
-  if(odOn){
-    const chip=document.createElement('span');
-    chip.className='bchip key';
-    chip.innerHTML=`⚡ Overdrive <span class="n">${(P.charge/OD_DRAIN).toFixed(1)}s</span>`;
-    chip.title='wide, whirling rings — draining the Capacitor';
-    wrap.appendChild(chip);
-  }
+  showRunLogs('p',odOn);   // `true` because a paused run can still have a ride under way
   el('pause').classList.remove('hidden');
   if(AC && AC.state==='running') AC.suspend(); // silence audio while paused
 }
@@ -3847,7 +3935,7 @@ function openCodex(){
     <p><b>No level-ups, no permanent upgrades</b> — this is vanilla survival. The Capacitor fills from pops, Motes and streak milestones, and buys the only other thing you can do: <b>Overdrive</b>. <b>Shift</b> or <b>right-click</b>.</p>
     <div class="cxa"><span class="st">⚡</span><span>Your rings swing <b>wide</b> and whirl <b>fast</b> — a sweeping perimeter that annihilates threats far off your skin. You move quicker too.</span></div>
     <div class="cxa"><span class="st">⚡</span><span>It <b>drains while it runs</b>. A full meter burns <span class="gold">6s</span>; press again to stop and <b>keep the rest</b>.</span></div>
-    <div class="cxa"><span class="st">⚡</span><span>You can light it from a <b>quarter meter</b> — you do not have to wait for full. Kills while it burns <b>refund no charge</b>.</span></div>
+    <div class="cxa"><span class="st">⚡</span><span>You can light it from a <b>quarter meter</b> — you do not have to wait for full. The <b class="gold">button</b> appears the moment you can. Kills while it burns <b>refund no charge</b>.</span></div>
     <div class="cxa"><span class="st">·</span><span>It does <b>not</b> touch an Anomaly. Nothing you press does — see below.</span></div></div>
   <div class="cxs"><h3>Streak</h3>
     <p>A <b>no-hit</b> kill count. Every rank grants a Capacitor chunk. Any real hit ends it — nothing blocks a hit.</p>
@@ -4127,7 +4215,9 @@ window.__orbital=window.__polaris=window.__flux={
     return {t:t||0, spin:tSpin.map(p=>rd(p.el)), hit:tHit.map(p=>rd(p.el)), lastImpactCycle:tBoom}; },
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
-      act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length, odOn}; },
+      act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
+      odOn, odCount, odTotal:+odTotal.toFixed(2), odT:+odT.toFixed(2)}; },
+  get odLog(){return odLog;}, get anomLog(){return anomLog;},
   flip, overdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
   spawnBoss, fireLanceVolley, get store(){return store;},
   spawnFormation, formWall, formNoose, formPulse, formSorter, formComet,
