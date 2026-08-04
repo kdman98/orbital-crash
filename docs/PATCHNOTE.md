@@ -14,6 +14,38 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-04
 
+### Overdrive is held, costs four times as much, and the Anomaly hits back `6eec910`
+Three difficulty changes at once, and the first is a change of verb.
+
+**Overdrive is held, not toggled.** Press and it ignites; let go and the remainder banks. The design
+consequence is that **every ignite path needs a matching release, and the releases live on the window
+rather than the canvas** — a right-drag released off-canvas fires no canvas `pointerup`, and a keyup
+swallowed by a window-switch fires nothing at all, either of which drains the meter while the game is
+not in front of you. Losing focus mid-hold ends the ride for the same reason. The HUD button moved to
+pointerdown/up, because a click only exists *after* the release. `contextmenu` no longer ignites:
+pointerdown already had, and on platforms that raise it on press the gesture fired twice.
+
+**Repriced 4×, twice in each direction.** The drain doubled and income halved, and the two compound: a
+meter is twice as slow to earn and buys half as long a ride. **Measured 1.67 meters and 5.0s of
+Overdrive per minute, against 3.34 and 20.0s.** Income halved through `P.chargeGain`, which is now
+plainly **the global Capacitor income rate** — the purge reward was the one income site that skipped
+it, and was added to it so a purge would not silently become worth double everything else the moment
+the rate moved. Law 16 is unaffected in structure: both caps still bind at the same combo, they just
+pay half. `OD_MIN` is unchanged, but its justification is not — the cheapest ride is now half as long,
+and still several times the ring's travel time, which is the property that mattered.
+
+**The Anomaly pool up a flat amount at every Epoch, which changed the curve as well as the level.** It
+used to triple from Epoch I to V and now less than doubles: **+100% at Epoch I against +43% at Epoch
+V**, so the early fights took nearly all of it, which is where the complaint was.
+
+**The buff could not be priced, and that is recorded rather than papered over.** The pilot purged 1 of
+5 before and 0 of 5 after — a floor effect in the pilot, not evidence about the change. The one figure
+that survived is cost per fight off `anomLog`: **78 → 94 HP median, +21%**. See *Open*; it is a lead,
+not a finding.
+
+*Knock-on for anyone reading older numbers:* the ring geometry did not move, but the seconds did, so
+the **2.78 revolutions** that used to cost half a gauge now cost a full one.
+
 ### The receipt lists every ride, and what each Anomaly cost `b4110ab`
 The run summary recorded score, cause, time and peak combo — **nothing about Overdrive**, which is one
 of the two verbs. It gains two chip rows, on both the pause and death panels: one per completed ride,

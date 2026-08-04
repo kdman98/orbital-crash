@@ -68,9 +68,11 @@ paragraph goes in MECHANICS and this line points at it.
   Dot. (`RING_GRIND_DMG`)
 - **Baited charge** — a Charger's committed dash driven through an Anomaly because you stood so its
   locked lane crossed it. (`CHARGE_DMG`)
-- **Overdrive** — the second verb: spend the Capacitor to burn a wider, faster ring shell. Drains
-  while it runs; press again to bank the remainder. (`overdrive()`, `odOn`, `OD_DRAIN`, `OD_MIN`)
-- **Burn** — the interval an Overdrive is running. **Ignite** starts one, **bank** ends one early.
+- **Overdrive** — the second verb: spend the Capacitor to burn a wider, faster ring shell. **Held, not
+  toggled** — it drains while you hold it and the remainder banks when you let go.
+  (`overdrive()`, `endOverdrive()`, `odOn`, `OD_DRAIN`, `OD_MIN`)
+- **Burn** — the interval an Overdrive is running. **Ignite** starts one, **release** ends one early.
+  Every ignite path has a matching release, and the releases sit on the window rather than the canvas.
 - **Ride** — one Overdrive from ignition to end, and the unit the run summary logs. A *burn* is the
   state you are in; a ride is the finished thing that gets counted. Every ride ends in one place.
   (`odT`, `odLog`, `endOverdrive`)
@@ -203,8 +205,11 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 ## Meters
 
 - **Capacitor** — the meter that pays for Overdrive. Spendable from `OD_MIN`, not only when full, and
-  it drains as you burn. Both combo-driven income terms cap at combo
+  it drains while you hold the burn. Both combo-driven income terms cap at combo
   ~90; see MECHANICS.md. (`P.charge`, `chgbar`, `CHG_KILL_CAP`)
+- **Charge gain** — the **global Capacitor income rate**, `P.chargeGain`. Every income site multiplies
+  by it, so it prices the whole economy in one place; a new source that skips it is worth double
+  everything else. Not an inert 1.
 - **Streak** — a no-hit combo; resets only on real damage. Named tiers each pay a Capacitor chunk.
   (`combo`, `streakTier`, `breakStreak`)
 - **Score** — **addition, with no multiplier anywhere.** A kill, a Mote and a graze each pay a flat

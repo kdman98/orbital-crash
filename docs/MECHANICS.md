@@ -255,7 +255,12 @@ invisible because it was buried under the four other cues a hit used to fire.
 
 ## The two verbs
 
-The verb set is exactly two: **reverse**, and **reverse while loaded**. A third input gated behind the
+The verb set is exactly two: **the flip**, and **Overdrive**. The flip carries two states — a plain
+reverse, and a reverse made while loaded — which is one verb with a condition on it, not two inputs.
+Now that Overdrive is held rather than toggled, both verbs are things you *do with a button held down*,
+which is the clearest the pairing has ever been.
+
+**There is no third input, and the rejected one is worth naming.** A separate action gated behind the
 flip cooldown cannot be reachable as a skill — a parry window measured a flat 4 frames, shorter than
 human reaction time and 4.25× shorter than the cooldown gating it.
 
@@ -299,17 +304,34 @@ boss's colour **straight away from the core**, along the radius it already sat o
 Spend the **Capacitor** to burn a wider, faster ring shell. It is the second verb, and the only thing
 the meter buys.
 
-**It is a throttle, not a button.** Ignite from `OD_MIN` upward — you do not have to be full — and it
-**drains while it runs** (`OD_DRAIN`), so a full meter buys a fixed number of seconds and a quarter
-meter buys a quarter of them. Press again to **bank the remainder**. That is the whole decision: spend
-now at the pressure you can see, or hold for the pressure you expect. A spend that must be full and
-must be total is a button; a spend you can meter is a choice.
+**It is a throttle, not a button, and it is held rather than toggled.** Ignite from `OD_MIN` upward —
+you do not have to be full — and it **drains while you hold it** (`OD_DRAIN`), so a full meter buys a
+fixed number of seconds and a quarter meter buys a quarter of them. **Let go and the remainder banks.**
+That is the whole decision: spend now at the pressure you can see, or keep it for the pressure you
+expect. A spend that must be full and must be total is a button; a spend you can meter is a choice, and
+holding puts the meter in your hand for exactly as long as you are willing to pay for it.
+
+**Every ignite path needs a matching release, and the releases live on the *window*.** A hold is only
+as good as the event that ends it, and the two ways an end goes missing are both ordinary: a right-drag
+released off-canvas fires no canvas `pointerup`, and a keyup swallowed by a window-switch fires nothing
+at all. Either one drains the meter while the game is not in front of you. Losing focus mid-hold ends
+the ride for the same reason. `endOverdrive()` being a no-op when nothing is burning is what lets every
+release path fire unconditionally.
+
+**Repriced 4× — twice in each direction, compounding.** The drain doubled (`OD_DRAIN`) *and* income
+halved (`P.chargeGain`), so a meter is twice as slow to earn and buys half as long a ride. Measured:
+**1.67 meters and 5.0s of Overdrive per minute, against 3.34 and 20.0s** before. It is now a resource
+you spend on a moment rather than a mode you live in.
 
 **What it does is reach, and speed.** `P.eddy` moves the ring orbit outward and spins it harder,
 `P.ringMul` raises capacity, `P.fieldR` widens the catch, `P.moveMult` speeds the star. Measured, the
 shell settles at **214px** against a base 114px and gets most of the way there inside a fifth of a
 second — it arrives as a snap, not a drift — and turns at **5.82 rad/s against a base 2.52**, one
-revolution every **1.08s**. Half a meter buys **2.78 revolutions**.
+revolution every **1.08s**. A **full** meter buys **2.78 revolutions**.
+
+⚠️ *That used to read "half a meter", and the geometry is not what changed* — the shell and the spin are
+untouched. The drain doubled, so a meter buys half the seconds it did and the same 2.78 revolutions now
+cost the whole bar. Any older figure quoted per *half* gauge is a figure per *full* gauge today.
 
 **Three constants own that, and they only work together.** The eddy orbit, the eddy spin, and the
 ringed-matter speed ceiling `RING_CAP`. Widening the shell and spinning it faster *fight each other* —
@@ -565,6 +587,16 @@ player, and the one that used to exist here handed out the Epoch advance for fre
 losing the run, which is the correct failure mode for a boss; it is never being stuck in one.** See
 *Ways in* for the measurement that keeps it true now that the Capacitor buys no boss damage.
 
+**The pool is therefore the whole length of the fight**, which is why it is priced in **connecting
+bodies** against `VOLLEY_DMG` and never in raw HP, and why the baited charge is repriced whenever it
+moves. Padding it makes the third answer a chore rather than a question.
+
+*It was raised by a flat amount at every Epoch, and that changed the curve as well as the level.* The
+pool used to **triple** from Epoch I to V and now less than doubles — worth **+100% at Epoch I against
++43% at Epoch V**, so the early Anomalies took nearly all of it, which is where the complaint was. The
+Anomaly row of the run summary is the readout for whether it landed: it prices each fight in the HP
+that fight actually cost.
+
 **Three kinds, one verb each** — volleys · chase · ground denial:
 
 | | |
@@ -675,6 +707,11 @@ the meter, which makes it the fallback when you have been stripped of everything
 *No softlock:* the Volley closes all three kinds unaided — measured 53.1s Emitter, 39.8s Sentinel,
 33.4s Pulsar. Grind alone takes the Sentinel and the Pulsar but **not** the Emitter, which is the kind
 that hovers and shoots you point-blank; holding an orbit against it is the thing that does not work.
+
+⚠️ *Those four results predate the pool buff and none has been re-run against it.* The pool doubled at
+Epoch I, so the three times are floors rather than estimates, and **whether grind-alone still closes the
+Sentinel and the Pulsar is now an open question, not a recorded fact.** No-softlock is the safety
+property of this whole section; treat it as unverified at current numbers until someone re-runs it.
 
 **Purge** — destroying the boss; the word means only this. Pays score scaled by Epoch, an Integrity heal,
 and a Capacitor chunk.
@@ -787,10 +824,18 @@ including the ones that move standing population the most.
   Chimes at `OD_MIN`, the point it becomes spendable, rather than at full. Kills *during* a burn pay
   nothing — you cannot refill while spending.
 
+  **`P.chargeGain` is the global income rate**, not an inert 1. Every income site multiplies by it, so
+  it is the one place the whole economy is priced, and adding a source without it silently makes that
+  source worth double everything else — which is exactly what had happened to the purge reward, the one
+  site that skipped it. Halving this halves income everywhere at once; it is one of the two levers that
+  repriced Overdrive 4× (see *Overdrive*).
+
   **The HUD is the only thing that shows you it is spendable** — there is no world text for
-  availability any more (law 9). The bar shines when you can ignite; the button appears when you can
-  ignite *or* are already burning, because the button is also how you bank. Both read the same
-  `P.charge>=OD_MIN` test in `updateHUD`, so the bar and the chime cannot disagree.
+  availability any more (law 9). **The bar is the availability channel**: `#chgbar` shines on exactly
+  the `P.charge>=OD_MIN` test, so the bar and the chime cannot disagree. **The button is not** — it
+  shows on *armed or burning*, so it does not vanish from under your finger part-way through a hold.
+  The two deliberately disagree in the tail of a ride below the floor, and the disagreement is the
+  point: the bar means *you can ignite*, the button means *the thing you are holding is still here*.
 - **Streak** — a no-hit combo, resets only on real damage (shield blocks do not break it). Named tiers,
   each paying a Capacitor chunk. Breaking a streak past the first tier **bursts** it into Capacitor
   instead of vanishing.
@@ -848,17 +893,19 @@ ride, one per Anomaly fight**.
 different run from two full burns, and the two sum to the same number — a total reports them as
 identical. The row shows *shape*: how the meter was spent, in order.
 
-**The ride row.** One chip per completed Overdrive, in run order, each carrying its own length. A
-double-tap is not a ride and is not logged. On pause the ride still under way is prepended as its own
+**The ride row.** One chip per completed Overdrive, in run order, each carrying its own length. A tap
+too brief to be a ride is not logged. On pause the ride still under way is prepended as its own
 chip showing the seconds left in it, because a paused run can still be burning. On death nothing needs
 prepending: dying ends the ride *through the normal exit* before the receipt is written, which is
 precisely why the ride you lost during appears in the log at all.
 
-**`endOverdrive()` is the one place a ride ends.** Three things stop a burn — it drains out, you press
-again to bank, or you die mid-ride — and the third is the one that bit. `die()` used to clear the flag
-directly, so the ride a player was actually in when they lost silently never reached the log. Any
-future stop path must come through the same function, and the **Redline** grant lives there for the
-same reason rather than being copied to each exit.
+**`endOverdrive()` is the one place a ride ends.** Four things stop a burn — it drains out, you let go
+and bank the remainder, the window loses focus mid-hold, or you die mid-ride — and the last is the one
+that bit. `die()` used to clear the flag directly, so the ride a player was actually in when they lost
+silently never reached the log. Any future stop path must come through the same function, and the
+**Redline** grant lives there for the same reason rather than being copied to each exit. It is a no-op
+when nothing is burning **by design**, because most release paths fire whether or not a ride was under
+way — that is what makes it safe to hang every one of them on the window.
 
 **A ride's length is accumulated, never derived** from the charge it started with minus the charge it
 ended with. Streak milestones and the purge reward both pay *through* a burn, so charge does not fall
@@ -1074,20 +1121,35 @@ Drive `overdrive()` by hand through the seam if you are testing anything downstr
 
 Questions the game has not answered. These are live; everything else in this file is settled.
 
-**🔴 `RING_GRIND_DMG` is stranded above its pool.** It was raised on the argument that boss HP had gained a
-×1.5 multiplier. That multiplier is gone and Epoch I is now *below* the HP at which the grind previously
-had to be halved. An immortal bot orbiting close, never firing a volley and never Collapsing, solo-killed
-the Epoch I Anomaly in 5 of 9 runs. **Both caveats matter, because they decide whether to act:** the bot is
-immortal, and a real player holding that orbit pays a real HP cost — so the strategy *exists*, it is not
+**🟡 `RING_GRIND_DMG` was stranded above its pool, and then the pool moved.** This item used to open
+*"Epoch I is now below the HP at which the grind previously had to be halved"* — and the flat pool buff
+took Epoch I to double that line. **The trigger condition is gone. The defect it was a symptom of is
+not**, and the reason is written two paragraphs down: HP is a scalar on every channel at once, so
+raising it slows the exploit and the intended loop by the same factor and **moves no ratio**. The doc
+argued that before the pool moved for unrelated reasons; the argument is now load-bearing rather than
+hypothetical, and it is still *argued*, not *tested*.
+
+*What is superseded:* an immortal bot orbiting close, never firing a volley and never spending the
+meter, solo-killed the Epoch I Anomaly in **5 of 9 runs at the old pool**. Do not quote that number
+against the current one. Both caveats on it still stand and still decide whether to act — the bot is
+immortal, and a real player holding that orbit pays a real HP cost, so the strategy *exists* and is not
 free.
+
+*What the buff could not tell us.* The pilot purged 1 of 5 at the old pool and 0 of 5 at the new, which
+is a **floor effect in the pilot, not evidence about the change** — a bot that could barely close the
+fight before cannot report on a fight that got harder. The one figure that survived is cost per fight
+off `anomLog`: **78 → 94 HP median, +21%**. Recorded because it is the honest result, and recorded here
+rather than in the settled sections because one median from a bot that cannot finish the fight is a
+lead, not a finding.
 
 **The direction is to make the orbit expensive, not to halve `RING_GRIND_DMG`.** Halving it taxes every
 player who earned the fallback in order to stop a bot that does not feel the cost — and the grind is the
 only Anomaly answer needing neither a flip nor a meter, so it is what a stripped player has left.
 **Raising boss HP does not fix it either:** HP is a scalar on every channel at once, so it slows the
-exploit and the intended loop by the same factor and moves no ratio. It would also have to preserve
-divisibility by `VOLLEY_DMG` and the `CHARGE_DMG` = 4 × `VOLLEY_DMG` pin, which is why the pool was cut
-in the first place.
+exploit and the intended loop by the same factor and moves no ratio. **The pool has since been raised
+anyway**, for difficulty rather than for this, and nothing above changes as a result — which is the
+prediction working, not a coincidence. Any further move still has to carry the `CHARGE_DMG` =
+4 × `VOLLEY_DMG` pin with it, or the bait silently stops being worth the risk that earns it.
 
 **Aim at *not flipping*, not at closeness.** Closing is measured as intended and rewarded — orbiting at
 270px gives 8 kills / 7 deaths against 11 / 4 at 150px — so a generic point-blank buff punishes the
@@ -1100,10 +1162,11 @@ exploit and Overdrive's payoff scale with that hoard. **The game rewards hoard-a
 independent systems.** Whatever makes an indefinitely-held ring expensive fixes both; a damage number
 on either one fixes neither.
 
-*This question now has a shipped readout.* `anomLog` records, per fight, what the whole encounter cost
-in HP, and the debug seam exposes it alongside `odLog` — so "did the buff make the Anomaly cost more?"
-is answerable from a run rather than argued from a bot. It is a player-facing display first; treat it
-as evidence, not as a harness, and hold it to the same replication bar as everything else here.
+*This question has a shipped readout, and it has already earned its keep.* `anomLog` records what each
+whole encounter cost in HP and the debug seam exposes it alongside `odLog`, which is where the 78 → 94
+figure above came from — the only number that survived a change the pilot could not otherwise price. It
+is a player-facing display first: treat it as evidence, not as a harness, and hold it to the same
+replication bar as everything else here.
 
 **Overdrive pays roughly twice as well if you hoard, and the flip dumps the hoard.** It multiplies rings
 held — ~2.3–3.0 while flipping against ~6.9–9.1 while not — so the second verb rewards not using the
@@ -1118,6 +1181,13 @@ measured **+0.3%** — Overdrive was worth nothing at all unless you hoarded, wh
 the effect either way it is a legitimate risk/reward axis. Nothing here argues Overdrive is bad; it
 argues that its best use and the game's core use pull against each other, which is worth watching rather
 than correcting.
+
+⚠️ *Every figure in this item predates the 4× repricing, and the repricing cuts at the tension directly.*
+A ride is now half as long and costs twice as much to earn, so there is far less run spent inside one —
+and hoarding rings to make a burn pay is worth less when there are a quarter as many burn-seconds in a
+run to spend them on. The crowd effects were measured over rides twice this length; the *direction* is
+the durable part, the magnitudes are not. **The tension may have narrowed on its own. Nobody has
+looked.** Re-run before anyone acts on this item.
 
 **Nothing defends you any more, and the hole is measured.** The powerup roster was deleted rather than
 fixed, which was right — only Aegis was load-bearing (−32.8% survival when suppressed, Welch t=4.06 at
