@@ -65,7 +65,11 @@
       const py = 400 + 240 * Math.sin(t * 1.37 + 1.1);
       cv.dispatchEvent(new PointerEvent('pointermove', { clientX: px, clientY: py, bubbles: true }));
       if (i % 47 === 0) g.flip();
-      if (i % 311 === 0 && i) g.overdrive();   // was g.collapse() — the second verb is Overdrive now
+      // Overdrive is HELD now, not toggled, so the pilot has to hold it: press at 311, release 90 frames
+      // later. Calling overdrive() alone would ignite and never let go, burning every meter to zero and
+      // making the fingerprint a measurement of the drain rather than of the sim.
+      if (i % 311 === 0 && i) g.overdrive();
+      if (i % 311 === 90) g.endOverdrive();
       g.tick(1);
       if ((i + 1) % 120 === 0) fps.push(window.__fp());
       if (g.P && g.P.hp <= 0) { fps.push('DEAD@' + (i + 1)); break; }

@@ -243,12 +243,12 @@
   <div id="bottom">
     <div class="bar" id="hpbar"><div class="barlabel">Core Integrity</div><i></i></div>
     <div class="bar" id="chgbar"><div class="barlabel">Capacitor</div><i></i></div>
-    <button id="collapseBtn">⚡ Overdrive <span id="cbKey">Shift</span></button>
+    <button id="collapseBtn">⚡ Overdrive <span id="cbKey">Hold Shift</span></button>
   </div>
   <div id="controls">
     <div class="cr"><kbd>Mouse</kbd> Steer star</div>
     <div class="cr"><kbd>Space</kbd><kbd>Click</kbd> Reverse poles</div>
-    <div class="cr"><kbd>Shift</kbd><kbd>R-Click</kbd> Overdrive</div>
+    <div class="cr"><kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive</div>
     <div class="cr"><kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute</div>
     <!-- Mode keys (Boss Rush / Pattern Lab). Empty and hidden on a normal run — these hints used to
          live in the Epoch slot at the top of the screen, which is a NAME slot, not a keymap. -->
@@ -709,14 +709,17 @@ const RING_CAP=5.0;
 // =====================================================================
 let odOn=false;              // is Overdrive burning right now
 let odFrom=0;                // charge at ignition — only so 'Redline' can tell a full burn from a sip
-// A FULL METER BUYS EXACTLY 6.0s — the duration the Overdrive orb used to hand out for free. The whole
-// change in one number: the effect is unchanged, you just earn it now.
-const OD_DRAIN=1/6;          // charge per second while burning
-// ARMING FLOOR, and the reason this is a drain and not a button. At 0.25 the cheapest ride is 1.5s, which
-// is comfortably longer than the ~0.15s a ring needs to travel 114 -> 206.7px, so even a partial spend
-// buys a real shell rather than a wobble. It also means a player who never fills the meter still gets to
-// use the verb — the old Collapse needed a FULL bar, which is why a pilot taking hits fired it 0 times in
-// 8 of 10 runs while a clean one fired every few seconds.
+// A FULL METER BUYS EXACTLY 3.0s. It bought 6.0s — the Overdrive orb's old free duration — until the
+// meter was repriced: drain doubled here and income halved at P.chargeGain, which COMPOUNDS to roughly
+// 4x less Overdrive per minute of play, not 2x. Both halves are deliberate and they are the two numbers
+// to move if that is too steep; move them together or the ratio that makes a ride feel worth saving for
+// goes with them.
+const OD_DRAIN=1/3;          // charge per second while burning
+// ARMING FLOOR, and the reason this is a drain and not a button. At 0.25 the cheapest ride is 0.75s,
+// still five times the ~0.15s a ring needs to travel 114 -> 206.7px, so even the smallest spend buys a
+// real shell rather than a wobble. It also means a player who never fills the meter still gets to use the
+// verb — the old Collapse needed a FULL bar, which is why a pilot taking hits fired it 0 times in 8 of 10
+// runs while a clean one fired every few seconds.
 const OD_MIN=0.25;
 const OD_COL='#ffe36b';      // the Overdrive orb's gold, kept so the cue vocabulary did not change
 // THE RIDE LOG. The run summary records the rides INDIVIDUALLY ("3.0s 1.5s 2.0s 0.7s"), not a total,
@@ -745,12 +748,18 @@ function stepOverdrive(dt){
   P.fieldR    = odOn ? BASE_FIELDR*1.28 : BASE_FIELDR;
   P.ringMul   = odOn ? 1.8 : 1;
 }
-// Press to ignite, press again to BANK THE REMAINDER. Igniting is not damage, so it gets no flash, no
-// shake and no hitstop (see IFRAME / hurtText) — a ring, a burst and the rising harp, which is the voice
-// the orb pickup used to own.
+// PRESS AND HOLD. This was a toggle; it is a dead-man's switch now, so the meter only ever drains while
+// a finger is actually down and letting go banks the rest. The reason is that a toggle made forgetting
+// free — you could light it, get absorbed in the field, and discover an empty meter with no moment where
+// you decided to spend it. Holding makes every tenth of a second a choice you are currently making.
+//   ⚠️ Every ignite path needs a matching release path, and the releases live on WINDOW, not the canvas:
+// a mouse released off-canvas or a keyup swallowed by Cmd+Tab must still end the ride, or the meter
+// drains while the game is not even in front of you. See the input block.
+//   Igniting is not damage, so it gets no flash, no shake and no hitstop (see IFRAME / hurtText) — a
+// ring, a burst and the rising harp, which is the voice the orb pickup used to own.
 function overdrive(){
   if(state!=='play') return;
-  if(odOn){ endOverdrive(); return; }
+  if(odOn) return;                      // already burning: a repeat press is not a second ignition
   if(P.charge<OD_MIN) return;
   odOn=true; odFrom=P.charge; odT=0;
   spawnRing(P.x,P.y,OD_COL,BASE_FIELDR*1.28); spawnRing(P.x,P.y,'#fff',P.r+18);
@@ -758,10 +767,11 @@ function overdrive(){
   slowmo(0.5,0.14);
   if(typeof sfx!=='undefined') sfx.harp(5);
 }
-// THE ONE PLACE A RIDE ENDS. Three things stop a burn — it drains to zero, you press again to bank the
-// remainder, or you die mid-ride — and the third is the one that bites: die() cleared `odOn` directly, so
-// the ride a player was actually in when they lost silently never reached the log. Any future stop path
-// (a pause that refunds, a state change) must come through here too.
+// THE ONE PLACE A RIDE ENDS. Four things stop a burn — it drains to zero, you let go and bank the
+// remainder, the window loses focus mid-hold, or you die mid-ride — and the last is the one that bites:
+// die() cleared `odOn` directly, so the ride a player was actually in when they lost silently never
+// reached the log. Any future stop path must come through here too. Calling it when nothing is burning
+// is a no-op by design, because most of the release paths fire whether or not a ride was under way.
 function endOverdrive(){
   if(!odOn) return;
   odOn=false;
@@ -804,7 +814,12 @@ function freshRun(){
     // bare 190 rather than BASE_FIELDR only because this literal predates the constant — they must agree.
     fieldR:190, fieldK:3.2, ringMul:1,
     seekMult:1,
-    moveMult:1, chargeGain:1, scoreMult:1,
+    // ⚠️ chargeGain IS THE GLOBAL CAPACITOR INCOME RATE, and it is 0.5 — not 1. Every income site
+    // multiplies by it (kill, Mote, streak trickle, streak milestone, streak burst, Gilded Bounty, the
+    // Anomaly purge), so this one number halves the fill without touching seven scattered literals or
+    // the caps that bind them to each other. Paired with OD_DRAIN's doubling; see the note there for why
+    // the two compound. Restore to 1 to undo the income half alone.
+    moveMult:1, chargeGain:0.5, scoreMult:1,
     charge:0, iframe:0, flipCd:0, pulseCd:0, hurtT:99, regen:2.6,
     armor:1,
     holdT:0, holdMax:1.5, conduitAmp:0.5, // polarity mastery
@@ -1433,12 +1448,17 @@ function testPick(i){                          // 1-3 → jump to a specific kin
 function spawnBoss(forceVariant){
   const col=Math.random()<0.5?'red':'cyan';
   const variant = forceVariant || pickAnomalyVariant();
-  // 15 / 20 / 25 / 30 / 35 across Epochs, +5 per Epoch. THIS POOL AND THE EROSION PRICES ARE ONE NUMBER
-  // IN TWO PLACES — price it in CONNECTING BODIES against VOLLEY_DMG (8 at Epoch I, 13 at Epoch III),
+  // 30 / 35 / 40 / 45 / 50 across Epochs, +5 per Epoch. THIS POOL AND THE EROSION PRICES ARE ONE NUMBER
+  // IN TWO PLACES — price it in CONNECTING BODIES against VOLLEY_DMG (15 at Epoch I, 20 at Epoch III),
   // never in raw HP, and reprice the charge with it. The Anomaly has no clock and no second win
   // condition, so the pool is the entire length of the fight: padding it makes the third answer a chore
   // rather than a question.
-  let hp=10+act*5;
+  //   The flat +15 was a difficulty call, not a rebalance: the fight measured much too weak. Note the
+  // curve it changes — the pool used to TRIPLE from Epoch I to V (15->35) and now less than doubles
+  // (30->50), so the buff is worth +100% at Epoch I and +43% at Epoch V. Early Anomalies took the brunt
+  // of it, which is where the complaint was. anomLog on the run summary is the readout for whether this
+  // landed: it prices each fight in HP the fight actually cost you.
+  let hp=25+act*5;
   if(variant==='pulsar') hp=Math.round(hp*0.75); // the kind that moves you rather than out-damaging you — footwork is its answer, so it should not also be the longest fight
   bossN++;
   anomLog.push(0);   // opens this fight's tab — see the two `boss &&` accumulators in the damage paths
@@ -1886,7 +1906,7 @@ function killBoss(b){
   spawnRing(b.x,b.y,'#fff',Math.max(W,H)*0.5);
   const rew=Math.round(200*act*(P?P.scoreMult:1)); score+=rew;
   pushText(b.x,b.y-32,'ANOMALY PURGED  +'+rew, COL.gold, 1.7, 22);
-  if(P){ P.hp=Math.min(P.maxHp,P.hp+30); P.charge=Math.min(1,P.charge+0.4); }
+  if(P){ P.hp=Math.min(P.maxHp,P.hp+30); P.charge=Math.min(1,P.charge+0.4*P.chargeGain); }  // the one income site that used to skip chargeGain, which made the purge 2x the value of everything else once income halved
   // PURGE THUNDERCLAP: the game's biggest kill gets its own voice, not a reused collapse
   trauma=1; flash=0.8; flashCol='#fff'; hitstop=0.28;
   slowmo(0.35,0.7);
@@ -3877,7 +3897,14 @@ el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anom
 el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-5 to fire a shape
 el('againBtn').onclick=()=>{ startRun(lastWasTest); }; // Reforge = instant retry, in the same mode you were in
 el('deadMenuBtn').onclick=()=>{ toMenu(); };
-el('collapseBtn').onclick=e=>{ e.preventDefault(); overdrive(); };
+// The touch control is HELD like every other Overdrive input, so it is pointerdown/up rather than click —
+// a click only exists after the release, which is the moment the ride would have to end.
+// `pointerleave` covers a finger that slides off the button before lifting.
+(()=>{ const cb=el('collapseBtn');
+  cb.addEventListener('pointerdown',e=>{ e.preventDefault(); overdrive(); });
+  cb.addEventListener('pointerup',  e=>{ e.preventDefault(); endOverdrive(); });
+  cb.addEventListener('pointerleave',()=>endOverdrive());
+})();
 el('pauseBtn').onclick=togglePause;
 el('resumeBtn').onclick=resumeGame;
 el('quitBtn').onclick=()=>{ el('pause').classList.add('hidden'); if(AC&&AC.state==='suspended')AC.resume(); toMenu(); };
@@ -3935,9 +3962,9 @@ function openCodex(){
     <div class="cxa"><span class="st">◆</span><span><b>Gilded Bounty</b> — every ~15s a gold-ringed Dot arrives. Pop it within 6s for <span class="gold">250×epoch</span>.</span></div>
     <div class="cxa"><span class="st">·</span><span>Grazes pay a score crumb only. Capacitor income is things you <i>chose</i> to do.</span></div></div>
   <div class="cxs"><h3>Capacitor &amp; Overdrive</h3>
-    <p><b>No level-ups, no permanent upgrades</b> — this is vanilla survival. The Capacitor fills from pops, Motes and streak milestones, and buys the only other thing you can do: <b>Overdrive</b>. <b>Shift</b> or <b>right-click</b>.</p>
+    <p><b>No level-ups, no permanent upgrades</b> — this is vanilla survival. The Capacitor fills from pops, Motes and streak milestones, and buys the only other thing you can do: <b>Overdrive</b>. Hold <b>Shift</b> or <b>right-click</b>.</p>
     <div class="cxa"><span class="st">⚡</span><span>Your rings swing <b>wide</b> and whirl <b>fast</b> — a sweeping perimeter that annihilates threats far off your skin. You move quicker too.</span></div>
-    <div class="cxa"><span class="st">⚡</span><span>It <b>drains while it runs</b>. A full meter burns <span class="gold">6s</span>; press again to stop and <b>keep the rest</b>.</span></div>
+    <div class="cxa"><span class="st">⚡</span><span><b>Hold</b> it. It <b>drains while you hold</b> — a full meter burns <span class="gold">3s</span> — and letting go <b>keeps the rest</b>.</span></div>
     <div class="cxa"><span class="st">⚡</span><span>You can light it from a <b>quarter meter</b> — you do not have to wait for full. The <b class="gold">button</b> appears the moment you can. Kills while it burns <b>refund no charge</b>.</span></div>
     <div class="cxa"><span class="st">·</span><span>It does <b>not</b> touch an Anomaly. Nothing you press does — see below.</span></div></div>
   <div class="cxs"><h3>Streak</h3>
@@ -4005,6 +4032,7 @@ const TAP_TIME=300;    // ms; hold longer than this and you meant to steer, even
 // off the top of the screen still reaches the top edge.
 const TOUCH_LIFT=55;   // CSS px
 let touchId=null, tapX=0, tapY=0, tapT=0, tapMoved=false;
+let odTouchId=null;   // the finger currently HOLDING Overdrive, so its release can be told from any other
 const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
 
 canvas.addEventListener('pointermove',e=>{
@@ -4017,23 +4045,32 @@ canvas.addEventListener('pointerdown',e=>{
   audioInit();
   if(isTouch(e)){
     if(touchId===null){ touchId=e.pointerId; tapX=e.clientX; tapY=e.clientY; tapT=performance.now(); tapMoved=false; }
-    else if(state==='play'){ overdrive(); }               // a second finger while steering: Overdrive
+    else if(state==='play'){ odTouchId=e.pointerId; overdrive(); }  // a second finger while steering: HOLD it for Overdrive
     if(state==='ready') skipReady();
     return;                                               // touch decides on RELEASE, not on press
   }
   setPointer(e.clientX,e.clientY);
   if(state==='ready'){ skipReady(); return; }
-  if(e.button===2){ overdrive(); return; }
+  if(e.button===2){ overdrive(); return; }                // held — released by the window handler below
   if(state==='play') flip(); // a pure tap — reverse poles
 });
 function endTouch(e){
+  if(e.pointerId===odTouchId){ odTouchId=null; endOverdrive(); return; }  // the Overdrive finger lifted
   if(e.pointerId!==touchId) return;
   touchId=null;
   if(!tapMoved && performance.now()-tapT<TAP_TIME && state==='play') flip();
 }
 canvas.addEventListener('pointerup',endTouch);
 canvas.addEventListener('pointercancel',endTouch);
-canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); if(state==='play') overdrive(); });
+// ⚠️ RELEASES LIVE ON WINDOW. A right-button drag that ends with the cursor over the HUD, off the canvas,
+// or outside the window fires no canvas pointerup at all, and under a hold-to-burn verb that means the
+// meter keeps draining with nothing holding it. The canvas handler above still owns touch, which cannot
+// leave the element it started on.
+window.addEventListener('pointerup',e=>{ if(!isTouch(e) && e.button===2) endOverdrive(); });
+window.addEventListener('pointercancel',()=>endOverdrive());
+// Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
+// press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
+canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); });
 window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   keys[k]=true;
@@ -4044,7 +4081,7 @@ window.addEventListener('keydown',e=>{
     else if(state==='ready') skipReady();
     else if(state==='menu' && !infoOpen) startRun();
   }
-  if(k==='shift'){ e.preventDefault(); if(!e.repeat) overdrive(); } // ignore auto-repeat — it would toggle every frame
+  if(k==='shift'){ e.preventDefault(); if(!e.repeat) overdrive(); } // auto-repeat is not a second press
   if(k==='p'||k==='escape'){ e.preventDefault(); togglePause(); }
   if(k==='m'){ toggleMute(); }
   // range derives from TEST_ORDER so it can never drift from the '1-N SWITCH KIND' label again (it accepted
@@ -4052,8 +4089,10 @@ window.addEventListener('keydown',e=>{
   if(testMode && state==='play' && k>='1' && k<='9' && parseInt(k,10)<=TEST_ORDER.length){ e.preventDefault(); testPick(parseInt(k,10)-1); }
   if(labMode  && state==='play' && k>='1' && k<='9' && parseInt(k,10)<=LAB_SHAPES.length){ e.preventDefault(); labFire(parseInt(k,10)-1); }
 });
-window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
-window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; }); // a keyup swallowed by Cmd+Tab must not leave the core drifting
+window.addEventListener('keyup',e=>{ const k=e.key.toLowerCase(); keys[k]=false; if(k==='shift') endOverdrive(); });
+// A keyup swallowed by Cmd+Tab must not leave the core drifting — and now must not leave the meter
+// draining either. Same failure, one more consequence.
+window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; endOverdrive(); });
 
 // mute
 function toggleMute(){ store.mute=!store.mute; save(); el('muteBtn').textContent=store.mute?'♪̸':'♪'; if(master)master.gain.value=store.mute?0:0.9; }
@@ -4221,7 +4260,9 @@ window.__orbital=window.__polaris=window.__flux={
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
       odOn, odCount, odTotal:+odTotal.toFixed(2), odT:+odT.toFixed(2)}; },
   get odLog(){return odLog;}, get anomLog(){return anomLog;},
-  flip, overdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
+  // ⚠️ overdrive() is PRESS, not toggle. A harness that calls it twice ignites once and never releases;
+  // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
+  flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
   spawnBoss, fireLanceVolley, get store(){return store;},
   spawnFormation, formWall, formNoose, formPulse, formSorter, formComet,
   killBoss:()=>{ if(boss) killBoss(boss); },
