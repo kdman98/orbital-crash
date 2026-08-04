@@ -510,6 +510,23 @@ const bankMote=()=>{ motesBank++; recalcMult(); };
 let moteN=0, moteT=0;                  // pickup ratchet ladder
 let score=0, mult=1;                   // no XP / levels — survival + annihilations + Mote mult ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
+// THE CONTACT GHOST — one frozen frame of the body that just hit you, drawn where it actually touched.
+// Player report: "i still feel like i'm colliding a very little earlier."
+// It was real, and it was never the hitbox. `processKills()` and the dead sweep both run INSIDE step(),
+// and render() runs after — so the body that hits you is spliced out of `enemies` before the frame is
+// drawn. **You never see the touch.** The last frame it appears in is one step short of contact: measured
+// over 127 hits, a median hull-to-hull gap of **2.44px** still showing when it vanished, which is exactly
+// the 2-3px of "too early" that got reported.
+// Note what this rules out: shrinking the hurt radius does NOT fix it. A smaller radius moves where
+// contact happens but the body is still culled one frame before it, so the same gap survives — which is
+// why a 2.5px mercy measured as no change at all, on top of costing half the formation margin.
+// So this is a RENDER fix, and it changes nothing in the sim: snapshot the body, draw it one more time
+// at its true overlapping position, then cut. A contact hit already sets `hitstop` 0.05, and hitstop
+// skips the step loop while render() keeps going, so the ghost is held frozen for ~3 frames rather than
+// flashing for one. GHOST_HOLD outlives the hitstop by a frame or two so `reduceMotion` — which pins
+// hitstop to 0 — still gets to see it.
+let contactGhost=null, ghostT=0;
+const GHOST_HOLD=0.07;
 let unstable=0; // collapse window
 let cwave=null, cwaveN=0; // collapse shockwave {x,y,r,id} — the id makes each wave hit a body at most once
 let resumeT=0; const READY_DUR=1.2; // brief breather after picking a perk
@@ -2252,7 +2269,13 @@ function stepPlayerContact(){
           if(P.hp<=0){ P.hp=0; die(); return true; }
         }
       }
-      if(e.type!=='boss') queueKill(e);      // boss is not consumed on contact
+      if(e.type!=='boss'){
+        // Snapshot BEFORE queueKill, while the body is still where it touched you and still un-flagged.
+        // Only reachable once a contact has actually resolved — same-colour matter `continue`s far above,
+        // and a fatal hit returns out at `die()` without being consumed, so it stays drawn on its own.
+        contactGhost={...e}; ghostT=GHOST_HOLD;
+        queueKill(e);                       // boss is not consumed on contact
+      }
       else if(e.hunt>0 || e.huntBreak>0){
         // A HUNT LANDS ONCE, THEN BREAKS OFF. This is the whole reason the Anomaly is allowed to reach
         // the core at all. Its touch is 30 and it is never consumed, so a boss that simply stopped on
@@ -3009,7 +3032,10 @@ function glowSprite(col){
   return GLOW[col]=cv;
 }
 function drawEnemies(){
-  for(const e of enemies){
+  // The contact ghost rides this same loop, so every species' art applies to it for free — and a plain
+  // snapshot is safe here precisely because this loop never writes to `e`. Drawn last so it sits on top
+  // of live matter; the star draws after all of this, so it stays on top of the ghost.
+  for(const e of (contactGhost ? [...enemies, contactGhost] : enemies)){
     if(e.type==='boss')continue;
     const c = COL[e.color];
     // glow — same extent as before, but ramped to zero so there is no boundary to aim at
@@ -3533,6 +3559,10 @@ function frameBody(now){
   let dt=(now-lastT)/1000; lastT=now;
   if(dt>0.25)dt=0.25;
   if(store.reduceMotion) hitstop=0; // no freeze-frames in comfort mode (they read as stutter)
+  // Ticks in REAL time, out here rather than in step(), because the ghost is a render concept and has to
+  // keep counting down through a hitstop that stops the sim dead. Outliving the hitstop by a frame or two
+  // is what lets comfort mode (hitstop pinned to 0 above) see it at all.
+  if(ghostT>0){ ghostT-=dt; if(ghostT<=0) contactGhost=null; }
   if(state==='play'){ // the Moment Engine only ticks while the sim consumes time — slow-mo holds survive overlays and pauses
     if(tsHold>0) tsHold-=dt;
     else if(timeScale<1) timeScale=Math.min(1, timeScale+dt*2.2);
@@ -3716,7 +3746,7 @@ function startRun(mode){
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
   cometT=rand(90,150);
   score=0;mult=1;
-  trauma=0;hitstop=0;flash=0;unstable=0;cwave=null;timeScale=1;tsHold=0;
+  trauma=0;hitstop=0;flash=0;unstable=0;cwave=null;timeScale=1;tsHold=0;contactGhost=null;ghostT=0;
   boss=null;bossFlash=0;lances.length=0;bossN=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;

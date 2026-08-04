@@ -7,6 +7,54 @@ balance attention. Vocabulary per [GLOSSARY.md](GLOSSARY.md).
 
 ## ✅ Shipped
 
+### You can finally see the thing that hit you (2026-08-03)
+Pilot: *"i still feel like i'm colliding a very little earlier. can we give a little mercy? about 2~3 px?"*
+It was real. It was never the hitbox.
+
+**First attempt: a 2.5px grace on the star's hurt radius. Built, measured, reverted.** The pilot's verdict
+was *"i dont feel any change"*, and the measurement says why — **the gap closes at a median 3.9 px/frame**
+at the moment of contact (p25 2.2, p75 5.5, over 100 hits), so 2.5px is **0.64 of one frame**. Below the
+resolution of the simulation. The lever also has a hard ceiling: `FORM_STEP` 44 keeps a formation's
+midpoint unwalkable only while `e.r + P.r − mercy > 22`, so **mercy < 4** — barely one frame, ever. It was
+costing the exact hull-touch parity and half the formation margin for nothing perceptible.
+
+**The real cause is the render order.** `processKills()` and the dead sweep both run *inside* `step()`;
+`render()` runs after. So the body that hits you is spliced out of `enemies` **before the frame is drawn**
+— you never see the touch. Measured over 127 hits: the last frame it appeared in still showed a median
+**2.44px** hull-to-hull gap. That is the reported 2–3px, almost exactly, and it explains why shrinking the
+hitbox did nothing: a smaller radius moves where contact happens, but the body is still culled one frame
+before it, so the same gap survives.
+
+**And it is not the glow either** — that was my hypothesis and the measurement killed it. Probed on an
+isolated Drifter: the hull is a **129-point luminance cliff** at exactly r=11 (184 → 55), while the glow
+outside it is only **27 above background** and is gone by 18.9px. The eye reads the hull. The glow also
+errs *wide*, so if it were being read it would make hits feel late, not early.
+
+**The fix is render-only: a contact ghost.** Snapshot the body just before `queueKill` — while it is still
+at the position it touched you and still un-flagged — and draw it once more through the same species path,
+then cut. It rides the existing `drawEnemies` loop, which is safe precisely because that loop never writes
+to `e`, so every species' art applies for free. Held `GHOST_HOLD` 0.07s, which outlives the 0.05s hitstop a
+contact already sets, so it reads as a frozen impact rather than a one-frame flash; it ticks in real time
+in `frameBody` rather than `step()`, because it has to keep counting down through a hitstop that stops the
+sim, and that is also what lets comfort mode — which pins hitstop to 0 — see it at all.
+
+**Measured.** Placed a Drifter at 23 (inside the 26 envelope), let contact fire, confirmed the body was
+consumed, then **cleared every remaining live body** so that anything still drawn could only be the ghost:
+
+| probe | control (no contact) | after contact |
+|---|---|---|
+| body fill, +16 | rgb 26,72,93 | **rgb 255,134,204** — red pinned |
+| body core, +23 | rgb 39,133,165 | rgb 255,220,228 |
+| mirror side, −16 | rgb 105,204,236 | rgb 62,65,92 — stays dark |
+
+Plus 5,400 frames of live play across 75 hits: no console errors, no leaked bodies (`enemies` peaked at a
+normal 37), `freshRun` clears the slot. Nothing in the sim changed — difficulty is identical, only what
+you see.
+
+*(Test note worth keeping: the first version of this measurement ran the contact case before the control,
+and the ghost survived into the control because `ghostT` ticks in `frameBody`, which never runs inside a
+synchronous probe script. Order the control first.)*
+
 ### Every hull tells the truth, and the Neutral pop stops being a number (2026-08-03)
 Two follow-ups from the comment pass. Pilot: *"is this ok?"* on the missile-life rule, *"should we manage this with HP? not system adjustment?"* on the Neutral, and *"all hitbox should have same size with visual, i think?"*
 
