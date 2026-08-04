@@ -71,7 +71,11 @@ paragraph goes in MECHANICS and this line points at it.
 - **Overdrive** — the second verb: spend the Capacitor to burn a wider, faster ring shell. Drains
   while it runs; press again to bank the remainder. (`overdrive()`, `odOn`, `OD_DRAIN`, `OD_MIN`)
 - **Burn** — the interval an Overdrive is running. **Ignite** starts one, **bank** ends one early.
-- **Redline** — igniting a full Capacitor and riding it to empty. (`redline`)
+- **Ride** — one Overdrive from ignition to end, and the unit the run summary logs. A *burn* is the
+  state you are in; a ride is the finished thing that gets counted. Every ride ends in one place.
+  (`odT`, `odLog`, `endOverdrive`)
+- **Redline** — igniting a full Capacitor and riding it to empty. Granted inside `endOverdrive()`, the
+  single exit, so banking early and dying mid-ride are judged by the same line. (`redline`)
 - **Annihilation** — the core kill event: two opposite-charge things touch, both destroyed.
   (`queueKill`, `processKills`)
 - **Pop** — to destroy a Dot.
@@ -185,6 +189,16 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Pattern Lab** — practice mode: a live field with no Anomaly, shapes fired on demand.
   (`labMode`, `LAB_SHAPES`)
 - **Game states** — `menu` · `play` · `ready` · `paused` · `dead`.
+- **Run summary** — the panel read on pause and on death: score, cause, time, peak combo, then a chip
+  row per ride and per Anomaly fight. Both panels are built by one function against different ids.
+  (`showRunLogs`, `fillChips`, `CHIP_SHOW`)
+- **Ride log** — one entry per completed Overdrive, in run order. A log rather than a total, because
+  four sips and a redline is a different run from two full burns and they sum the same.
+  (`odLog`, `odCount`, `odTotal`)
+- **Anomaly log** — one entry per Anomaly fight, holding **every** point of damage taken while that
+  Anomaly was alive — not only damage the Anomaly itself dealt. (`anomLog`)
+- **Cause line** — the death receipt's *Lost to* line: the species that killed you, by display name,
+  and the Epoch it happened in. (`lastDmg`, `DOTNAME`, `deadCause`)
 
 ## Meters
 

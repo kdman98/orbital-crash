@@ -14,6 +14,29 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-04
 
+### The receipt lists every ride, and what each Anomaly cost `b4110ab`
+The run summary recorded score, cause, time and peak combo — **nothing about Overdrive**, which is one
+of the two verbs. It gains two chip rows, on both the pause and death panels: one per completed ride,
+one per Anomaly fight.
+
+**Both are logs, not totals**, because four sips and a redline is a different run from two full burns
+and the two sum to the same number. The Anomaly figure bills the **whole encounter** — every point of
+damage taken while that boss was alive, not only damage the boss dealt — since the field does not stop
+for a fight and that is most of what a fight really costs.
+
+`endOverdrive()` is now the single place a ride ends. `die()` used to clear the flag directly, so the
+ride a player was in when they lost never reached the log; **Redline** moved into the same function
+rather than being copied.
+
+**Removed the `⚡ OVERDRIVE READY ⚡` world text.** Its flag only re-armed *below* the arming floor —
+every Collapse spend crossed that line, almost no bankable Overdrive does — so it announced itself
+about once a run. The HUD already carries availability at the identical threshold and keeps carrying
+it. The chime is untouched; its cadence was already right. See law 9.
+
+**Fixed:** the death receipt printed `Lost to boss (red)` — the Anomaly damages you through the
+ordinary Dot-contact path and had no display name in that table, so the raw internal type reached the
+player. The same class of leak as the phase readout that now sits behind `DEV`.
+
 ### Overdrive gets faster instead of only bigger `84d5aee`
 *The diff is in `84d5aee`, whose message is about a documentation pass — it was swept in by a `git add -A`
 from a parallel session. The reasoning is here and in the code comments at both sites, because it did not

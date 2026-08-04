@@ -137,6 +137,13 @@ why, because "no tallies" is the wrong lesson. They printed **at the core** a co
 just launched **outward, away from the core** — on the exact frame your eyes should have been following
 the bodies you threw. Had they been drawn on the bodies, they would have been legal and useless.
 
+**A cue for a state that persists must itself persist**, and passing the position rule does not excuse
+a blink. `⚡ OVERDRIVE READY ⚡` was drawn at the core, which is where availability lives — legal, and
+still deleted. A blink announces a durable state once and then says nothing for as long as it stays
+true, and the failure is *silent*: the flag only re-arms on the far side of the threshold, so under a
+spend you can part-pay it re-armed almost never. Availability is carried on the HUD instead, on the
+identical test, and the HUD keeps saying it. Position-legal is necessary, not sufficient.
+
 ### 10. Taking damage says one thing
 A hit says exactly three things and **nothing else**: the hurt sound, **one damage number**, and the star
 blinking through its immunity. No particle burst, no full-screen flash, no screen shake, no hitstop — on
@@ -779,6 +786,11 @@ including the ones that move standing population the most.
 - **Capacitor** — fills from kills, Motes, streak milestones and Epoch clears, and pays for Overdrive.
   Chimes at `OD_MIN`, the point it becomes spendable, rather than at full. Kills *during* a burn pay
   nothing — you cannot refill while spending.
+
+  **The HUD is the only thing that shows you it is spendable** — there is no world text for
+  availability any more (law 9). The bar shines when you can ignite; the button appears when you can
+  ignite *or* are already burning, because the button is also how you bank. Both read the same
+  `P.charge>=OD_MIN` test in `updateHUD`, so the bar and the chime cannot disagree.
 - **Streak** — a no-hit combo, resets only on real damage (shield blocks do not break it). Named tiers,
   each paying a Capacitor chunk. Breaking a streak past the first tier **bursts** it into Capacitor
   instead of vanishing.
@@ -825,6 +837,49 @@ shorter and far more alike. See *Open* for what is meant to fill that hole.
 | **Pattern Lab** | a live ambient field with **no Anomaly and no Epoch phases**; number keys fire the five shapes on demand, and auto-formations are suppressed so nothing arrives unless you asked. It exists because Boss Rush structurally cannot serve it — formations are gated on not-boss, which is most of what Boss Rush is |
 
 **Game states:** `menu` · `play` · `ready` (GET READY) · `paused` · `dead`.
+
+### The run summary
+The panel you read on **pause** and the one you read on **death** are the same panel, built by one
+function against a different id prefix — a stat that appears in one and not the other is a bug, not a
+decision. It carries score, cause, time and peak combo, then two rows of chips: **one per Overdrive
+ride, one per Anomaly fight**.
+
+**Both rows are logs, not totals**, and that is the point of them. Four sips and a redline is a
+different run from two full burns, and the two sum to the same number — a total reports them as
+identical. The row shows *shape*: how the meter was spent, in order.
+
+**The ride row.** One chip per completed Overdrive, in run order, each carrying its own length. A
+double-tap is not a ride and is not logged. On pause the ride still under way is prepended as its own
+chip showing the seconds left in it, because a paused run can still be burning. On death nothing needs
+prepending: dying ends the ride *through the normal exit* before the receipt is written, which is
+precisely why the ride you lost during appears in the log at all.
+
+**`endOverdrive()` is the one place a ride ends.** Three things stop a burn — it drains out, you press
+again to bank, or you die mid-ride — and the third is the one that bit. `die()` used to clear the flag
+directly, so the ride a player was actually in when they lost silently never reached the log. Any
+future stop path must come through the same function, and the **Redline** grant lives there for the
+same reason rather than being copied to each exit.
+
+**A ride's length is accumulated, never derived** from the charge it started with minus the charge it
+ended with. Streak milestones and the purge reward both pay *through* a burn, so charge does not fall
+monotonically while one runs, and the subtraction would under-report every ride that earned something.
+
+**The Anomaly row bills the whole encounter, not the Anomaly.** One chip per fight, numbered in Roman
+because the Epoch label and the cause line already number the run that way, carrying **all** damage you
+took while that Anomaly was alive — a Drifter that catches you while you are busy with the boss is
+billed to the boss. *Damage the Anomaly dealt* is the wrong reading and would be the less useful
+number: the field does not stop for a boss fight, and what a fight actually costs you is mostly the
+part you cannot answer by watching one enemy.
+
+**The rows cap; the counters do not.** Past `CHIP_SHOW` chips a row stops being readable and becomes
+wallpaper, so the remainder collapses into one `+N` — and `N` reads the **counter**, never the length
+of the log, because the log stops growing well before a marathon run does. Reading the array would let
+a long run quietly under-report how much it was hiding.
+
+**The cause line names species, never internals.** It reads *Lost to* a Dot's display name plus the
+Epoch in Roman, with the phase held behind `DEV` two lines away for the same reason. The Anomaly
+damages you through the ordinary Dot-contact path, so it needs a row in `DOTNAME` like everything else;
+without one the receipt printed the raw internal type back at the player.
 
 ---
 
@@ -997,6 +1052,16 @@ reported "no problem" about a problem that only appears on direction reversal.
 **Adding a `rand()` call at run start shifts the whole RNG stream**, so every seeded run re-rolls and old
 fingerprints stop being comparable. That is a fresh baseline, not a regression.
 
+**The grep that audits these docs against the code fails in both directions.** Every doc↔code check in
+this repo is grep-shaped, and both failure modes have shipped a wrong conclusion.
+*False pass:* matching a doc's identifiers against the raw file lets a **deleted** name vouch for
+itself out of its own removal comment — strip `//`, `/* */` and `<!-- -->` before matching, or the
+checker reports green on names that no longer exist.
+*False absence:* a phrase search over **player-facing copy** under-reports, because markup splits the
+phrase. `The button appears the moment` returns nothing on a file that contains it — the copy reads
+`The <b class="gold">button</b> appears the moment you can`. Search the distinctive tail of a sentence,
+or strip tags first. A clean grep over prose proves much less than the same grep over identifiers.
+
 **The scripted pilot cannot see most of the game.** A 40s run stops before formations, Chargers and
 Bombers exist; the median pilot dies before the first Bomber can spawn. It has also **never picked up an
 Overdrive** — igniting is a keypress the scripted pilot does not make, so the whole second verb, its
@@ -1034,6 +1099,11 @@ Rings held measure ~6.9–9.1 while never flipping against ~2.3–3.0 while flip
 exploit and Overdrive's payoff scale with that hoard. **The game rewards hoard-and-don't-flip in two
 independent systems.** Whatever makes an indefinitely-held ring expensive fixes both; a damage number
 on either one fixes neither.
+
+*This question now has a shipped readout.* `anomLog` records, per fight, what the whole encounter cost
+in HP, and the debug seam exposes it alongside `odLog` — so "did the buff make the Anomaly cost more?"
+is answerable from a run rather than argued from a bot. It is a player-facing display first; treat it
+as evidence, not as a harness, and hold it to the same replication bar as everything else here.
 
 **Overdrive pays roughly twice as well if you hoard, and the flip dumps the hoard.** It multiplies rings
 held — ~2.3–3.0 while flipping against ~6.9–9.1 while not — so the second verb rewards not using the
