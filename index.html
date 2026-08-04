@@ -620,9 +620,11 @@ const RING_GRACE=0.8, RING_GRACE_R=2.4;
 // THIS NUMBER ONLY MEANS ANYTHING AGAINST THE HP CURVE — never read or reprice it alone. At 1 against an
 // 18 HP Epoch I pool, a bot orbiting at 130px that never fires a volley solo-kills the boss; that is why
 // it once sat at 0.5, and it is back at 1 only because the pool was raised above it.
-// ⚠️ OPEN: the pool has since dropped to 15, BELOW that 18, and this was not repriced with it. Re-ran
-// the same test at the current numbers — 5 of 9 runs solo-killed the Epoch I Anomaly, median ~30s. See
-// docs/MECHANICS.md ## Open; the fix, if it is wanted, is 1 → 0.5.
+// OPEN, DOWNGRADED, NOT CLOSED. The pool dropped to 15 — below that 18 — and the same test then showed 5
+// of 9 runs solo-killing the Epoch I Anomaly. It is 30 now, double the 18 the warning was written
+// against, so the TRIGGER is gone. The DEFECT may not be: HP is a scalar and moves no ratio, so a longer
+// pool makes a solo grind slower without making it impossible. ⚠️ Nobody has re-run the bot at 30 — this
+// is argued, not tested. Do not read the buff as a clearance. See docs/MECHANICS.md ## Open.
 const RING_GRIND_DMG=1;
 // A COMMITTED CHARGE driven into the Anomaly — the biggest single hit in the game, and the only erosion
 // that costs you no ammunition and no Capacitor, so it is the whole answer for a player stripped of
@@ -630,10 +632,17 @@ const RING_GRIND_DMG=1;
 // had, this is a single Dot you kept alive, read, and then stood in front of. The lane locks at wind-up
 // along the charger→YOU ray, so the only way it crosses the Anomaly is to put the Anomaly on that line —
 // STANDING IN THE KILL LANE and leaving it late, for 16 damage and a broken streak if you misread it.
-// PINNED AT 4 × VOLLEY_DMG. That ratio is the constant, not the number: it is what makes a bait worth
-// 53% / 40% / 32% of an Epoch I / II / III bar — three or four baits end any Anomaly, which is what the
-// risk earns. If the pool or the volley moves, move this with them. At 12 against the current pool it
-// would one-shot an Epoch I Pulsar (11 hp), i.e. become a way to skip the fight rather than win it.
+// PINNED AT 4 × VOLLEY_DMG. That ratio is the constant, not the number.
+// ⚠️ THE TWO RULES IN THIS COMMENT NOW DISAGREE, and the disagreement is a live design question rather
+// than a stale figure. The ratio to VOLLEY_DMG still holds — the volley did not move. What the ratio was
+// CALIBRATED to did: a bait was worth 53% / 40% / 32% of an Epoch I / II / III bar, three or four baits
+// ending any Anomaly, and against the doubled pool it is 27% / 23% / 20% — four baits at Epoch I and
+// SEVEN at Epoch V. So "if the pool moves, move this with it" says raise it, and "pinned at 4 ×
+// VOLLEY_DMG" says leave it. The pool was raised for difficulty; halving the payoff of the one erosion
+// channel that costs no ammunition and no Capacitor was not the intent, and it is the channel a stripped
+// player has left. Decide before touching it — this is not a number to nudge.
+//   The old ceiling argument is void: at 12 it used to one-shot an Epoch I Pulsar, which had 11 hp. That
+// Pulsar has 23 now, so 12 no longer skips the fight and the cap needs a fresh reason if it is kept.
 const CHARGE_DMG=8;
 // EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
 // Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
@@ -662,9 +671,12 @@ const VOLLEY_HOLD=1.75;
 // EROSION PRICES. The ordering is what gives the three channels meaning: aimed beats opportunistic
 // beats drift, which pays nothing at all (docs/MECHANICS.md ## The Anomaly, "Ways in").
 // A FIGHT IS PRICED IN CONNECTING BODIES, NOT IN DAMAGE — read this against the pool in spawnBoss or
-// neither number means anything. 15 ÷ 2 = 8 Dots at Epoch I, 25 ÷ 2 = 13 at Epoch III.
-// 2 also divides the pool evenly, so the bar steps in units it actually has and the last Dot of a
-// purge is not overkill thrown at a corpse. Keep that property if either number moves.
+// neither number means anything. 30 ÷ 2 = 15 Dots at Epoch I, 40 ÷ 2 = 20 at Epoch III.
+// This block also used to claim 2 divides the pool evenly, so the last Dot of a purge is never overkill
+// thrown at a corpse. THE TABLE HAS NEVER SATISFIED THAT: it was odd at 15 / 25 / 35 and is odd at 35 /
+// 45, so two Epochs still end on a half-connect. The property is worth having and is one +1 or -1 in the
+// pool away at each of them — but it was written as an invariant while being false, which is worse than
+// not having it, so it is recorded here as a wish rather than a rule.
 const VOLLEY_DMG=2;      // per Dot that connects — aimed and guided, the highest price in the game
 const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrades) — Overdrive widens it only while its timer runs
 // CAPACITOR INCOME IS BOUNDED. Both combo-driven streams cap at combo ~90, and they must stay in step:
@@ -2423,11 +2435,12 @@ function stepRunTimers(dt){
   // about once a run — the reset below only clears BELOW the floor, which under Collapse was every spend
   // and under a bankable drain is almost none. The HUD already carries availability, and unlike the text
   // it keeps carrying it: `#chgbar` gains `.full` on exactly this test (`armed` in updateHUD), so the bar
-  // is the availability channel. ⚠️ `#collapseBtn` is NOT — it shows on `armed||odOn`, because it is also
-  // the BANK control and must stay pressable through the tail of a ride below the floor. The two
-  // deliberately disagree there: the bar means "you can ignite", the button means "you can press this".
-  //   The chime's cadence is right as it stands: burn to zero and it re-announces on the next fill; bank
-  // above the floor and it stays quiet, because you never stopped being armed.
+  // is the availability channel. ⚠️ `#collapseBtn` is NOT — it shows on `armed||odOn`, and now that the
+  // verb is HELD the reason is no longer that you must be able to press it to bank: it is that a control
+  // must not vanish out from under the finger currently holding it. Below the floor mid-ride the two
+  // deliberately disagree — the bar means "you can ignite", the button means "your finger is on this".
+  //   The chime's cadence is right as it stands: burn to zero and it re-announces on the next fill; let
+  // go above the floor and it stays quiet, because you never stopped being armed.
   if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); }
   else if(P.charge<OD_MIN) chargeReady=false;
   if(grazeT>0){ grazeT-=dt; if(grazeT<=0) grazeN=0; }
