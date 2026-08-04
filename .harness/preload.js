@@ -143,11 +143,11 @@
     const g = window.__orbital, out = {};
     const lay = (k, fn) => { const f = fnv(); fn(v => f.push(v)); out[k] = f.hex; };
     const P = g.P;
-    lay('P', p => { if (P) [P.x, P.y, P.hp, P.charge, P.polarity, P.fieldR, P.r, P.shield ? 1 : 0, P.flipCd, P.holdT, P.iframe].forEach(p); });
+    lay('P', p => { if (P) [P.x, P.y, P.hp, P.charge, P.polarity, P.fieldR, P.r, g.odOn ? 1 : 0, P.flipCd, P.holdT, P.iframe].forEach(p); });
     lay('E', p => { for (const e of g.enemies) [e.x, e.y, e.vx, e.vy, e.color, e.hp || 0, e.ring ? 1 : 0, e.hold || 0].forEach(p); });
     lay('B', p => { const b = g.boss; if (b) [b.x, b.y, b.hp, b.telegraph || 0, b.hunt || 0].forEach(p); });
     lay('L', p => { for (const l of g.lances) [l.x, l.y, l.vx, l.vy].forEach(p); });
-    lay('O', p => { for (const o of g.orbs) [o.x, o.y].forEach(p); });
+    lay('O', p => { for (const o of (g.orbs || [])) [o.x, o.y].forEach(p); });   // orbs deleted; seam stubs []
     lay('M', p => { for (const m of (g.motes || [])) [m.x, m.y].forEach(p); });
     const d = g.diag();
     lay('S', p => { [d.score, d.combo, d.act, d.intensity].forEach(p); });

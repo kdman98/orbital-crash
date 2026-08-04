@@ -5,7 +5,7 @@
 // Paste into the Browser pane after a page load; results land on window.__A0 (async, because the rAF
 // checks need real frames to pass through).
 //
-// Nothing here starts a run or writes a score. It clicks #collapseBtn once, which is inert outside play.
+// Nothing here starts a run or writes a score. It clicks the Overdrive button once, which is inert outside play.
 (() => {
   const R = [];
   const ok = (n, pass, detail) => R.push({ n, pass: !!pass, d: String(detail) });
@@ -58,8 +58,12 @@
      /const rand=\(a,b\)=>a\+Math\.random\(\)/.test(src), 'outside-in seeding works with zero edits');
   ok('startRun re-seeds spawnBias/formT/cometT',
      /spawnBias=/.test(src) && /formT=/.test(src) && /cometT=/.test(src), 'seeding before Start is sufficient');
-  ok('real-time inhale drives detonateCollapse',
-     /inhaleT>0[\s\S]{0,120}?detonateCollapse\(\)/.test(src), 'why tick(n) can never fire the blast');
+  // The Collapse inhale used to be the file's ONE real-time exception, and this asserted it. Overdrive's
+  // drain lives inside step(), so the exception is gone and the second verb is finally reachable by a
+  // tick-driven pilot. Assert the new invariant instead: the drain must be in step(), not in frameBody.
+  ok('the Overdrive drain lives inside step()',
+     /function stepOverdrive\(dt\)[\s\S]{0,400}?P\.charge=Math\.max\(0, ?P\.charge-OD_DRAIN\*dt\)/.test(src),
+     'so tick(n) can drive it — unlike the Collapse inhale it replaced');
   ok('lastDmg exists for the death classifier', /lastDmg=\{/.test(src), 'reuse it rather than re-deriving');
 
   // ---------- live environment ----------
@@ -68,7 +72,7 @@
   ok('document is visible', !document.hidden, 'hidden=' + document.hidden + ' (true ⇒ rAF never fires)');
   ok('AudioContext constructor present', !!(window.AudioContext || window.webkitAudioContext), '');
 
-  const want = ['start','tick','diag','render','flip','collapse','spawnBoss','spawnEnemy','detonateCollapse',
+  const want = ['start','tick','diag','render','flip','overdrive','spawnBoss','spawnEnemy','odOn',
                 'P','enemies','boss','lances','orbs','store','motes','FX','lastDmg',
                 'formWall','formNoose','formPulse','formSorter','formComet'];
   const missing = g ? want.filter(k => !(k in g)) : want;
@@ -79,10 +83,13 @@
   let seen = null;
   const h = e => { if (e.target && e.target.id) seen = e.target.id; };
   window.addEventListener('click', h, true);
+  // #collapseBtn is the Overdrive button now — same id, same DOM position, so it is still the probe.
+  // It is only a PROBE for event plumbing; if the id ever changes, point this at any HUD button that is
+  // a sibling of the canvas rather than deleting the check.
   const cbtn = document.getElementById('collapseBtn');
   if (cbtn) cbtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
   window.removeEventListener('click', h, true);
-  ok('capture-phase window sees #collapseBtn', seen === 'collapseBtn', cbtn ? ('saw: ' + seen) : '#collapseBtn not in DOM');
+  ok('capture-phase window sees the HUD button', seen === 'collapseBtn', cbtn ? ('saw: ' + seen) : '#collapseBtn not in DOM');
 
   // ---------- async: does the clock actually behave here? ----------
   const raf = window.requestAnimationFrame.bind(window);

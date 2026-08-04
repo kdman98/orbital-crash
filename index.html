@@ -24,13 +24,9 @@
 
   /* ---------- HUD ---------- */
   #hud{position:fixed;inset:0;z-index:5;pointer-events:none;}
-  /* active-powerup chips: left column under the score, one per live timed effect, with a draining bar */
-  #powerups{position:absolute;left:18px;top:108px;display:flex;flex-direction:column;align-items:flex-start;gap:7px;}
-  .pchip{position:relative;display:flex;align-items:center;gap:6px;padding:5px 11px 7px;border-radius:11px;
-    background:rgba(10,14,26,.66);border:1px solid var(--pc);box-shadow:0 0 16px -4px var(--pc);overflow:hidden;}
-  .pchip .pic{font-size:15px;line-height:1;}
-  .pchip b{font-size:11px;font-weight:800;letter-spacing:.06em;color:#fff;text-transform:uppercase;}
-  .pchip i{position:absolute;left:0;bottom:0;height:3px;width:100%;transform-origin:left;background:var(--pc);}
+  /* (The active-powerup chip column lived here — one #powerups chip per live timed effect, each with its
+     own draining bar. With one effect left and its timer already drawn as the Capacitor bar running
+     backwards, a chip would just say the same thing twice, further from the star.) */
   .stat{position:absolute;display:flex;flex-direction:column;line-height:1;}
   .stat .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
   .stat .v{font-weight:800;font-variant-numeric:tabular-nums;}
@@ -68,17 +64,28 @@
     animation:chgpulse 1.4s ease-in-out infinite;}
   @keyframes chgpulse{0%,100%{box-shadow:0 0 0 1px rgba(155,107,255,.35) inset,0 0 10px rgba(155,107,255,.25)}
     50%{box-shadow:0 0 0 1px rgba(155,107,255,.55) inset,0 0 20px rgba(155,107,255,.5)}}
+  /* `.full` now means SPENDABLE (past the arming floor), not "at 1.0" — a partial meter is a real spend. */
   #chgbar.full{box-shadow:0 0 0 1px rgba(155,107,255,.6) inset,0 0 22px rgba(155,107,255,.5);animation:none;}
   #chgbar.full > i{background:linear-gradient(90deg,#fff,var(--cyan),var(--violet));animation:shine 1s linear infinite;}
   @keyframes shine{0%{filter:brightness(1)}50%{filter:brightness(1.5)}100%{filter:brightness(1)}}
+  /* BURNING. The bar is the Overdrive timer — it is the only thing in the game that runs backwards, so it
+     goes gold to say the drain is deliberate rather than something being taken from you. */
+  #chgbar.burning{box-shadow:0 0 0 1px rgba(255,207,77,.7) inset,0 0 26px rgba(255,157,46,.6);animation:none;}
+  #chgbar.burning > i{background:linear-gradient(90deg,#ff9d2e,var(--gold),#fff);animation:none;}
   .barlabel{position:absolute;left:0;right:0;top:-15px;text-align:center;font-size:9px;letter-spacing:.24em;
     text-transform:uppercase;color:var(--dim);}
+  /* The Overdrive button. Gold, because that is the colour the effect has always been — the button used
+     to be cyan while the effect it fired was gold, which is a small lie the rebuild gets to stop telling.
+     It pulses while ARMED and holds steady while BURNING: a thing you could start versus a thing that is
+     already running should not animate the same way. */
   #collapseBtn{pointer-events:auto;margin-top:2px;cursor:pointer;border:none;border-radius:100px;
     padding:9px 26px;font-size:13px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:#0a0f1e;
-    background:linear-gradient(180deg,#fff,var(--cyan));box-shadow:0 6px 24px rgba(56,224,255,.5);
+    background:linear-gradient(180deg,#fff,var(--gold));box-shadow:0 6px 24px rgba(255,207,77,.5);
     display:none;animation:cbp .8s ease-in-out infinite;}
   @keyframes cbp{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
   #collapseBtn.show{display:block;}
+  #collapseBtn.on{animation:none;background:linear-gradient(180deg,var(--gold),#ff9d2e);
+    box-shadow:0 0 0 2px rgba(255,255,255,.5) inset,0 6px 28px rgba(255,157,46,.65);}
 
   /* in-game shortcut legend */
   #controls{position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;gap:7px;opacity:.72;
@@ -97,21 +104,11 @@
   #muteBtn{bottom:16px;} #motionBtn{bottom:58px;font-size:15px;} #pauseBtn{bottom:100px;font-size:12px;letter-spacing:1px;}
   #motionBtn.on{color:var(--gold);border-color:rgba(255,207,77,.5);}
 
-  /* ---- two feedback channels. No centre banner: the world announces itself by DOING it ----
-     1. #pickup  (left, by the chips) YOU GAINED SOMETHING — powerups, flying into the chip column
-     2. #achv    (top centre, gold)   a feat was recorded                                        */
-  /* powerup pickup: a pill that flies in from the left and lands on the chip column it belongs to */
-  #pickup{position:absolute;left:18px;top:76px;display:flex;align-items:center;gap:8px;
-    padding:7px 15px 8px;border-radius:100px;pointer-events:none;opacity:0;white-space:nowrap;
-    background:rgba(8,12,26,.92);border:1px solid var(--pk,#7fe9ff);
-    box-shadow:0 6px 22px rgba(0,0,0,.45),0 0 22px color-mix(in srgb,var(--pk,#7fe9ff) 40%,transparent);}
-  #pickup .pkic{font-size:17px;line-height:1;}
-  #pickup b{font-size:13px;font-weight:900;letter-spacing:.12em;color:var(--pk,#7fe9ff);text-transform:uppercase;}
-  #pickup s{text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.04em;color:#c3cde6;opacity:.9;}
-  #pickup.show{animation:pkpop 2.2s cubic-bezier(.2,.9,.25,1) forwards;}
-  @keyframes pkpop{0%{opacity:0;transform:translateX(-26px) scale(.9)}
-    9%{opacity:1;transform:translateX(0) scale(1.04)}16%{transform:translateX(0) scale(1)}
-    76%{opacity:1;transform:translateX(0) scale(1)}100%{opacity:0;transform:translateY(26px) scale(.95)}}
+  /* ---- ONE persistent feedback channel now. No centre banner: the world announces itself by DOING it.
+     #achv (top centre, gold) — a feat was recorded.
+     The second channel was #pickup, and it was justified on the grounds that a powerup's EFFECT is the
+     one thing you cannot read off the screen. Overdrive does not need it: you pressed it, and the field
+     visibly swells the frame you do. ---- */
   /* achievement toast (separate from the centre banner) */
   #achv{position:absolute;left:50%;top:94px;transform:translateX(-50%);pointer-events:none;max-width:90vw;
     padding:9px 20px;border-radius:100px;background:rgba(22,17,6,.9);border:1px solid rgba(255,207,77,.5);
@@ -233,7 +230,6 @@
 
 <!-- HUD -->
 <div id="hud">
-  <div id="powerups"></div>
   <div class="stat" id="score"><div class="k">Score</div><div class="v">0</div></div>
   <div class="stat" id="best"><div class="k">Best</div><div class="v">0</div></div>
   <div id="combo"></div>
@@ -243,18 +239,17 @@
   <div id="bottom">
     <div class="bar" id="hpbar"><div class="barlabel">Core Integrity</div><i></i></div>
     <div class="bar" id="chgbar"><div class="barlabel">Capacitor</div><i></i></div>
-    <button id="collapseBtn">◇ Collapse <span id="cbKey">Shift</span></button>
+    <button id="collapseBtn">⚡ Overdrive <span id="cbKey">Shift</span></button>
   </div>
   <div id="controls">
     <div class="cr"><kbd>Mouse</kbd> Steer star</div>
     <div class="cr"><kbd>Space</kbd><kbd>Click</kbd> Reverse poles</div>
-    <div class="cr"><kbd>Shift</kbd><kbd>R-Click</kbd> Collapse</div>
+    <div class="cr"><kbd>Shift</kbd><kbd>R-Click</kbd> Overdrive</div>
     <div class="cr"><kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute</div>
     <!-- Mode keys (Boss Rush / Pattern Lab). Empty and hidden on a normal run — these hints used to
          live in the Epoch slot at the top of the screen, which is a NAME slot, not a keymap. -->
     <div class="cr hidden" id="modeKeys"></div>
   </div>
-  <div id="pickup"></div>
   <div id="achv"></div>
   <button id="pauseBtn">❚❚</button>
   <button id="motionBtn" title="Reduced motion — calmer screen shake &amp; flashes">✺</button>
@@ -269,7 +264,7 @@
     <h1 class="logo"><span class="l1">ORBITAL</span><span class="l2">CRASH</span></h1>
   </div>
   <!-- Five beats, one per line, and nothing else. Everything cut from here — scoring, Motes, rings as
-       armour, powerup orbs, the Capacitor — is stated in full one button down under ❖ Codex, so the
+       armour, Overdrive, the Capacitor — is stated in full one button down under ❖ Codex, so the
        menu no longer teaches the game twice. What survives is only what a player cannot infer: the
        law, the fact that nothing comes to them, and the one input that is not steering. -->
   <p class="tag">You are a wandering star, <b class="r">red</b> or <b class="c">cyan</b>.<br>
@@ -285,7 +280,7 @@
   <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;">Practice modes — neither can set your best</div>
   <button class="btn sm ghost" id="bestiaryBtn" style="margin-top:12px;">✦ Bestiary</button>
   <button class="btn sm ghost" id="codexBtn" style="margin-top:8px;">❖ Codex — how it works</button>
-  <div class="hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> collapse</div>
+  <div class="hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
 </div>
 
 <!-- BESTIARY (loads the standalone bestiary.html in an overlay) -->
@@ -310,7 +305,7 @@
     <div class="ds"><div class="k">Score</div><div class="v" id="pScore">0</div></div>
     <div class="ds"><div class="k">Time</div><div class="v" id="pTime">0:00</div></div>
   </div>
-  <div id="pBuildLab" class="hidden" style="font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Active powerups</div>
+  <div id="pBuildLab" class="hidden" style="font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Overdrive</div>
   <div id="pBuild"></div>
   <button class="btn" id="resumeBtn">Resume</button>
   <button class="btn sm ghost" id="quitBtn" style="margin-top:14px;">Quit to menu</button>
@@ -335,7 +330,7 @@
 (()=>{
 "use strict";
 // =====================================================================
-//  ORBITAL CRASH — a wandering-star survival arcade. Steer into the sky; grab powerups. Single file, no assets.
+//  ORBITAL CRASH — a wandering-star survival arcade. Steer into the sky; run hot when you can afford it. Single file, no assets.
 // =====================================================================
 // TEXT HAS TWO AUDIENCES, and only one of them is playing. Everything a player reads is written for a
 // player: names, verbs, and what to do about it. Everything written for US — code identifiers, raw
@@ -459,14 +454,17 @@ const LS=(()=>{
 const num=(k,fb)=>{ const v=parseFloat(LS.getItem(k)); return Number.isFinite(v)?v:fb; };
 const list=k=>{ try{ const v=JSON.parse(LS.getItem(k)); return Array.isArray(v)?v:[]; }catch(e){ return []; } }; // corrupt data must not brick boot
 const store={
-  best:num('orbitalcrash_best',0),
+  // ⚠️ KEY BUMPED to _best2. Deleting the Collapse tally removed ~71% of a run's score, so every score
+  // recorded under the old key is unreachable now — a best you cannot beat is not a target, it is a wall.
+  // Bump this again the next time a scoring change makes old and new runs incomparable.
+  best:num('orbitalcrash_best2',0),
   achv:new Set(list('orbitalcrash_achv')),                  // completed achievement ids (flavor only now)
   mute:LS.getItem('orbitalcrash_mute')==='1',
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
 };
 function save(){
   try{                                                      // Safari private mode throws on write even when reads work
-    LS.setItem('orbitalcrash_best',store.best);
+    LS.setItem('orbitalcrash_best2',store.best);
     LS.setItem('orbitalcrash_achv',JSON.stringify([...store.achv]));
     LS.setItem('orbitalcrash_mute',store.mute?'1':'0');
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
@@ -478,7 +476,7 @@ const ACHV=[
   {id:'firstBoss',   nm:'Purge an Anomaly', ds:'Defeat a boss Anomaly'},
   {id:'combo60',     nm:'Chain Reactor',    ds:'Land a 60-chain'},
   {id:'act3',        nm:'Deep Field',       ds:'Reach Epoch III'},
-  {id:'supercollapse', nm:'Supercollapse',  ds:'Annihilate 40 in one Collapse'},
+  {id:'redline',     nm:'Redline',          ds:'Burn a full Capacitor down to nothing in one Overdrive'},
   // hidden feats — discovered, never assigned. They pay nothing either; `hid:true` only means the row
   // renders as "???" in the Codex until it is earned.
   {id:'lancegild', nm:'Skeet Shooter',    ds:'Volley your Gilded Bounty into an Anomaly', hid:true},
@@ -538,12 +536,13 @@ function hurtText(dmg){
 // The blink in drawPlayer is driven off this same timer, so "how long you flash" and "how long you are
 // safe" cannot drift apart — that is the brief's "blinking frames same as immune".
 //
-// The other three windows below are NOT damage, which is why they are separate values rather than an
-// inconsistency — but they are named here so the set is visible in one place and none of them can drift
-// back into being an unexplained literal at a call site.
+// The other window below is NOT damage, which is why it is a separate value rather than an
+// inconsistency — but it is named here so the set is visible in one place and cannot drift back into
+// being an unexplained literal at a call site.
+//   (`SHIELD_IFRAME` and `PICKUP_IFRAME` used to live here. Both belonged to the powerup system — an
+//   Aegis block and an orb pickup — and went with it. Nothing can grant a shield now, so there is no
+//   third window to name.)
 const IFRAME=0.8;
-const SHIELD_IFRAME=0.7;   // an Aegis block. Not a hit: no HP lost, no streak broken — so its own window.
-const PICKUP_IFRAME=0.14;  // brief grace on collecting an orb, so a pickup cannot double as a death.
 const FLIP_IFRAME=0.12;    // brief grace on a reversal, covering the frame the shockwave clears around you.
 // THE CONTACT GHOST — one frozen frame of the Dot that just hit you, drawn where it actually touched.
 // Player report: "i still feel like i'm colliding a very little earlier."
@@ -564,8 +563,10 @@ const FLIP_IFRAME=0.12;    // brief grace on a reversal, covering the frame the 
 // all went with it. It was never invisible because it was short; it was invisible because it was buried.
 let contactGhost=null, ghostT=0;
 const GHOST_HOLD=0.07;
-let unstable=0; // collapse window
-let cwave=null, cwaveN=0; // collapse shockwave {x,y,r,id} — the id makes each wave hit a Dot at most once
+// (no `unstable` / `cwave` — the Collapse wave and its Nova twin are gone. See the OVERDRIVE block.
+//  Those two flags gated ~20 sites; three of them were reduced rather than deleted, and the notes are
+//  at each site because getting one wrong is silent: the same-colour annihilation arm in
+//  stepAnnihilation, the Sorter's unpaid self-kill, and the Splitter's mini-spawn.)
 let resumeT=0; const READY_DUR=1.2; // brief breather after picking a perk
 let pointer={x:W/2,y:H/2,has:false};
 let settleT=0; // brief speed cap after a resume so the core glides instead of teleporting
@@ -661,84 +662,76 @@ const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrad
 const CHG_KILL_CAP=0.024;
 
 // =====================================================================
-//  POWERUPS  — the ONLY progression. No level-ups, no permanent upgrades.
-//  Matter occasionally drops a glowing orb; steer your star into it for an
-//  INSTANT, TEMPORARY effect. Timed effects just toggle tuned physics
-//  flags, so every effect rides code the game already balanced — it
-//  simply expires.
+//  OVERDRIVE — the SECOND VERB, and the only thing the Capacitor buys.
+//  There are exactly two things you do: reverse your poles (free, always)
+//  and run hot (earned, drained). Overdrive throws your rings WIDE and
+//  spins them FAST, so the armour you gathered by holding a polarity
+//  becomes a sweeping perimeter — every point of it paid for out of the
+//  same meter, in real time, while you watch it go.
+//
+//  THERE ARE NO POWERUPS AND NO COLLAPSE. Three orbs (Aegis / Overdrive /
+//  Nova) and a full-screen Collapse wave stood here. Measured, they did
+//  not earn it:
+//    * Collapse was 25.3% of a strong run's screen state and 69.3% of its
+//      kill ATTRIBUTIONS — but throughput is spawn-limited (216–230
+//      kills/min in every condition tested), so removing it cost 2.7% of
+//      kills, 71% of SCORE (the N²x4 tally) and doubled standing crowd.
+//      It also had no decision in it: every income site clamps at 1, so
+//      holding a full meter discarded income and "press instantly" was
+//      provably optimal. Charge sat full 0.2% of the time.
+//    * Nova WAS a Collapse — same `cwave`, same `unstable`, same boss
+//      chip, for free. Two names, one mechanic.
+//    * Of the three orbs only Aegis measured as load-bearing (-32.8%
+//      survival when suppressed, Welch t=4.06 at n=30, against t=1.12 for
+//      Overdrive and t=1.56 for Nova). It is gone deliberately, not
+//      overlooked; a close call earning a shield is the intended
+//      replacement and is NOT built yet.
+//  Do not reintroduce a radius weapon. The file's own argument, at the
+//  hungry flip: a fifth "everything near me dies" effect in a game where
+//  that crowding is already the reason Collapse had no identity.
 // =====================================================================
-const POW=[
-  {id:'aegis',     ic:'🛡', nm:'Aegis',       col:'#7fe9ff', dur:6.0, kind:'timed',   ds:'a shield turns aside every hit'},
-  {id:'overdrive', ic:'⚡', nm:'Overdrive',   col:'#ffe36b', dur:6.0, kind:'timed',   ds:'faster star · wide, whirling rings'},
-  {id:'nova',      ic:'✺', nm:'Nova',        col:'#ff6b9d', dur:0,   kind:'instant', ds:'a shockwave detonates everything near'},
-];
-const POWMAP={}; for(const p of POW) POWMAP[p.id]=p;
-let orbs=[];              // powerup pickups floating on the field
-let orbTimer=14;          // seconds until a safety drop (a passive player still gets the occasional one)
-// ---- drop rates (powerups are OCCASIONAL spice — tune here) ----
-const ORB_DROP_CHANCE=0.008;  // per non-Collapse annihilation
-const ORB_CAP=2;              // max orbs waiting on the field before drops pause
-const ORB_SAFETY_MIN=22, ORB_SAFETY_MAX=34; // safety-drop interval; only fires when the field is empty
-const FX={aegis:0, overdrive:0}; // remaining seconds of each timed effect
+let odOn=false;              // is Overdrive burning right now
+let odFrom=0;                // charge at ignition — only so 'Redline' can tell a full burn from a sip
+// A FULL METER BUYS EXACTLY 6.0s — the duration the Overdrive orb used to hand out for free. The whole
+// change in one number: the effect is unchanged, you just earn it now.
+const OD_DRAIN=1/6;          // charge per second while burning
+// ARMING FLOOR, and the reason this is a drain and not a button. At 0.25 the cheapest ride is 1.5s, which
+// is comfortably longer than the ~0.15s a ring needs to travel 114 -> 206.7px, so even a partial spend
+// buys a real shell rather than a wobble. It also means a player who never fills the meter still gets to
+// use the verb — the old Collapse needed a FULL bar, which is why a pilot taking hits fired it 0 times in
+// 8 of 10 runs while a clean one fired every few seconds.
+const OD_MIN=0.25;
+const OD_COL='#ffe36b';      // the Overdrive orb's gold, kept so the cue vocabulary did not change
 
-// THE ROSTER IS THREE, AND A THREE-WIDE BAG IS THE THING TO WATCH. The noNova down-weight spreads over
-// three entries, so over 6000 rolls: Aegis 45.1%, Overdrive 43.9%, Nova 11.0% — the most common pickup
-// in the game is also the dullest one.
-
-// map the live effect timers onto the physics flags every frame, then tick them down
-function stepFX(dt){
-  P.eddy      = FX.overdrive>0 ? 1 : 0;      // Overdrive borrows Eddy's wide, fast rings
-  P.moveMult  = FX.overdrive>0 ? 1.4 : 1;
-  P.fieldR    = FX.overdrive>0 ? BASE_FIELDR*1.28 : BASE_FIELDR;
-  P.ringMul   = FX.overdrive>0 ? 1.8 : 1;
-  P.shield = FX.aegis>0 ? 3 : 0; // Aegis is the only shield source now — a solid shell while it runs, gone when it lapses
-  for(const k in FX){ if(FX[k]>0) FX[k]=Math.max(0,FX[k]-dt); }
-}
-// drop a random orb at (x,y). NEVER a duplicate — skip any type already active OR already waiting on
-// the field, so every pickup gives you something you don't already have. Nova is the rarer roll.
-function dropOrb(x,y,forceId){
-  let id=forceId;
-  if(!id){
-    const onField=new Set(orbs.map(o=>o.id));
-    let bag=POW.filter(p=> !onField.has(p.id) && !(FX[p.id]>0)); // no dup of an on-field orb or a live effect
-    if(!bag.length) return;                                      // you already have them all out — no drop
-    const noNova=bag.filter(p=>p.id!=='nova');                   // keep Nova the rarer roll when there's a choice
-    if(noNova.length && Math.random()>0.34) bag=noNova;
-    id=bag[Math.floor(Math.random()*bag.length)].id;
+// Overdrive state -> physics flags, then the drain. ⚠️ RE-DERIVE EVERY TICK, NEVER EDGE-TRIGGER.
+// `P.fieldR` alone gates twelve things — ring capture, the grace band, the orbit radius, like-charge
+// gravity, the closing speed-cap, the Mote hoover, the drawn halo and rim — so a missed restore is not a
+// crash, it is enemy spacing quietly feeling wrong for the rest of the run.
+function stepOverdrive(dt){
+  if(odOn){
+    P.charge=Math.max(0, P.charge-OD_DRAIN*dt);
+    if(P.charge<=0){                           // land on EXACTLY 0 — `P.charge>=OD_MIN` gates read it
+      P.charge=0; odOn=false;
+      if(odFrom>=0.99) grantAchv('redline');   // ignited full and rode it to empty
+    }
   }
-  const a=rand(0,TAU), s=rand(0.6,1.6);
-  orbs.push({id, x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:11, ph:rand(0,TAU)});
-  if(orbs.length>12) orbs.shift(); // never let the field silt up with pickups
+  P.eddy      = odOn ? 1 : 0;                  // wide, fast rings — see the ring block in stepEnemyForces
+  P.moveMult  = odOn ? 1.4 : 1;
+  P.fieldR    = odOn ? BASE_FIELDR*1.28 : BASE_FIELDR;
+  P.ringMul   = odOn ? 1.8 : 1;
 }
-function stepOrbs(dt){
-  orbTimer-=dt;
-  if(orbTimer<=0){ orbTimer=rand(ORB_SAFETY_MIN,ORB_SAFETY_MAX); if(orbs.length===0) dropOrb(P.x+rand(-260,260), P.y+rand(-200,200)); }
-  for(let i=orbs.length-1;i>=0;i--){
-    const o=orbs[i]; o.life-=dt;
-    if(o.life<=0){ orbs.splice(i,1); continue; }
-    const dx=P.x-o.x, dy=P.y-o.y, d=Math.hypot(dx,dy)||1;
-    if(d<P.fieldR*1.15){ const t=1-d/(P.fieldR*1.15); o.vx+=dx/d*(0.5+t*1.4); o.vy+=dy/d*(0.5+t*1.4); } // gentle draw toward the star
-    o.vx*=0.92; o.vy*=0.92; o.x+=o.vx; o.y+=o.vy;
-    if(d<P.r+22){ orbs.splice(i,1); collectOrb(o); } // remove FIRST — collectOrb→Nova→killBoss can push new orbs mid-loop
-  }
-}
-function collectOrb(o){
-  const p=POWMAP[o.id];
-  if(p.kind==='instant'){ if(o.id==='nova') fireNova(); }
-  else FX[o.id]=Math.max(FX[o.id], p.dur); // refresh / extend the timer
-  pickupToast(p);                               // its own channel — never the world-event banner
-  spawnRing(P.x,P.y,p.col,90); spawnRing(P.x,P.y,'#fff',P.r+18);
-  spawnBurst(o.x,o.y,p.col,14,3.4);
-  P.iframe=Math.max(P.iframe,PICKUP_IFRAME); slowmo(0.5,0.14);
+// Press to ignite, press again to BANK THE REMAINDER. Igniting is not damage, so it gets no flash, no
+// shake and no hitstop (see IFRAME / hurtText) — a ring, a burst and the rising harp, which is the voice
+// the orb pickup used to own.
+function overdrive(){
+  if(state!=='play') return;
+  if(odOn){ odOn=false; return; }
+  if(P.charge<OD_MIN) return;
+  odOn=true; odFrom=P.charge;
+  spawnRing(P.x,P.y,OD_COL,BASE_FIELDR*1.28); spawnRing(P.x,P.y,'#fff',P.r+18);
+  spawnBurst(P.x,P.y,OD_COL,14,3.4);
+  slowmo(0.5,0.14);
   if(typeof sfx!=='undefined') sfx.harp(5);
-}
-// Nova: an instant, free Collapse wave (reuses the tuned shockwave — no charge cost)
-function fireNova(){
-  cwave={x:P.x,y:P.y,r:0,id:++cwaveN}; unstable=Math.max(unstable,1.5);
-  spawnRing(P.x,P.y,'#ff6b9d',Math.max(W,H)*0.6); spawnRing(P.x,P.y,'#fff',Math.max(W,H)*0.8);
-  trauma=Math.min(1,trauma+0.5); flash=0.5; flashCol='#ff6b9d';
-  if(typeof sfx!=='undefined') sfx.collapse();
-  if(boss) damageBoss(boss, Math.ceil(boss.maxHp*0.15));
 }
 // ---- acts / biomes / pacing (mood + depth) ----
 const ACTS=[
@@ -762,14 +755,16 @@ function freshRun(){
     x:W/2, y:H/2, r:15,
     polarity:'cyan',
     maxHp:100, hp:100,
+    // ⚠️ These four are Overdrive's flags and they MUST init to their identity values, because
+    // stepOverdrive re-derives them from `odOn` every tick and nothing else writes them. `fieldR` is a
+    // bare 190 rather than BASE_FIELDR only because this literal predates the constant — they must agree.
     fieldR:190, fieldK:3.2, ringMul:1,
     seekMult:1,
     moveMult:1, chargeGain:1, scoreMult:1,
     charge:0, iframe:0, flipCd:0, pulseCd:0, hurtT:99, regen:2.6,
-    blastR:0, blastDmg:1, armor:1,
-    shield:0,
+    armor:1,
     holdT:0, holdMax:1.5, conduitAmp:0.5, // polarity mastery
-    eddy:0,                           // Overdrive borrows this: wide, fast, whirling rings
+    eddy:0,                           // Overdrive: wide, fast, whirling rings
   };
   base.hp=base.maxHp;
   return base;
@@ -1198,9 +1193,15 @@ function director(dt){
   // THERE IS EXACTLY ONE WAY PAST AN ANOMALY: PURGE IT. No clock, no flee — a second win condition that
   // runs on a timer asks nothing of the player, and the one that existed here also handed out the Epoch
   // advance for free, because leaving called onBossCleared(). `bossTime` still ticks; the HUD reads it.
-  // No soft-lock: Collapse chips a flat 15% whatever the field looks like, so seven of them end any
-  // Anomaly unaided, and volley / ring grind / baited charge are all still open. The failure mode is
-  // losing the run, which is the correct failure mode for a boss.
+  //   ⚠️ THE GUARANTEE THAT USED TO BACK THIS IS GONE. Collapse chipped a flat 15% whatever the field
+  // looked like, which made a purge possible from an empty sky. It was never as strong as it read — the
+  // chip was 3/3/4/5/6 against pools of 15/20/25/30/35, i.e. 1.5-3 connecting bodies out of 7.5-17.5 —
+  // but it did not depend on there being matter to work with, and the three surviving channels all do.
+  // The fallback is the ring grind, measured solo-killing an Epoch I Anomaly in 5 of 9 bot runs: a
+  // fallback, not a guarantee. If a stripped sky ever does deadlock a fight, the answer is to make the
+  // Anomaly's own fire feed you matter, NOT to give the player a button that damages it — that is law 2.
+  //   ⚠️ AND DO NOT CUT `RING_GRIND_DMG` WHILE THIS STANDS. There is an open note proposing 1 -> 0.5;
+  // landing it on top of this removes the chip AND halves the only unaided answer left.
   else { bossTime+=dt; if(!boss || boss.dead) onBossCleared(); }
   // STORM SHIFT: halfway through a storm the colour flips — re-decide your polarity mid-wave
   if(wavePhase==='storm' && stormShiftT>0){
@@ -1308,7 +1309,7 @@ function stepCharger(e,dt){
     // again, with no point at which the exchange ever resolves.
     // The wind-up buys ONE committed dash, and the recovery hands the Dot back to the field:
     // `spent` drops it out of stepCharger for good, after which it is ordinary matter — your magnetism
-    // reaches it, your rings gather or grind it, a Collapse takes it. Survive the lunge and it becomes
+    // reaches it, your rings gather or grind it, a flip annihilates it. Survive the lunge and it becomes
     // yours. That makes the Charger an exchange with an ending instead of a standing tax, and it costs
     // nothing from its dangerous half: the telegraph, the commitment and the kill-lane are untouched.
     // SPENT IS A COOLDOWN, NOT A RETIREMENT. Retiring it permanently solves the Charger in ~3s — the
@@ -1329,9 +1330,9 @@ const bossOpp=c=>c==='red'?'cyan':'red';   // the colour that erodes an Anomaly 
 // ⚠️ THESE `tip` STRINGS RENDER ON THE BOSS'S INTEGRITY BAR (see the bossbar draw), so they are the most
 // -read text in the fight and they must describe something the code can actually produce. Twice they
 // have gone stale against a mechanic change and told players to do the impossible. Erosion is the
-// Volley, the ring grind, the baited charge and Collapse; a tip may name a movement answer or the
-// Volley, NEVER a bait — every missile launches from the boss's own body, so nothing can be baited
-// back through it.
+// Volley, the ring grind and the baited charge — THREE, since Collapse's flat chip went with the
+// Collapse. A tip may name a movement answer or the Volley, NEVER a bait: every missile launches from
+// the boss's own body, so nothing can be baited back through it. And no tip may name a button.
 const ANOM={
   // EMITTER — the teacher, and always the first Anomaly of a run, so its tip carries the loop itself.
   // Hovers, alternates a hexagon crossfire BURST and a sweeping spiral STREAM. From Epoch II it also
@@ -1530,16 +1531,14 @@ function fireLanceVolley(){ fireHexVolley(boss); }
 const MSLNAME={volley:'Anomaly Volley', seeker:'Anomaly Seeker', ring:'Anomaly Ring',
                mine:'Anomaly Mine', spear:'Anomaly Spear'};
 // One place that knows how the core takes a hit, so the missile strike and the mine blast cannot drift
-// apart on shields, i-frames, streak-breaking or the death check. Returns true if the run just ended.
+// apart on i-frames, streak-breaking or the death check. Returns true if the run just ended.
+//   NOTHING BLOCKS A HIT ANY MORE. An Aegis branch sat here and in the Dot-contact path, absorbing the
+// damage entirely and — uniquely — NOT breaking the streak. Both are gone with the powerup roster, so
+// every hit that lands, lands. If a close call ever earns a shield, it goes back in both places at once
+// or the missile path and the contact path start disagreeing, which is the whole reason this funnel exists.
 function coreHit(dmg,src){
   if(!P || state!=='play') return false;
   if(P.iframe>0) return false;
-  if(P.shield>0){
-    P.shield--; P.iframe=SHIELD_IFRAME;
-    flash=0.4; flashCol=COL[P.polarity]; trauma=Math.min(1,trauma+0.2);
-    ruptureBlast(P.x,P.y,150); sfx.shield();
-    return false;
-  }
   const d=dmg*P.armor;
   P.hp-=d; P.iframe=IFRAME; P.hurtT=0;
   breakStreak(src);
@@ -1820,7 +1819,7 @@ function stepMotes(dt){
     if(d<P.r+8){
       motes.splice(i,1);
       moteN++; moteT=0.8;
-      if(!unstable) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
+      if(!odOn) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
       score+=Math.round(MOTE_SCORE*P.scoreMult);
       sfx.mote(moteN);
       // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
@@ -1847,8 +1846,9 @@ function killBoss(b){
   slowmo(0.35,0.7);
   sfx.purge();
   grantAchv('firstBoss');
-  // reward: the Anomaly always sheds ONE powerup orb where it died — a guaranteed, earned cache
-  dropOrb(b.x,b.y);
+  // The purge used to also shed a guaranteed powerup orb. With the roster gone, the reward is the
+  // +30 Integrity and +40% Capacitor above — and 40% is now spendable on Overdrive, so the purge
+  // still hands you a tool, not just a number.
 }
 
 // =====================================================================
@@ -1857,15 +1857,12 @@ function killBoss(b){
 function step(){
   const dt=1/60;
   if(state!=='play') return;
-  stepFX(dt);      // powerup timers → physics flags (before physics reads them)
-  stepOrbs(dt);    // float / draw-in / collect powerup pickups
+  stepOverdrive(dt);  // Overdrive state → physics flags, and the drain (before physics reads them)
   director(dt);
 
   stepPlayer(dt);
 
   stepEnemyForces(dt);
-
-  if(cwave) stepCollapseWave();
 
   // ----- anomaly lances: fly across, hurt the core, erode the anomaly -----
   if(lances.length){ stepLances(dt); if(state!=='play') return; }
@@ -2106,24 +2103,10 @@ function stepEnemyForces(dt){
   if(boss && !boss.dead && bossTime>1.6) boss.y=Math.max(boss.y, 138);
 }
 
-  // ----- collapse shockwave: a BLAST, not an eraser — 2 damage as it sweeps. Trash dies;
-  // a Brute (3hp) crawls out burned and flung. -----
-function stepCollapseWave(){
-  cwave.r+=42;
-  const r2=cwave.r*cwave.r;
-  for(const e of enemies){
-    if(e.dead||e.queued||e.type==='boss')continue;
-    if(e._cw===cwave.id)continue;             // each wave hits a Dot once
-    const dx=e.x-cwave.x, dy=e.y-cwave.y;
-    if(dx*dx+dy*dy<r2){
-      e._cw=cwave.id;
-      e.hp-=2;
-      if(e.hp<=0) queueKill(e);
-      else { const d=Math.hypot(dx,dy)||1; e.vx+=dx/d*9; e.vy+=dy/d*9; spawnBurst(e.x,e.y,'#fff',4,2.2); }
-    }
-  }
-  if(cwave.r>Math.hypot(W,H)+120) cwave=null;
-}
+  // (`stepCollapseWave` stood here — an expanding 2-damage sweep of the whole arena, driven by `cwave`.
+  //  Both its writers are gone: the Collapse it was built for and the Nova orb that fired it for free.
+  //  `e._cw`, the per-Dot once-only tag it needed, went with it. THE BOMBER'S BLAST IS NOT A REPLACEMENT
+  //  and must not grow into one — it is 2 damage over BOMB_R and costs you nothing, deliberately.)
 
   // ----- enemy vs enemy annihilation (spatial grid) -----
 // Fraction of a same-colour overlap resolved per frame (see the shove at the bottom of the pair loop).
@@ -2225,11 +2208,14 @@ function stepAnnihilation(){
                 X.vx=bx/bd*3.2; X.vy=by/bd*3.2; X.flung=Math.max(X.flung||0,0.2);
               }
             }
-            else if(unstable>0){ queueKill(X); } // during a collapse same-colour motes pop but don't damage the boss
+            // (An `else if(unstable>0) queueKill(X)` sat here: during a Collapse, a Dot that CANNOT chip
+            //  the Anomaly — neutral, or the boss's own colour — popped anyway. It was the only thing
+            //  that touched those Dots at all, so with the Collapse gone the whole arm is unreachable and
+            //  they simply bounce, as they already did outside one.)
           } else {
             const opposite=(e.color!==o.color)&&e.color!=='neutral'&&o.color!=='neutral';
             const eDash=e.type==='charger'&&e.cst==='dash', oDash=o.type==='charger'&&o.cst==='dash';
-            if(!unstable && opposite && eDash!==oDash){
+            if(opposite && eDash!==oDash){
               // colour law, weaponized: a dashing Charger plows THROUGH opposite Dots and survives —
               // bait its dash across the swarm and it rails a kill-lane for you
               const v=eDash?o:e; queueKill(v);
@@ -2245,17 +2231,27 @@ function stepAnnihilation(){
             // annihilation, it just does not pay: `dead` alone, never queueKill, so no score, no combo,
             // no Mote, no Capacitor, no blast chain. Gated on BOTH being in formation flight, so nothing
             // the player owns is caught — your ring Dots have no `hold`, so ring-vs-formation still
-            // pays in full. Gated on `!unstable` so a Collapse, which is yours, is never silenced.
+            // pays in full.
             // In practice this is the Sorter alone: the Wall's two-wave release already measures 0
             // pair-kills, the Noose's `rmin` floors it out of self-contact, and the Pulse puts one
             // colour per arc at different radii.
-            else if(!unstable && opposite && e.hold>0 && o.hold>0){
+            // ⚠️ DELETE THE GUARD, NEVER THE BRANCH. This used to carry `!unstable &&` so a Collapse,
+            // which was yours, was never silenced. Removing the branch instead of the condition
+            // re-invoices the player for every Sorter that ends itself — the exact regression above.
+            else if(opposite && e.hold>0 && o.hold>0){
               e.dead=true; o.dead=true;
               const mx=(e.x+o.x)/2, my=(e.y+o.y)/2;
               spawnBurst(mx,my,COL[e.color]||'#fff',4,2.4);
               spawnBurst(mx,my,COL[o.color]||'#fff',4,2.4);
             }
-            else if(unstable>0 || opposite){ queueKill(e); queueKill(o); }
+            // ⚠️⚠️ THIS IS THE COLOUR LAW. Two opposite-charge Dots touch, both die — the central rule of
+            // the game, and this one line is where it happens for matter-vs-matter.
+            //   It read `unstable>0 || opposite`, and that `unstable>0 ||` was the ONLY thing in the file
+            // that let two SAME-COLOUR Dots annihilate each other. Deleting the condition (as here) is
+            // behaviour-identical outside a Collapse: same-colour pairs fall through to the positional
+            // SAME_PUSH shove below, which is exactly what they already did. Deleting the BRANCH would
+            // remove all opposite-colour annihilation and end the game. They look like the same edit.
+            else if(opposite){ queueKill(e); queueKill(o); }
             else if(!(e.hold>0) && !(o.hold>0)){
               // SAME COLOUR TAKES UP SPACE. Like charges cannot annihilate, so without this they do not
               // interact at all and a crowd of one polarity stacks into one smeared blob.
@@ -2290,7 +2286,7 @@ function stepPlayerContact(){
     // Flavor + a score crumb ONLY — it pays no Capacitor. Charge income must stay legible
     // (kills, purges, Motes, streak), and grazes are luck as often as skill.
     const dangerous = e.type!=='boss' && (e.color==='neutral' || e.color!==P.polarity);
-    if(dangerous && unstable<=0){
+    if(dangerous){
       const gb=rr+16;
       if(d2<gb*gb){ e.grz=true; }
       else if(e.grz && d2>(gb+12)*(gb+12)){
@@ -2305,19 +2301,13 @@ function stepPlayerContact(){
       if(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity) continue;
       // opposite colour was attracted — this is the risk.
       if(P.iframe<=0){
-        if(P.shield>0){
-          // Aegis blocks the hit and blasts the attacker away
-          P.shield--; P.iframe=SHIELD_IFRAME;
-          flash=0.4; flashCol=COL[P.polarity]; trauma=Math.min(1,trauma+0.2);
-          ruptureBlast(P.x,P.y,155); sfx.shield();
-        } else {
-          const dmg=e.dmg*P.armor;
-          P.hp-=dmg; P.iframe=IFRAME; P.hurtT=0;
-          breakStreak((DOTNAME[e.type]||e.type)+(e.color!=='neutral'?' ('+e.color+')':'')); // a real hit severs the streak (a shield block does not)
-          sfx.hurt();
-          hurtText(dmg);
-          if(P.hp<=0){ P.hp=0; die(); return true; }
-        }
+        // (No shield branch — see coreHit. Nothing in the game can turn a hit aside now.)
+        const dmg=e.dmg*P.armor;
+        P.hp-=dmg; P.iframe=IFRAME; P.hurtT=0;
+        breakStreak((DOTNAME[e.type]||e.type)+(e.color!=='neutral'?' ('+e.color+')':'')); // every real hit severs the streak
+        sfx.hurt();
+        hurtText(dmg);
+        if(P.hp<=0){ P.hp=0; die(); return true; }
       }
       if(e.type!=='boss'){
         // Snapshot BEFORE queueKill, while the Dot is still where it touched you and still un-flagged.
@@ -2343,29 +2333,14 @@ function stepRunTimers(dt){
   // combo is now a NO-HIT streak — it only resets when you take damage (see contact)
   if(combo===0) streakTier=0;
   // maintaining a streak slowly feeds the capacitor (faster the longer it holds)
-  if(combo>=5 && unstable<=0 && P.charge<1)
+  // ⚠️ This cap and CHG_KILL_CAP are one rule in two places — see law 16. Both bind at combo ~90.
+  if(combo>=5 && !odOn && P.charge<1)
     P.charge=Math.min(1, P.charge + Math.min(0.035, combo*0.0004)*P.chargeGain*dt); // trickle cap trimmed with the new income streams
-  // collapse inhale: the swarm leans toward the core it's about to feed
-  if(inhaleT>0){ for(const o of enemies){ if(o.dead||o.type==='boss')continue;
-    const idx=P.x-o.x, idy=P.y-o.y, idd=Math.hypot(idx,idy)||1; o.x+=idx/idd*2; o.y+=idy/idd*2; } }
-  // capacitor-full chime: the biggest button in the game shouldn't arrive silently
-  if(P.charge>=1 && !chargeFull && unstable<=0 && inhaleT<=0){ chargeFull=true; sfx.capFull(); pushText(P.x,P.y-P.r-36,'◇ COLLAPSE READY ◇',COL.cyan,1.3,14); }
-  else if(P.charge<1) chargeFull=false;
-  if(unstable>0){
-    unstable-=dt;
-    if(unstable<=0){
-      unstable=0; // MUST land on exactly 0 — every `!unstable` guard reads a negative as "still collapsing"
-      if(collapseKills>0){ // the receipt: how much the wave actually ate
-        if(collapseKills>=8){
-          const bonus=collapseKills*collapseKills*4; score+=bonus;
-          pushText(P.x,P.y-P.r-30,'+'+bonus.toLocaleString(),COL.gold,1.6,20);
-          sfx.streakMile(3);
-        }
-        if(collapseKills>=40) grantAchv('supercollapse');
-        collapseKills=0;
-      }
-    }
-  }
+  // OVERDRIVE READY. Announced once, at the ARMING FLOOR rather than at a full bar, because a partial
+  // meter is spendable now — the old chime fired at 1.0 because Collapse could not be part-paid, which is
+  // why a player taking hits never heard it.
+  if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); pushText(P.x,P.y-P.r-36,'⚡ OVERDRIVE READY ⚡',OD_COL,1.3,14); }
+  else if(P.charge<OD_MIN) chargeReady=false;
   if(grazeT>0){ grazeT-=dt; if(grazeT<=0) grazeN=0; }
   // Gilded Bounty: every 12-18s one Dot arrives gilded — annihilate it within 6s for a jackpot (not in the Arena)
   gildTimer-=dt;
@@ -2406,32 +2381,14 @@ function processKills(){
     e.dead=true;
     onKill(e);
     if(state==='dead') break; // core lost mid-chain — stop processing
-    // chain via blast (Volatile / collapse). GENERATIONAL DECAY: each hop shrinks the blast by
-    // 0.7^gen and bails under 18px, so a cascade is finite — no whole-swarm chain-clear.
-    const gen = e._gen||0;
-    const bR = (unstable>0 ? 78 : P.blastR) * Math.pow(0.7, gen);
-    if(bR>18){
-      const bd = unstable>0 ? 3 : P.blastDmg;
-      for(const o of enemies){
-        if(o.dead||o.queued)continue;
-        const dx=o.x-e.x,dy=o.y-e.y;
-        if(dx*dx+dy*dy < bR*bR){
-          // ⚠️ THE ANOMALY IS NOT IN THIS BLAST, and must never be put back in. A Collapse's price
-          // against a boss is the flat 15% chip in detonateCollapse() and nothing else (law 2).
-          // Chain-blasts that chip the boss launder the wave's own kills back into boss damage in a
-          // single frame, because a Collapse kills the whole screen at once: 12 Dots on its skin
-          // measured 33 damage against an 18 HP boss — purged in one frame — and 24 Dots measured 95.
-          // Density, not skill. `unstable` blasts stop at its skin.
-          if(o.type==='boss'){
-            if(unstable<=0 && e.color!=='neutral' && e.color!==o.color) damageBoss(o,bd);
-            continue;
-          }
-          o.hp-=bd;
-          if(o.hp<=0){ o._gen=gen+1; queueKill(o); } // tag the generation so the next hop decays
-          else { o.vx+=dx*0.02; o.vy+=dy*0.02; } // shove survivors
-        }
-      }
-    }
+    // A KILL DOES NOT CHAIN. A generational chain-blast lived here — radius `(unstable>0 ? 78 : P.blastR)`
+    // decaying by 0.7^gen, with a `_gen` tag per hop — and it was ALREADY unreachable in ordinary play:
+    // `P.blastR` was 0 with no writer anywhere in the file, so the `bR>18` gate only ever opened during a
+    // Collapse. With Collapse gone the whole block, `P.blastR`, `P.blastDmg` and `_gen` are deleted.
+    //   ⚠️ Do not "restore" it by substituting the 78 and 3 literals the Collapse branch used. That would
+    // give every ordinary annihilation a permanent 78px 3-damage blast — a whole-swarm chain-clear nobody
+    // asked for, and a fourth boss-erosion channel that arrives by density rather than by aim (law 2).
+    // The Bomber is the one Dot that detonates, and it is deliberately the only one.
   }
 }
 // A real hit ends the no-hit streak — but a big streak SEVERS instead of vanishing:
@@ -2453,7 +2410,9 @@ function breakStreak(src){
   lastDmg={src, act, phase:wavePhase};
   if(combo>=25){
     const bonus=Math.min(0.20, combo*0.0015*P.chargeGain); // cap AFTER Overcharge — 20% is a hard ceiling
-    if(!unstable) P.charge=Math.min(1,P.charge+bonus);
+    // The grant used to carry `!unstable` while the text below did not, so a hit taken mid-Collapse
+    // printed a Capacitor gain the game had not given. Dropping the guard fixes that lie by construction.
+    P.charge=Math.min(1,P.charge+bonus);
     pushText(P.x,P.y-P.r-46,'STREAK BURST ⚡+'+Math.round(bonus*100)+'%',COL.gold,1.4,15);
   }
   combo=0; streakTier=0; // reset here, not just in step() — a same-frame kill can restart combo first
@@ -2466,15 +2425,16 @@ function onKill(e){
   // still an ordinary dot in every stat (dmg 10, hp 1, no exemptions anywhere); the explosion is a
   // field-clearing hazard, not a stat.
   if(e.type==='bomber') bomberBlast(e);
-  // splitter spawns minis
-  if(e.type==='split' && !unstable){
+  // splitter spawns minis — unconditionally now. The `!unstable` that used to sit here is why the
+  // Bestiary could say "a Collapse kills it clean": a Collapse was the one thing that killed a Splitter
+  // without paying its two Minis. Nothing does that any more, so the Splitter has no stated escape.
+  if(e.type==='split'){
     for(let i=0;i<2;i++){
       const a=rand(0,TAU);
       spawnEnemy('mini',Math.random()<0.5?'red':'cyan',e.x+Math.cos(a)*10,e.y+Math.sin(a)*10);
     }
   }
   // scoring / combo
-  if(unstable>0) collapseKills++;
   combo++; if(combo>peakCombo)peakCombo=combo;
   if(combo>=60) grantAchv('combo60');
   // streak milestones: named ranks, big capacitor chunks, escalating fanfare
@@ -2505,16 +2465,21 @@ function onKill(e){
   // Gilded Bounty: cash the jackpot Dot
   if(e.gild>0){
     const rew=Math.round(250*act*P.scoreMult); score+=rew;
-    if(!unstable) P.charge=Math.min(1,P.charge+0.05*P.chargeGain);
+    P.charge=Math.min(1,P.charge+0.05*P.chargeGain);
     pushText(e.x,e.y-30,'BOUNTY +'+rew,COL.gold,1.4,17);
     spawnRing(e.x,e.y,COL.gold,90); trauma=Math.min(1,trauma+0.2);
     sfx.streakMile(2);
   }
-  // POWERUP DROP: the ONLY progression, kept OCCASIONAL. A small per-kill chance, capped on the field.
-  // Never during a Collapse sweep — that would rain a dozen at once. (Anomaly caches still drop on purge.)
-  if(!unstable && e.type!=='neutral' && orbs.length<ORB_CAP && Math.random()<ORB_DROP_CHANCE) dropOrb(e.x,e.y);
-  // charge — kills during a collapse don't refund the capacitor (no back-to-back collapses).
-  // Deliberately low: Motes and streak milestones are the other income, and Collapse must stay earned.
+  // charge — KILL INCOME IS SUPPRESSED WHILE OVERDRIVE BURNS, so it cannot pay for itself out of the
+  // kills it is helping you get. Same for the Mote pickup. Measured: 20 kills mid-burn move the meter by
+  // exactly the drain and not one thousandth more.
+  //   Two streams are NOT suppressed, and that is deliberate rather than an oversight. The streak
+  // MILESTONE (+0.08/0.12/0.18/0.25 at combo 25/50/100/200) and the STREAK BURST pay through a burn —
+  // they were ungated under the old Collapse too. They are streak payouts, not kill income: they fire at
+  // most four times in a run, they are the OTHER currency's receipt, and topping up a burn with one is a
+  // reward for a thing you did over minutes rather than a loop that feeds itself. If a burn ever looks
+  // self-sustaining, measure the milestone first — it is the only door left open.
+  // Deliberately low: Motes and streak milestones are the other income, and Overdrive must stay earned.
   //   ⚠️ THE COMBO TERM IS CAPPED, AND IT MUST STAY CAPPED. `combo` is a NO-HIT streak: nothing decays
   // it and nothing times it out, so it only ever falls when you are hit. Uncapped, this line ran away
   // with it — measured on an untouchable pilot, combo climbed 0 → 699 over 180s and the time to fill
@@ -2527,7 +2492,7 @@ function onKill(e){
   // proved it, and more does not pay more.
   //   IT CANNOT TOUCH A WEAK RUN. The cap only engages above combo 90; below that the expression is
   // bit-identical to what it always was.
-  if(!unstable) P.charge=Math.min(1,P.charge + Math.min(CHG_KILL_CAP, 0.006 + combo*0.0002)*P.chargeGain);
+  if(!odOn) P.charge=Math.min(1,P.charge + Math.min(CHG_KILL_CAP, 0.006 + combo*0.0002)*P.chargeGain);
   // visuals
   const c=COL[e.color];
   spawnBurst(e.x,e.y,c,e.type==='heavy'?18:9,e.type==='heavy'?4:2.6);
@@ -2574,13 +2539,9 @@ function bomberBlast(e){
     else spawnBurst(o.x,o.y,'#fff',3,2.0);        // burned, not destroyed — reads as survived, not ignored
   }
 }
-function ruptureBlast(x,y,R){
-  spawnRing(x,y,'#fff',R);
-  for(const o of enemies){ if(o.dead||o.type==='boss')continue;
-    const dx=o.x-x,dy=o.y-y,d=Math.hypot(dx,dy)||1;
-    if(d<R){ const f=(1-d/R)*9; o.vx+=dx/d*f; o.vy+=dy/d*f; }
-  }
-}
+// (`ruptureBlast` — the outward shove an Aegis block fired — had exactly two callers, both shield
+//  branches, so it died with the shield. If a close call ever earns a shield, this is the shape to
+//  bring back: a push, not damage.)
 
 // =====================================================================
 //  RUN-STATE TRANSITIONS
@@ -2739,31 +2700,15 @@ function flipShockwave(hc){
     spawnRing(P.x,P.y,COL[P.polarity],P.fieldR*0.32); // colour feedback only while pulse recharges
   }
 }
-// Collapse is a CEREMONY: a 0.45s inhale (world slows, swarm leans in, swell rises) — then the wave.
-// The anticipation is the dopamine; the tally afterwards is the receipt.
-let inhaleT=0, collapseKills=0, chargeFull=false;
-function collapse(){
-  if(state!=='play' || P.charge<1 || inhaleT>0 || unstable>0)return; // one wave at a time — a second press mid-collapse would wipe the tally
-  P.charge=0;
-  inhaleT=0.45;
-  slowmo(0.2,0.5);
-  flash=0.2; flashCol='#fff';
-  sfx.inhale();
-}
-function detonateCollapse(){
-  unstable=2.4; collapseKills=0;
-  cwave={x:P.x,y:P.y,r:0,id:++cwaveN}; // expanding blast wave sweeps the arena (2 dmg — see step)
-  hitstop=0.09; trauma=1; flash=0.9; flashCol='#fff';
-  sfx.collapse();
-  // gentle outward nudge for juice (not enough to outrun the wave)
-  for(const o of enemies){ if(o.dead||o.type==='boss')continue;
-    const dx=o.x-P.x,dy=o.y-P.y,d=Math.hypot(dx,dy)||1;
-    o.vx+=dx/d*3; o.vy+=dy/d*3;
-  }
-  if(boss) damageBoss(boss, Math.ceil(boss.maxHp*0.15)); // collapse chips the anomaly (volley your rings for the rest)
-  spawnRing(P.x,P.y,'#fff',Math.max(W,H)*0.85);
-  spawnRing(P.x,P.y,COL.cyan,Math.max(W,H)*0.6);
-}
+// `collapse()` and `detonateCollapse()` stood here — a 0.45s inhale under heavy slow-motion, then an
+// arena-sweeping wave. Both are gone, and with them the game's only 0.15-of-a-boss button.
+//   THE ANOMALY NOW HAS EXACTLY THREE WAYS IN: a Volley you fired, a Ring you carried, and a Charger's
+// dash you aimed. That is law 2 with nothing left over — every one of the three is something you did on
+// purpose, and none of them can be earned by the boss walking through its own swarm.
+//   `inhaleT` also went, and it was the file's one documented fixed-step exception: it counted down in
+// frameBody in REAL time rather than in step(), which is why the scripted pilot could never fire the
+// blast. Overdrive's drain lives inside step(), so the second verb is finally reachable by the oracle.
+let chargeReady=false;   // has the OVERDRIVE READY chime already fired for this fill
 
 // DEATH CEREMONY: the Core shatters and the world drifts for a beat BEFORE the ledger appears —
 // then the score counts up like a till. Losing should still feel like an event.
@@ -2772,7 +2717,7 @@ function die(){
   if(state==='dead')return; // guard against double-entry
   state='dead';
   killQ.length=0;  // cancel any queued kills
-  inhaleT=0;
+  odOn=false;      // stop the drain — a dead star does not burn Capacitor
   let nb=false;
   if(score>store.best && !testMode && !labMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
   save();
@@ -2823,17 +2768,12 @@ function pushText(x,y,txt,color,life,size){
   }
   texts.push({x,y,txt,color,life,max:life,vy:-0.8,size:size||14});
 }
-// THERE IS NO CENTRE BANNER. Storms, epochs, the Anomaly's arrival, Collapse and streak tiers all land
+// THERE IS NO CENTRE BANNER. Storms, epochs, the Anomaly's arrival, Overdrive and streak tiers all land
 // as matter, colour, ring, shake and sound; a word across the middle of the screen only pulls your eyes
 // off the field at the exact moment you need them on it. The world says what it is by doing it.
-// Pickups keep a channel because a powerup's EFFECT is the one thing you can't read off the screen.
-// You gained something — flies in on the left and lands on the chip column that tracks it.
-function pickupToast(p,note){
-  const pk=el('pickup'); if(!pk)return;
-  pk.style.setProperty('--pk',p.col);
-  pk.innerHTML=`<span class="pkic">${p.ic}</span><b>${p.nm}</b><s>${note||p.ds}</s>`;
-  pk.classList.remove('show'); void pk.offsetWidth; pk.classList.add('show');
-}
+//   THERE IS NOW ONE PERSISTENT TEXT CHANNEL, not two. The other was the pickup pill, and it was
+// justified on the grounds that a powerup's EFFECT is the one thing you cannot read off the screen. That
+// argument does not transfer to Overdrive: you pressed it, and the field visibly swells when you do.
 function showAchvToast(txt){
   const a=el('achv'); if(!a)return;
   a.textContent=txt;
@@ -2869,17 +2809,10 @@ function render(){
     ctx.globalCompositeOperation='lighter';
     drawParticles();
     drawMotes();
-    drawOrbs();
     drawEnemies();
     drawBoss();
     drawLances();
     drawPlayer();
-    if(cwave){
-      ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=6;
-      ctx.beginPath(); ctx.arc(cwave.x,cwave.y,cwave.r,0,TAU); ctx.stroke();
-      ctx.strokeStyle=hexA(COL.cyan,0.6); ctx.lineWidth=14;
-      ctx.beginPath(); ctx.arc(cwave.x,cwave.y,cwave.r,0,TAU); ctx.stroke();
-    }
     ctx.globalCompositeOperation='source-over';
     drawTexts();
   }
@@ -2891,10 +2824,10 @@ function render(){
   if(flash>0){
     ctx.globalAlpha=flash*(store.reduceMotion?0.14:0.4); ctx.fillStyle=flashCol; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
   }
-  if(unstable>0){
-    // gentler, slower collapse tint (was a ~3Hz full-screen strobe)
-    ctx.globalAlpha=(store.reduceMotion?0.05:0.07)+0.03*Math.sin(elapsed*8); ctx.fillStyle=COL.cyan; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
-  }
+  // (No Overdrive screen tint. A cyan full-screen wash lived here for the Collapse window — 25.3% of a
+  //  strong run spent under a coloured overlay. Overdrive says itself, in the world: the field halo swells
+  //  28%, the ring sits at 206.7px instead of 114, it whirls three times faster, the eddy dashes turn
+  //  inside the rim, and the Capacitor bar runs visibly BACKWARDS — nothing else in the game does that.)
 }
 // (No background lattice, deliberately: a square grid is the visual language of a scoreboard and reads
 // as arcade playfield laid over a nebula. The one job it does — something fixed to judge your own
@@ -3395,12 +3328,9 @@ function drawPlayer(){
   // the whole field's tint — and a +/− scratched on the planet was the last piece of UI pretending
   // the player needs to READ their own star instead of seeing it.
   ctx.globalAlpha=1;
-  // Aegis shield rings
-  for(let i=0;i<P.shield;i++){
-    ctx.strokeStyle=hexA('#ffffff',0.35+0.22*Math.sin(elapsed*6+i));
-    ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(P.x,P.y,P.r+7+i*4,0,TAU); ctx.stroke();
-  }
+  // (Three concentric white rings drew the Aegis shell here, at P.r+7+i*4. Nothing grants a shield now.
+  //  Note for whoever builds the close-call shield: those radii sit INSIDE P.r+16, the graze band, so they
+  //  never claimed a false danger edge — keep that property.)
 }
 function drawParticles(){
   for(const p of parts){
@@ -3435,32 +3365,9 @@ function drawMotes(){
   }
   ctx.globalAlpha=1;
 }
-// POWERUP ORBS: a bright pulsing bead ringed with a beckoning halo, its glyph in the middle.
-function drawOrbs(){
-  for(const o of orbs){
-    const p=POWMAP[o.id]; if(!p)continue;
-    const puls=0.5+0.5*Math.sin(elapsed*5+o.ph);
-    const fade=o.life<2 ? 0.3+0.7*Math.abs(Math.sin(o.life*10)) : 1; // blink out in the last 2s
-    const R=15+puls*2;
-    // soft radial glow (additive)
-    const g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,42);
-    g.addColorStop(0,hexA(p.col,0.5*fade)); g.addColorStop(1,hexA(p.col,0));
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(o.x,o.y,42,0,TAU); ctx.fill();
-    // beckoning halo ring
-    ctx.globalAlpha=fade; ctx.strokeStyle=hexA(p.col,0.8); ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(o.x,o.y,24+puls*4,0,TAU); ctx.stroke();
-    // core bead
-    ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(o.x,o.y,R*0.5,0,TAU); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.95)'; ctx.beginPath(); ctx.arc(o.x,o.y,R*0.24,0,TAU); ctx.fill();
-    ctx.globalAlpha=1;
-    // glyph (drawn opaque so the emoji reads true, not additive-washed)
-    ctx.save(); ctx.globalCompositeOperation='source-over';
-    ctx.font='16px system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#fff'; ctx.globalAlpha=fade; ctx.fillText(p.ic,o.x,o.y+1);
-    ctx.restore();
-  }
-  ctx.globalAlpha=1;
-}
+// (`drawOrbs` — a pulsing bead with a beckoning halo and an emoji glyph — went with the orbs. It was the
+//  only place in the render pass that drew an emoji, and the only thing on the field you were meant to
+//  steer INTO rather than away from or around.)
 function drawLances(){
   // (The off-screen siren chevrons are gone with the off-screen Flares. Every missile now launches from
   // the Anomaly's own body, in full view, so there is nothing arriving from outside the arena to warn
@@ -3574,16 +3481,16 @@ function updateHUD(){
   el('time').textContent=fmtTime(elapsed);
   hpI.style.transform=`scaleX(${clamp(P?P.hp/P.maxHp:1,0,1)})`;
   el('hpbar').classList.toggle('low',P&&P.hp/P.maxHp<0.3);
+  // The Capacitor bar now runs BOTH WAYS — the same unconditional scaleX, and `.bar > i`'s
+  // `transition: transform .1s linear` is direction-agnostic, so a drain animates exactly like a fill.
+  // That falling bar is Overdrive's primary readout; nothing else in the game moves backwards.
   chgI.style.transform=`scaleX(${P?P.charge:0})`;
-  const full=P&&P.charge>=1;
-  el('chgbar').classList.toggle('full',full);
-  el('chgbar').classList.toggle('charging', !full && combo>=5); // streak trickle active
-  el('collapseBtn').classList.toggle('show',full && unstable<=0 && inhaleT<=0); // don't advertise a dead button mid-wave
-  // active powerups: one chip per live effect with a draining timer bar
-  let ph='';
-  for(const p of POW){ if(p.kind!=='timed')continue; const t=FX[p.id]; if(t>0){
-    ph+=`<div class="pchip" style="--pc:${p.col}"><span class="pic">${p.ic}</span><b>${p.nm}</b><i style="transform:scaleX(${clamp(t/p.dur,0,1)})"></i></div>`; } }
-  el('powerups').innerHTML=ph;
+  const armed=P&&P.charge>=OD_MIN;
+  el('chgbar').classList.toggle('full',armed);            // "spendable", not "at 1.0"
+  el('chgbar').classList.toggle('burning',odOn);
+  el('chgbar').classList.toggle('charging', !armed && combo>=5); // streak trickle active
+  el('collapseBtn').classList.toggle('show',armed||odOn);
+  el('collapseBtn').classList.toggle('on',odOn);
   // act label + biome tint (Arena shows its controls instead of the Epoch)
   const info=actInfo();
   const al=el('actlab');
@@ -3629,7 +3536,9 @@ function frameBody(now){
   if(state==='play'){ // the Moment Engine only ticks while the sim consumes time — slow-mo holds survive overlays and pauses
     if(tsHold>0) tsHold-=dt;
     else if(timeScale<1) timeScale=Math.min(1, timeScale+dt*2.2);
-    if(inhaleT>0){ inhaleT-=dt; if(inhaleT<=0) detonateCollapse(); } // real-time inhale
+    // (The Collapse inhale counted down HERE, in real time, and that was the file's one fixed-step
+    //  exception — the reason a scripted pilot driving step() could never reach the blast. Overdrive's
+    //  drain lives inside step(), so the second verb is on the same clock as everything else.)
   }
   if(state==='ready'){ resumeT-=dt; if(resumeT<=0){ endReady(); } }
   else if(hitstop>0){ hitstop-=dt; }
@@ -3804,12 +3713,12 @@ function startRun(mode){
   combo=0;peakCombo=0;streakTier=0;
   grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
   motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
-  inhaleT=0;collapseKills=0;chargeFull=false;deathRevealT=0;deadCountT=0;
-  orbs=[];orbTimer=9;for(const k in FX)FX[k]=0;   // powerups: no drops, no active effects at the start
+  chargeReady=false;deathRevealT=0;deadCountT=0;
+  odOn=false;                                      // never start a run already burning
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
   cometT=rand(90,150);
   score=0;
-  trauma=0;hitstop=0;flash=0;unstable=0;cwave=null;timeScale=1;tsHold=0;contactGhost=null;ghostT=0;
+  trauma=0;hitstop=0;flash=0;timeScale=1;tsHold=0;contactGhost=null;ghostT=0;
   boss=null;bossFlash=0;lances.length=0;bossN=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;
@@ -3834,15 +3743,14 @@ function pauseGame(){
   state='paused';
   el('pScore').textContent=score.toLocaleString();
   el('pTime').textContent=fmtTime(elapsed);
-  // active powerups this instant (if any)
+  // Overdrive, if it is burning — one chip, showing what is left of it in seconds
   const wrap=el('pBuild'); wrap.innerHTML='';
-  const active=POW.filter(p=>p.kind==='timed' && FX[p.id]>0);
-  el('pBuildLab').classList.toggle('hidden',!active.length);
-  for(const p of active){
+  el('pBuildLab').classList.toggle('hidden',!odOn);
+  if(odOn){
     const chip=document.createElement('span');
     chip.className='bchip key';
-    chip.innerHTML=`${p.ic} ${p.nm} <span class="n">${FX[p.id].toFixed(1)}s</span>`;
-    chip.title=p.ds;
+    chip.innerHTML=`⚡ Overdrive <span class="n">${(P.charge/OD_DRAIN).toFixed(1)}s</span>`;
+    chip.title='wide, whirling rings — draining the Capacitor';
     wrap.appendChild(chip);
   }
   el('pause').classList.remove('hidden');
@@ -3861,7 +3769,7 @@ el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anom
 el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-5 to fire a shape
 el('againBtn').onclick=()=>{ startRun(lastWasTest); }; // Reforge = instant retry, in the same mode you were in
 el('deadMenuBtn').onclick=()=>{ toMenu(); };
-el('collapseBtn').onclick=e=>{ e.preventDefault(); collapse(); };
+el('collapseBtn').onclick=e=>{ e.preventDefault(); overdrive(); };
 el('pauseBtn').onclick=togglePause;
 el('resumeBtn').onclick=resumeGame;
 el('quitBtn').onclick=()=>{ el('pause').classList.add('hidden'); if(AC&&AC.state==='suspended')AC.resume(); toMenu(); };
@@ -3905,7 +3813,6 @@ function openCodex(){
     if(a.hid && !got) return `<div class="cxa"><span class="st">○</span><span><b>???</b> — a secret feat</span></div>`;
     return `<div class="cxa${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${a.nm}</b> — ${a.ds}${a.hid?` <span class="rw">· secret</span>`:''}</span></div>`;
   }).join('');
-  const powRows=POW.map(p=>`<div class="cxa"><span class="st" style="color:${p.col}">${p.ic}</span><span><b>${p.nm}</b> — ${p.ds}${p.kind==='timed'?` <span class="rw">· ${p.dur}s</span>`:` <span class="rw">· instant</span>`}</span></div>`).join('');
   el('codexBody').innerHTML=`
   <div class="cxs"><h3>The Charge Law</h3>
     <p>Every Dot is <b>red</b> or <b>cyan</b>. Match a colour to be safe from it; hold the opposite to destroy it. That choice is the whole game.</p>
@@ -3918,15 +3825,15 @@ function openCodex(){
     <div class="cxa"><span class="st">✦</span><span><b>Motes</b> — a kill sheds one or two, each worth <span class="gold">5</span>. Sweeping your own debris pays about a third again on top of the kill that made it.</span></div>
     <div class="cxa"><span class="st">✦</span><span>Your own colour hoovers Motes in by itself. The opposite colour waits for a <b>reversal-vacuum</b>.</span></div>
     <div class="cxa"><span class="st">◆</span><span><b>Gilded Bounty</b> — every ~15s a gold-ringed Dot arrives. Pop it within 6s for <span class="gold">250×epoch</span>.</span></div>
-    <div class="cxa"><span class="st">◎</span><span><b>Collapse tally</b> — the wave pays <span class="gold">N²×4</span> for N kills, so herd a dense ring before spending it.</span></div></div>
-  <div class="cxs"><h3>Capacitor &amp; Collapse</h3>
-    <p>The Capacitor fills from pops, Motes and streak milestones. A full meter chimes. Spend it with <b>Shift</b> or <b>right-click</b>.</p>
-    <div class="cxa"><span class="st">◎</span><span>A breath of slow-motion, then a gravity wave sweeps the whole sky for <b>2 damage</b>.</span></div>
-    <div class="cxa"><span class="st">◎</span><span>The weak die; <b>Brutes</b> crawl out burned and flung. Against an <b>Anomaly</b> it is a flat <span class="gold">15%</span>, never more.</span></div>
-    <div class="cxa"><span class="st">◎</span><span>Kills during a Collapse <b>refund no charge</b> — the next one must be earned.</span></div>
-    <div class="cxa"><span class="st">·</span><span>Grazes pay a score crumb only. Charge income is things you <i>chose</i> to do.</span></div></div>
+    <div class="cxa"><span class="st">·</span><span>Grazes pay a score crumb only. Capacitor income is things you <i>chose</i> to do.</span></div></div>
+  <div class="cxs"><h3>Capacitor &amp; Overdrive</h3>
+    <p><b>No level-ups, no permanent upgrades</b> — this is vanilla survival. The Capacitor fills from pops, Motes and streak milestones, and buys the only other thing you can do: <b>Overdrive</b>. <b>Shift</b> or <b>right-click</b>.</p>
+    <div class="cxa"><span class="st">⚡</span><span>Your rings swing <b>wide</b> and whirl <b>fast</b> — a sweeping perimeter that annihilates threats far off your skin. You move quicker too.</span></div>
+    <div class="cxa"><span class="st">⚡</span><span>It <b>drains while it runs</b>. A full meter burns <span class="gold">6s</span>; press again to stop and <b>keep the rest</b>.</span></div>
+    <div class="cxa"><span class="st">⚡</span><span>You can light it from a <b>quarter meter</b> — you do not have to wait for full. Kills while it burns <b>refund no charge</b>.</span></div>
+    <div class="cxa"><span class="st">·</span><span>It does <b>not</b> touch an Anomaly. Nothing you press does — see below.</span></div></div>
   <div class="cxs"><h3>Streak</h3>
-    <p>A <b>no-hit</b> kill count. Every rank grants a Capacitor chunk. A real hit ends it; shield blocks do not.</p>
+    <p>A <b>no-hit</b> kill count. Every rank grants a Capacitor chunk. Any real hit ends it — nothing blocks a hit.</p>
     <div class="cxa"><span class="st">✧</span><span>25 <b style="color:var(--cyan)">AWAKENING</b> · 50 <b class="gold">MAGNETIC</b> · 100 <b class="vio">UNSTOPPABLE</b> · 200 <b>TRANSCENDENT</b></span></div>
     <div class="cxa"><span class="st">✧</span><span>Break a streak of 25+ and it <b>bursts into Capacitor</b> (up to +20%) instead of simply vanishing.</span></div></div>
   <div class="cxs"><h3>Mastery</h3>
@@ -3944,13 +3851,9 @@ function openCodex(){
     <div class="cxa"><span class="st gold" style="width:32px">2</span><span><b>Volley</b> — per Dot that connects, thrown by a hungry flip. The main line.</span></div>
     <div class="cxa"><span class="st gold" style="width:32px">1</span><span><b>Ring grind</b> — per Dot, for carrying a loaded ring into it. Pressure, not the finisher.</span></div>
     <div class="cxa"><span class="st gold" style="width:32px">8</span><span><b>Charger dash</b> — stand so its locked lane runs through the boss. The hardest hit to set up.</span></div>
-    <div class="cxa"><span class="st gold" style="width:32px">15%</span><span><b>Collapse</b> — flat, whatever the field looks like.</span></div>
-    <p style="margin-top:8px"><b>Nothing else reaches it</b>, and <b>it does not leave</b>: no timer, no escape. Purge it for a <b>powerup cache</b>, +30 Integrity and +40% charge.</p>
+    <p style="margin-top:8px"><b>Those three, and nothing else</b> — every one of them something you aimed or something you carried. There is no button that hurts it. And <b>it does not leave</b>: no timer, no escape. Purge it for <b>+30 Integrity and +40% Capacitor</b>.</p>
     <p>All three kinds <b>hunt</b>: every 9–14s one breaks station and walks onto your core. Slow and loud — it lands <b>one</b> hit, then recoils.</p>
     <p><b>Emitter</b>, <b>Sentinel</b> and <b>Pulsar</b> each announce their mechanic in their shape. Full cards are in the <b>✦ Bestiary</b>.</p></div>
-  <div class="cxs"><h3>Powerups</h3>
-    <p><b>No level-ups, no permanent upgrades</b> — this is vanilla survival. <b>Steer into</b> an orb to collect it; every effect is instant and temporary.</p>
-    ${powRows}</div>
   <div class="cxs"><h3>Achievements</h3>${achRows}</div>
   <div class="cxs"><h3>Matter</h3><p>Nine species, the Anomaly kinds and the Patterns — real sizes, health and damage — in the <b>✦ Bestiary</b>, one button over.</p></div>`;
   el('codex').classList.remove('hidden');
@@ -4006,13 +3909,13 @@ canvas.addEventListener('pointerdown',e=>{
   audioInit();
   if(isTouch(e)){
     if(touchId===null){ touchId=e.pointerId; tapX=e.clientX; tapY=e.clientY; tapT=performance.now(); tapMoved=false; }
-    else if(state==='play'){ collapse(); }                // a second finger while steering: Collapse
+    else if(state==='play'){ overdrive(); }               // a second finger while steering: Overdrive
     if(state==='ready') skipReady();
     return;                                               // touch decides on RELEASE, not on press
   }
   setPointer(e.clientX,e.clientY);
   if(state==='ready'){ skipReady(); return; }
-  if(e.button===2){ collapse(); return; }
+  if(e.button===2){ overdrive(); return; }
   if(state==='play') flip(); // a pure tap — reverse poles
 });
 function endTouch(e){
@@ -4022,7 +3925,7 @@ function endTouch(e){
 }
 canvas.addEventListener('pointerup',endTouch);
 canvas.addEventListener('pointercancel',endTouch);
-canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); if(state==='play') collapse(); });
+canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); if(state==='play') overdrive(); });
 window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   keys[k]=true;
@@ -4033,7 +3936,7 @@ window.addEventListener('keydown',e=>{
     else if(state==='ready') skipReady();
     else if(state==='menu' && !infoOpen) startRun();
   }
-  if(k==='shift'){ e.preventDefault(); collapse(); }
+  if(k==='shift'){ e.preventDefault(); if(!e.repeat) overdrive(); } // ignore auto-repeat — it would toggle every frame
   if(k==='p'||k==='escape'){ e.preventDefault(); togglePause(); }
   if(k==='m'){ toggleMute(); }
   // range derives from TEST_ORDER so it can never drift from the '1-N SWITCH KIND' label again (it accepted
@@ -4129,15 +4032,14 @@ const sfx={
   kill(c){ const f=380+Math.min(c,40)*22; beep(f,0.06,'square',0.06); },
   milestone(c){ beep(500,0.12,'sawtooth',0.12,900); beep(760,0.14,'triangle',0.08,1200); },
   hurt(){ beep(150,0.18,'sawtooth',0.22,60); noise(0.18,0.18); },
-  collapse(){ noise(0.5,0.4); beep(90,0.6,'sawtooth',0.3,400); beep(220,0.5,'sine',0.2,880); },
   level(){ beep(523,0.14,'triangle',0.14); beep(659,0.16,'triangle',0.12); beep(784,0.2,'triangle',0.12); },
   buy(){ beep(660,0.07,'square',0.12,880); },
   lance(){ beep(180,0.12,'sawtooth',0.14,520); noise(0.1,0.08); },
   bosshit(){ beep(300,0.09,'square',0.12,180); noise(0.12,0.1); },
-  // THE BOMBER'S DETONATION. Must not be mistaken for sfx.collapse(), which is YOURS and the biggest
-  // thing you can press: collapse runs 0.5s of noise under a 0.6s 90->400 sweep plus a 220 sine, a long
-  // swelling event. This is short, dry and entirely downward — a crack rather than a swell, over in
-  // 0.3s, so a Bomber going off in the crowd never reads as "did I just spend my Capacitor?".
+  // THE BOMBER'S DETONATION. Short, dry and entirely downward — a crack rather than a swell, over in
+  // 0.3s. It used to be defined by contrast with sfx.collapse(), a long swelling event that was the
+  // biggest thing you could press; that voice is gone with the Collapse, and the Bomber is now simply
+  // the only detonation in the game. Keep it a crack: nothing the player presses should sound like it.
   bomb(){ beep(88,0.30,'sawtooth',0.22,28); noise(0.26,0.20); beep(190,0.14,'square',0.09,52); },
   // THE BAITED CHARGE. It has to be tellable from bosshit() while your eyes are on the far side of the
   // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
@@ -4207,21 +4109,23 @@ window.__orbital=window.__polaris=window.__flux={
     const rd=e=>({x:+e.getBoundingClientRect().left.toFixed(1),y:+e.getBoundingClientRect().top.toFixed(1),o:+e.style.opacity});
     return {t:t||0, spin:tSpin.map(p=>rd(p.el)), hit:tHit.map(p=>rd(p.el)), lastImpactCycle:tBoom}; },
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
-    const fx={}; for(const k in FX) if(FX[k]>0) fx[k]=+FX[k].toFixed(2);
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
-      act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length, shield:P&&P.shield, orbs:orbs.length, fx}; },
-  flip, collapse, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
+      act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length, odOn}; },
+  flip, overdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
   spawnBoss, fireLanceVolley, get store(){return store;},
   spawnFormation, formWall, formNoose, formPulse, formSorter, formComet,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
   get motes(){return motes;}, KILL_SCORE, MOTE_SCORE, GRAZE_SCORE,
-  get combo(){return combo;}, get inhaleT(){return inhaleT;}, get unstable(){return unstable;},
+  get combo(){return combo;}, get odOn(){return odOn;}, OD_DRAIN, OD_MIN,
   get timeScale(){return timeScale;}, get lances2(){return lances;}, get lastDmg(){return lastDmg;},
-  detonateCollapse, breakStreak,
-  // powerup test accessors
-  POW, get orbs(){return orbs;}, get FX(){return FX;}, dropOrb, collectOrb, fireNova,
-  grant(id,dur){ const p=POWMAP[id]; if(!p)return; if(p.kind==='instant')fireNova(); else FX[id]=dur||p.dur; },
+  breakStreak,
+  // ⚠️ STUBS, DELIBERATELY. `.oracle.js` and `.harness/preload.js` both iterate `g.orbs` UNGUARDED with
+  // no try/catch — `for (const o of undefined)` THROWS rather than diffing, which would take the whole
+  // fingerprint harness down. `FX` reports Overdrive's remaining seconds so the old effect-timer layer
+  // still means something. Do not remove these without fixing both harness files first.
+  get orbs(){ return []; },
+  get FX(){ return {overdrive: odOn ? P.charge/OD_DRAIN : 0}; },
   get bossN(){return bossN;}, set bossN(v){bossN=v;},
   openCodex, queueKill,
   get flipCd(){return P&&P.flipCd;},

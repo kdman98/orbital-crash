@@ -31,19 +31,27 @@ window.__selftest = async function (opts) {
       a.join() === b.join() ? '600/600 frames identical' : 'diverges at frame ' + a.findIndex((v, i) => v !== b[i]));
   chk('different seed actually differs', a[0] !== c[0], 'frame 0 differs');
 
-  // --- 2. the Collapse blast is reachable, which tick(n) can never make it ---------------------------
-  const collapseVia = (useFrames) => {
+  // --- 2. the second verb is reachable BOTH ways -----------------------------------------------------
+  // This section used to prove the opposite: that the Collapse blast could ONLY be reached by driving
+  // real frames, because its 0.45s inhale counted down in frameBody rather than in step(). That was the
+  // oracle's one blind spot. Overdrive drains inside step(), so the blind spot is gone — and the check
+  // that matters now is that BOTH drivers agree.
+  const odVia = (useFrames) => {
     H.startRun({ seed: 777, store: { mute: true, reduceMotion: false } });
     H.run(60);
     g.P.charge = 1;
     w.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Shift', bubbles: true, cancelable: true }));
-    if (useFrames) H.run(40); else g.tick(60);
-    return { inhaleT: +g.inhaleT.toFixed(3), unstable: +g.unstable.toFixed(3) };
+    const lit = g.odOn;
+    if (useFrames) H.run(40); else g.tick(40);
+    return { lit, odOn: g.odOn, charge: +g.P.charge.toFixed(3) };
   };
-  const viaTick = collapseVia(false), viaFrames = collapseVia(true);
-  chk('tick(n) never detonates (the oracle\'s blind spot)', viaTick.unstable === 0 && viaTick.inhaleT === 0.45,
-      'inhaleT pinned at ' + viaTick.inhaleT + ' after 60 raw steps');
-  chk('frame-driving detonates', viaFrames.unstable > 0, 'unstable=' + viaFrames.unstable + ' after 40 frames');
+  const viaTick = odVia(false), viaFrames = odVia(true);
+  chk('Shift lights Overdrive', viaTick.lit === true && viaFrames.lit === true,
+      'tick:' + viaTick.lit + ' frames:' + viaFrames.lit);
+  chk('tick(n) drains it (no real-time blind spot any more)', viaTick.charge < 1,
+      'charge ' + viaTick.charge + ' after 40 raw steps');
+  chk('frame-driving drains it identically', Math.abs(viaFrames.charge - viaTick.charge) < 0.02,
+      'frames ' + viaFrames.charge + ' vs tick ' + viaTick.charge);
 
   // --- 3. record -> replay is bit-exact, over a jittered frame cadence -------------------------------
   const N = opts.frames || 1800;

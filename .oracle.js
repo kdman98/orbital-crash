@@ -39,12 +39,14 @@
       h ^= ((v >> 16) & 0xff); h = Math.imul(h, 16777619) >>> 0;
     };
     const P = g.P;
-    if (P) [P.x, P.y, P.hp, P.charge, P.polarity, P.fieldR, P.r, P.shield ? 1 : 0, P.flipCd].forEach(push);
+    // `P.shield` is gone with the Aegis orb and `P.fieldR` is now driven by Overdrive rather than a
+    // powerup timer, so `odOn` replaces the shield slot: same layer width, live meaning.
+    if (P) [P.x, P.y, P.hp, P.charge, P.polarity, P.fieldR, P.r, g.odOn ? 1 : 0, P.flipCd].forEach(push);
     for (const e of g.enemies) [e.x, e.y, e.vx, e.vy, e.color, e.hp || 0, e.ring ? 1 : 0, e.type ? e.type.length : 0].forEach(push);
     const b = g.boss;
     if (b) [b.x, b.y, b.hp, b.telegraph || 0, b.hunt || 0].forEach(push);
     for (const l of g.lances) [l.x, l.y, l.vx, l.vy].forEach(push);
-    for (const o of g.orbs) [o.x, o.y].forEach(push);
+    for (const o of (g.orbs || [])) [o.x, o.y].forEach(push);   // orbs are gone; the seam stubs [] — guard anyway
     push(g.diag().score);
     return h.toString(16);
   };
@@ -63,7 +65,7 @@
       const py = 400 + 240 * Math.sin(t * 1.37 + 1.1);
       cv.dispatchEvent(new PointerEvent('pointermove', { clientX: px, clientY: py, bubbles: true }));
       if (i % 47 === 0) g.flip();
-      if (i % 311 === 0 && i) g.collapse();
+      if (i % 311 === 0 && i) g.overdrive();   // was g.collapse() — the second verb is Overdrive now
       g.tick(1);
       if ((i + 1) % 120 === 0) fps.push(window.__fp());
       if (g.P && g.P.hp <= 0) { fps.push('DEAD@' + (i + 1)); break; }
