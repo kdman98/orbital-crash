@@ -1138,6 +1138,24 @@ old** — "it bought 6.0s", "a bait *was* worth", "the global income rate, not a
 toggle". A comment carrying its own before-and-after cannot silently become wrong; it can only become
 history, which is what a comment is for.
 
+**An incentive has a *strength* and a *weight*, and they travel together right up until they don't.**
+Strength is what a player feels at the moment of deciding; weight is strength × how many occasions a run
+gives them. Almost always they move the same way, which is exactly why they are easy to run together —
+and they come apart when the **number of occasions** moves independently of the payoff. The Overdrive
+repricing did that: it cut burn-seconds per run fourfold while leaving ring physics untouched, so the
+weight of the hoard-and-don't-flip incentive fell and its strength did not move at all. A claim that
+"the tension narrowed" was true of the weight and false of the strength. **Ask which one you measured
+and which one your decision needs** — *what does a player do next* is a strength question, *how much is
+a run distorted* is a weight question, and a design change usually turns on the first.
+
+**A rejection is as perishable as a measurement, and nothing in this process re-checks it.** The current
+`CHARGE_DMG` was once rejected in its own comment block, on the grounds that it would one-shot an Epoch
+I Pulsar. The pool later doubled, and that same value became the one that *preserves* what the rejection
+was protecting — two baits, exactly what the old number took against the old Pulsar. **The rejection was
+never wrong; the thing it was measured against moved.** Measurements here get re-run as a matter of
+course. Rejected candidates get filed with their reason and never looked at again, which makes them the
+stalest thing in the file. When a premise moves, re-derive what it ruled out.
+
 **And the same defect one level up: a *rule* that states a derived number.** `CHARGE_DMG` was recorded
 as "pinned at 4 × `VOLLEY_DMG`, and that ratio is the constant". It was not the constant — the bait's
 **share of a bar** was, and the ratio was how you reached that share at the pool of the day. Nothing was

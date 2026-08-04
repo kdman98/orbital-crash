@@ -740,7 +740,8 @@ const OD_DRAIN=1/3;          // charge per second while burning
 // runs while a clean one fired every few seconds.
 const OD_MIN=0.25;
 const OD_COL='#ffe36b';      // the Overdrive orb's gold, kept so the cue vocabulary did not change
-// THE RIDE LOG. The run summary records the rides INDIVIDUALLY ("3.0s 1.5s 2.0s 0.7s"), not a total,
+// THE RIDE LOG. The run summary records the rides INDIVIDUALLY ("3.0s 1.5s 2.0s 0.7s" — the first is a
+// FULL meter at today's drain, which is what makes this example readable; reprice and it stops being),
 // because the shape of the list is the interesting part: four sips and a redline is a different run from
 // two full burns, and both sum the same. `odT` is ACCUMULATED, never derived from `odFrom - P.charge` —
 // streak milestones (onKill/MCHG) and the purge reward (killBoss) both still pay THROUGH a burn, so charge
@@ -2146,13 +2147,16 @@ function stepEnemyForces(dt){
     if(inField || inGrace){
       const rm=P.ringMul||1;
       // 0.72 under EDDY, not 0.85. Pilot: "with half a gauge, i could barely spin once" — and they were
-      // exactly right, measured at 1.59 revolutions per half gauge. A wider ring is a SLOWER-LOOKING one:
+      // exactly right: 0.53 rev/s before the fix, 0.927 after. A wider ring is a SLOWER-LOOKING one:
       // angular rate is v/r, so the 1.28x Field widening was cancelling most of the spin it was sold with.
       // Pulling the orbit in trades radius for visible rotation, and is also nearer "a little bigger".
-      // ⚠️ BOTH FIGURES ABOVE ARE PER HALF GAUGE, AND THE GAUGE HAS SINCE HALVED IN SECONDS. That was
-      // measured at OD_DRAIN 1/6; at 1/3 a half gauge buys half the ride it did, so a re-measurement here
-      // is not comparable to 1.59 unless you convert. The fix that followed took it to 2.78 revolutions
-      // per half gauge THEN, which is 2.78 per FULL gauge now — the geometry never moved, the seconds did.
+      // ⚠️ MEASURE THIS IN REV/S, NEVER IN GAUGE FRACTIONS. Both figures were first recorded "per half
+      // gauge", and a half gauge was 3.0s at OD_DRAIN 1/6 and is 1.5s at 1/3 — the NUMBER never changed,
+      // its UNIT silently did, which is the one kind of staleness re-reading the comment cannot catch.
+      // Seconds are invariant under any future repricing; gauge fractions are the right unit for the
+      // METER and the wrong one for RING PHYSICS. (Cross-check: 0.927 rev/s = one turn per 1.08s =
+      // 5.82 rad/s, the three ways of saying it in this file. If a re-measurement disagrees with all
+      // three, it is the measurement that is wrong.)
       const orbR=P.fieldR*(P.eddy?0.72:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
       ax+=(dx/d)*toRing*err*0.03*rm; ay+=(dy/d)*toRing*err*0.03*rm;   // spring onto the ring radius
       // Ring whirl is `spin/(1-bleed)` where the `0.80` bleed below (ordinary matter gets 0.86) is what
