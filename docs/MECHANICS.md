@@ -298,13 +298,24 @@ meter buys a quarter of them. Press again to **bank the remainder**. That is the
 now at the pressure you can see, or hold for the pressure you expect. A spend that must be full and
 must be total is a button; a spend you can meter is a choice.
 
-**What it does is reach.** `P.eddy` moves the ring orbit from `0.6` to `0.85` of the Field, `P.ringMul`
-raises capacity, `P.fieldR` widens the catch and `P.moveMult` speeds the star. Measured, the shell goes
-**114 → 217px and gets 95% of the way there in 0.18s**, against a cheapest ride of 1.5s — so it arrives
-as a snap, not a drift. Linear speed at the rim roughly doubles, **4.8 → 10.7 px/frame**, but the
-*angular* rate rises only **1.17×** because the radius nearly doubled. The raw multipliers suggest a
-3.15× spin; that is not what a player sees, and quoting it would be describing arithmetic rather than
-the game.
+**What it does is reach, and speed.** `P.eddy` moves the ring orbit outward and spins it harder,
+`P.ringMul` raises capacity, `P.fieldR` widens the catch, `P.moveMult` speeds the star. Measured, the
+shell settles at **214px** against a base 114px and gets most of the way there inside a fifth of a
+second — it arrives as a snap, not a drift — and turns at **5.82 rad/s against a base 2.52**, one
+revolution every **1.08s**. Half a meter buys **2.78 revolutions**.
+
+**Three constants own that, and they only work together.** The eddy orbit, the eddy spin, and the
+ringed-matter speed ceiling `RING_CAP`. Widening the shell and spinning it faster *fight each other* —
+angular rate is v/r, so a wider ring is a slower-looking one — and the ceiling caps the result of both.
+Change one and you will measure almost nothing; that is the whole reason they are documented as a set.
+`closing` is deliberately **not** on `RING_CAP`: like-charge on its way in is not a ring yet, and giving
+it ring-grade speed makes gathering feel like a vacuum, which is the misconception the game works
+hardest to avoid.
+
+The cap is `e.maxsp * RING_CAP`, so every species scales together and the ordering survives — Brute
+slowest, Dart fastest, each clamped at its own ceiling. A faster ring also **holds better** rather than
+worse under dodging, and grinds an Anomaly slightly harder while you burn: the existing channel
+improving, not a new one.
 
 **It does not touch the Anomaly** — law 2, and no exception. The meter buys field control, never boss
 damage. Erosion stays Volley, ring grind, baited charge.
@@ -916,6 +927,14 @@ sibling `.stat` class is where the other meters get theirs.
 
 **The browser can measure a build that is not on disk.** Assert a new-code marker — a value only the new
 build can produce — before trusting any number from a live probe.
+
+**A constant sitting exactly on a clamp has no authority, and changing it reads as a no-op rather than as
+a mistake.** Under Overdrive a ringed Drifter sat on its speed ceiling *exactly* — 12.03 px/frame against
+a cap of 12.03 — so raising the spin 1.4× moved the measured result from 1.59 revolutions to 1.61. The
+number looked wrong, the tuning looked ineffective, and the actual fault was a ceiling last tuned for a
+different case. **Print the clamp next to the value.** A quantity that never moves when you change its
+own constant is not a weak lever; it is a lever connected to nothing, and the two are indistinguishable
+from the output alone.
 
 **The harness runs with `document.hidden === true`**, so `requestAnimationFrame` never fires and anything
 driven only from the frame loop reads as absent. `titleOrbit` and `render()` both need driving by hand

@@ -14,6 +14,36 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-04
 
+### Overdrive gets faster instead of only bigger `84d5aee`
+*The diff is in `84d5aee`, whose message is about a documentation pass — it was swept in by a `git add -A`
+from a parallel session. The reasoning is here and in the code comments at both sites, because it did not
+survive into the commit body where this repo normally keeps it.*
+
+Pilot report after `b3a95a3`: *"overdrive should be faster, since with half a gauge, i could barely spin
+once."* Measured at **1.59 revolutions per half gauge**. Correct, and the cause was not the spin number.
+
+**The spin constant had no authority at all.** Under Overdrive a ringed Drifter sat on its speed clamp
+*exactly* — 12.03 px/frame against a cap of 12.03 — so raising the eddy spin 1.4× on its own moved the
+ring from **1.59 to 1.61** revolutions. Every point of the advertised spin was being eaten by a ceiling
+last tuned for the base ring. **And a wider ring is a slower-looking one:** angular rate is v/r, so the
+Field widening was cancelling most of the spin it shipped alongside. The two levers were fighting each
+other, which is why Overdrive read as *bigger* and never as *faster*.
+
+Three numbers move together and only work together — eddy orbit `0.85` → **`0.72`**, eddy spin `2.1` →
+**`3.6`**, and the ringed-matter speed ceiling (now named `RING_CAP`) `2.9` → **`5.0`**.
+**Measured:** angular rate **3.33 → 5.82 rad/s**, one revolution every **1.08s** instead of 1.89s, so half
+a gauge buys **2.78 revolutions instead of 1.59**. Settled radius is **unchanged at 214px** — the faster
+spin pushes back out against the tighter target, so this is pure speed, not a size cut. Burn timing
+untouched.
+**Nothing else moved.** The base ring is byte-identical (Drifter 114px, 2.52 rad/s) because `RING_CAP`
+does not bind at base spin. Mass shows *more* ordering, not less — the cap is `e.maxsp * RING_CAP`, so
+every species scales together: Brute 3.84, Drifter 5.82, Dart 6.81 rad/s, each still clamped at its own.
+*Side effects checked rather than assumed:* a 20.7 px/frame ring **holds better** (14 of 14 retained while
+dodging, against 13 of 14 at base), and ring grind rises 2 damage over 10s — the existing channel getting
+slightly better while you burn, not a new one. `closing` is split off the clamp and keeps its old value,
+because like-charge on its way in is not a ring yet and ring-grade speed would make gathering feel like a
+vacuum.
+
 ### Two verbs: flip, and Overdrive `b3a95a3`
 Collapse and the entire powerup system are deleted. The Capacitor now buys **Overdrive** — the effect the
 orb used to grant free, made **drainable**: ignite from `OD_MIN` rather than only when full, `OD_DRAIN`
