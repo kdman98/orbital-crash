@@ -2,7 +2,7 @@
   "name": "orbital-crash",
   "version": "1.0.0",
   "private": true,
-  "description": "Pure arcade survival — steer your world, annihilate opposite charge, survive the Anomalies.",
+  "description": "Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies.",
   "scripts": {
     "build": "rm -rf www && mkdir -p www && cp index.html bestiary.html manifest.webmanifest sw.js www/ && cp -R icons www/icons",
     "sync": "npm run build && cap sync",

@@ -45,7 +45,7 @@
       <div class="logo">ORBITAL CRASH</div>
       <div class="sub">Bestiary</div>
     </header>
-    <p class="legend">Every body carries a charge — <b style="color:#ff3f6c">Red</b> or <b style="color:#38e0ff">Cyan</b>. The <b>opposite</b> charge is pulled toward you and dies on contact: your danger, and also your ammunition. The <b>same</b> charge is caught safely into your rings. <b style="color:#c7b8ff">Neutral</b> is uncharged. Colours below are examples — any species can arrive as either.</p>
+    <p class="legend">Every Dot carries a charge — <b style="color:#ff3f6c">Red</b> or <b style="color:#38e0ff">Cyan</b>. The <b>opposite</b> charge is pulled toward you and dies on contact: your danger, and also your ammunition. The <b>same</b> charge is caught safely into your rings. <b style="color:#c7b8ff">Neutral</b> is uncharged. Colours below are examples — any species can arrive as either.</p>
     <div class="grid" id="fbGrid"></div>
     <p class="foot">Rendered live with ORBITAL CRASH's own draw code · sizes, health &amp; damage are the real values.</p>
   </div>
@@ -55,17 +55,17 @@
   const TAU=Math.PI*2;
   const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
 
-  const CORE={kind:'core',name:'The Star',tag:'You. Steer with the mouse. <b>Flip</b> your charge to change which bodies are safe — and to fling the ring you have gathered.'};
+  const CORE={kind:'core',name:'The Star',tag:'You. Steer with the mouse. <b>Flip</b> your charge to change which Dots are safe — and to fling the ring you have gathered.'};
   const DOTS=[
-    {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,hp:1,dmg:10,tag:'The baseline body — plain disc, steady approach. Learn the colour rules on these.'},
+    {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,hp:1,dmg:10,tag:'The baseline Dot — plain disc, steady approach. Learn the colour rules on these.'},
     {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, hp:1,dmg:8, tag:'Small, very fast, light hit. Know it by the <b>wake</b> — nothing ordinary moves quicker.'},
-    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'The <b>hexagon</b>: big, slow, hardest contact hit in the sky. At <b>3 hp</b> it is the one body a Collapse only burns and flings — it walks out alive.'},
-    {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,hp:1,dmg:12,tag:'Two lobes already coming apart. Pop it and it bursts into <b>2 Minis</b> — the one body that leaves the sky fuller. A <b>Collapse kills it clean</b>.'},
-    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Shrapnel from a Splitter, and the only body with <b>no white core</b> — a solid pellet. Tiny hit, but it arrives in pairs.'},
+    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'The <b>hexagon</b>: big, slow, hardest contact hit in the sky. At <b>3 hp</b> it is the one Dot a Collapse only burns and flings — it walks out alive.'},
+    {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,hp:1,dmg:12,tag:'Two lobes already coming apart. Pop it and it bursts into <b>2 Minis</b> — the one Dot that leaves the sky fuller. A <b>Collapse kills it clean</b>.'},
+    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Shrapnel from a Splitter, and the only Dot with <b>no white core</b> — a solid pellet. Tiny hit, but it arrives in pairs.'},
     {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Circles you instead of charging. Its mark is the <b>hole through the middle</b>, and the pip running that hole turns the way it curves.'},
     {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:10,
-     tag:'<b>Spiked mine</b> that really does go off — though <b>never at you</b>. The blast costs no health; it wipes every dot within ~120px, <b>your own ring included</b>. Only a <b>Brute</b> survives it. Don\'t pop one in your hoard.'},
-    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one body your magnetism cannot hold. It draws its lane before dashing: step <b>off</b> it, or stand so that lane crosses an <b>Anomaly</b> for <b>8 dmg</b>.'},
+     tag:'<b>Spiked mine</b> that really does go off — though <b>never at you</b>. The blast costs no health; it wipes every Dot within ~120px, <b>your own ring included</b>. Only a <b>Brute</b> survives it. Don\'t pop one in your hoard.'},
+    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one Dot your magnetism cannot hold. It draws its lane before dashing: step <b>off</b> it, or stand so that lane crosses an <b>Anomaly</b> for <b>8 dmg</b>.'},
     {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'Uncharged, and it <b>wears both poles</b> on a turning seam: no colour makes it safe or makes it ammunition, and your magnetism cannot move it.'},
   ];
   // r is the hull AND the collider, same law as every dot row.
@@ -93,7 +93,7 @@
     {kind:'form',key:'sorter',name:'The Sorter',col:'cyan',meta:'two walls · two colours · two doors',
      tag:'Two solid walls converge, one <b>red</b> and one <b>cyan</b>, their doors at different heights. No colour is safe from both: <b>match the first, then flip for the second</b>.'},
     {kind:'form',key:'comet',name:'The Comet', col:'cyan', meta:'an event · roughly 1 per 10 min',
-     tag:'One body crosses the whole sky at <b>triple speed</b>, trailing a tail. Its nucleus is a <b>Brute</b> — an opportunity, not an attack. Go and meet it, or lose it.'},
+     tag:'One Dot crosses the whole sky at <b>triple speed</b>, trailing a tail. Its nucleus is a <b>Brute</b> — an opportunity, not an attack. Go and meet it, or lose it.'},
   ];
 
   const renders=[];
@@ -134,7 +134,7 @@
       ctx.fillStyle=COL.red;  ctx.beginPath(); ctx.arc(x,y,r, na, na+Math.PI); ctx.fill();
       ctx.fillStyle=COL.cyan; ctx.beginPath(); ctx.arc(x,y,r, na+Math.PI, na+TAU); ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.24,0,TAU); ctx.fill();
-    } else if(s.type==='charger'){ // the arrowhead — the one body the Field does not own, as in the game
+    } else if(s.type==='charger'){ // the arrowhead — the one Dot the Field does not own, as in the game
       const ha=Math.sin(t*0.6)*0.5, ca=Math.cos(ha), sa=Math.sin(ha), R=r*1.25;
       ctx.fillStyle=c; ctx.beginPath();
       ctx.moveTo(x+ca*R, y+sa*R);
@@ -166,7 +166,7 @@
         k?ctx.lineTo(hx,hy):ctx.moveTo(hx,hy); }
       ctx.closePath(); ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
-    } else if(s.type==='mini'){    // the one fully solid body in the sky — no core dot, on purpose
+    } else if(s.type==='mini'){    // the one fully solid Dot in the sky — no core dot, on purpose
       ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
     } else if(s.type==='fast'){    // the wake: aspect ratio is the cue that survives a phone screen
       ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=r*0.9; ctx.lineCap='round';
@@ -330,7 +330,7 @@
   function drawForm(ctx,x,y,s,t){
     ctx.globalCompositeOperation='lighter';
     if(s.key==='wall'){
-      // a line of alternating bodies marching right, with a gap that narrows as it goes
+      // a line of alternating Dots marching right, with a gap that narrows as it goes
       const N=13, sp=13.4, gapAt=5;
       const cyc=(t*0.34)%1, ox=-72+cyc*144, shut=cyc;           // door closes across the sweep
       for(let i=0;i<N;i++){
@@ -383,7 +383,7 @@
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
     } else if(s.key==='sorter'){
       // Two SOLID single-colour walls closing on each other, red from the left and cyan from the
-      // right, each with a two-body door — and the doors deliberately do not line up (formSorter()
+      // right, each with a two-Dot door — and the doors deliberately do not line up (formSorter()
       // re-rolls gapB until they are at least 4 slots apart). No arrows: the two colours converging
       // is the whole read, and a pair of arrows would collide in the middle exactly when they meet.
       const cyc=(t*0.28)%1, sp=13.4, N=13, gapA=3, gapB=8;
@@ -403,9 +403,9 @@
           ctx.beginPath(); ctx.arc(x,yy,3+4*f,0,TAU); ctx.fill(); } }
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
     } else if(s.key==='comet'){
-      // One body on a fixed line, far faster than anything else, with the tail formComet() actually
+      // One Dot on a fixed line, far faster than anything else, with the tail formComet() actually
       // emits: particles laid down BEHIND the nucleus in world space, ~45% white and the rest the
-      // body's own colour. The nucleus is a Brute, so it is drawn as the biggest body on any card.
+      // Dot's own colour. The nucleus is a Brute, so it is drawn as the biggest Dot on any card.
       const c=COL[s.col], cyc=(t*0.3)%1, TN=24;
       const cx=x-104+cyc*208, cy=y+44-cyc*88;
       for(let i=TN;i>=1;i--){

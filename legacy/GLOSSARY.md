@@ -1,3 +1,9 @@
+> ⚠️ **SUPERSEDED — do not trust anything below.** Replaced by
+> [docs/GLOSSARY.md](../docs/GLOSSARY.md) (terms) and [docs/MECHANICS.md](../docs/MECHANICS.md)
+> (how it works). Kept only to recover a detail those two dropped. Known-wrong at retirement:
+> the §11 "reachable" claim about `P.blastR`/`P.blastDmg`, the "~42s" first-formation time, and
+> `Dot` listed as retired — it is now the canonical term.
+
 # ORBITAL CRASH — Shared Glossary
 
 A shared vocabulary so we can talk about the game precisely. **Bold** = the canonical

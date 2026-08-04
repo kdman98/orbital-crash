@@ -1,7 +1,7 @@
 {
   "name": "Orbital Crash",
   "short_name": "Orbital Crash",
-  "description": "Pure arcade survival — steer your world, annihilate opposite charge, survive the Anomalies.",
+  "description": "Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",

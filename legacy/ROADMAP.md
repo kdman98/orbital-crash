@@ -1,3 +1,9 @@
+> ⚠️ **SUPERSEDED — do not trust anything below.** The dated history is now
+> [docs/PATCHNOTE.md](../docs/PATCHNOTE.md); the open questions are `## Open` in
+> [docs/MECHANICS.md](../docs/MECHANICS.md). Every entry here was carried across. Kept only for the
+> long-form measurement write-ups that did not fit a patch note. Known-wrong at retirement: the four
+> newest entries are dated 2026-08-03 but git dates those commits **2026-08-04**.
+
 # ORBITAL CRASH — Feature Ledger
 
 The living record of what's shipped, what's being built, what's parked, and what needs
@@ -883,7 +889,8 @@ white→cyan→violet gradient on the words, which left **red — half the game 
 screen**. It is replaced by a colourless wordmark and four charges on two orbits: an outer red/cyan
 pair pinned half a lap apart that can never touch (~282px is as close as they get), and an inner
 red/cyan counter-rotating pair that annihilates every 7.6s, impact alternating right/left. Tunables
-and the three traps are in [TITLE.md](TITLE.md); drive it in tests with `__orbital.title(t)`.
+and the three traps are in `TITLE.md` *(deleted — now [docs/MECHANICS.md](../docs/MECHANICS.md)
+`## The title screen`, where the list is corrected to four)*; drive it in tests with `__orbital.title(t)`.
 
 **World → Star.** `world` had been doing three unrelated jobs — the avatar, the coordinate space
 (*world space*, *design units*), and the game's setting (*the silent world*) — told apart only by
