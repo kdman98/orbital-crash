@@ -4990,11 +4990,18 @@ function tiltFault(){
                                                         // WebView the promise rejects while the native
                                                         // grant stands, so the promise is the less
                                                         // reliable witness of the two.
+  // EVERY FAILURE NAMES THE WAY OUT. Touch does not steer on these devices, so each of these strings is
+  // being read by someone holding a game that does not respond — and the Settings switch that gives them
+  // finger steering back is the only thing that helps. Saying only "allow motion access" leaves a player
+  // whose OS has already refused with nowhere to go.
+  //   None of them says "app" either. `tiltWanted()` keys on `pointer: coarse`, so a phone BROWSER lands
+  // here too, and the web build is the one that ships first — telling a web player to reopen the app is
+  // advice they cannot follow.
   if(!tiltTries)    return 'Tap anywhere to allow motion access.';
-  if(tiltVerdict==='no-api') return 'This device reports no motion sensor.';
-  if(tiltVerdict==='denied') return 'Motion access was denied. Allow it for this app, then reopen.';
-  if(tiltVerdict==='threw')  return 'No motion data — the sensor request errored. Reopen the app.';
-  return 'No motion data is arriving yet.';
+  if(tiltVerdict==='no-api') return 'No motion sensor here. Turn Tilt off in Settings to steer by touch.';
+  if(tiltVerdict==='denied') return 'Motion access denied. Allow it, or turn Tilt off in Settings to steer by touch.';
+  if(tiltVerdict==='threw')  return 'The motion sensor did not start. Turn Tilt off in Settings to steer by touch.';
+  return 'Waiting for motion data. Turn Tilt off in Settings to steer by touch instead.';
 }
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
 // press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
