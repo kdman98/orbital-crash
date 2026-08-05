@@ -109,6 +109,10 @@
   #collapseBtn.show{display:block;}
   #collapseBtn.on{animation:none;background:linear-gradient(180deg,var(--gold),#ff9d2e);
     box-shadow:0 0 0 2px rgba(255,255,255,.5) inset,0 6px 28px rgba(255,157,46,.65);}
+  /* COOLING: still there, plainly not ready. The idle pulse is what says "press me", so killing the
+     animation is most of the message; the desaturate and the dim carry the rest. Not `display:none` —
+     see updateHUD for why a thumb target must not vanish on release. */
+  #collapseBtn.cooling{animation:none;filter:grayscale(.7);opacity:.38;box-shadow:none;cursor:default;}
 
   /* in-game shortcut legend */
   #controls{position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;gap:7px;opacity:.72;
@@ -936,6 +940,17 @@ const OD_COL='#ffe36b';      // the Overdrive orb's gold, kept so the cue vocabu
 // two full burns, and both sum the same. `odT` is ACCUMULATED, never derived from `odFrom - P.charge` —
 // streak milestones (onKill/MCHG) and the purge reward (killBoss) both still pay THROUGH a burn, so charge
 // does not fall monotonically while it runs.
+// COOLDOWN, so a release is a decision and not a comma. Hold-to-burn made the meter a dead-man's switch,
+// which fixed forgetting — but it also made TAPPING free: with no cooldown you could feather the trigger
+// and hold the Overdrive physics on a duty cycle, paying the drain only while pressed and re-igniting the
+// same frame you let go. That is not the resource the 4x repricing was built around; it converts a spend
+// into a modulation. One second is the shortest gap that still reads as "you cannot have it back yet"
+// without punishing a genuine tap-off to dodge.
+//   ⚠️ It runs from END, not from ignition, so it never shortens a ride — a long burn and a short one
+// cost the same wait afterwards. Cooling on a fixed period from IGNITION instead would make short taps
+// strictly better, which is the behaviour this exists to stop.
+const OD_CD=1.0;
+let odCd=0;                  // seconds left before Overdrive can be lit again
 let odT=0;                   // seconds burned in the ride currently under way
 let odLog=[];                // one entry per COMPLETED ride, in run order — display only, bounded
 let odCount=0, odTotal=0;    // tallies. odLog stops growing at 40; these never do, so they stay honest
@@ -945,6 +960,11 @@ let odCount=0, odTotal=0;    // tallies. odLog stops growing at 40; these never 
 // gravity, the closing speed-cap, the Mote hoover, the drawn halo and rim — so a missed restore is not a
 // crash, it is enemy spacing quietly feeling wrong for the rest of the run.
 function stepOverdrive(dt){
+  // ⚠️ COOL FIRST, and never while burning. endOverdrive() sets `odCd` in the same tick it clears `odOn`,
+  // so decrementing after the drain block would eat one frame of the wait off every ride. Ticking it
+  // during a burn would be worse: a ride longer than OD_CD would end with the cooldown already expired
+  // and re-ignition would be instant — exactly the feathering this prevents.
+  if(!odOn && odCd>0) odCd=Math.max(0, odCd-dt);
   if(odOn){
     odT+=dt;                                   // sim seconds: timeScale scales the ACCUMULATOR, not dt
     P.charge=Math.max(0, P.charge-OD_DRAIN*dt);
@@ -997,6 +1017,7 @@ function stepOverdrive(dt){
 function overdrive(){
   if(state!=='play') return;
   if(odOn) return;                      // already burning: a repeat press is not a second ignition
+  if(odCd>0) return;                    // still cooling — see OD_CD
   if(P.charge<OD_MIN) return;
   odOn=true; odFrom=P.charge; odT=0;
   // the ignition ring lands ON the rim, not past it — the Field no longer swells, so a ring drawn wider
@@ -1020,6 +1041,7 @@ function endOverdrive(){
   if(P && P.charge<=0 && odFrom>=0.99) grantAchv('redline');
   if(odT>=0.1){ odCount++; odTotal+=odT; if(odLog.length<40) odLog.push(odT); }
   odT=0;                     // under 0.1s is a double-tap, not a ride — logging it would be noise
+  odCd=OD_CD;                // ⚠️ EVERY end path cools, including the 0.1s double-tap that logs nothing
 }
 // ---- acts / biomes / pacing (mood + depth) ----
 const ACTS=[
@@ -1527,6 +1549,19 @@ function director(dt){
 //   The measured mix is wider than this table because formations, storm surges and Splitter fragments
 // also arrive; Minis are ~12% of all bodies and appear in no table at all.
 const BOMB_RARITY=0.5;
+// THE NEUTRAL IS A JOKER, NOT A SPECIES YOU FIGHT. It is the one body polarity cannot answer — the
+// magnetic loop and ring capture both skip it by type, and the hungry flip skips it too ("uncharged is
+// not the other colour — that's the Shockwave's job"), so the ONLY tool that clears one is a flip
+// Shockwave. It also carries the highest contact damage on the roster. A body that ignores your main
+// verb and forces your other one is an interruption, and an interruption that arrives every few seconds
+// is just weather.
+//   Measured before the change, with an immortal pilot run to t=400 because Neutrals enter no table
+// until t>=125 and the bot pilot dies around 57s — it never meets one: 71 of 2117 bodies, 3.35%,
+// one every 3.9s. At 0.3 that is ~1%, one every ~13s. Rare enough to be an event, common enough that
+// the Shockwave keeps a reason to exist.
+// ⚠️ RARITY, NOT A WEIGHT. Same shape as BOMB_RARITY above: it MULTIPLIES the act-scaled weight rather
+// than replacing it, so the late-Act climb the table was written for survives being made rare.
+const NEUTRAL_RARITY=0.3;
 function doSpawns(dt){
   const cap=Math.min(330, 40 + elapsed*1.0 + act*10);         // later Acts hold a denser arena
   const interval=Math.max(0.16, lerp(1.7,0.30,intensity) - act*0.012);
@@ -1545,7 +1580,8 @@ function doSpawns(dt){
       // means the swarm asks harder questions of your Flip, never just more meat.
       const a=act;
       table=[['drift',Math.max(8,30-a*3)],['fast',20],['heavy',12+a],['orbiter',12],
-             ['charger',8+a],['bomber',(7+a)*BOMB_RARITY],['split',4+a],['neutral',3+Math.floor(a/2)]];
+             ['charger',8+a],['bomber',(7+a)*BOMB_RARITY],['split',4+a],
+             ['neutral',(3+Math.floor(a/2))*NEUTRAL_RARITY]];
     }
     // during a boss fight, keep a mild lean toward the OPPOSITE of the anomaly's colour for ammo,
     // but the reliable kill is the flip-chip (below) — so colour stays varied
@@ -2951,7 +2987,14 @@ const BOMB_R=120, BOMB_DMG=2;
 function bomberBlast(e){
   spawnRing(e.x,e.y,'#fff',BOMB_R*0.5); spawnRing(e.x,e.y,COL[e.color]||'#fff',BOMB_R);
   spawnBurst(e.x,e.y,'#fff',18,5.4); spawnBurst(e.x,e.y,COL[e.color]||'#fff',14,3.6);
-  trauma=Math.min(1,trauma+0.30); hitstop=Math.max(hitstop,0.06); flash=Math.max(flash,0.16);
+  // ⚠️ `flashCol` MUST be set here, and for a long time it was not. `flash` is a full-screen wash drawn
+  // in whatever colour the LAST setter left behind, and the last setter is almost always flip() —
+  // `flashCol=COL[P.polarity]`, every flip, all run. So on red polarity a Bomber washed the screen RED,
+  // which is death's colour (see die()), and the cue changed meaning based on which pole you happened to
+  // be holding. That is half of why this read as being hit; the sawtooth above was the other half.
+  // White, matching the blast's own ring and burst, and it can never be confused with the damage wash.
+  trauma=Math.min(1,trauma+0.30); hitstop=Math.max(hitstop,0.06);
+  flash=Math.max(flash,0.16); flashCol='#fff';
   if(typeof sfx!=='undefined') sfx.bomb();
   for(const o of enemies){
     if(o===e || o.dead || o.queued || o.type==='boss') continue;
@@ -3937,16 +3980,24 @@ function updateHUD(){
   // `transition: transform .1s linear` is direction-agnostic, so a drain animates exactly like a fill.
   // That falling bar is Overdrive's primary readout; nothing else in the game moves backwards.
   chgI.style.transform=`scaleX(${P?P.charge:0})`;
+  // `armed` stays "you have enough to spend" — do NOT fold the cooldown into it. It gates `.charging`
+  // below, which reports the streak TRICKLE; a cooling player with a full meter is not trickling, and
+  // saying so would make the bar lie about income to describe availability.
   const armed=P&&P.charge>=OD_MIN;
-  el('chgbar').classList.toggle('full',armed);            // "spendable", not "at 1.0"
+  const cooling=odCd>0 && !odOn;
+  el('chgbar').classList.toggle('full',armed && !cooling);   // "spendable", and during a cooldown it is not
   el('chgbar').classList.toggle('burning',odOn);
   el('chgbar').classList.toggle('charging', !armed && combo>=5); // streak trickle active
   // The grant pulse, driven straight off the sim timer. Squared so it snaps and fades rather than ramping
   // linearly, and peaked at 0.55 — enough that the bar visibly whitens, short of blowing it out so you
   // cannot see where the fill actually got to, which is the thing you are being told about.
   el('chgbar').style.setProperty('--grantop', grantPulse>0 ? (grantPulse*grantPulse*0.55).toFixed(3) : '0');
+  // ⚠️ THE BUTTON STAYS PUT WHILE COOLING. Dropping `.show` for the second would be honest and is wrong
+  // on touch: it is the only Overdrive control a thumb has, and a target that vanishes the instant you
+  // release it is a target you stop trusting. It dims in place instead — unavailable, still there.
   el('collapseBtn').classList.toggle('show',armed||odOn);
   el('collapseBtn').classList.toggle('on',odOn);
+  el('collapseBtn').classList.toggle('cooling',cooling);
   // act label + biome tint (Arena shows its controls instead of the Epoch)
   const info=actInfo();
   const al=el('actlab');
@@ -4207,6 +4258,7 @@ function startRun(mode){
   motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   chargeReady=false;deathRevealT=0;deadCountT=0;
   odOn=false;                                      // never start a run already burning
+  odCd=0;                                          // nor already cooling — dying mid-ride sets this
   odT=0;odLog.length=0;odCount=0;odTotal=0;        // and never carry the last run's receipt into this one
   formT=rand(9,16); lastForm=-1;                   // formations restart their cadence each run
   cometT=rand(90,150);
@@ -4637,11 +4689,23 @@ const sfx={
   buy(){ beep(660,0.07,'square',0.12,880); },
   lance(){ beep(180,0.12,'sawtooth',0.14,520); noise(0.1,0.08); },
   bosshit(){ beep(300,0.09,'square',0.12,180); noise(0.12,0.1); },
-  // THE BOMBER'S DETONATION. Short, dry and entirely downward — a crack rather than a swell, over in
-  // 0.3s. It used to be defined by contrast with sfx.collapse(), a long swelling event that was the
-  // biggest thing you could press; that voice is gone with the Collapse, and the Bomber is now simply
-  // the only detonation in the game. Keep it a crack: nothing the player presses should sound like it.
-  bomb(){ beep(88,0.30,'sawtooth',0.22,28); noise(0.26,0.20); beep(190,0.14,'square',0.09,52); },
+  // THE BOMBER'S DETONATION — a bright cartoon POP, and it must not sound like damage.
+  //   ⚠️ It used to: `beep(88,0.30,'sawtooth',0.22,28) + noise(0.26,0.20) + beep(190,...,52)`. Compare
+  // hurt(): `beep(150,0.18,'sawtooth',0.22,60) + noise(0.18,0.18)`. Same three ingredients — sawtooth,
+  // a long fall, lowpassed noise — so it was speaking the damage language almost word for word. Pilot,
+  // unprompted: "make bomb exploding sound not-like i'm being hit."
+  //   THE SOUND WAS LYING, and the blast comment two screens down says so in caps: IT DOES NOT TOUCH
+  // YOU. The Bomber's blast damages other matter and never the core, so a damage voice on it reports an
+  // event that did not happen — the one thing a cue must never do.
+  //   Built by the file's own rule, stated at baited(): every reward voice goes UP and every damage
+  // voice goes DOWN. This one does both and leads with the rise, because the blast is neither: it is a
+  // comic little event that clears your hoard. Square pop on top for the cartoon 'bloop', triangle body
+  // under it, and a short RISING sine tail — nothing in the damage vocabulary rises, so that tail alone
+  // stops it reading as a hit. Noise is kept but cut to 0.08/0.06 from 0.26/0.20: `noise()` is lowpassed
+  // at 1200Hz, so it is inherently a thud, and a thud is most of what "I got hit" sounds like. A trace
+  // keeps it a burst rather than a musical note; any more and the damage reading comes straight back.
+  bomb(){ beep(920,0.09,'square',0.13,380); beep(430,0.17,'triangle',0.11,180);
+          noise(0.08,0.06); beep(1250,0.13,'sine',0.06,1950); },
   // THE BAITED CHARGE. It has to be tellable from bosshit() while your eyes are on the far side of the
   // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
   // in 0.09s), this is a heavy low SLAM that falls much further and much longer, and then RISES. The
@@ -4712,7 +4776,7 @@ window.__orbital=window.__polaris=window.__flux={
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
-      odOn, odCount, odTotal:+odTotal.toFixed(2), odT:+odT.toFixed(2)}; },
+      odOn, odCd:+odCd.toFixed(3), odCount, odTotal:+odTotal.toFixed(2), odT:+odT.toFixed(2)}; },
   get odLog(){return odLog;}, get anomLog(){return anomLog;},
   // TILT. `raw` is the untouched sensor reading and `vec` the smoothed [-1,1] result, so a mirrored or
   // dead axis can be told apart on a real phone: raw moving while vec stays 0 is a dead zone or a
