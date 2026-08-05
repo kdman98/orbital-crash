@@ -1364,6 +1364,27 @@ phrase. `The button appears the moment` returns nothing on a file that contains 
 `The <b class="gold">button</b> appears the moment you can`. Search the distinctive tail of a sentence,
 or strip tags first. A clean grep over prose proves much less than the same grep over identifiers.
 
+*Reading the output.* A backtick promises the reader that grep will find it, so **naming a symbol that
+no longer exists is legitimate and naming something that never was one is not.** A comment recording
+that `ruptureBlast` was deleted is doing its job — the name is the only handle the history has. But
+"settleR" and "v0" both *read* as variables and neither ever was one: the first was an equilibrium the
+physics arrives at, the second is the value a function returns, and a reader who greps for either
+learns nothing and starts doubting the rest. **Both are in plain quotes in this very sentence on
+purpose** — a name that never was a symbol stays out of backticks even when it is the thing being
+discussed, because the sweep cannot tell the two uses apart and a rule its own statement violates will
+not survive. Three separate drafts across two sessions made exactly that mistake while writing exactly
+this down. Triage the unresolved list by that question rather than by
+its length. What the sweep returns today is ten deleted symbols the file keeps on purpose, two DOM
+properties and a commit hash — every one deliberate, which is the point: the distinction turns a count
+that always looks alarming into a list that clears in one pass. Run it mechanically (strip comments,
+collect backticked tokens that appear *only* in comment text, test each against the stripped code)
+rather than by eye, because the tokens worth catching are the ones that look most like names.
+
+⚠️ **Two runs of this sweep over the same tree returned 13 and 12.** The odd one out was `mult`, a
+deleted score multiplier that belongs in the list exactly like the other nine. The *conclusion* was
+identical both times and only the count moved — which is the dangerous shape, because a conclusion
+both sides already agree on is the one nobody re-derives. Reconcile the count anyway.
+
 **A comment that quotes a derived number needs deriving, not re-reading.** Three comments survived the
 Anomaly buff still pricing a bait at half a bar, still calling an Epoch I Pulsar 11 HP, and still
 warning that the pool had *dropped below* a line it was now at double — and one of them contradicted
