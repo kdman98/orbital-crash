@@ -4645,7 +4645,21 @@ function audioInit(){
   if(AC){ if(AC.state==='suspended') AC.resume(); return; } // heal a context left suspended (e.g. quit from pause)
   try{
     AC=new (window.AudioContext||window.webkitAudioContext)();
-    master=AC.createGain(); master.gain.value=store.mute?0:0.9; master.connect(AC.destination);
+    master=AC.createGain(); master.gain.value=store.mute?0:0.9;
+    // THE MIX HAD NO LIMITER. Every voice summed straight into `master` and out, and a late-game fight
+    // runs ~4 concurrent voices (5.6 kills/s + 6.2 Motes/s + flips) over a constant ambient bed — so
+    // peaks cleared 1.0 and the destination hard-clipped. Clipping does not just sound bad, it
+    // preferentially destroys TRANSIENTS, which are exactly what makes one short cue tellable from
+    // another. This was found while chasing why the Bomber blast could not be picked out of a crowd.
+    //   Compression, not brickwall: a 6:1 ratio over a soft 12dB knee, so dense moments are gently
+    // reined in rather than gated. The 3ms attack is fast enough to catch a blip's leading edge; the
+    // 180ms release is slow enough not to pump audibly between the ~10 blips a second underneath it.
+    // ⚠️ THIS CHANGES HOW EVERYTHING SOUNDS, not just the blast. If the mix ever reads as squashed or
+    // as breathing, this node is the first suspect and removing it is a two-line revert.
+    const comp=AC.createDynamicsCompressor();
+    comp.threshold.value=-14; comp.knee.value=12; comp.ratio.value=6;
+    comp.attack.value=0.003; comp.release.value=0.18;
+    master.connect(comp); comp.connect(AC.destination);
     buildAmbient();
   }catch(e){ AC=null; }
 }
