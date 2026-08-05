@@ -648,9 +648,14 @@ const RING_FIRE_HC=0.5; // a flip only FLINGS once hold-charge passes this — q
 // only honest check is loose-flung count with ring membership snapshotted BEFORE the flip.
 const PURGE_R0=80, PURGE_RCHG=70, PURGE_RPER=6, PURGE_RING_CAP=10;
 // Impulse, not damage. `flung` skips the speed clamp, drops friction to 0.985 and zeroes seek, so the
-// throw distance is `v0 · (1-0.985^N)/0.015` with `N = FLING_HOLD·60` — roughly 370px at the rim and
-// 575px point-blank. Reach and pace are separable through that sum: change `v0` and solve `FLING_HOLD`
+// throw distance is v0 · (1-0.985^N)/0.015 with N = `FLING_HOLD`·60 — roughly 370px at the rim and
+// 575px point-blank. Reach and pace are separable through that sum: change v0 and solve `FLING_HOLD`
 // back to hold the distance constant, or the two multiply.
+//   (v0 and N are MATH, not names. v0 is what `flingSpeed` returns — `FLING_V0` + `FLING_VCHG` scaled
+// by charge, then by proximity — so there is nothing to grep for; `FLING_HOLD` beside it IS a constant.
+// Backticking both made them read as peers. Same error the ring block had with "settleR": a formula
+// symbol dressed as an identifier, next to a real one. Backticks promise grep will find it — so a name
+// that was never a symbol gets plain quotes even when you are talking ABOUT the name.)
 // The 65% rim floor is load-bearing. The proximity scale cuts the impulse with distance, so a lower
 // floor throws the Dots furthest from you — exactly the ones a wide push is for — the least.
 const FLING_V0=10.8, FLING_VCHG=7.2;
