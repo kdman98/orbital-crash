@@ -4786,6 +4786,27 @@ const tiltWanted=()=>{
   try{ const v=localStorage.getItem('orbitalcrash_tilt'); if(v!==null) return v==='1'; }catch(_){}
   return matchMedia('(pointer: coarse)').matches;
 };
+// NATIVE FEED. On iOS the web sensor is a dead end — measured on a real phone: requestPermission()
+// rejects, and attaching the listener anyway still delivers nothing, even though Capacitor's
+// WKUIDelegate answers the permission with .grant. So the iOS shell reads CoreMotion natively and calls
+// this (ios/App/App/MotionBridgeViewController.swift, ~30Hz).
+//   It hands over the SOURCE of two numbers and nothing else: the calibration, dead zone, orientation
+// remap, low-pass and speed curve all stay here, where they were already verified. onTilt cannot tell
+// the difference, and neither can anything downstream — which is why this is a bridge rather than a
+// second implementation of tilt.
+//   The takeover is explicit and happens once. A tap can arm the web listener before the first native
+// callback lands, and if both fed onTilt every reading would be applied twice — the dead zone and the
+// low-pass would still look sane, so it would present as tilt being mysteriously twitchy rather than as
+// an obvious fault. Removing the web listener and setting `tiltReady` makes that unrepresentable:
+// tiltEnable() early-returns from then on, and only one feed can ever reach onTilt.
+window.__nativeTilt=(beta,gamma)=>{
+  if(tiltVerdict!=='native'){
+    window.removeEventListener('deviceorientation',onTilt);
+    tiltReady=true; tiltVerdict='native'; tiltCalibrate();   // re-zero: this is a new sensor's frame
+  }
+  onTilt({beta,gamma});
+};
+
 // Whether touch may steer is the exact inverse of whether this device is on tilt, and it is cached in
 // the input block above (pointermove cannot afford a localStorage read per event). Everything that can
 // change tiltWanted() has to call this, or the two disagree and the core answers to nothing.
