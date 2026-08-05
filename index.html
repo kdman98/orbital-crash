@@ -4261,7 +4261,13 @@ function updateTiltDiag(){
   const d=el('tiltDiag'); if(!d) return;
   const fault=tiltFault();
   if(fault){ d.textContent=fault; d.classList.remove('ok','hidden'); return; }
-  if(state==='menu' && tiltOn){
+  // ⚠️ `!touchSteers`, NOT just `tiltOn`. Since the CoreMotion bridge landed, `tiltOn` means "the sensor
+  // is delivering", not "tilt is the control": the native feed re-sets it on every callback, 30 times a
+  // second, so tiltSet(false) cannot hold it down. Reading tiltOn alone made the menu report TILT ✓ with
+  // a live vector while tilt was switched OFF and the player was steering with a finger. Harmless to
+  // play, but it is a readout whose entire job is to be believed. Steering itself was never at risk —
+  // stepTilt has gated on touchSteers since 59efac0, measured: 0 units of tilt drive after the switch.
+  if(state==='menu' && tiltOn && !touchSteers){
     d.textContent='TILT ✓  x '+tiltVec.x.toFixed(2)+'   y '+tiltVec.y.toFixed(2)+'   ('+tiltEvents+' events)';
     d.classList.add('ok'); d.classList.remove('hidden'); return;
   }
