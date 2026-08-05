@@ -14,6 +14,31 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### The menu stops presenting five different things as one list `3f03e45`
+**Two of the four side buttons start a run and two open a page, and the menu now says so with shape.**
+They had been four identical ghost pills stacked in a column, distinguished by an 8px-versus-12px
+margin — which is the same failure as the decorative glyphs removed from them earlier that day, just
+with the decoration taken off: a column of five pills reads as a list of five equal things, and these
+are one door, two rooms and two pages. The modes are a pair of boxes now, side by side; the Bestiary
+and the Codex are links, because a link is what you press expecting to come back.
+
+**"Practice only · neither can set your best" has only one group it can be about.** The rule is
+unchanged and so is its wording — it was hanging *between* the two pairs, where it could have been
+captioning either one.
+
+**Only one of the four labels was ever undecodable, and it is the one we invented.** Boss Rush,
+Bestiary and Codex are conventions a first-time player has met elsewhere; Pattern Lab is ours, and it
+told them nothing. Both modes carry a short line now — *Every Anomaly, back to back* and *Every wave
+shape, on a key* — built to hold one line inside the cell and to open on the same word, so the pair
+scans as a pair.
+
+⚠️ **This landed inside a commit about something else.** `3f03e45`'s message covers the settle-radius
+comment corrections in `stepOverdrive`/`stepEnemyForces` — that commit is where the last invented
+settle-radius symbol left the file, which is why no symbol is quoted for it here. The menu was swept
+in from the working tree by a parallel session staging the whole file. Both halves are intact and
+neither damaged the other: `git show 3f03e45` is two unrelated changes, and the menu is the hunks at
+`@@ -197` and `@@ -279`.
+
 ### Overdrive stops widening the Field, and the ring gets faster for free `fbe4d18`
 **Burning no longer stretches your gathering reach.** The Field is now the same size in every state.
 Overdrive used to widen it as well as the ring, which made a burn read as unexpected extra *reach*
