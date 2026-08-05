@@ -168,6 +168,15 @@ why, because "no tallies" is the wrong lesson. They printed **at the core** a co
 just launched **outward, away from the core** — on the exact frame your eyes should have been following
 the bodies you threw. Had they been drawn on the bodies, they would have been legal and useless.
 
+**A second encoding can live *inside* one label, and then only half of it goes.** The baited charge drew
+`BAITED  -12`; it now draws `Charger Poked!`. The number was the redundant part — the ordinary erosion
+readout fires on the same frame, 26px below, and says `-12` itself. Author: *"somewhat not fun and
+explaining."* So the gold line says **what happened** and the red/cyan number says **how much**, which is
+the split every other event in the game already uses. Worth being precise that this was the same test as
+the streak text above and not a copy rule: had no other readout been drawing that number, the label
+carrying it would have been correct. Its **mixed case** is the design tell — the only mixed-case string
+in the world layer, where everything else is a caps readout, so a remark is visibly not a number.
+
 **A cue for a state that persists must itself persist**, and passing the position rule does not excuse
 a blink. `⚡ OVERDRIVE READY ⚡` was drawn at the core, which is where availability lives — legal, and
 still deleted. A blink announces a durable state once and then says nothing for as long as it stays
@@ -214,13 +223,27 @@ energy into the ring orbit that carries your armour. Formation Dots are exempt �
 spawn after it and silently invalidate the oracle. It carries a fixed-seed xorshift, which also makes
 the sky identical across reloads.
 
-### 15. Missile `life` is a distance budget, not a clock
-Any future per-missile speed multiplier must scale `L.life` with it. Learned the hard way: a slow
-effect once scaled `L.vx/L.vy` while ticking `life` at full speed, draining it 2.5× too fast and
-fizzling missiles mid-flight. The mechanic that caused it is gone; the trap is not.
+### 15. Missile `life` is a lifetime, and reach is the product
+`reach = sp × 60 × life`, in pixels, and **nothing corrects it**. Slow a missile with `pace.spd` and it
+covers proportionally less ground — that is the model, not a defect in it. Author: *"having lifetime and
+speed, so reach is actually lifetime * speed, easy calculation."*
 
-Today this is safe by construction — `step()` opens with a literal `dt=1/60` and `timeScale` is
-applied to the *accumulator*, so slow motion runs **fewer steps, never shorter ones**.
+**This law said the opposite until `085a7f1`**, and the inversion is the whole of that commit. `fireMissile`
+divided `life` by `pace.spd` so that reach came out invariant, which made `life` a *distance* budget
+wearing a clock's units. The compensation is gone; `life` decrements by `dt` and means what it decrements by.
+
+⚠️ **So a table value must be sized for the slowest pace it will ever fly at**, not for the nominal one.
+That is the only new obligation the change creates, and it cost one value immediately — see *Pace*.
+
+The old law's trap survives in a narrower form: a per-lance velocity scale that **bypasses `pace.spd`**
+still breaks the model, because reach stops being the product of the two numbers you can read. `pace.spd`
+itself is safe by construction, and so is global slow motion — `step()` opens with a literal `dt=1/60`
+and `timeScale` is applied to the *accumulator*, so slow motion runs **fewer steps, never shorter ones**,
+and position and `life` advance in lockstep whatever it does.
+
+⚠️ **The mine is exempt, and its `life` means something else entirely: it is a fuse.** A mine is *supposed*
+to run out where you can see it — that is how it detonates. There is no reach to preserve, so do not
+scale it to preserve one.
 
 ### 16. Every combo-driven income term must be capped
 `combo` is a *no-hit* streak: nothing decays it and nothing times it out, so it only falls when you are
@@ -649,16 +672,33 @@ Not a formation but an **event**, on its own much longer timer rather than in th
 that timer only advances **outside a boss**, which is roughly half a run, so a naive "make it rarer"
 pass lands at twice the intended rate.
 
-One Dot crossing the whole sky on a fixed line, several times faster than anything else, trailing a
-tail emitted in world space so it drifts behind the nucleus instead of being welded to it. It carries a
-charge like everything else, so it is either a large delivery of ammunition you intercept by
-positioning or a fast threat that crosses — which keeps it inside the core verb instead of being
-decoration. Its nucleus is a **Brute**, so intercepting it is a real hit.
+**Three to five Dots crossing the whole sky on one shared heading**, several times faster than anything
+else, each trailing a tail emitted in world space so it drifts behind its nucleus instead of being welded
+to it. They carry a charge like everything else, so a shower is either a large delivery of ammunition you
+intercept by positioning or a fast threat that crosses — which keeps it inside the core verb instead of
+being decoration. Every nucleus is a **Brute**, so intercepting one is a real hit.
 
-Aimed to pass **near** you rather than at you, so it touches you about one pass in five: an opportunity,
-not a hit. Its flight distance is solved **ray-vs-box** against the padded viewport, so it ends past the
-*far* edge — a fixed distance cannot serve both a level crossing and a corner-to-corner one. Reaching
-the edge **retires** it (law 8). Miss it and you lost the opportunity rather than gained an enemy.
+It was a single body until `9fd8dcb`, and the change is what the section header always claimed: **one
+crossing is a curio, a stream is weather.** Author: *"shower 3-5 comets at a pattern. wont it be cosmic?"*
+
+⚠️ **The spread is the whole thing, or it becomes a Wall** — which is another formation's job and a
+different demand on the player. Three separate spreads keep it a stream you weave through rather than a
+line you must be outside of: **lateral**, abreast of the shared heading; **trail**, pushing each body
+back along it so they cross in sequence instead of in rank; and a **separate near-miss aim point per
+body**, so the group fans out — one shared target would converge them into a noose. Speed varies per body
+on top of that. Measured over six showers: counts 3/3/4/5/5/5, holds staggered 2.42–4.38s, every body
+crossed and exited, none stranded.
+
+Aimed to pass **near** you rather than at you, so a body touches you about one pass in five: an
+opportunity, not a hit. Flight distance is solved **ray-vs-box** against the padded viewport per body, so
+each ends past the *far* edge — a fixed distance cannot serve both a level crossing and a corner-to-corner
+one. Reaching the edge **retires** them (law 8). Miss a shower and you lost the opportunity rather than
+gained enemies.
+
+⚠️ **The hold has a `max(0.5, …)` floor and it is load-bearing.** Trail can push a body further out than
+the base spawn point, and a negative ray-vs-box solve hands `holdBody` a zero hold — which drops that
+comet out of formation flight on its first frame and leaves it sitting in the margin as an ordinary
+Brute. A spread that widens will meet this again.
 
 ### A ring near your core always eats itself
 Control measurement, worth knowing before anyone "fixes" a shape: sixteen **ordinary** Dots simply
@@ -764,6 +804,36 @@ Its hits are priced by **how much warning you get**: a missile is the cheapest (
 often), a mine blast is double (it announces itself twice — it arms, and it draws its own blast radius,
 so standing in one is a decision), and its **body** is the most expensive and the least excusable.
 
+**Reach is `sp × 60 × life` and nothing corrects it** (law 15). `MSL` in `index.html` is the only thing
+that sets it. The relationship that matters is the **margin against the arena**, and the arena is not a
+constant — `resize()` gives `W = vw / S` with `S = min(1, min(vw,vh)/800)`, so in design units the play
+field is the viewport itself on any display whose short axis clears `REF_SHORT`. At full pace the four
+flying kinds reach **1656–2208** design units; at Epoch I's `pace.spd` that becomes **1242–1656**. A lance
+is removed by whichever comes first, leaving the screen or running out of life, and on a laptop-sized
+arena the edge gets there.
+
+⚠️ **Which means the margin shrinks as the display grows, and nobody has measured the big end.** At
+1440×900 the arena is 1440 wide and every reach clears it; at 2560×1440 it is 2560 wide and *no* kind
+reaches across, spear included. Whether that ever shows depends on where the Anomaly stands when it
+fires — it shoots from its own body, not from an edge — so this is arithmetic, not an observed fault, and
+it is listed under *Open* rather than stated as one. **Every fizzle figure in this file was taken at one
+viewport size.**
+
+⚠️ **Nothing but a mine currently expires where you can see it, and that is a tuning state rather than a
+law.** Author: *"it doesnt have to expire on screen."* The argument for holding it: a shot winking out
+mid-arena is the game withdrawing a threat it already made, and there is no way to read that as anything
+but the arena flickering. So `life` is kept as a **backstop** against a projectile that never leaves — a
+curving seeker, mostly — rather than as the thing that ends an ordinary flight. `9fd8dcb` raised every
+non-mine value past the longest crossing with margin (volley 4.2 → 6.0, ring 4.2 → 6.0, spear 2.8 → 4.0,
+seeker 6.9 → 9.6) and measured **zero non-mine mid-arena expiries, all three variants, both Epochs** — at
+the harness viewport, per the warning above. Surplus life past that point costs nothing, because a
+straight missile is culled the frame it exits and never reaches its `life` at all.
+
+**The mine is the standing exception, and it is why this is written as a state and not a rule:** its
+`life` is a fuse, running out on screen is how it detonates, and it stays where it is. A future
+projectile with as good a reason can overrule the paragraph above. *(An earlier draft of this stated it
+as a law in capitals, with the mine contradicting it two paragraphs later — see* Traps.*)*
+
 ### Pace
 The Anomaly's first fights are **slower**, on two axes at once, reaching full speed at Epoch III and
 staying there. `pace.cad` stretches every gap between attacks; `pace.spd` slows every projectile.
@@ -781,17 +851,30 @@ elapsed time is an objection to a clock running **inside** a fight, and the Epoc
 already ramps on. If this sampled `act` live, an Epoch rolling over mid-fight would speed the patterns up
 while the player was standing inside them: difficulty attached to nothing they did.
 
-⚠️ **`life` is divided by `pace.spd`, and that division is the load-bearing half.** Slowing a projectile
-without it would make patterns stop *arriving* rather than arrive later — the Pulsar's ring falling short
-of you, the Emitter's fan dying before the end of the lane it was sweeping. With it, reach is **exactly**
-preserved, and not approximately:
+⚠️ **`pace.spd` shortens reach, deliberately — and it used to be corrected away.** `fireMissile` divided
+`life` by `pace.spd`, so `(sp × ps) × (life / ps) = sp × life` and `ps` cancelled exactly. This section
+used to argue that as an *identity, not a measurement*, the strongest pin a number can have. `085a7f1`
+removed it (law 15). An Epoch I missile now covers three-quarters the ground of an Epoch III one, because
+it is three-quarters as fast for the same seconds of life.
 
-> `reach = (sp × pace.spd) × (life / pace.spd) = sp × life`
+**The fear the old text named was real, and it was real for exactly one of the five kinds.** It predicted
+patterns that stop *arriving* rather than arrive later — the Pulsar's ring falling short of you, the
+Emitter's fan dying before the end of its lane. Straight flyers clear the arena at 0.75 speed with room to
+spare and were untouched. The **seeker** was not: it spends `seekFor` turning onto you before it commits,
+so its path is far longer than the distance it closes, and it has to buy the arc as well as the approach.
+Removing the correction put the Sentinel's fizzle-on-screen rate at **44.4%** against 11.1% before, with
+missiles visibly winking out inside the arena.
 
-`pace.spd` cancels. This is an **identity, not a measurement** — the strongest pin a number can have (see
-*Traps*), because it means **no future change to `pace.spd` can ever require reach to be re-measured.**
-Only `sp × life` moves reach. The accepted cost is that a slower missile is on screen longer, in exact
-proportion, which is what the cadence cut pays for.
+**The fix went into the table, which is the point of the model** — `MSL.seeker.life` 5.2 → 6.9, exactly
+the old effective value, and the rate came back to 11.1% with Epoch III unmoved (nothing about it changes
+at `ps=1`). ⚠️ **What that says about the correction is the part worth keeping: it had been *hiding* a
+table value too low for a slowed curve.** Holding reach constant meant the deficit could never show. A
+compensation that makes a wrong number harmless is a compensation that makes it permanent.
+
+The cost accounting flips with the model, and in the direction that helps. A slowed missile is on screen
+longer per pixel but covers less ground, so an early Epoch is not more cluttered than a late one —
+measured, Epoch I runs **3.02 lances on screen and 80 fired** against Epoch III's **5.00 and 151**, and
+neither figure moved by a decimal across the change.
 
 ⚠️ **The depth of the ramp has nothing behind it.** It was picked from a menu of options rather than
 derived from a measurement or a playtest, and no result contradicts it because no result exists. Recorded
@@ -1311,6 +1394,22 @@ you cannot contrast with a non-zero is not a measurement; a constraint from a st
 produce is not a constraint. Both then get filed as settled, and the plausible one is the more dangerous
 — a suspicious zero at least invites a second look.
 
+**A third instance, and the cheapest to have caught: the instrument was the arena.** Missile reach was
+reported as **599px at both Epoch I and Epoch III**, and that agreement was written up as confirmation
+that the old reach identity held. It confirmed nothing. 599 was the **screen edge** — the two candidate
+reaches were 1361px compensated and 1021px uncompensated, and *both* exceed what the arena can show, so
+the probe returns 599 either way. The tell is available without running anything: **write down what the
+number would be under the hypothesis you are trying to reject, and if it is the same number, the probe is
+measuring your instrument.** This one had a second layer, because the finding was then reused — the
+identity it "confirmed" was quoted three sections away as a reason no re-measurement would ever be needed.
+
+**And the sibling failure, from the same week: a metric that lumps a mechanic in with its own failure
+mode describes neither.** The Pulsar was reported as fizzling 15–18% of its shots on screen, flagged to
+the author as possibly needing investigation. Counted by kind, **16 of its 20 expiries were mines
+detonating exactly as designed** — the mine's `life` is a fuse — and genuine fizzle was 2 of 84 rings. The
+aggregate was a real count of a category that does not mean anything. Before quoting a rate, check that
+every member of the numerator is the thing the rate is named after.
+
 **A harness that can force a state is a harness that can invent one**, and that is exactly how the 11 HP
 figure was born: a verification run called `spawnBoss` for a Pulsar at Epoch I, printed a pool the
 roster cannot produce, and the number was copied into a sentence about what a player meets. The seam
@@ -1339,11 +1438,36 @@ neighbouring rows were right and the curve between them looked wrong. A single e
 shape to be wrong, so **extract a series rather than a point wherever there is a choice**, and read the
 series before trusting any row of it.
 
-**Rank the pins: an identity beats two independent restatements beats one figure.** An identity —
-`reach = (sp × ps) × (life / ps) = sp × life`, `ps` cancelling exactly — makes the conversion unnecessary
-and retires the re-measurement forever; restatements only catch a conversion that has already gone wrong.
-And when a model and a provenance disagree, **provenance wins** — it is the only one of these that keeps
-working after the model underneath it turns out to be false.
+**Rank the pins: an identity beats two independent restatements beats one figure.** An identity makes a
+conversion unnecessary and retires the re-measurement forever; restatements only catch a conversion that
+has already gone wrong. And when a model and a provenance disagree, **provenance wins** — it is the only
+one of these that keeps working after the model underneath it turns out to be false.
+
+⚠️ **The example this rule was written on has since been deliberately deleted, and that is the more
+useful half.** The identity was `reach = (sp × ps) × (life / ps) = sp × life`, `ps` cancelling exactly —
+airtight algebra, quoted here and in `fireMissile` as proof that no change to `pace.spd` could ever
+require reach to be re-measured. `085a7f1` removed the division on purpose, so the identity is simply
+gone, and nothing about it being an identity slowed that down for a second. **An identity pins a
+relationship against drift; it does not pin the relationship as the one you want.** Worse, this one was
+actively concealing a defect: holding reach constant meant the seeker's table `life` could be too small
+for a slowed curve and never show it, right up until the compensation came off and the Sentinel started
+fizzling 44.4% of its shots inside the arena. **A pin that cannot move is also a pin that cannot report.**
+
+So the ranking stands for *what it was about* — trusting a derivation over a remembered figure — and
+loses its claim to permanence. Nothing above provenance survives a change of model, because a model is
+exactly what a design is free to change.
+
+**Read the modality the author actually used.** *"it doesnt have to expire on screen"* is a permission
+about the current state. It went into `index.html` as **"⚠️ A MISSILE MUST NEVER EXPIRE WHERE YOU CAN SEE
+IT"**, in capitals, at the head of the table that constrains every projectile anyone adds later —
+inventing a constraint nobody agreed to. Author: *"it is not a 'MUST', but, yeah, whatsoever. not
+currently."* This is easy to do because the hard version reads as the more useful one: a rule feels like
+better documentation than a preference. **The tell is mechanical — check whether the code under the rule
+already violates it.** Two paragraphs below that "MUST NEVER", the same block explained that mines
+deliberately expire on screen because that is how they detonate, a mechanic documented minutes earlier by
+the same hand. **A rule stated hard enough that the code beneath it is an exception is not a rule.** When
+you write an invariant, go looking for the nearest counter-example first; finding one in the same file
+means you have written a preference in a rule's clothing. Fixed in `79e5783`.
 
 **An edited comment is a new comment, and has to be read as one.** The grind block held a threshold
 model and a no-threshold model three sentences apart for weeks, because the second was *appended* to a
@@ -1754,6 +1878,28 @@ bands. Measured over 4 matched 240s runs, counting every arrival by identity, Bo
 *not* settled is whether the blast is now rare enough to read as an event rather than a tax — that is a
 feel judgement and the bot cannot make it, because the median scripted pilot dies before the first Bomber
 can spawn.
+
+**🟡 Missile reach is fixed and the arena is not, so "nothing expires on screen" is a claim about one
+display size.** `resize()` puts the play field in design units at `W = vw / S`, `S = min(1, min(vw,vh)/800)`
+— which floors the *short* axis at 800 and leaves the long one free, so the arena is the viewport on
+anything desktop-sized. Reach is a table product and does not move with it: **1656–2208** design units at
+full pace, **1242–1656** at Epoch I's. Both clear a 1440-wide arena. Neither clears a 2560-wide one.
+
+Every fizzle measurement in this file — including the **zero non-mine mid-arena expiries** that `9fd8dcb`
+was verified on — was taken at a single harness viewport, so none of them can speak to this. **It is
+arithmetic, not an observed fault:** the Anomaly fires from its own body rather than from an edge, and
+whether a shot ever has 2200 units of arena in front of it depends on where it is standing. The cheap
+check is a run at 2560×1440 counting non-mine expiries by kind, which nobody has done. If it does bite,
+the lever is the table (law 15 — size for the worst case it will fly in), not a return to the per-shot
+correction, which is what was hiding the seeker's deficit in the first place.
+
+**The comet shower multiplied comet mass by 3–5× and left the timer alone.** `9fd8dcb` turned one crossing
+body into 3–5 on a shared heading, and nothing about `cometT` moved — so the *event* is exactly as rare as
+before while the Brutes it delivers per event went up by the full factor. That is the intended shape (a
+shower is meant to be an occasion), but it has not been played, and the arithmetic says it is the largest
+single change to ambient Brute supply in the file. **The timer is the lever if it reads as too much** —
+not the count, which is what makes it weather rather than a curio. Watch also that the timer only advances
+outside a boss, so a rarity pass here lands at twice its intended strength (see *The Comet*).
 
 **Boss balance is bot-derived.** Every TTK number in the ledger comes from a scripted pilot holding a fixed
 orbit and never dodging — which is the worst possible way to fight the kind that hovers and shoots

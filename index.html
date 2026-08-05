@@ -1877,14 +1877,25 @@ function fireMissile(b,a,kind,spOverride){
   const ps = (b && b.pace ? b.pace.spd : 1);
   const m=MSL[kind]||MSL.volley, r0=b.r+14, sp=(spOverride||m.sp)*ps;
   // `life` IS A LIFETIME, IN SECONDS, AND NOTHING CORRECTS IT. Reach is simply what falls out:
-  //   reach = sp × 60 × life   →  volley 1361px · seeker 1030 · ring 1159 · spear 1546 · mine 184
+  //   reach = sp × 60 × life   →  volley 1944 · seeker 1901 · ring 1656 · spear 2208 · mine 184 (a FUSE)
   // Slow a missile with `pace.spd` and it covers proportionally less ground, which is the whole model
   // and needs no bookkeeping to hold. Author: "having lifetime and speed, so reach is actually
   // lifetime * speed, easy calculation."
+  //   ⚠️ THAT LINE WENT STALE ONE COMMIT AFTER IT WAS WRITTEN. 9fd8dcb raised four `life` values and left
+  // it quoting the old products — 1361/1030/1159/1546 — inside a comment whose whole subject is that reach
+  // is a product of the table above. Touch `MSL`, and this line is downstream of you.
   //   ⚠️ `life` HARDLY EVER BINDS, and that is why this is safe. A lance is removed by whichever comes
-  // first — leaving the screen or running out of life — and against a 1280-wide arena every reach above
-  // clears the screen edge comfortably. Measured at Epoch I: 0% of projectiles reached `life<=0`; every
-  // one was culled off-screen. At Epoch III it is 13.3%, because they cover their ground faster.
+  // first — leaving the screen or running out of life — and the edge normally gets there. Measured at
+  // Epoch I: 0% of projectiles reached `life<=0`, every one culled off-screen; at Epoch III 13.3%,
+  // because they cover their ground faster.
+  //   ⚠️ BUT REACH IS FIXED AND THE ARENA IS NOT. `resize()` sets `W = vw/S` with `S` clamped at 1, so in
+  // design units the play field IS the viewport on anything desktop-sized — 1440 wide at 1440x900, 2560 at
+  // 2560x1440. Every reach above clears the first; NONE clears the second. Every fizzle figure in this
+  // block was taken at one harness viewport and none of them can speak to a big display. Arithmetic, not
+  // an observed fault — the boss fires from its own body, not from an edge, so whether a shot ever has
+  // 2200 units of arena ahead of it is a question about where it stands. Filed under Open in
+  // docs/MECHANICS.md with the run that would settle it; the lever if it bites is the table, not a return
+  // to the per-shot correction, which is what hid the seeker's deficit to begin with.
   //   THIS USED TO DIVIDE `life` BY `ps` TO HOLD REACH CONSTANT, and the comment here called that "not
   // optional bookkeeping" — the Pulsar's ring would stop reaching you, the Emitter's fan would die
   // short. Measured with `act` held fixed and only `pace` varying, compensated and uncompensated were

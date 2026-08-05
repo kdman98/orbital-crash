@@ -145,8 +145,8 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Arc** — one colour-uniform front of the Pulse. (`PULSE_ARC`)
 - **The Sorter** — two solid walls converging in opposite colours, doors at different heights.
   (`formSorter`)
-- **The Comet** — a rare event: one fast Dot crossing the whole sky and leaving.
-  (`formComet`, `COMET_SPD`, `cometT`)
+- **The Comet** — a rare event: a shower of 3–5 fast Dots crossing the whole sky on one heading and
+  leaving. (`formComet`, `COMET_SPD`, `cometT`)
 
 ## The Anomaly
 
@@ -165,6 +165,10 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   locked point. (`LUNGE_TEL`, `aimLunge()`)
 - **Missile** — anything the Anomaly throws. Launches from its own body; hurts you regardless of your
   polarity. (`lances`, `MSL`)
+- **Reach** — how far a missile travels: `sp × 60 × life`, with nothing correcting it, so `pace.spd`
+  shortens it. Not a variable — a product of two table values. (`MSL`, law 15)
+- **Fizzle** — a missile reaching `life <= 0` inside the arena instead of leaving it. Only mines are
+  meant to; for them `life` is a fuse, not a reach budget.
 - **Volley** *(missile)* — a spread that leads your motion. Cross it.
 - **Seeker** — turns onto you, then commits. Out-turns you, cannot out-run you.
 - **Ring** *(missile)* — an expanding wall with one seam.

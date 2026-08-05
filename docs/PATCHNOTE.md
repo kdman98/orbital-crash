@@ -14,6 +14,105 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### "Doesn't have to" is not "must never" `79e5783`
+Comment only, and it undoes something written an hour earlier. The rule at the head of the `MSL` table read
+**"⚠️ A MISSILE MUST NEVER EXPIRE WHERE YOU CAN SEE IT"**, sourced in the same line to the author's *"it
+doesnt have to expire on screen."* Author: *"it is not a 'MUST', but, yeah, whatsoever. not currently."* A
+permission had been upgraded into a prohibition, at the one place in the file that constrains every
+projectile anyone adds later.
+
+**The counter-example was inside the same comment block** — two paragraphs down, the mine exemption
+explaining that mines deliberately expire on screen because that is how they detonate. It now reads as what
+it is: a tuning state, with the argument for holding it (a shot winking out mid-arena is the game
+withdrawing a threat it already made) and a note that a projectile with a good enough reason can overrule
+it. Measurements and the exemption are unchanged; only the modality. General form in
+[MECHANICS.md](MECHANICS.md) → *Traps*: **a rule stated hard enough that the code beneath it is an
+exception is not a rule.**
+
+### A comet shower, a remark instead of a readout, and nothing dies where you can see it `9fd8dcb`
+Three author notes from one message.
+
+**1 · Nothing but a mine expires on screen now.** *"fizzle - it doesnt have to expire on screen."* So `life`
+becomes a **backstop** against a projectile that never leaves — a curving seeker, mostly — rather than the
+thing that ends an ordinary flight. Non-mine values raised past the longest crossing with margin: volley
+4.2 → 6.0, ring 4.2 → 6.0, spear 2.8 → 4.0, seeker 6.9 → 9.6. Measured after: **zero non-mine mid-arena
+expiries, all three variants, both Epochs.** Surplus life past that threshold costs nothing, because a
+straight missile is culled the frame it exits and never reaches its `life` at all. ⚠️ **The mine is exempt
+and its `life` means something else — a fuse.** It is *supposed* to run out on screen; that is how it
+detonates. Stays at 3.4.
+
+⚠️ **That measurement is one viewport wide, found while writing this up.** Reach is a table product and
+does not scale with the display, but the arena does — `W = vw / S`, floored only on the short axis — so
+1656–2208 design units of reach clears a 1440-wide arena and does not clear a 2560-wide one. Arithmetic,
+not an observed fault; filed under *Open* in [MECHANICS.md](MECHANICS.md) with the run that would settle it.
+
+⚠️ **And the problem was reported wrong before it was found.** The author was told the Pulsar fizzled
+15–18% and might want investigating. Counted by kind, **16 of its 20 expiries were mines going off exactly
+as designed**, and genuine fizzle was 2 of 84 rings. A rate whose numerator contains a working mechanic
+describes neither the mechanic nor the fault. The seeker fix in `085a7f1` was still right — the Sentinel
+fires seekers and nothing else, 36 of 36 — but that was confirmed after the fact, not before it was acted on.
+
+**2 · The baited charge makes a remark, not a readout.** `BAITED  -12` → `Charger Poked!`. Author:
+*"somewhat not fun and explaining."* The number was the redundant half: the ordinary erosion readout draws
+`-12` at the same instant, 26px below — verified drawn together from frame 0 onward. Gold line says **what
+happened**, the red/cyan number says **how much**; the same second-encoding fault as the chain text, caught
+inside a single label this time. **Mixed case is the design tell**, and this is the only mixed-case string
+in the world layer, where everything else is a caps readout.
+
+**3 · The Comet is a shower, 3–5 bodies on one heading.** *"wont it be cosmic?"* It is. A single body
+crossing the sky was a curio; a stream is weather, which is what that formation's own note always wanted it
+to be. ⚠️ **The spread is the whole thing, or it becomes a Wall** — another formation's job and a different
+demand on the player. Three spreads keep it a stream you weave through: **lateral**, abreast of the shared
+heading; **trail**, pushing each body back along it so they cross in sequence rather than in rank; and a
+**separate near-miss aim per body**, so the group fans out instead of converging — one shared target would
+make it a noose. Speed varies per body on top. Measured over 6 showers: counts 3/3/4/5/5/5, holds staggered
+2.42–4.38s, speeds 6.86–8.49, every body crossed and exited, none stranded. The `max(0.5, …)` floor on the
+hold is new and load-bearing — trail can push a body further out than the base point, and a negative
+ray-vs-box solve hands `holdBody` a zero hold, which drops that comet out of formation flight on its first
+frame to sit in the margin as an ordinary Brute.
+
+**Open, and flagged rather than settled:** the event timer did not move, so comet *mass* is up 3–5× on the
+same schedule. See *Open* in [MECHANICS.md](MECHANICS.md) — the timer is the lever if it reads as too much,
+not the count.
+
+### Reach is speed × lifetime, with nothing correcting it `085a7f1`
+**`fireMissile` no longer divides `life` by `pace.spd`.** Author: *"having lifetime and speed, so reach is
+actually lifetime * speed, easy calculation. isnt this better?"* It is. `life` is a lifetime in seconds,
+reach falls out as `sp × 60 × life`, and a slowed missile covers proportionally less ground instead of the
+same ground more slowly. Reach ratio at `spd 0.75` measures exactly 0.750 where it used to be invariant.
+Law 15 in [MECHANICS.md](MECHANICS.md) is inverted by this, and the algebraic identity that used to pin it
+is retired in *Traps*.
+
+⚠️ **Sold as a no-op. It was not.** The rig that said so held `act` at 3 and varied only `pace` — correct
+for the on-screen-count question it was built for, and it therefore never ran the boss whose projectiles
+*curve*. At real Epoch I the fizzle-on-screen rate went Emitter 0 → 6.8%, Pulsar 14.5 → 20%, **Sentinel
+11.1 → 44.4%**. Missiles were visibly winking out inside the arena — exactly the failure the deleted
+comment had predicted in capitals. The old comment was right and the measurement could not see it.
+
+**Same shape as the figure it replaced: a probe that could not fail.** The old block cited 599px measured
+at both Epoch I and III as proof the reach identity held. That was the **screen edge**, not the life
+budget — compensated reach is 1361px and uncompensated 1021px, both past what the arena shows, so it
+returned 599 either way.
+
+**The fix belongs in the table, which is the point of the model.** `MSL.seeker.life` 5.2 → 6.9, exactly
+`5.2 / 0.75`, the old effective value. The seeker is the only kind that curves — 0.85s turning toward you
+before it commits — so its path is far longer than the distance it closes and reach must buy the arc as
+well as the approach. Straight flyers clear the arena at 0.75 speed with room to spare and are untouched.
+**The per-shot correction had been *hiding* a table value too low for a slowed curve;** holding reach
+constant meant it could never show. General form, now recorded at the table: with nothing correcting reach,
+**a table value must be sized for the slowest pace it will ever fly at.**
+
+Measured after, against the pre-change baseline — Epoch I: Emitter 0% (was 0), Pulsar 15.7% (14.5),
+Sentinel 11.1% (11.1). Epoch III: 11.8 / 17.9 / 0%, unchanged, since at `ps=1` nothing about it moved.
+On-screen lance count and firing rate 3.02 / 80 at Epoch I against 5.00 / 151 at III, identical to the
+decimal either side.
+
+**Also, one dead parameter.** `sfx.milestone(c)` took the combo and never read it, with the call site
+dutifully passing it; both dropped. Scaling the sting by streak was considered and declined — the HUD
+no-hit line is the identification channel, and a rising pitch would be a second encoding of it. A sweep
+over 502 declarations found no other dead symbol; its one hit was a false positive from stripping template
+literals.
+
 ### A limiter on the master bus `7f90646`
 **Nothing was catching the peaks.** Every voice summed into a 0.9 master and went straight out, so about
 four concurrent voices over the ambient bed cleared 1.0 and hard-clipped. That matters more than it
