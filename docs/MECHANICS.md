@@ -1621,6 +1621,23 @@ lesson, check whether the lesson actually rests on the story or merely arrived w
 `stepCollapseWave`. "settleR" and "v0" were never symbols at any point. If the sweep flagged deleted
 names too, the residue would be noise and nobody would run it twice.
 
+**Every row of a comparison must be on one basis, and a row that is not looks exactly like a row that
+is.** This produced two wrong conclusions in one section of this file inside an hour, from two people, in
+opposite directions — and neither was a wrong number. Both numbers were correct measurements of something.
+
+- A culled-by-`life` rate of **13.3%** was quoted as proof that reach arithmetic under-predicts. It had
+  **mines counted in it**, and a mine's `life` is a fuse the model exempts by construction. Right number,
+  wrong population.
+- A Sentinel reach of **1030** was quoted in a table headed *Epoch III*. It is the **Epoch I** figure —
+  0.754 of 1366, which is the pace multiplier. Right number, wrong epoch. Corrected, the ranking it was
+  said to invert turns out to be monotone.
+
+**The tell is that both were the only row of their kind.** One rate among rates, one reach among reaches;
+nothing in either looked odd, because the units matched and only the *basis* differed. So the check is not
+"is this figure right" but **"is this figure the same kind of thing as the ones beside it"** — recompute
+one neighbouring row yourself from source and see whether your method reproduces it. If it does not, the
+disagreement is the finding. Both of these were caught exactly that way and by no other means.
+
 **`spawnRing` collapses inward by default, so anything you add called a "shockwave" will implode.**
 `drawParticles` sizes a ring as `p.R*a` with `a` running 1 → 0 over its life, which starts at full
 radius and closes to a point. That is right for a **telegraph** — a Pulsar winding up, an Overdrive
@@ -1919,22 +1936,29 @@ mines anywhere in it, and it fizzled **11.8%**. Volley reach 1361 already exceed
 never mind the 640 half-width. So real paths run past the widest straight-line test available, and picking
 a bigger width does not repair the model.
 
-⚠️ **Then the Sentinel falsifies the fix in the other direction, and this is the finding.** Same run, same
-Epoch. It fires seekers and nothing else, at **1030 units — the shortest reach of any kind in the game**,
-below the half-width, the full width and the 1509 diagonal alike. Every geometric test predicts it should
-fizzle hardest. It measured **0%.**
+⚠️ **The Sentinel was read as falsifying the ranking too, and it does not — the 1030 was on a different
+basis from the rest of the table.** The Sentinel fires nothing but seekers, and pre-raise the seeker is
+`sp 3.3 · life 6.9`, so its reach is **1366** on the same arithmetic that gives the other rows theirs.
+1030 is 0.754 of that, which is the **Epoch I pace multiplier** — an Epoch I figure quoted in a table
+headed Epoch III. Nor was it ever "the shortest reach in the game": the ring is 1159 and the mine 184.
 
-| Epoch III, pre-raise | kit | shortest reach | geometry predicts | measured |
+| Epoch III, pre-raise | kit | shortest non-mine reach | geometry predicts | measured |
 |---|---|---|---|---|
-| **Emitter** | volley, spear | 1361 — *above* full width | safest | **11.8%** |
-| **Pulsar** | ring, mine | 1159 | middle | 17.9% *(mostly mines)* |
-| **Sentinel** | seeker | 1030 — shortest in the game | worst | **0%** |
+| **Pulsar** | ring, mine | 1159 | fizzles most | **17.9%** *(mostly mines)* |
+| **Emitter** | volley, spear | 1361 — *above* full width | middle | **11.8%** |
+| **Sentinel** | seeker | 1366 — longest of the three | fizzles least | **0%** |
 
-**The ranking is inverted, so arena size is not the governing term — boss behaviour is.** The Sentinel is
-the chase boss: it closes on you and circles, so its seekers are fired from short range and have short
-paths whatever the arena is. The Emitter hovers and sweeps, so its shots cross open ground. **Reach has to
-beat the path the boss's own behaviour produces, and that is variant-specific and not derivable from
-`resize()`.** Every crossover figure above is therefore a rough scale and neither a floor nor a ceiling.
+**Put every row on one basis and the ranking is monotone, not inverted.** Shorter reach, more expiry, in
+the order geometry asks for. So reach does rank the variants correctly and the width model is not
+overturned — it is **bounded**, which is a different and smaller claim.
+
+**Where it genuinely runs out is the Emitter–Sentinel pair: 5 units apart in reach and 11.8% against 0%.**
+Reach cannot separate those two, and something else must. Behaviour is the obvious candidate and the
+mechanism is sound — the Sentinel closes and circles, so its seekers fly short paths whatever the arena
+is, while the Emitter hovers and sweeps across open ground. But that is now an explanation for a tie
+being broken, **not** a demonstration that the ordering is wrong. Every crossover figure above stays a
+rough scale rather than a floor or a ceiling, for the Emitter's reason alone: 1361 exceeds the full width
+and still fizzled.
 
 **What survives, and it is worth keeping:** the harness viewport is the narrowest desktop arena there is
 — 1280×800 sits exactly on the `S=1` boundary and every standard desktop is wider — so more arena is
