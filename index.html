@@ -2983,9 +2983,19 @@ function onKill(e){
 // hoard, one popped out on the ring itself takes a bite. 2 damage is Collapse parity: trash dies, a
 // Brute (3hp) crawls out burned. Deliberately ONE blast strength in the game rather than a third.
 const BOMB_R=120, BOMB_DMG=2;
+// LIME IS THE BLAST'S OWN COLOUR, and it is the only thing in the play field wearing it. `COL.lime`
+// sat in the palette unused for the whole project — every body, missile, ring and wash on the field is
+// red, cyan, white, gold, violet or Neutral lilac. Pilot: "i can't identify bomb sound in complex
+// battle." The sound was half the problem; the other half was that the blast was drawn in the SAME two
+// colours as the 5.6 kills a second happening around it, at 32 particles against a Brute kill's 18 —
+// more of the same thing, in a field already full of that thing. A colour nobody else can wear is
+// worth more than any amount of extra size, and it costs nothing.
 function bomberBlast(e){
-  spawnRing(e.x,e.y,'#fff',BOMB_R*0.5); spawnRing(e.x,e.y,COL[e.color]||'#fff',BOMB_R);
-  spawnBurst(e.x,e.y,'#fff',18,5.4); spawnBurst(e.x,e.y,COL[e.color]||'#fff',14,3.6);
+  // OUTWARD to exactly BOMB_R — the only expanding ring in the game, and it draws the area that was
+  // actually affected rather than a decoration. The inward white one stays as the centre "pop", so the
+  // pair reads as a detonation with a core rather than a single expanding hoop.
+  spawnRing(e.x,e.y,COL.lime,BOMB_R,true); spawnRing(e.x,e.y,'#fff',BOMB_R*0.5);
+  spawnBurst(e.x,e.y,'#fff',18,5.4); spawnBurst(e.x,e.y,COL.lime,14,3.6);
   // ⚠️ `flashCol` MUST be set here, and for a long time it was not. `flash` is a full-screen wash drawn
   // in whatever colour the LAST setter left behind, and the last setter is almost always flip() —
   // `flashCol=COL[P.polarity]`, every flip, all run. So on red polarity a Bomber washed the screen RED,
@@ -3000,8 +3010,11 @@ function bomberBlast(e){
     const dx=o.x-e.x, dy=o.y-e.y;
     if(dx*dx+dy*dy > BOMB_R*BOMB_R) continue;
     o.hp-=BOMB_DMG;
-    if(o.hp<=0){ o.dead=true; spawnBurst(o.x,o.y,COL[o.color]||'#fff',5,2.6); }
-    else spawnBurst(o.x,o.y,'#fff',3,2.0);        // burned, not destroyed — reads as survived, not ignored
+    // Killed by the blast dies in the blast's colour, not its own — that is what makes the radius
+    // legible as ONE event instead of six coincidental deaths. Survivors keep the 3-spark "burned"
+    // tell, also lime, because at 3 particles in a busy field white was simply not there.
+    if(o.hp<=0){ o.dead=true; spawnBurst(o.x,o.y,COL.lime,5,2.6); }
+    else spawnBurst(o.x,o.y,COL.lime,3,2.0);      // burned, not destroyed — reads as survived, not ignored
   }
 }
 // (`ruptureBlast` — the outward shove an Aegis block fired — had exactly two callers, both shield
@@ -3224,8 +3237,12 @@ function spawnBurst(x,y,color,n,spd){
     parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.3,.7),max:.7,color,r:rand(1.5,3.5),ring:false});
   }
 }
-function spawnRing(x,y,color,R){
-  parts.push({x,y,vx:0,vy:0,life:.5,max:.5,color,r:6,ring:true,R});
+// ⚠️ RINGS COLLAPSE INWARD BY DEFAULT, and that is not a bug — see drawParticles. Every ring in the
+// game starts at R and shrinks to a point, which is right for a telegraph (the Pulsar's charge-up, the
+// Overdrive ignition drawing IN to the core) and wrong for a blast, which is the one thing that should
+// travel outward. `out` flips it, and it defaults FALSE so all 18 existing call sites are untouched.
+function spawnRing(x,y,color,R,out){
+  parts.push({x,y,vx:0,vy:0,life:.5,max:.5,color,r:6,ring:true,R,out:!!out});
 }
 function pushText(x,y,txt,color,life,size){
   // occupancy nudge: if a live text already sits near this spot, step up so labels stack legibly
@@ -3828,9 +3845,20 @@ function drawParticles(){
   for(const p of parts){
     const a=clamp(p.life/p.max,0,1);
     if(p.ring){
-      const rr=p.R*(1-a);
-      ctx.globalAlpha=a*0.5; ctx.strokeStyle=p.color; ctx.lineWidth=3*a+0.5;
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.R-rr,0,TAU); ctx.stroke();
+      // `a` runs 1 -> 0 over the life, so the default `p.R*a` starts at full radius and CLOSES to a
+      // point. `out` runs the other way, 0 -> R: the ring travels outward and thins as it goes, which
+      // is the universal read for a detonation and is used by exactly one thing (see bomberBlast).
+      const rad = p.out ? p.R*(1-a) : p.R*a;
+      // ⚠️ AN OUTWARD RING NEEDS ITS OWN FADE. `a*0.5` fades in step with the life, which for an
+      // INWARD ring is right — it is brightest at full radius, where the statement is, and vanishes as
+      // it converges on nothing. Run the same curve outward and you get the exact inverse of what you
+      // want: brightest as a dot at the centre, all but invisible by the time it reaches R, which is
+      // the radius that actually means something. `a^0.4` holds it up across the travel and drops it
+      // only at the very end, so the ring is still legible when it arrives at the blast's real edge.
+      // Same reason the width no longer thins on the way out.
+      ctx.globalAlpha = p.out ? Math.pow(a,0.4)*0.55 : a*0.5;
+      ctx.strokeStyle=p.color; ctx.lineWidth = p.out ? 2.5 : 3*a+0.5;
+      ctx.beginPath(); ctx.arc(p.x,p.y,rad,0,TAU); ctx.stroke();
     } else {
       ctx.globalAlpha=a; ctx.fillStyle=p.color;
       ctx.beginPath(); ctx.arc(p.x,p.y,p.r*a+0.4,0,TAU); ctx.fill();
@@ -4696,15 +4724,28 @@ const sfx={
   //   THE SOUND WAS LYING, and the blast comment two screens down says so in caps: IT DOES NOT TOUCH
   // YOU. The Bomber's blast damages other matter and never the core, so a damage voice on it reports an
   // event that did not happen — the one thing a cue must never do.
-  //   Built by the file's own rule, stated at baited(): every reward voice goes UP and every damage
-  // voice goes DOWN. This one does both and leads with the rise, because the blast is neither: it is a
-  // comic little event that clears your hoard. Square pop on top for the cartoon 'bloop', triangle body
-  // under it, and a short RISING sine tail — nothing in the damage vocabulary rises, so that tail alone
-  // stops it reading as a hit. Noise is kept but cut to 0.08/0.06 from 0.26/0.20: `noise()` is lowpassed
-  // at 1200Hz, so it is inherently a thud, and a thud is most of what "I got hit" sounds like. A trace
-  // keeps it a burst rather than a musical note; any more and the damage reading comes straight back.
-  bomb(){ beep(920,0.09,'square',0.13,380); beep(430,0.17,'triangle',0.11,180);
-          noise(0.08,0.06); beep(1250,0.13,'sine',0.06,1950); },
+  //   ⚠️ THEN THE FIX FAILED THE OTHER WAY, and the second failure is the more useful lesson. The
+  // replacement was built BRIGHT — square 920->380, top voice at 1950Hz — and the pilot could not find
+  // it at all: "i can't identify bomb sound in complex battle still." Measured, that was inevitable.
+  // In a late-game fight `kill()` fires 5.6 times a second and `mote()` 6.2, and BOTH ARE SQUARE WAVES
+  // IN 380-1720Hz — about four voices sounding inside any 300ms window, a dozen a second of them square
+  // and bright. The new bomb's lead was square, in that band. It was not competing with the mix; it WAS
+  // the mix. Volume had also gone 0.22 -> 0.13 and duration 0.30 -> 0.17 in the same edit.
+  //   THE OLD SOUND WORKED FOR A REASON THAT WAS NEVER "IT IS LOW". It worked because at 88->28Hz it
+  // was the ONLY thing in the sub-bass, an octave and a half under everything else. Register
+  // separation is what makes a cue findable in a crowd; brightness is not, because the crowd is
+  // already bright. Both of my first two attempts moved the wrong axis.
+  //   SO THE SPEC IS A CORNER, not an adjective — the pilot named the two rivals exactly: it must
+  // differ from the dot pop AND from the star taking a hit.
+  //     kill() = FLAT square blips, 380-1260Hz, no slide.   hurt() = FALLING sawtooth 150->60 + noise.
+  //   The unoccupied corner is LOW AND RISING on a smooth wave, and nothing in the combat set is there
+  // (only inhale(), a rare wind-up). Rising also satisfies the rule stated at baited() — damage voices
+  // fall — so the corner that makes it findable is the same one that stops it reading as a hit.
+  // Volume back to 0.21 against hurt's 0.22, and 0.26s against the crowd's 0.03-0.06s blips.
+  bomb(){ beep(150,0.26,'triangle',0.21,700);   // the BOING — low->high, alone in the register
+          beep(75,0.20,'sine',0.17,150);        // sub weight; nothing else in combat is down here
+          noise(0.05,0.05);                     // trace only: noise() is lowpassed at 1200Hz, i.e. a thud
+          beep(1700,0.09,'sine',0.05,2500); },  // bright tick on top — flavour, NOT the identifying part
   // THE BAITED CHARGE. It has to be tellable from bosshit() while your eyes are on the far side of the
   // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
   // in 0.09s), this is a heavy low SLAM that falls much further and much longer, and then RISES. The
