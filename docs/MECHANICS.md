@@ -776,14 +776,25 @@ hoard you actually built.
 it makes it far worse.** This was assumed the other way round for a long time, and one balance decision
 was taken partly on the assumption. Measured:
 
-| | |
-|---|---|
-| **Band where a grind connects at all** | roughly **67–161px**, and **128–222px** under Overdrive |
-| **Inside 150px** | grinding is about **4× worse** while burning |
+The band where a grind connects at all sits at roughly **67–161px**, and **128–222px** while burning. At
+every distance measured inside your usual fighting range, grinding is **several times worse** under
+Overdrive — the penalty varies about threefold across the band, so it is a range and not a factor, and
+naming a single multiplier would be quoted back as though it were uniform.
 
-The band **shifts outward** rather than widening, because a wider, faster ring orbits further out — so at
-the range the rest of the fight pushes you toward, Overdrive takes the grind away rather than adding to
-it. Closing to raise your volley hit rate and burning to grind harder are **not compatible plans**.
+**The band shifts outward and its width cannot change, and that is an identity rather than an
+observation.** Contact requires `|R − orbR|` under `boss.r + dot.r`, so the band is always
+`orbR ± (boss.r + dot.r)` — **centred on the ring's orbit, with a width that does not contain `orbR` at
+all.** The measured endpoints above differ by the same span twice because they could not have differed
+by anything else.
+
+So **if the Overdrive orbit is ever retuned, the band's centre moves and its width provably does not**,
+and nobody needs to re-measure it. Only `boss.r` or the Dot's own radius can widen it — which also means
+the band is **species-dependent**: a hoard of Brutes grinds across a meaningfully wider window than a
+hoard of Minis, at any orbit. That follows from the geometry and has not been measured for effect.
+
+The consequence for play is unchanged and now rests on the identity rather than the four numbers: at the
+range the rest of the fight pushes you toward, Overdrive takes the grind away rather than adding to it.
+**Closing to raise your volley hit rate and burning to grind harder are not compatible plans.**
 
 **The mechanism is why this is a finding and not a table.** Grind throughput is **feed-limited, not
 speed-limited**: usable ring Dots run *inverse* to damage dealt, because the grind eats its own supply on
