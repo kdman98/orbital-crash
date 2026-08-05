@@ -335,7 +335,11 @@
   /* The keyboard legend on a touchscreen is not merely wasted height — it is a lie. It advertises
      mouse, R-click and shift to a device that has none of them. Gone on coarse pointers at any
      height. (The in-game HUD legend says the same wrong thing and belongs to the HUD pass.) */
-  @media (pointer:coarse){ .hint{display:none;} }
+  /* #controls is the same lie one screen further in: it sits in the corner of a LIVE RUN telling a
+     touchscreen player to use a mouse, Shift and right-click, and now that tilt is the only steering
+     even "MOUSE STEER STAR" is wrong about the one thing it most needs to be right about. It goes with
+     the menu legend. #modeKeys lives inside it and is keyboard-only by nature, so it goes too. */
+  @media (pointer:coarse){ .hint,#controls{display:none;} }
   .hidden{display:none!important;}
 
   /* Tilt state. Amber rather than red: a fault here is "this control is not available", not damage.
@@ -4718,6 +4722,7 @@ function tiltMap(db,dg,a){
 function onTilt(e){
   if(e.beta===null || e.gamma===null) return;                  // some devices report nulls before settling
   tiltEvents++;                                                // counted BEFORE the maths: proves delivery
+  tiltOn=true;                                                 // DELIVERY is what turns tilt on, not a promise
   const a=(window.screen && screen.orientation && typeof screen.orientation.angle==='number')
     ? screen.orientation.angle : (window.orientation||0);
   tiltRaw.beta=e.beta; tiltRaw.gamma=e.gamma; tiltRaw.angle=a;
@@ -4747,17 +4752,27 @@ function stepTilt(dt){
 // needs a secure context: capacitor://localhost inside the app qualifies, https qualifies, and a plain
 // http://192.168.x.x page served to a phone for testing DOES NOT. That is the whole reason the on-device
 // test below wants either Xcode or a tunnel.
+// ⚠️ WE LISTEN NO MATTER WHAT THE PERMISSION CALL SAYS, and `tiltOn` is set by the first event that
+// actually ARRIVES rather than by the promise resolving. Measured in the Capacitor WebView: the panel
+// reported `threw` — requestPermission() exists and its promise REJECTS. But the JS permission API and
+// the native sensor gate are two different doors: Capacitor's WKUIDelegate already answers the real one
+// with decisionHandler(.grant) (WebViewDelegationHandler.swift). Treating a rejected promise as "no
+// tilt" threw away a sensor that may well be feeding us.
+//   So the promise now only supplies a DIAGNOSIS, and delivery is the verdict. Attaching costs nothing
+// when nothing comes — tiltFault() then says "granted, but no sensor data is arriving", which is the
+// truth either way and far more useful than a permission string.
 function tiltEnable(){
   if(tiltReady) return;
   tiltTries++;
   const D=window.DeviceOrientationEvent;
   if(!D){ tiltReady=true; tiltVerdict='no-api'; return; }
-  const attach=v=>{ window.addEventListener('deviceorientation',onTilt); tiltReady=true; tiltOn=true; tiltVerdict=v; tiltCalibrate(); };
+  window.addEventListener('deviceorientation',onTilt);
+  tiltReady=true; tiltCalibrate();
   if(typeof D.requestPermission==='function'){
     D.requestPermission()
-      .then(r=>{ if(r==='granted') attach('granted'); else { tiltReady=true; tiltVerdict='denied'; } })
-      .catch(()=>{ tiltReady=true; tiltVerdict='threw'; });
-  } else attach('auto');                                       // Android, and any WebView that just delivers
+      .then(r=>{ tiltVerdict = r==='granted' ? 'granted' : 'denied'; })
+      .catch(()=>{ tiltVerdict='threw'; });                    // recorded, NOT acted on — see above
+  } else tiltVerdict='auto';                                   // Android, and any WebView that just delivers
 }
 
 // Off by default on anything with a real pointer: a laptop with a lid sensor would otherwise start
@@ -4792,14 +4807,18 @@ addEventListener('pointerdown',()=>{ if(tiltWanted()) tiltEnable(); },{capture:t
 // these devices, so a mute failure here is an unplayable game — this is what stops that being a
 // mystery. It is deliberately NOT gated behind DEV: the player who needs it most cannot open a console.
 function tiltFault(){
-  if(!tiltWanted()) return null;                        // deliberately on touch: nothing to report
+  if(!tiltWanted()) return null;                        // not on tilt: nothing to report
+  if(tiltEvents)    return null;                        // DATA IS ARRIVING — tilt works, whatever the
+                                                        // permission promise happened to say. This test
+                                                        // comes first on purpose: in the Capacitor
+                                                        // WebView the promise rejects while the native
+                                                        // grant stands, so the promise is the less
+                                                        // reliable witness of the two.
   if(!tiltTries)    return 'Tap anywhere to allow motion access.';
   if(tiltVerdict==='no-api') return 'This device reports no motion sensor.';
-  if(tiltVerdict==='denied') return 'Motion access was denied. Enable it for this app, then reopen.';
-  if(tiltVerdict==='threw')  return 'Motion access errored. Reopen the app and try again.';
-  if(!tiltOn)       return 'Waiting on motion access…';
-  if(!tiltEvents)   return 'Motion access granted, but no sensor data is arriving.';
-  return null;                                          // events flowing: tilt is alive
+  if(tiltVerdict==='denied') return 'Motion access was denied. Allow it for this app, then reopen.';
+  if(tiltVerdict==='threw')  return 'No motion data — the sensor request errored. Reopen the app.';
+  return 'No motion data is arriving yet.';
 }
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
 // press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
