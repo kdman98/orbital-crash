@@ -1669,8 +1669,15 @@ opposite directions — and neither was a wrong number. Both numbers were correc
   **mines counted in it**, and a mine's `life` is a fuse the model exempts by construction. Right number,
   wrong population.
 - A Sentinel reach of **1030** was quoted in a table headed *Epoch III*. It is the **Epoch I** figure —
-  0.754 of 1366, which is the pace multiplier. Right number, wrong epoch. Corrected, the ranking it was
-  said to invert turns out to be monotone.
+  0.754 of 1366, which is the pace multiplier. Right number, wrong epoch.
+- The table written to correct *that* quoted the Pulsar's mine-inclusive **17.9%** in its measured column
+  while scrupulously stripping mines from its reach column. Right number, wrong population again — and
+  the Pulsar is the only variant carrying a fuse, so again the only row of its kind.
+
+**The third was found by running the trap against the table the trap was written for**, which is the part
+worth keeping. "Recompute a neighbouring row from source" caught the second. "Is this row the same *kind*
+of row as the ones beside it" caught the third, in a table its own author had just cleaned — of the other
+column. A cleaning pass fixes the column you are looking at and certifies the one you are not.
 
 **The tell is that both were the only row of their kind.** One rate among rates, one reach among reaches;
 nothing in either looked odd, because the units matched and only the *basis* differed. So the check is not
@@ -1982,15 +1989,29 @@ basis from the rest of the table.** The Sentinel fires nothing but seekers, and 
 1030 is 0.754 of that, which is the **Epoch I pace multiplier** — an Epoch I figure quoted in a table
 headed Epoch III. Nor was it ever "the shortest reach in the game": the ring is 1159 and the mine 184.
 
-| Epoch III, pre-raise | kit | shortest non-mine reach | geometry predicts | measured |
-|---|---|---|---|---|
-| **Pulsar** | ring, mine | 1159 | fizzles most | **17.9%** *(mostly mines)* |
-| **Emitter** | volley, spear | 1361 — *above* full width | middle | **11.8%** |
-| **Sentinel** | seeker | 1366 — longest of the three | fizzles least | **0%** |
+⚠️ **And the table that corrected it carried the same defect a third time, in the other column.** The
+Pulsar's 17.9% is the mine-inclusive rate — the very figure being stripped from the argument two
+paragraphs above, quoted unstripped in the measured column while the reach column was carefully cleaned.
+**The Pulsar is the only variant with a fuse-bearing kind in its kit**, so it is the only row whose
+measured value is a different kind of thing from its neighbours. Same tell, third firing.
 
-**Put every row on one basis and the ranking is monotone, not inverted.** Shorter reach, more expiry, in
-the order geometry asks for. So reach does rank the variants correctly and the width model is not
-overturned — it is **bounded**, which is a different and smaller claim.
+Stripped, reconstructing the Pulsar's shot mix from its cadences: the nova throws 12 ring lances every
+~4.5s against a mine volley every ~3.1s, putting mines at **~27%** of what it fires. Of 20 expiries, 16
+were mines, so ~4 non-mine expiries against ~82 non-mine shots — **~4.9%**. For 17.9% to have survived
+stripping, mines would have to be **80%** of everything the Pulsar fires; the ring alone throws twelve at
+a time.
+
+| Epoch III, pre-raise | kit | shortest non-mine reach | measured, one basis |
+|---|---|---|---|
+| **Pulsar** | ring, mine | 1159 — shortest | **~4.9%** *(reconstructed)* |
+| **Emitter** | volley, spear | 1361 — *above* full width | **11.8%** |
+| **Sentinel** | seeker | 1366 — longest | **0%** |
+
+**So it is not monotone either, and the honest state is that neither ordering is established.** The
+shortest reach lands in the middle. Three points, one of them reconstructed from a remembered 16-of-20,
+is not an ordering in any direction — and that is weaker than both the inversion originally claimed and
+the monotonicity claimed against it. **Reach has not been shown to predict expiry across variants.** The
+two claims cancelled and what is left is the absence of a result, which is the thing to write down.
 
 **Where it genuinely runs out is the Emitter–Sentinel pair: 5 units apart in reach and 11.8% against 0%.**
 Reach cannot separate those two, and something else must. Behaviour is the obvious candidate and the
