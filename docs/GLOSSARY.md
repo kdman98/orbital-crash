@@ -11,7 +11,6 @@ paragraph goes in MECHANICS and this line points at it.
 
 - **Lowercase `world` never means you.** It is the coordinate space (*world space*, *design units*) and
   the game's setting (*the silent world*). Your avatar is the **Star**.
-- **Sentinel** is an Anomaly; **Orbiter** is a Dot. Deliberately different words — they behave alike.
 - **Matter** is the mass noun, **Dot** the countable unit — *matter drifts in*, *a Dot hits you*.
 - **Never write "charge" unqualified.** Two unrelated quantities answer to it: **hold-charge**
   (`P.holdT/P.holdMax`, time since your last flip, which arms the hungry flip) and the **Capacitor**
@@ -93,10 +92,10 @@ paragraph goes in MECHANICS and this line points at it.
 - **Dart** — small, very fast, light hit; backward wake. (`fast`)
 - **Brute** — big, slow, tanky, the hardest contact hit in the sky; hexagon. The most durable Dot in the
   game. (`heavy`)
-- **Splitter** — twin lobes; bursts into exactly 2 Minis when destroyed. (`split`)
-- **Mini** — tiny fast fragment from a Splitter; solid pellet, no white core. (`mini`)
-- **Orbiter** — curves *around* the Star instead of beelining; annulus with a pip. (`orbiter`)
 - **Bomber** — an ordinary Dot in every stat that **detonates when it dies**. (`bomber`, `bomberBlast`)
+- **Planet** — the biggest, slowest Dot, and the only one you **charge**: held in your ring it burns down
+  a fuse, dropped it loses more than the hold gained, completed it erases every Dot of the opposite
+  colour arena-wide. (`planet`, `planetBlast`, `PLANET_FUSE`, `PLANET_COOL`)
 - **Charger** — the only Dot your magnetism does not own; arrowhead, solid armed and hollow spent.
   (`charger`, `CHG_WIND`, `CHG_COOL`)
 - **Spent** — a Charger's post-dash cooldown, during which it is ordinary matter and can ride your ring.
@@ -143,8 +142,10 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **The Pulse** — nested single-colour arcs washing outward over you; answered by matching, not dodging.
   (`formPulse`, `PULSE_ARCS`, `PULSE_GAP`)
 - **Arc** — one colour-uniform front of the Pulse. (`PULSE_ARC`)
-- **The Sorter** — two solid walls converging in opposite colours, doors at different heights.
-  (`formSorter`)
+- **The Cross** — four arms from a hub, quartering the arena. The hub is the arena's centre, and slides
+  off the Star rather than bending around it. (`formCross`, `CROSS_R0`)
+- **The Neutral Ring** — a closing ring of Neutrals with no seam and no bite; the one pattern answered by
+  a verb rather than a position. (`formNRing`, `NRING_SLOTS`, `NRING_R`)
 - **The Comet** — a rare event: a shower of 3–5 fast Dots crossing the whole sky on one heading and
   leaving. (`formComet`, `COMET_SPD`, `cometT`)
 

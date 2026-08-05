@@ -91,7 +91,7 @@ resized.
 ### 4. Hitbox is hull
 `e.r` is both the drawn hull and the collider, for every species and the Anomaly. **Never split them.**
 A render-only shrink puts the kill edge outside a hull that looks safe, which is law 3 in its worst
-form. Three silhouettes overhang — Brute hexagon, Charger arrowhead, Splitter lobes — but those draw
+form. Three silhouettes overhang — Brute hexagon, Charger arrowhead, Planet ring — but those draw
 *bigger* than they collide, which is the forgiving direction.
 
 *Catch it:* bracket the separation at which contact actually fires; it must land on `e.r + P.r` for
@@ -106,8 +106,10 @@ so the unmarked slot goes to the most common Dot.
 Marks are **negative space, not stacked fills** — the enemy pass runs under `lighter`, where layered
 fills saturate to white and erase the polarity contrast the colour law depends on.
 
-*Ceiling:* nine species is the edge of what a shape vocabulary carries at 40+ Dots. A tenth should
-reuse a silhouette and differ by behaviour.
+*Ceiling:* nine species is the edge of what a shape vocabulary carries at 40+ Dots, and a tenth should
+reuse a silhouette and differ by behaviour. **The roster is seven**, so there is room — the ceiling is a
+limit that has not been reached rather than one being pressed against. It was nine until `6324914` cut
+three and added one.
 
 ### 6. The three pattern rules
 A shape that breaks any one of these is decorative, not a pattern.
@@ -117,7 +119,7 @@ A shape that breaks any one of these is decorative, not a pattern.
 3. **Never end on a timer alone** — a shape that just crosses and dissolves is beaten by standing still.
 
 *Catch it:* measure every inter-Dot gap and the longest same-colour run; check the shape has a
-terminating *event* (the Wall's return, the Noose's bite, the Sorter's mutual annihilation).
+terminating *event* (the Wall's return, the Noose's bite, the Cross's arms clearing the field).
 
 ### 7. The two-wave release
 Rule 6.2 makes every neighbour in a shape its own annihilator, so a formation that lapsed on one
@@ -132,8 +134,8 @@ A Dot that finishes a committed trajectory it was born with is **retired**: `dea
 `queueKill` — no score, no combo, no Mote, no Capacitor, no blast chain, no death FX. Nothing was
 destroyed; it left.
 
-Applies to: the Comet crossing the sky, the Pulse leaving the viewport, the Sorter's two walls
-annihilating each other, and the Bomber's blast.
+Applies to: the Comet crossing the sky, the Pulse leaving the viewport, the Cross sweeping through and
+out, and the Bomber's blast.
 
 **The general "delete anything off-screen" rule was measured and rejected.** Over 300s tracking every
 Dot: 1,374 entered, **2 ever left**, and both came back. Ambient matter cannot leave — it seeks you.
@@ -515,10 +517,8 @@ Dots are your threat *and* your ammunition.
 | **Drifter** | baseline Dot, steady approach — the deliberate unmarked null |
 | **Dart** | small, very fast, light hit; backward wake |
 | **Brute** | big, slow, 3 hp, the hardest contact hit in the sky; hexagon. The only Dot that walks out of a Bomber blast, and nothing erases it outright — it must be annihilated by colour like anything else |
-| **Splitter** | twin lobes; bursts into exactly 2 Minis when destroyed — **unless** killed by a Bomber blast, which sets `dead` without running `onKill`. That is now its *only* clean death, and see *Open* |
-| **Mini** | tiny fast fragment; no white core, a solid pellet |
-| **Orbiter** | curves *around* the star instead of beelining; annulus with a clockwise pip |
 | **Bomber** | an ordinary Dot in every stat that **detonates when it dies** |
+| **Planet** | the biggest and slowest thing in the sky, and the only Dot you **charge**. Hold it in your ring and `burn` accumulates; let it go and it drains at `PLANET_COOL`, which costs you more than the hold earned. Carry it to `PLANET_FUSE` and it erases **everything of the opposite colour, arena-wide** |
 | **Charger** | the only Dot your magnetism does not own; arrowhead, solid armed and hollow spent |
 | **Neutral** | wears both poles on a turning seam; the one Dot the colour law does not reach |
 
@@ -664,18 +664,24 @@ corner, so it can only ever be a failsafe.
 *What it costs:* the Pulse is not an ammunition source, because a held Dot ignores the Field and can
 never be ring-captured. Intercepting one in flight is untouched and still pays in full.
 
-### The Sorter
-Two **solid** walls converging, one red and one cyan, doors at different heights. Neither door helps
-you with the other wall and no polarity is safe from both: match the one arriving first, then flip for
-the second. The flip stops being a convenience and becomes the solution.
+### The Cross
 
-It deliberately breaks the *letter* of rule 6.2 while keeping its spirit — one solid red wall is a free
-door if you are red; two, in opposite colours, cannot both be.
+Four arms from a hub, sweeping the arena into quadrants. **The hub is the arena's centre, not yours** —
+and if you happen to be standing on it, the hub slides off *you* rather than the arms bending around it,
+so the shape never deforms to accommodate where you are. The arms reach past the furthest padded corner,
+which is the Noose's measurement and is there for the Noose's reason: there must be no *outside the
+Cross* to walk to. The answer is a quadrant, chosen early.
 
-The walls **annihilate each other** where they meet, which is what ends the shape rather than a timer —
-and that mutual annihilation **pays nothing** (law 8). It is gated on **both** Dots being in formation
-flight, so nothing you own is caught (your ring Dots carry no `hold`), and on `!unstable`, so a
-an Overdrive burn — which is yours — never silences it.
+### The Neutral Ring
+
+A closing ring of Neutrals, `NRING_SLOTS` of them, and **it has no seam and no bite**. Both omissions are
+deliberate and they are the whole design. A gap would say *find the way through*, and there is no way
+through a wall of Neutrals — no polarity makes one safe, so the answer is a Shockwave rather than a
+doorway. And unlike the Noose it needs no bite to reach a player who stands still, because it does not
+stop being lethal when it stops closing.
+
+**This is the one pattern that names a verb rather than a position.** Every other shape asks where to
+stand; this one asks you to spend something.
 
 ### The Comet
 Not a formation but an **event**, on its own much longer timer rather than in the shape rotation — and
@@ -956,7 +962,7 @@ Overdrive **shifts the band outward and cannot widen it** — retune the orbit a
 not move; only `boss.r` or the Dot's own radius can change it.
 
 *Two things the numbers hid, and species-dependence turned out to enter twice.* A Brute ring grinds
-across a window wider than a Mini ring's by **twice the difference in their hull radii** — and, separately,
+across a window wider than a Dart ring's by **twice the difference in their hull radii** — and, separately,
 each species **settles at a different radius**, because every Dot rides its own speed ceiling and the
 shell balances at v/r. So the band's width *and* its centre both vary by species. **There is no single
 band, and there is no single shell radius either**; a rig that feeds one species is measuring that
@@ -1098,8 +1104,9 @@ bands so it scales by the same factor at every Epoch — halving only the intro 
 creep back at high Act, where the weight climbs.
 
 Two things make the *measured* mix wider than either table: formations and storm surges spawn outside
-`doSpawns`, and Minis come only from Splitters dying — they appear in no table at all and still make up
-roughly an eighth of everything that arrives.
+`doSpawns`, so the measured mix is wider than either table on its own. *(A second source used to sit
+here: Minis, spawned only by Splitters dying and appearing in no table at all, once about an eighth
+of all arrivals. Both species were deleted in `6324914`, so every Dot now comes from a table.)*
 
 ### Pressure is spawn-limited, not player-limited
 
@@ -1890,30 +1897,16 @@ measured hole, and it changes Graze's deliberately thin pricing (score and a sou
 meter income stays chosen rather than lucked into). The old shield-block shape is described in a comment
 where it was deleted, as the thing to bring back. Not started.
 
-**The Splitter has no answer the player can aim — and this is an agency problem, not a population one.**
-Popping a Splitter adds 2 Minis. The only death that skips `onKill` and so leaves no fragments used to
-be a Collapse or a Bomber blast; Collapse is gone, so **the Bomber blast is the sole clean kill**, and
-`BOMB_RARITY` had cut Bombers 47.8% one commit earlier, priced against the Bomber's own role with no
-knowledge it was about to become the only answer to another species.
+**~~The Splitter has no answer the player can aim.~~ Closed by deletion in `6324914`.** The species
+is gone, and the Mini with it. The item was that the one Dot whose death made the field *worse* had
+no on-demand answer — a species-identity question rather than a spawn-weight one — and removing the
+species is a legitimate answer to an identity question, if a blunt one.
 
-**Measured against a real pre-change baseline, the Splitter did *not* get disproportionately worse.**
-Standing Minis rose 86.7% and Splitters 60.0% — but the **whole crowd rose 60.1%**, which is the intended
-consequence of deleting Collapse. As a *share* of the crowd, across two replications: Minis 5.87→6.83%
-(*t*=1.28) and 5.76→6.44% (*t*=1.68), Splitters 5.02→5.05% (*t*=0.06) and 6.03→5.55% (*t*=−0.97).
-Minis-as-share leans up both times, which is the direction the mechanism predicts, but neither reaches
-significance and Splitters-as-share **flips sign** between replications. Both replications are reported
-rather than the friendlier one; do not quote a single figure.
-
-**So `BOMB_RARITY` is not owed a payback** — the Splitter got exactly as much worse as everything else,
-and re-tuning Bomber frequency to compensate for a Collapse deletion is the cross-purpose lever this
-file argues against elsewhere.
-
-**What survives measurement is the legibility.** Population statistics say nothing about agency. The
-Splitter's answer went from *a verb the player owns* to *a coincidence they can occasionally set up*.
-That is why its Bestiary card no longer names an escape: *"a Bomber blast kills it clean"* is technically
-true and practically misleading, since the player cannot reach it on purpose. The open item is that **the
-one Dot whose death makes the field worse has no on-demand answer** — which is a species-identity
-question, not a spawn-weight one.
+*Worth keeping, because it outlives the Splitter:* the failure was that a Dot's counter existed but
+could not be **aimed**. A Bomber blast killed a Splitter cleanly, so on paper there was an answer;
+the player could not reach it on purpose, so in the hand there was not. **An answer the player
+cannot choose to use is not an answer**, and that test applies to every species added later — the
+Planet is the current one to hold it against.
 
 **The Moment Engine's audio half was never built.** The time side is live (`timeScale`, `slowmo`); the
 sound side — stereo-panned kill pops, a low-HP heartbeat with a lowpass, a storm drum layer — is agreed

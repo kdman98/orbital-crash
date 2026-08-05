@@ -113,6 +113,27 @@ no-hit line is the identification channel, and a rising pitch would be a second 
 over 502 declarations found no other dead symbol; its one hit was a false positive from stripping template
 literals.
 
+### Three species out, the Planet in, and the Sorter replaced `6324914` `50c2389`
+**The roster is seven Dots, down from nine.** The **Splitter**, the **Mini** it spawned, and the
+**Orbiter** are gone. The Splitter took a standing open question with it: the one Dot whose death made
+the field *worse* had no answer the player could aim, because the only clean kill was a Bomber blast you
+could not arrange on purpose. Deleting the species answers an identity question bluntly, and the general
+form is kept in [MECHANICS.md](MECHANICS.md) because it outlives the Splitter — **an answer the player
+cannot choose to use is not an answer.**
+
+**The Planet is the new one, and it is the first Dot you *charge*.** Biggest and slowest thing in the
+sky. Hold it in your ring and a fuse burns down; let it go and it drains faster than it filled, so
+dropping costs more than the hold earned. Carry it to the end and it erases **every Dot of the opposite
+colour, arena-wide**. That asymmetry is the point: it is a decision, not a timer you wait out.
+
+**The Sorter is gone; the Cross and the Neutral Ring take its place**, so patterns go five to six. The
+Cross quarters the arena from a hub that slides off you rather than bending around you. The Neutral Ring
+closes with **no seam and no bite** — deliberately, because there is no way *through* a wall of Neutrals
+and the answer is a Shockwave rather than a doorway. It is the only pattern that asks for a verb instead
+of a position.
+
+The Bestiary is rebuilt to match in `50c2389`. Score presentation also stopped being text in `6324914`.
+
 ### Tilt got twice as slow without anyone touching it `bf48f87`
 **The smoothing on the tilt reading was a fixed fraction applied once per sensor event**, tuned against
 the browser's own feed at 60Hz. When iOS started reading the sensor natively it delivered at 30Hz — and
