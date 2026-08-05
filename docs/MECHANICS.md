@@ -1204,12 +1204,29 @@ Epoch; the roster is not** — so price a variant against the first Epoch its ga
 written *for this section*, an hour after it was drafted. A one-liner walking the pool's history matched
 `let hp=13+act*5` fine and returned **5** for `let hp=Math.round((13+act*5)*1.5)`, because the regex had
 no branch for the parenthesised form and the capture fell through to a default. Five is a perfectly
-believable pool. It only surfaced because the row sat next to four that were right and the shape of the
-curve looked wrong. **Rank the pins: an identity beats two independent restatements beats one figure.**
-An identity — `reach = (sp × ps) × (life / ps) = sp × life`, `ps` cancelling exactly — makes the
-conversion unnecessary and retires the re-measurement forever; restatements only catch a conversion that
-has already gone wrong. When an extractor emits a value it could not have parsed, it must fail loudly
-instead: same rule as *refuse to report when the precondition fails*, one layer down.
+believable pool.
+
+**It is categorically worse than the other three here, and the difference is worth keeping.** A forced
+state, an unfed rig and an appended sentence all produce a wrong number from a process that *ran
+correctly on the wrong input* — there is a real measurement underneath, of something. A fallthrough
+produces a number from a process that **silently did not run at all.** Nothing was measured, and the
+output is indistinguishable from a measurement.
+
+So *refuse to report when the precondition fails* needs its precondition named at this layer: **for an
+extractor, the precondition is that the pattern matched.** A default must be an error, never a value.
+Ending a capture with `|| 0` converts a detectable failure into an undetectable one, and it is such a
+natural thing to write that it will not look like a decision.
+
+**How it was caught is the other half.** Not by checking the value — by checking the *shape*. Four
+neighbouring rows were right and the curve between them looked wrong. A single extracted value has no
+shape to be wrong, so **extract a series rather than a point wherever there is a choice**, and read the
+series before trusting any row of it.
+
+**Rank the pins: an identity beats two independent restatements beats one figure.** An identity —
+`reach = (sp × ps) × (life / ps) = sp × life`, `ps` cancelling exactly — makes the conversion unnecessary
+and retires the re-measurement forever; restatements only catch a conversion that has already gone wrong.
+And when a model and a provenance disagree, **provenance wins** — it is the only one of these that keeps
+working after the model underneath it turns out to be false.
 
 **An edited comment is a new comment, and has to be read as one.** The grind block held a threshold
 model and a no-threshold model three sentences apart for weeks, because the second was *appended* to a
