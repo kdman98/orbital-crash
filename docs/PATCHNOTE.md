@@ -14,6 +14,48 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### The iOS app runs `6430ebe`
+**Built, installed and played through on an iPhone 17 Pro simulator** — a full run, an Anomaly met and
+died to, and the death receipt drawn. The port is real rather than merely compiling. No game code
+changed: `index.html` is untouched by this commit, and the touch handling it exercises was already
+there, which is why the **web build plays on a phone browser too**.
+
+**Touch was confirmed by measurement, not by looking at it.** A drag ended at (95, 320) points and the
+star came to rest at (95.4, 264.6) — under half a point from where `TOUCH_LIFT` predicts. That single
+figure proves both the coordinate mapping and the fingertip offset at once, because the lift is applied
+*only* inside the touch branch: if the touch path were not live, it could not appear at all. A tap at
+(201, 600) then flipped the core and left the star exactly where it was, which is the other half of the
+design — the tap reverses poles and does not drag you to your fingertip.
+
+**Portrait is enforced in the plist, not merely requested in the manifest**, and it is a fairness rule.
+The short side fixes the world scale and the long side decides how much arena you get, so landscape
+would hand out a wider field at an unchanged spawn rate: an easier run on the same score table. Across
+the iPhone lineup every device lands within **8 design units of the same world, 0.46%** — tune once,
+tuned everywhere. Area against desktop barely moves; **shape** does, aspect 0.46 against 1.78.
+
+**Three Capacitor template defaults were wrong for this app.** `UIRequiredDeviceCapabilities` shipped
+`armv7`, a 32-bit leftover that no device running a 13.0 target can satisfy — a requirement that could
+never be met by a device that could also run the app. Portrait had to be set on **both** device
+families, with `UIRequiresFullScreen`, because iPad refuses a partial orientation set without it. And
+the status bar had to be hidden with `UIViewControllerBasedStatusBarAppearance` switched off, or
+Capacitor's bridge controller keeps deciding and the clock lands on the score readout.
+
+**534KB of unreferenced splash art deleted**, after grep found no reference from any `Contents.json`,
+storyboard, pbxproj or plist and the app still built and launched. The six byte-identical `Default@*`
+files were *left alone* on purpose: all six are genuinely referenced and the generator recreates them,
+so pruning by hand would be undone by the next documented regenerate.
+
+⚠️ **Two HUD faults are now confirmed on device rather than predicted**, and both are open: the
+top-centre readout is swallowed by the Dynamic Island, and the keyboard legend overlaps the HP and
+Capacitor bars while telling a touchscreen player to hold Shift. The HUD is untouched here because the
+gameplay pass owns it. `appId` is also still the placeholder `com.orbitalcrash.game`.
+
+⚠️ **`xcodebuild` deadlocks under a sandbox** — it wedges at 0% CPU inside `ibtool`'s handshake, with
+the storyboard step never completing; a second attempt blocked earlier still, during IDE plugin
+scanning. Neither is a project fault: the same workspace and scheme build clean unsandboxed. Diagnosed
+by sampling the stuck process rather than by guessing, which is the only way to tell *blocked* from
+*slow* when both look like a build that never returns.
+
 ### The streak stops narrating itself `695779b`
 **Three floating words are gone, and the Capacitor says one of them itself.** A milestone or a streak
 burst drops a chunk of charge in a single frame, and a bar that lurches with no visible cause reads as

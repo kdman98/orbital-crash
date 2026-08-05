@@ -282,6 +282,42 @@ through the same species path, then cut. Held `GHOST_HOLD`, and ticked in `frame
 `step()` so it survives a hitstop from elsewhere. It was never invisible because it was short — it was
 invisible because it was buried under the four other cues a hit used to fire.
 
+### Touch
+
+**Steering is offset, not direct.** The target sits `TOUCH_LIFT` above the contact point, because a
+thumb on the star covers the one thing the game asks you to read — the colour arriving at your core. The
+core still clamps to the arena, so pushing the target off the top of the screen reaches the top edge
+rather than stalling short of it.
+
+**A tap flips; a drag steers.** Both `TAP_SLOP` and `TAP_TIME` have to hold for a press to count as a
+tap, and a tap never moves the star — it would otherwise yank the core to wherever your finger landed,
+which is the opposite of aiming. Under tilt a drag must not steer either: `stepTilt` clears the pointer
+every frame, so writing a target there buys a one-frame twitch and nothing else.
+
+**None of this reaches mouse play.** The lift is applied only inside the `isTouch(e)` branch — pointer
+input takes an early return with the raw coordinates — which is also what made the port measurable:
+the on-device drag landing within half a point of `TOUCH_LIFT`'s prediction could not have happened
+unless the touch path were live.
+
+**Portrait is enforced natively, and it is a fairness rule rather than a taste one.** `S` is
+`min(1, min(vw,vh)/REF_SHORT)`, so the *short* side fixes the scale and the *long* side decides how much
+arena you get. Landscape would hand the player a wider field at an unchanged spawn rate — an easier run
+scored on the same table. The web manifest's `orientation` is advisory and applies only to an installed
+PWA; `Info.plist` is the enforcement.
+
+**The scale is why one tuning pass covers the lineup.** Across iPhone 17 Pro / 17 Pro Max / 17e / Air,
+every device gets a world exactly `REF_SHORT` across — that is the definition of `S`, not a measurement
+— by **1731 to 1739 tall, an 8-unit spread of 0.46%**. Tune for one and
+you have tuned for all of them. Against desktop the *area* barely moves either (1.39M vs 2.07M square
+units). What moves is **shape**: aspect 0.46 against 1.78, a 3.9× difference, and that is the part no
+bot can sign off on.
+
+⚠️ `Info.plist` restates `REF_SHORT`'s **value** inside a comment explaining the portrait rule, rather
+than its name. It is the numbers rule broken across a language and a directory boundary: nothing that
+greps the JS will ever surface it, so changing `REF_SHORT` leaves a confident, wrong sentence behind in
+a file nobody re-reads. Left in place rather than fixed here, because it is the app target's file and
+this is a note, not a licence to edit it — but it is the first cross-language instance we have.
+
 ---
 
 ## The two verbs
@@ -1385,12 +1421,18 @@ that always looks alarming into a list that clears in one pass. Run it mechanica
 collect backticked tokens that appear *only* in comment text, test each against the stripped code)
 rather than by eye, because the tokens worth catching are the ones that look most like names.
 
-**Scope the sweep to the live spec.** Run over `PATCHNOTE.md` it reports ten orphans — `POWMAP`,
-`fireNova`, `bankMote` and the rest — and every one is correct and must stay: a dated entry recording
+**Scope the sweep to the live spec.** Run over `PATCHNOTE.md` it reports ten orphans — "POWMAP",
+"fireNova", "bankMote" and the rest — and every one is correct and must stay: a dated entry recording
 that something was removed *has* to name it, and those names are gone from the source in every form,
 comments included. A checker pointed at history will always look like it found a pile of defects, and
 acting on that reading deletes the record. This file and `GLOSSARY.md` describe what is true now; that
 one describes what happened.
+
+*Which is also why those three sit in plain quotes just now.* A backtick in **this** file promises the
+reader that grepping `index.html` will find the thing. A backtick in `PATCHNOTE.md` promises only that
+the thing was once called that. So the same name is correctly backticked there and correctly bare here,
+where it is being quoted rather than claimed — otherwise this very paragraph would add three permanent
+orphans to the residue it is telling you how to read.
 
 ⚠️ **A defective sweep under-reports, so it looks exactly like a clean one.** Two runs over the same
 tree returned 13 and 12, and the gap was not a judgement call about what counts as deliberate — one
