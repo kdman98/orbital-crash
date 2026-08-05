@@ -1125,6 +1125,17 @@ roster cannot produce, and the number was copied into a sentence about what a pl
 answers every question you ask it, including the ones with no answer. **A formula is defined at every
 Epoch; the roster is not** — so price a variant against the first Epoch its gate lets it appear in.
 
+**A silent parse failure returns a plausible number, not an error** — and this one happened to a script
+written *for this section*, an hour after it was drafted. A one-liner walking the pool's history matched
+`let hp=13+act*5` fine and returned **5** for `let hp=Math.round((13+act*5)*1.5)`, because the regex had
+no branch for the parenthesised form and the capture fell through to a default. Five is a perfectly
+believable pool. It only surfaced because the row sat next to four that were right and the shape of the
+curve looked wrong. **Rank the pins: an identity beats two independent restatements beats one figure.**
+An identity — `reach = (sp × ps) × (life / ps) = sp × life`, `ps` cancelling exactly — makes the
+conversion unnecessary and retires the re-measurement forever; restatements only catch a conversion that
+has already gone wrong. When an extractor emits a value it could not have parsed, it must fail loudly
+instead: same rule as *refuse to report when the precondition fails*, one layer down.
+
 **An edited comment is a new comment, and has to be read as one.** The grind block held a threshold
 model and a no-threshold model three sentences apart for weeks, because the second was *appended* to a
 block whose existing sentences already assumed the first, and nobody re-read the whole thing as a single
@@ -1290,11 +1301,18 @@ Questions the game has not answered. These are live; everything else in this fil
 reasoned as a threshold — a line at 18 HP, a *trigger condition*, a margin above it that widened and
 narrowed as the pool moved. **There is no threshold, and the margin arithmetic was measuring nothing.**
 
-18 was the pool at which one immortal bot, on one time budget, won the race often enough to be worth
-writing down. `d214716`'s measurement settles it rather than merely supporting it: grind throughput is
-**feed-limited**, not speed-limited — usable ring Dots run inverse to damage dealt, so the ceiling is
-gathering rate and arena density, and time-to-solo-kill is roughly **linear in the pool**. A linear cost
-has no cliff anywhere in it.
+**The provenance settles it without needing any model to be right.** The pool expression at `e21eda6`,
+the first commit in the repo, is `hp=13+act*5` — so Epoch I *was* 18. The number in the warning is not a
+boundary anyone derived. It is the pool that happened to be in force when the bot ran, a sample with an
+era attached, and it has been read as a threshold ever since because it arrived attached to a result.
+The pool has held five different Epoch I values across this repo's whole history: 18 was the first, and
+none of the four after it has been 18.
+
+The throughput model agrees, and is worth keeping as corroboration rather than as the proof: grind
+throughput is **feed-limited**, not speed-limited — usable ring Dots run inverse to damage dealt, so the
+ceiling is gathering rate and arena density, and time-to-solo-kill is roughly **linear in the pool**. A
+linear cost has no cliff anywhere in it. If provenance and model ever disagree, **provenance wins** — it
+does not depend on the model being true.
 
 So **a pool trim buys minutes, not immunity, and a pool buff is not a clearance.** HP is a scalar on
 every channel at once: raising it slows the exploit and the intended loop by the same factor and moves
