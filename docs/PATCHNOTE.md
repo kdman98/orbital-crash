@@ -14,6 +14,38 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### The streak stops narrating itself `695779b`
+**Three floating words are gone, and the Capacitor says one of them itself.** A milestone or a streak
+burst drops a chunk of charge in a single frame, and a bar that lurches with no visible cause reads as
+the game moving on its own rather than as the game paying you — so those two texts passed the file's
+own test for a cue and were not simply deleted. They moved onto the thing they were about: a white
+pulse over the Capacitor **fill**. The burst is the sharp case, because it fires *during* a hit, where
+the damage number, the red flash and the shake are already competing at the core.
+
+**`N CHAIN` just went.** It announced the combo — which the HUD already shows permanently and already
+recolours by the same tier — in the largest text in the game. Measured across 6 runs, 364s and 1110
+kills, it fired **89 times, once every 4.1 seconds**, against 19 milestones and 16 bursts. A second
+encoding of a number that never leaves the screen, which is the same argument used three lines away to
+delete the bolt glyph. The shake and the sting stay; those were never the redundant part.
+
+**Two design mistakes went in first and were caught by screenshotting rather than by reasoning.** The
+wash was hung on the whole bar, which whitened the *empty track* too and blurred the fill boundary — a
+cue that hid the exact quantity it exists to report. And it was tinted by streak tier, which looked
+like free information and was nearly invisible where it mattered: the fill runs violet to cyan, and a
+cyan wash over the cyan end screen-blends to almost nothing. White drives any base toward white. The
+tint was also itself a second encoding, since the HUD line already carries tier colour continuously —
+the same defect being removed, reintroduced one commit later.
+
+⚠️ **Fresh RNG baseline, not a regression — old fingerprints no longer compare.** The `+N` popup was an
+`else if` on the chain branch, so it was suppressed on exactly the kills that got the fanfare. Fixing
+that makes `Math.random()` draw on every kill, which shifts the seeded stream: **seed 404 goes 85.5s →
+66.4s**. Difficulty is unchanged — n=30, mean 59.5 → 61.5, **median 57.3 both**, sd 16.1 both, Welch
+t=0.49. This is the case the `rand()`-at-run-start trap in [MECHANICS.md](MECHANICS.md) already
+describes; read the re-roll as a new baseline, not as a balance change.
+
+`MCOL` went with the text it coloured, and `updateHUD` was always carrying its own inline copy of that
+palette — one array was live and one was not.
+
 ### The menu stops presenting five different things as one list `3f03e45`
 **Two of the four side buttons start a run and two open a page, and the menu now says so with shape.**
 They had been four identical ghost pills stacked in a column, distinguished by an 8px-versus-12px
@@ -328,7 +360,10 @@ a hard cap at **×15 inside 46s on 6 of 6** runs taking none — nothing in betw
 effect on final score. The halving punished backwards: a clean run banks 761 Motes against the 140
 needed to cap, so the first two hits cost a deep bank nothing while a shallow one lost half.
 *Also:* `STREAK LOST` and the `MULT ×a → ×b` popup are gone — the latter computed uncapped, so a
-saturated bank rendered the literal string `MULT ×15.0 → ×39.0`. `STREAK BURST` stays alone.
+saturated bank rendered the literal string `MULT ×15.0 → ×39.0`. `STREAK BURST` stays alone. *(It did
+not stay: `695779b` removed it too, along with the milestone text and `N CHAIN`. Left as written because
+this is dated history — but "stays alone" was a claim about the future, and those are the sentences in
+here that go false.)*
 `breakStreak` was still setting `hitstop=0.12` at combo ≥50, leaking the freeze-frame `407b74e` removed
 from contact back in through the streak path; gone, and all four surviving `hitstop` writes are
 non-hit events. And `#combo` carried no class, so it never picked up `.stat`'s `position:absolute` and

@@ -154,8 +154,13 @@ channel exists to carry something unreadable, not to be preserved.
 
 **Everything else is floating text, and floating text must be drawn where its event happened.** That is
 the whole rule, and it is a rule about *position*, not about content — `-8` rises off the Anomaly you
-just bit, `BOUNTY +` off the Dot that paid, `STREAK 25 · ⚡+8%` off the core, because the streak is
-yours. A label placed anywhere other than its own event is a banner with extra steps: it moves your
+just bit, `BOUNTY +` off the Dot that paid, and a red `-8` off your own star when something bites
+**you**. The first and the last are the same minus sign and the same digits; nothing but where they are
+drawn tells them apart, which is the rule demonstrating itself. (A streak announcement stood here as the
+third example until `695779b` deleted it — under this same section's other test, not this one: the HUD
+already carried the streak permanently, so the text was a second encoding. The rule ate its own
+example, which is the right outcome and not a reason to restore it.) A label placed anywhere other than
+its own event is a banner with extra steps: it moves your
 eyes off the field to read about something that happened somewhere else.
 
 `VOLLEY ×n` and `FLUNG ×n` were removed under exactly this test, and it is worth being precise about
@@ -1379,6 +1384,13 @@ properties and a commit hash — every one deliberate, which is the point: the d
 that always looks alarming into a list that clears in one pass. Run it mechanically (strip comments,
 collect backticked tokens that appear *only* in comment text, test each against the stripped code)
 rather than by eye, because the tokens worth catching are the ones that look most like names.
+
+**Scope the sweep to the live spec.** Run over `PATCHNOTE.md` it reports ten orphans — `POWMAP`,
+`fireNova`, `bankMote` and the rest — and every one is correct and must stay: a dated entry recording
+that something was removed *has* to name it, and those names are gone from the source in every form,
+comments included. A checker pointed at history will always look like it found a pile of defects, and
+acting on that reading deletes the record. This file and `GLOSSARY.md` describe what is true now; that
+one describes what happened.
 
 ⚠️ **A defective sweep under-reports, so it looks exactly like a clean one.** Two runs over the same
 tree returned 13 and 12, and the gap was not a judgement call about what counts as deliberate — one
