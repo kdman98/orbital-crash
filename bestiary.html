@@ -24,15 +24,18 @@
   .card{background:#0a0f1c;border:1px solid rgba(120,140,180,.16);border-radius:14px;padding:9px 8px 11px;text-align:center;}
   .card canvas{display:block;margin:0 auto;width:100%;max-width:150px;height:auto;}
   .nm{font-weight:800;font-size:14px;margin-top:5px;letter-spacing:.01em;}
-  .meta{font-size:10px;color:#8f9bb2;margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:.02em;}
   .tag{font-size:11px;color:#c3ccdb;margin-top:4px;line-height:1.35;min-height:30px;}
   .wide{grid-column:1 / -1;background:#0a0f1c;border:1px solid rgba(155,107,255,.28);border-radius:16px;
     padding:14px 18px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:2px;}
   .wide canvas{flex:0 0 auto;width:230px;height:190px;}
   .wide .info{flex:1;min-width:180px;text-align:left;}
   .wide .nm{font-size:19px;margin-top:0;}
+  /* a wide card carrying no copy: canvas on top, name centred beneath it */
+  .wide.bare{flex-direction:column;gap:2px;padding:12px 14px 13px;}
+  .wide.bare canvas{margin:0 auto;}
+  .wide.bare .info{flex:0 0 auto;width:100%;text-align:center;}
+  .wide.bare .nm{font-size:17px;}
   .wide .tag{text-align:left;min-height:0;margin-top:6px;font-size:12.5px;color:#c3ccdb;}
-  .wide .meta{text-align:left;font-size:11px;}
   .foot{text-align:center;font-size:11px;color:#5f6b82;margin-top:22px;letter-spacing:.04em;}
   .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--violet);
     font-weight:800;text-align:center;margin:18px 0 2px;}
@@ -45,9 +48,9 @@
       <div class="logo">ORBITAL CRASH</div>
       <div class="sub">Bestiary</div>
     </header>
-    <p class="legend">Every Dot carries a charge — <b style="color:#ff3f6c">Red</b> or <b style="color:#38e0ff">Cyan</b>. The <b>opposite</b> charge is pulled toward you and dies on contact: your danger, and also your ammunition. The <b>same</b> charge is caught safely into your rings. <b style="color:#c7b8ff">Neutral</b> is uncharged. Colours below are examples — any species can arrive as either.</p>
+    <p class="legend">Every Dot is <b style="color:#ff3f6c">red</b> or <b style="color:#38e0ff">cyan</b>. The <b>opposite</b> colour comes for you and dies the moment it touches you, so it is your danger and your ammunition at the same time. Your <b>own</b> colour is safe, and gathers into your rings. <b style="color:#c7b8ff">Neutral</b> has no charge either way. The colours here are only examples; anything can turn up as either.</p>
     <div class="grid" id="fbGrid"></div>
-    <p class="foot">Rendered live with ORBITAL CRASH's own draw code · sizes, health &amp; damage are the real values.</p>
+    <p class="foot">Everything on this page is drawn by the game's own code. This is what you will meet out there.</p>
   </div>
 <script>
 (function(){
@@ -55,45 +58,51 @@
   const TAU=Math.PI*2;
   const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
 
-  const CORE={kind:'core',name:'The Star',tag:'You. Steer with the mouse. <b>Flip</b> your charge to change which Dots are safe — and to fling the ring you have gathered.'};
+  // COPY RULE FOR THIS PAGE: a card is for someone who has not played yet. Say what the thing does and
+  // what to do about it, in about the length of a spoken sentence. No stats, no numbers, no tuning
+  // detail — docs/MECHANICS.md is the spec and this is not it. If a card needs a figure to make sense,
+  // the card is answering the wrong question.
+  const CORE={kind:'core',name:'The Star',tag:'You. Steer with the mouse, click to flip your colour. That is the whole toolkit.'};
   const DOTS=[
-    {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,hp:1,dmg:10,tag:'The baseline Dot — plain disc, steady approach. Learn the colour rules on these.'},
-    {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, hp:1,dmg:8, tag:'Small, very fast, light hit. Know it by the <b>wake</b> — nothing ordinary moves quicker.'},
-    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,hp:3,dmg:22,tag:'The <b>hexagon</b>: big, slow, hardest contact hit in the sky. At <b>3 hp</b> it is the one Dot a Bomber blast only burns and flings — it walks out alive.'},
-    {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,hp:1,dmg:12,tag:'Two lobes already coming apart. Pop it and it bursts into <b>2 Minis</b> — the one Dot that leaves the sky fuller, and nothing you can aim prevents it.'},
-    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, hp:1,dmg:6, tag:'Shrapnel from a Splitter, and the only Dot with <b>no white core</b> — a solid pellet. Tiny hit, but it arrives in pairs.'},
-    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,hp:1,dmg:11,tag:'Circles you instead of charging. Its mark is the <b>hole through the middle</b>, and the pip running that hole turns the way it curves.'},
-    {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,hp:1,dmg:10,
-     tag:'<b>Spiked mine</b> that really does go off — though <b>never at you</b>. The blast costs no health; it wipes every Dot within ~120px, <b>your own ring included</b>. Only a <b>Brute</b> survives it. Don\'t pop one in your hoard.'},
-    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,hp:1,dmg:16,tag:'The <b>arrowhead</b> — the one Dot your magnetism cannot hold. It draws its lane before dashing: step <b>off</b> it, or stand so that lane crosses an <b>Anomaly</b> for <b>8 dmg</b>.'},
-    {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,hp:2,dmg:15,tag:'Uncharged, and it <b>wears both poles</b> on a turning seam: no colour makes it safe or makes it ammunition, and your magnetism cannot move it.'},
+    {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,tag:'The plain one. Comes straight at you, in no particular hurry. Learn the colours on these.'},
+    {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, tag:'Small, quick, and trailing a wake. Nothing else in the sky moves like that.'},
+    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,tag:'Big, slow, tough. It can take hard hits and survive.'},
+    {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,tag:'Pop it, it will split in half!'},
+    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, tag:'What a Splitter leaves behind. Small, solid, and never alone.'},
+    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,tag:'This one will not charge you. It circles instead, and waits.'},
+    {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,
+     tag:'A normal Dot, but it explodes when it dies. Harmless to you, deadly to every Dot around you. Use it well, or take care.'},
+    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,tag:'Draws a line, then dashes down it. The one Dot you cannot pull off course. Step aside.'},
+    // The one card that gained a fact. Nothing else in the game says how a Neutral dies now that the
+    // Codex has stopped listing rules, and "you cannot beat this" is the wrong thing to leave a new
+    // player holding when a flip does in fact kill it.
+    {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,tag:'Wears both colours at once, so neither of yours makes it safe. Do not touch it. A flip pops it anyway.'},
   ];
   // r is the hull AND the collider, same law as every dot row.
-  const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:37,hp:'10+epoch·5',dmg:30,
-    tag:'The boss of each Epoch, and it never leaves. Gather your colour into your <b>rings</b>, then flip to <b>VOLLEY</b> them at it — <b>2 dmg</b> each. Nothing else lands.'};
+  const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:37,
+    tag:'The boss of the Epoch, and it will not leave. Gather your colour into your rings, then flip to throw them at it. Nothing else touches it.'};
   // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
   const ANOMS=[
-    {kind:'anom',key:'emitter', name:'Emitter', col:'cyan', meta:'volleys · hovers · burst & stream',
-     tag:'The teacher. Hovers and alternates a six-shot <b>burst</b> with sweeping <b>fans</b> that lead you. Cross them; never back away in a straight line. From <b>Epoch II</b> it also dashes.'},
-    {kind:'anom',key:'sentinel',name:'Sentinel',col:'cyan', meta:'chase · circles · seeds a trail',
-     tag:'Orbits the arena firing <b>seekers</b> in pairs. They out-turn you but cannot out-run you, so <b>run, do not juke</b>. The swarmer trail it sheds is threat and ammunition both.'},
-    {kind:'anom',key:'pulsar',  name:'Pulsar',  col:'red',  meta:'ground denial · rings & mines',
-     tag:'Erupts a <b>wall of 13 with one seam</b> — find it and be in it. Between rings it drops <b>mines</b> that draw their own blast, so do not be there.'},
+    {kind:'anom',key:'emitter', name:'Emitter', col:'cyan',
+     tag:'Hangs back and shoots. Cross its fire. Never back away in a straight line.'},
+    {kind:'anom',key:'sentinel',name:'Sentinel',col:'cyan',
+     tag:'Circles you and sends seekers. They turn better than you, but they cannot keep up. So run.'},
+    {kind:'anom',key:'pulsar',  name:'Pulsar',  col:'red',
+     tag:'Throws up a wall with one way through. Find the gap and be standing in it.'},
   ];
   // The five shapes, in Pattern Lab key order (1-5). Four are true Patterns — irregular waves that
   // arrive between the drizzle from ~0:42 onward — and the fifth, the Comet, is an EVENT on its own
-  // much longer clock, which its card says outright rather than filing it as a wave like the others.
+  // much longer clock.
+  //   NAME AND ANIMATION ONLY, no copy, by the user's call on 2026-08-05: working a shape out for
+  // yourself is part of the game. The animations here run the real geometry, so the card can afford to
+  // stay quiet in a way the Dot cards cannot — a Dot is a thing you must recognise mid-fight, a Pattern
+  // is a puzzle that announces itself. Adding a tag back would put the answer above the puzzle.
   const FORMS=[
-    {kind:'form',key:'wall', name:'The Wall',  col:'cyan', meta:'marches across · returns once',
-     tag:'A line crosses the arena with <b>one gap</b>, and the gap <b>shuts</b> as it advances — widest the moment it arrives. At the far edge it turns and comes back.'},
-    {kind:'form',key:'noose',name:'The Noose', col:'red',  meta:'cages you · then bites',
-     tag:'A ring closes on wherever you stand, its <b>seam turning</b> as it comes, so the way out keeps moving. It locks — then <b>five strands</b> peel off and bite.'},
-    {kind:'form',key:'pulse',name:'The Pulse', col:'red',  meta:'two arcs · answered by colour',
-     tag:'Two <b>arcs</b> wash over you in opposite colours, <b>~1.2s apart</b> — a beat to read the second and flip. Answer by <b>matching colour</b>, not dodging. It sweeps through and leaves.'},
-    {kind:'form',key:'sorter',name:'The Sorter',col:'cyan',meta:'two walls · two colours · two doors',
-     tag:'Two solid walls converge, one <b>red</b> and one <b>cyan</b>, their doors at different heights. No colour is safe from both: <b>match the first, then flip for the second</b>.'},
-    {kind:'form',key:'comet',name:'The Comet', col:'cyan', meta:'an event · roughly 1 per 10 min',
-     tag:'One Dot crosses the whole sky at <b>triple speed</b>, trailing a tail. Its nucleus is a <b>Brute</b> — an opportunity, not an attack. Go and meet it, or lose it.'},
+    {kind:'form',key:'wall',  name:'The Wall',  col:'cyan'},
+    {kind:'form',key:'noose', name:'The Noose', col:'red' },
+    {kind:'form',key:'pulse', name:'The Pulse', col:'red' },
+    {kind:'form',key:'sorter',name:'The Sorter',col:'cyan'},
+    {kind:'form',key:'comet', name:'The Comet', col:'cyan'},
   ];
 
   const renders=[];
@@ -101,15 +110,29 @@
 
   function makeCard(spec,wide){
     const card=document.createElement('div');
-    card.className=wide?'wide':'card';
-    const cw=wide?230:140, ch=wide?190:104;
+    // A WIDE CARD WITH NO COPY IS A DIFFERENT SHAPE. The side-by-side layout exists to sit a paragraph
+    // next to the canvas; with the Pattern text gone there is nothing to sit there, and the name floated
+    // alone in half an empty card. `bare` stacks it instead — canvas full width, name centred under it.
+    // The Anomaly is still a wide card WITH a tag, so it keeps the original two-column arrangement.
+    const bare = wide && !spec.tag;
+    card.className=(wide?'wide':'card')+(bare?' bare':'');
+    // Only the WIDTH grows. `ch` stays at 190 because the Pattern draw code is tuned to that vertical
+    // extent — formPulse puts its source at y+105, the Comet runs y+44 to y-44 — and moving it would
+    // reframe five animations to fix a horizontal problem. Widening is free in the other direction, and
+    // it repairs a clip that was already there: the Comet travels to ±104 from centre and its glow adds
+    // ~30, so at a 230px card it was running off both ends. At 520 it has room to cross.
+    const cw=wide?(bare?520:230):140, ch=wide?190:104;
     const cv=document.createElement('canvas');
     const dpr=Math.min(window.devicePixelRatio||1,2);
-    cv.width=cw*dpr; cv.height=ch*dpr; cv.style.width=cw+'px'; if(!wide)cv.style.maxWidth=cw+'px'; cv.style.height=ch+'px';
+    cv.width=cw*dpr; cv.height=ch*dpr;
+    if(bare){ cv.style.width='100%'; cv.style.maxWidth=cw+'px'; cv.style.height='auto'; }
+    else { cv.style.width=cw+'px'; if(!wide)cv.style.maxWidth=cw+'px'; cv.style.height=ch+'px'; }
     const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
     const info=document.createElement('div'); info.className='info';
-    const meta = spec.kind==='core' ? '' : spec.meta ? spec.meta : ('r '+spec.r+' · hp '+spec.hp+' · '+spec.dmg+' dmg');
-    info.innerHTML='<div class="nm">'+spec.name+'</div>'+(meta?'<div class="meta">'+meta+'</div>':'')+'<div class="tag">'+spec.tag+'</div>';
+    // No stat line. It used to read `r 11 · hp 1 · 10 dmg` off the spec, which is exactly the "real
+    // values" this page no longer advertises. `r` stays in the data because the DRAWING needs it —
+    // a Brute has to look like a Brute — but it is geometry now, not a figure on show.
+    info.innerHTML='<div class="nm">'+spec.name+'</div>'+(spec.tag?'<div class="tag">'+spec.tag+'</div>':'');
     card.appendChild(cv); card.appendChild(info);
     grid.appendChild(card);
     renders.push({ctx,cw,ch,spec});
