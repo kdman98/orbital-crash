@@ -7,6 +7,7 @@
     "build": "rm -rf www && mkdir -p www && cp index.html bestiary.html manifest.webmanifest sw.js www/ && cp -R icons www/icons",
     "sync": "npm run build && cap sync",
     "ios": "npm run sync && cap open ios",
+    "icons:ios": "rm -rf assets && mkdir -p assets && cp icons/icon-1024.png assets/icon.png && cp icons/icon-1024.png assets/logo.png && capacitor-assets generate --ios --splashBackgroundColor '#070b16' --splashBackgroundColorDark '#070b16'",
     "serve": "npm run build && cd www && python3 -m http.server 8777"
   },
   "devDependencies": {

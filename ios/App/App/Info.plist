@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>Orbital Crash</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<!-- Capacitor's template ships `armv7` here, which is a leftover from the 32-bit era: armv7 devices
+	     topped out at iOS 10 and this target is 13.0, so the declared requirement can never be satisfied
+	     by a device that can also run the app. arm64 is what the binary is actually built for. -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<!-- PORTRAIT ONLY, ON BOTH FAMILIES. This is not a presentation preference, it is a fairness one:
+	     the world scale is `S = min(1, min(vw,vh)/800)`, so the SHORT side fixes the scale and the long
+	     side decides how much arena you get. Rotating to landscape would hand the player a wider field
+	     for the same enemy count and the same spawn rate — an easier run, on the same score table.
+	     The web manifest asks for portrait too, but that is only advisory and only in a PWA; on native
+	     this plist is the enforcement. Keep the two in step.
+	     UIRequiresFullScreen accompanies it because iPad refuses a partial orientation set without it. -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<!-- No status bar. The HUD already reserves the notch area through env(safe-area-inset-top), so the
+	     clock would sit ON the score readout rather than above it. Switching the VC-based key off is
+	     what lets this static one win — leave it true and Capacitor's bridge controller decides instead. -->
+	<key>UIStatusBarHidden</key>
+	<true/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+</dict>
+</plist>

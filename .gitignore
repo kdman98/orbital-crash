@@ -8,6 +8,12 @@
 node_modules/
 www/
 
+# capacitor-assets insists on reading `assets/icon.png` and `assets/logo.png`, both of which are
+# byte-identical copies of icons/icon-1024.png (verified by md5). Committing them would put a third
+# and fourth copy of the same 433KB master in the repo and, worse, create three places to edit when
+# the artwork changes. `npm run icons:ios` rebuilds the directory from the one master and regenerates.
+assets/
+
 # Recorded play. Input tapes run ~200KB of JSON per minute of play, and they are measurements rather
 # than source — the harness that reads them (.harness/) IS committed.
 tapes/
