@@ -283,6 +283,9 @@
   /* The live tilt fault, in the one place a player can act on it. Gold rather than red: it is a
      "here is why nothing is happening", not a crash. */
   .setrow .sf{color:var(--gold);font-size:11.5px;line-height:1.5;margin-top:4px;}
+  /* The healthy case needs saying too. `tiltFault()` returns null once readings arrive, so without this
+     a working phone shows an empty space — which reads the same as "nothing has happened yet". */
+  .setrow .sf.ok{color:var(--cyan);}
   .sw{flex:0 0 auto;pointer-events:auto;cursor:pointer;border:none;font-family:inherit;width:64px;
     padding:8px 0;border-radius:100px;font-size:11px;font-weight:800;letter-spacing:.1em;
     text-transform:uppercase;background:rgba(255,255,255,.07);color:var(--dim);
@@ -4672,11 +4675,21 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.co
 let setPoll=0;
 function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=on?'On':'Off'; };
-  sw('swTilt', tiltWanted());
+  // ⚠️ `!touchSteers`, NOT `tiltOn` and NOT `tiltWanted()`. Since the CoreMotion bridge, `tiltOn` means
+  // "the sensor is delivering" and the native feed re-sets it 30 times a second, so it stays true through
+  // a switch-off — `774d741` fixed the menu readout for exactly that. `tiltWanted()` is the stored
+  // INTENT and is one missed `refreshTouchSteer()` away from disagreeing with the engine. `touchSteers`
+  // is what `stepTilt` and `pointermove` actually branch on, so it is the only one of the three that
+  // cannot show a state the game is not in. A settings row must report the engine, not the preference.
+  sw('swTilt', !touchSteers);
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
-  const f=tiltFault(), fe=el('setTiltFault');
-  fe.textContent=f||''; fe.classList.toggle('hidden', !f);
+  // Three states, and the healthy one has to speak. `tiltFault()` returns null once readings arrive, so
+  // a silent row would mean both "working" and "nothing tried yet" on a phone that cannot tell you which.
+  const f=tiltFault(), fe=el('setTiltFault'), live=!touchSteers && tiltEvents>0;
+  fe.textContent = f || (live ? 'Motion is live.' : '');
+  fe.classList.toggle('ok', !f && live);
+  fe.classList.toggle('hidden', !f && !live);
 }
 function openSettings(){
   paintSettings();
@@ -4690,7 +4703,12 @@ function closeSettings(){ el('settings').classList.add('hidden'); clearInterval(
 el('settingsBtn').onclick=openSettings;
 el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without ending the run
 el('settingsClose').onclick=closeSettings;
-el('swTilt').onclick  =()=>{ tiltSet(!tiltWanted()); paintSettings(); };
+// `tiltSet(touchSteers)` reads oddly and is right: if the finger is steering, the switch turns tilt ON.
+// Toggling against `!tiltWanted()` instead would act on the stored intent while the label above shows the
+// engine, so a single disagreement between them would make one press appear to do nothing.
+//   These three run only on a press, never at load — `touchSteers`, `tiltEvents` and `tiltWanted` are all
+// declared further down the file and would be in the temporal dead zone if this block ever ran at boot.
+el('swTilt').onclick  =()=>{ tiltSet(touchSteers); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSettings(); }});
