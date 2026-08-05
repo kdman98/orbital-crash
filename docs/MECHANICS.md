@@ -611,10 +611,16 @@ bodies** against `VOLLEY_DMG` and never in raw HP, and why the baited charge is 
 moves. Padding it makes the third answer a chore rather than a question.
 
 *It was raised by a flat amount at every Epoch, and that changed the curve as well as the level.* The
-pool used to **triple** from Epoch I to V and now less than doubles — worth **+100% at Epoch I against
-+43% at Epoch V**, so the early Anomalies took nearly all of it, which is where the complaint was. The
-Anomaly row of the run summary is the readout for whether it landed: it prices each fight in the HP
-that fight actually cost.
+pool used to **triple** from Epoch I to V and now less than doubles, so the early Anomalies took nearly
+all of the increase — which is where the complaint was. The Anomaly row of the run summary is the
+readout for whether it landed: it prices each fight in the HP that fight actually cost.
+
+⚠️ **The size of that raise has moved once already and the figures here are deliberately gone.** The
+first attempt overshot and was trimmed the next day (`d214716`), which briefly left this paragraph
+quoting the intermediate percentages as though they were the change. The shape of the curve is the
+durable claim and it survived the trim; the percentage attached to it did not, and belongs in the two
+commit bodies rather than here. **A number that has been restated once is a number that will be
+restated again** — see *Traps*.
 
 **Three kinds, one verb each** — volleys · chase · ground denial:
 
@@ -720,15 +726,43 @@ only ever how you reached the share at the pool of the day. When the pool was ra
 came apart: *hold the ratio* said leave the number alone, *reprice with the pool* said raise it, and
 only the second was ever the point. **The share is the invariant. The ratio was a way of computing it.**
 
+⚠️ **And the ratio is now 4× again, by coincidence, which is the worst possible outcome for a rule that
+was just retired.** Two independent decisions — raising the bait for the pool, then raising the volley
+for the same reason — happened to land back on the old number. Nothing was restored and no pin came
+back. **A coincidence that reproduces a discarded rule is more dangerous than the rule was**, because
+the rule at least had an argument attached and the coincidence arrives looking like confirmation. The
+next reader to "tidy" 4× back into a rule reintroduces exactly the defect this section exists to
+record, and the next pool move is when it bites. `index.html` carries the same warning at the constant;
+it is repeated here because the person who re-pins the ratio will be reading about the *pricing rule*,
+not standing at the definition.
+
 The bait is deliberately restored **short of** where it stood, because the pool went up for difficulty
 and the answer to a harder fight should not undo the difficulty. It is the one erosion channel costing
 **no ammunition and no Capacitor**, which makes it — with the grind — what a stripped player has left,
 and the same reason `RING_GRIND_DMG` is protected from being halved.
 
-*The ceiling that was once rejected is now the fix.* The current value was argued down, at the time, for
-one-shotting an Epoch I Pulsar. That Pulsar carries roughly twice the HP now, so the same value takes
-two baits — exactly what the old number took against the old Pulsar. **The argument was never wrong;
-the pool moved out from under it.**
+*The ceiling that was once rejected is now the fix* — and the rejection turns out to have been invalid
+from the start, which is a sharper lesson than the one recorded here before.
+
+The current value was argued down for one-shotting an **Epoch I Pulsar**. That fight does not exist and
+never has: `pickAnomalyVariant` gates the Pulsar behind `act>=2` in the repo's first commit and every
+one since, `bossN===0` is unconditionally the Emitter, and Boss Rush pins `act=2`. The 11 HP figure the
+rejection used needs `act=1`, which is reachable only by calling `spawnBoss` directly from a harness.
+
+At the lowest Pulsar the game can actually spawn, the value being rejected **never one-shot anything** —
+it left that Pulsar alive on 3 HP. So the constraint was not a constraint, the ceiling was not a
+ceiling, and the number spent months excluded on the strength of a fight nobody could be in.
+
+⚠️ **A constraint derived from a state the game cannot reach is not a constraint.** It is the same
+family as *a zero from a rig you have not proven can produce a non-zero* (see *Traps*) and strictly
+worse, because a suspicious zero at least invites a second look, while a plausible number from an
+impossible state reads as a finished argument and gets filed. **Before a measurement becomes a rule,
+show that the state it was taken in is one the game can produce** — for anything Anomaly-shaped that
+means naming the Epoch and checking it against the variant gate.
+
+The outcome was survivable, which is exactly why it lasted: the value is defensible at the current pool
+on its own merits. Being right by accident is not the same as being right, and it leaves nothing behind
+that the next reader can check.
 
 **The Fling never erodes.** Not "rarely" — never, by rule. A Dot you pushed *away from yourself* is not
 a shot you took at something. The Fling is defence, and only defence.
@@ -1063,6 +1097,26 @@ cosmetic bug must not be able to reach the frame guard and halt a game that is o
 ## Traps
 
 Things that have cost real time, in this codebase specifically.
+
+**A rig state the game cannot reach produces numbers that look exactly like findings.** Two of these
+landed on the same day from opposite directions. The value now in `CHARGE_DMG` was rejected for one-shotting an 11 HP
+Pulsar — a fight requiring `act=1`, which the variant gate has forbidden since the first commit; at the
+lowest Pulsar the game can spawn it never one-shot anything. And four grind rigs read a clean zero,
+which looked like *grinding does nothing* and was really the rig: rings capture **like** charge while
+chipping needs a colour **differing** from the boss, so usable ammunition requires polarity opposite the
+boss — and pointer coordinates are client space while the boss was pinned in world space, putting the
+pilot 481px from a target believed to be at 110px.
+
+The shared defect is that **neither rig was ever shown capable of producing the other answer.** A zero
+you cannot contrast with a non-zero is not a measurement; a constraint from a state the game cannot
+produce is not a constraint. Both then get filed as settled, and the plausible one is the more dangerous
+— a suspicious zero at least invites a second look.
+
+**The defence is a precondition asserted inside the harness, which refuses to report when it fails**:
+usable ring Dots `> 0`, actual distance within 12px of intended. That is what finally produced a
+non-zero, and it is what resolved the volley probe that had returned 0 twice — single-Dot ring, six
+trials of six, every drop identical. For anything Anomaly-shaped, name the Epoch and check it against
+the variant gate before the number becomes a rule.
 
 **`node --check` does not prove this file boots.** It cannot see a `ReferenceError`. Three separate
 load-time failures have passed it — a debug seam exporting deleted functions, a `flip()` referencing a
