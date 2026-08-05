@@ -1638,12 +1638,28 @@ review — the line is identical before and after. Tilt smoothing was a fixed fr
 30Hz, and the same coefficient took **233ms to reach 63% where it had taken 117ms** — the controls got
 twice as slow because the *feed* halved. `bf48f87` fixed it.
 
-**The shape to recognise: any per-tick constant is really a rate in disguise, and the rate is not written
-down anywhere near it.** Express it as a time constant instead and integrate against the real gap —
-`k = 1 - exp(-gap/tau)`. Derived here rather than taken on trust: the same 200ms of held tilt now lands on
-0.9426 at 20, 30, 40, 60 **and** 120Hz, spread **0.000000**, where the old form gave 0.5954 against 0.8363
-across a single doubling. This is the cousin of the unit-drift trap below — there a figure stayed correct
-while its denominator moved; here a figure stays correct while its *clock* moves.
+**The boundary is whose clock the tick belongs to, and that is narrower than "per-tick is bad."** Most of
+this game is per-tick and none of it is at risk: `TILT.speed` is units per *frame*, the keyboard nudge is
+a speed per frame, the position chase takes a fraction of the gap per frame. All of them tick on
+`const dt=1/60` — the fixed step the engine owns, which has never moved and which everything is tuned
+against. **A per-tick constant is safe when the tick is the fixed step you control, and a hazard the
+moment the tick arrives from outside it.** The smoothing was the one that ticked on the *sensor's*
+delivery rate, which the game neither owns nor is told about, and swapping the transport moved it.
+
+Express anything on a foreign clock as a time constant and integrate against the real gap —
+`k = 1 - exp(-gap/tau)`. Derived rather than taken on trust: the same 200ms of held tilt lands on 0.9426
+at 20, 30, 40, 60 **and** 120Hz, spread **0.000000**, where the old form gave 0.5954 against 0.8363 across
+a single doubling.
+
+**Stated that way it says where else to look, so look — the class is closed here, not merely fixed.**
+Across the whole file exactly three accumulations sit inside event handlers: the two tilt-smoothing lines,
+now time-based, and one local sum over a list, which carries nothing between events. Every other input
+handler **assigns** rather than accumulates — `setPointer` stores a position, the tap test reads the clock
+directly, key handlers set flags. `onTilt` was the only accumulator on a foreign clock in the game.
+
+This is the cousin of the unit-drift trap below. There a figure stayed correct while its **denominator**
+moved; here one stays correct while its **clock** moves — and in both the number under review never
+changed, so every check that looks at the number passes.
 
 **Every row of a comparison must be on one basis, and a row that is not looks exactly like a row that
 is.** This produced two wrong conclusions in one section of this file inside an hour, from two people, in
