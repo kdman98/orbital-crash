@@ -697,6 +697,42 @@ Its hits are priced by **how much warning you get**: a missile is the cheapest (
 often), a mine blast is double (it announces itself twice — it arms, and it draws its own blast radius,
 so standing in one is a decision), and its **body** is the most expensive and the least excusable.
 
+### Pace
+The Anomaly's first fights are **slower**, on two axes at once, reaching full speed at Epoch III and
+staying there. `pace.cad` stretches every gap between attacks; `pace.spd` slows every projectile.
+
+**Both axes, because either alone reads wrong.** Fewer shots at full speed is still unreadable — the
+thing that beats a new player is a projectile crossing faster than they can decide, and thinning the
+stream does not slow the one that arrives. Slow shots at full cadence just fill the field, which is
+harder rather than gentler. Only moving both makes an early fight legible instead of merely sparser.
+
+**`pace` is frozen at spawn, and that is the design claim rather than an implementation note.** It is
+computed once from the Epoch and stored on the boss. The Anomaly in front of you never changes pace; the
+next one is faster only because you survived to reach it. This is what makes the ramp *compatible with*
+the no-intra-fight-clock rule rather than an exception to it — the objection that a ramp must not hang on
+elapsed time is an objection to a clock running **inside** a fight, and the Epoch is the axis the pool
+already ramps on. If this sampled `act` live, an Epoch rolling over mid-fight would speed the patterns up
+while the player was standing inside them: difficulty attached to nothing they did.
+
+⚠️ **`life` is divided by `pace.spd`, and that division is the load-bearing half.** Slowing a projectile
+without it would make patterns stop *arriving* rather than arrive later — the Pulsar's ring falling short
+of you, the Emitter's fan dying before the end of the lane it was sweeping. With it, reach is **exactly**
+preserved, and not approximately:
+
+> `reach = (sp × pace.spd) × (life / pace.spd) = sp × life`
+
+`pace.spd` cancels. This is an **identity, not a measurement** — the strongest pin a number can have (see
+*Traps*), because it means **no future change to `pace.spd` can ever require reach to be re-measured.**
+Only `sp × life` moves reach. The accepted cost is that a slower missile is on screen longer, in exact
+proportion, which is what the cadence cut pays for.
+
+⚠️ **The depth of the ramp has nothing behind it.** It was picked from a menu of options rather than
+derived from a measurement or a playtest, and no result contradicts it because no result exists. Recorded
+because **an undated design choice reads like a tuned one** to the next person, who then treats it as
+load-bearing and tunes around it. It is free to move — and this paragraph deliberately does not name the
+figure, since a sentence whose point is *"this number is arbitrary"* should not be the thing that goes
+stale when the number changes. `index.html` has it.
+
 ### Erosion
 **The loop:** dodge the missiles · scavenge your colour into your rings · evade the other colour ·
 **position so the Anomaly is downrange of your rings** · then hungry-flip and they fire straight through
@@ -715,10 +751,49 @@ fire. Measured across 15 fights: orbiting at 270px → 8 kills / 7 deaths; closi
 the outcomes were **identical at every one**. Out there the binding constraint was never whether the shot
 arrives — more reach just delivers more matter to where you were already not aiming.
 
+**`VOLLEY_DMG` was repriced for the same reason the bait was, one commit later, and the gap between the
+two is the interesting part.** A pool raise silently reprices every channel that does not move with it:
+double the pool and an unchanged channel costs twice the connecting bodies it did. That was spotted for
+`CHARGE_DMG` and acted on, and the *aimed* channel — the one the whole fight is built around — was left
+standing through the same buff and the trim after it. Nobody was arguing the volley should get harder;
+it simply was not on the list.
+
+Priced back in **connecting bodies**, which is the unit this section insists on, the aimed channel now
+sits a shade harder at the early Epochs and a shade easier at the late ones than before any of it, and
+lands **identical at Epoch II**. That is the honest shape of it: not a restoration, a re-derivation that
+happens to cross the old curve.
+
+⚠️ **Walk `VOLLEY_DMG` and `CHARGE_DMG` together whenever the pool moves.** They are not pinned to each
+other — see the ratio warning below, which is now sharper than it was — but they answer to the same
+input, and this defect has now been introduced twice by fixing one and not the other.
+
 **The ring grinds.** A Dot whirling in your rings that sweeps through an Anomaly cuts it. You did not
 aim it, but you spent a hold gathering that ring and you have to carry it into contact range — that is
 what makes it yours rather than an accident. Contact **consumes** the Dot, which bounds a grind to the
 hoard you actually built.
+
+**Overdrive does not make grinding stronger. It moves where grinding works, and inside your usual range
+it makes it far worse.** This was assumed the other way round for a long time, and one balance decision
+was taken partly on the assumption. Measured:
+
+| | |
+|---|---|
+| **Band where a grind connects at all** | roughly **67–161px**, and **128–222px** under Overdrive |
+| **Inside 150px** | grinding is about **4× worse** while burning |
+
+The band **shifts outward** rather than widening, because a wider, faster ring orbits further out — so at
+the range the rest of the fight pushes you toward, Overdrive takes the grind away rather than adding to
+it. Closing to raise your volley hit rate and burning to grind harder are **not compatible plans**.
+
+**The mechanism is why this is a finding and not a table.** Grind throughput is **feed-limited, not
+speed-limited**: usable ring Dots run *inverse* to damage dealt, because the grind eats its own supply on
+contact. Ring **speed** therefore cannot raise the ceiling at all — only gathering more matter can. Any
+future proposal of the form *"make the ring faster / wider to help the grind"* is answered by this line
+before it is built.
+
+*Absolute throughput figures are deliberately absent.* The rig's ceiling was its own feed rate, not the
+game's, so the ratios and the band are the content and the raw rate would only be quoted back as if it
+described play. The four rigs that preceded this one all returned zero — see *Traps*.
 
 **No per-kind bonus, and the obvious one is backwards.** A bonus for the kind you have to *chase* looks
 right and measures wrong: closing on the **Sentinel** is the **cheapest** of the three, because its orbit

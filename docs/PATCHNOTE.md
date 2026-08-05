@@ -14,6 +14,28 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### Early Anomalies are slower, the pool is trimmed, and the volley finally gets repriced `d214716`
+**The Anomaly's first fights now run slower on two axes**, easing to full speed by Epoch III and flat
+after. Every gap between its attacks is stretched and every projectile is slowed. Both, because either
+alone reads wrong: thinning the stream does not slow the shot that beats you, and slow shots at full
+cadence just fill the field. The pace is **fixed when the Anomaly spawns** — the one in front of you
+never speeds up, and the next one is faster only because you survived to reach it.
+
+Projectile **reach is unchanged** by the slowdown, exactly rather than approximately, because flight time
+is divided by the same factor that scales speed. Without that, slowing a shot would make patterns fall
+short instead of arriving later.
+
+**The HP pool is trimmed back**: yesterday's raise overshot, and this keeps most of it. The curve is the
+point rather than the level — early Anomalies still take the bulk of the increase, which is where the
+complaint was.
+
+**And the volley is repriced, which is the fix that should have shipped with the pool raise.** Raising
+the pool silently makes every unchanged damage channel cost more connecting bodies. That was caught for
+the baited charge and acted on; the *aimed* channel, the one the whole fight is built around, was left
+standing through both the raise and this trim. Nobody was arguing the volley should get harder — it just
+was not on the list. It now sits a shade harder early and a shade easier late than before any of this,
+and identical at Epoch II.
+
 ### The Codex and the Bestiary are written for a person now `28c4ea8`
 **Every glyph used as a bullet or a button prefix is gone**, and with it the mixed-marker lists — the
 Codex ran eight different shapes across six sections with no rule saying which meant what. What stays
