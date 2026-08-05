@@ -1390,9 +1390,20 @@ mentions, both `#mult` in the stylesheet header, both cleared as real usage.
 result that says things are fine. Had the same bug swallowed a genuine orphan instead of a benign one,
 the output would have looked identical — better, even — and the sweep would have certified the exact
 condition it exists to catch. So: **test a sweep on something you know is dirty before believing it
-when it says clean.** Note also that the paragraph above already prescribed stripping all three comment
-forms, and a sweep written after reading it still shipped with one. A written instruction is not the
-control; a known-dirty input is.
+when it says clean.** A written instruction is only a control for someone who reads it, and this sweep
+was built ad hoc by a session that had not found this entry — the ordinary way a documented method goes
+unused. So check whether the repo already documents a check before writing one; the paragraph above
+would have supplied all three comment forms for free. The known-dirty input is the control that depends
+on none of that.
+
+⚠️ *That last point first read "a sweep written **after reading it** still shipped with one" — a claim
+about another session's reading history, asserted as fact by someone with no way to check it, inside
+the entry that says verify rather than accept.* It was false; the grep that session had run over this
+file could not have matched this section. **A sound conclusion can be handed an argument it never
+earned, and that is harder to catch than a stale one** — the wrong premise arrives feeling like the
+natural moral of the story, and nobody audits a premise about somebody else's context. Note which half
+survived: the advice stands on the bug alone and never needed the premise at all. When a story yields a
+lesson, check whether the lesson actually rests on the story or merely arrived with it.
 
 *Keep the two classes straight, because the audit's value is the split.* `mult` was a real symbol —
 `min(15, 1+motesBank*0.1)`, deleted with the score multiplier — so it belongs with `cwave` and
