@@ -2180,6 +2180,7 @@ function step(){
   stepOverdrive(dt);  // Overdrive state → physics flags, and the drain (before physics reads them)
   director(dt);
 
+  stepTilt(dt);       // adds velocity straight to P; stepPlayer's clamp and P.dx bookkeeping then cover it
   stepPlayer(dt);
 
   stepEnemyForces(dt);
@@ -2937,7 +2938,9 @@ function bomberBlast(e){
 //  RUN-STATE TRANSITIONS
 // =====================================================================
 function beginReady(){ resumeT=READY_DUR; state='ready'; lastT=performance.now(); acc=0; }
-function endReady(){ state='play'; acc=0; reanchorPointer(); }
+// Neutral is re-taken at the start of every run, so however you happen to be holding the phone when the
+// field opens becomes level. Sitting up between runs should not cost you a drift.
+function endReady(){ state='play'; acc=0; reanchorPointer(); tiltCalibrate(); }
 function skipReady(){ if(state==='ready'){ resumeT=0; endReady(); } }
 
 // =====================================================================
@@ -4354,10 +4357,13 @@ canvas.addEventListener('pointermove',e=>{
   if(!isTouch(e)){ setPointer(e.clientX,e.clientY); return; }
   if(e.pointerId!==touchId) return;                       // ignore every finger but the steering one
   if(!tapMoved && Math.hypot(e.clientX-tapX,e.clientY-tapY)>TAP_SLOP) tapMoved=true;
-  if(tapMoved) setPointer(e.clientX,e.clientY-TOUCH_LIFT); // a drag steers; a jitter does not
+  if(tapMoved && !tiltOn) setPointer(e.clientX,e.clientY-TOUCH_LIFT); // a drag steers; a jitter does not.
+  // Under tilt a drag must not steer: stepTilt clears pointer.has every frame anyway, so writing here
+  // would only produce a one-frame twitch. Taps still flip — that path never touches the target.
 });
 canvas.addEventListener('pointerdown',e=>{
   audioInit();
+  if(tiltWanted()) tiltEnable();   // must be inside the gesture: iOS grants motion access nowhere else
   if(isTouch(e)){
     if(touchId===null){ touchId=e.pointerId; tapX=e.clientX; tapY=e.clientY; tapT=performance.now(); tapMoved=false; }
     else if(state==='play'){ odTouchId=e.pointerId; overdrive(); }  // a second finger while steering: HOLD it for Overdrive
@@ -4383,6 +4389,107 @@ canvas.addEventListener('pointercancel',endTouch);
 // leave the element it started on.
 window.addEventListener('pointerup',e=>{ if(!isTouch(e) && e.button===2) endOverdrive(); });
 window.addEventListener('pointercancel',()=>endOverdrive());
+
+// =====================================================================
+//  TILT  (the primary control on iOS)
+// =====================================================================
+// WHY THIS DOES NOT GO THROUGH `pointer`. Everything else steers by naming a TARGET POSITION and letting
+// stepPlayer chase it at 18.5% of the gap per frame. Tilt is a RATE — an angle means "keep going this
+// way", not "be there". Feeding a rate through a position chase means picking an offset whose chase
+// velocity equals the speed you wanted, which silently welds this code to that 0.185 coefficient: retune
+// the chase for the mouse and tilt changes speed for reasons nobody would think to look for.
+//   So tilt adds velocity to P directly, exactly as the keyboard nudge does two lines below the chase
+// (stepPlayer). No shared constant, no coupling. `pointer.has` is cleared while tilt drives, or the chase
+// would drag the core back toward wherever the last touch left the target.
+//
+// SPEED, SET AGAINST WHAT IT HAS TO OUTRUN. The fastest thing that hunts you is the Charger dash at
+// CHG_SPD 9.5 units/frame; Volley shots travel 8.4, Comets 7.6. The keyboard nudge is 6.5, i.e. SLOWER
+// than a Charger, which is exactly why it is a nudge and not a control. 14 clears the Charger by ~47%.
+// It is multiplied by P.moveMult, so Overdrive lifts tilt to 19.6 just as it lifts every other movement.
+// One object rather than four consts, because these are the numbers that can only be settled by a human
+// holding a real phone — the Simulator does not synthesise device motion, so none of this can be dialled
+// in from here. As a live object they are tunable from the seam (__orbital.TILT.speed=17) between runs,
+// instead of costing a rebuild-and-reinstall per guess.
+const TILT={
+  dead : 3,     // degrees of slop around neutral. Hands tremble ~1°; below 3° nothing is meant.
+  full : 20,    // degrees from neutral for full speed — roughly the wrist's range before the screen
+                // tips far enough to be hard to read.
+  speed: 14,    // design units per frame at full deflection, before moveMult
+  ease : 0.14,  // low-pass on the reading. Accelerometers are noisy and a raw feed judders; this also
+                // supplies the ease-in that the position chase gives every other input for free.
+};
+
+let tiltOn=false, tiltReady=false, tiltRef=null;
+const tiltVec={x:0,y:0};                 // smoothed, dead-zoned, clamped to [-1,1] per axis
+const tiltRaw={beta:0,gamma:0,angle:0};  // last untouched reading, for the seam and for tuning on device
+
+// Neutral is wherever you were holding it when the run began — nobody plays with the phone flat, and the
+// comfortable angle differs per person and per posture (desk vs sofa vs bed). Clearing the reference makes
+// the next sample the new zero.
+function tiltCalibrate(){ tiltRef=null; tiltVec.x=tiltVec.y=0; }
+
+function tiltCurve(d){
+  const s=Math.sign(d), m=Math.abs(d);
+  if(m<=TILT.dead) return 0;
+  return s*Math.min(1,(m-TILT.dead)/Math.max(1,TILT.full-TILT.dead)); // linear past the dead zone, then clamped
+}
+
+// beta/gamma are in the DEVICE's frame and never rotate with the screen, so a landscape game must remap
+// them itself. screen.orientation.angle says how far the SCREEN has been turned from the device's native
+// portrait, and the two landscape cases differ by a sign on both axes — get this wrong and the game plays
+// mirrored in one hand and correct in the other.
+function tiltMap(db,dg,a){
+  if(a===90)  return {x: db, y:-dg};
+  if(a===270) return {x:-db, y: dg};
+  if(a===180) return {x:-dg, y:-db};
+  return {x: dg, y: db};                                       // 0 — portrait
+}
+
+function onTilt(e){
+  if(e.beta===null || e.gamma===null) return;                  // some devices report nulls before settling
+  const a=(window.screen && screen.orientation && typeof screen.orientation.angle==='number')
+    ? screen.orientation.angle : (window.orientation||0);
+  tiltRaw.beta=e.beta; tiltRaw.gamma=e.gamma; tiltRaw.angle=a;
+  if(tiltRef===null){ tiltRef={beta:e.beta,gamma:e.gamma}; return; }  // this sample IS the new zero
+  const m=tiltMap(e.beta-tiltRef.beta, e.gamma-tiltRef.gamma, a);
+  const tx=tiltCurve(m.x), ty=tiltCurve(m.y);
+  tiltVec.x+=(tx-tiltVec.x)*TILT.ease;
+  tiltVec.y+=(ty-tiltVec.y)*TILT.ease;
+}
+
+function stepTilt(dt){
+  if(!tiltOn || !P) return;
+  pointer.has=false;                                           // tilt drives; the chase must let go
+  const sp=TILT.speed*P.moveMult;
+  P.x+=tiltVec.x*sp; P.y+=tiltVec.y*sp;                        // stepPlayer clamps to the arena right after
+}
+
+// iOS 13+ will not deliver a single orientation event until requestPermission() resolves, and it only
+// resolves from inside a real user gesture — so this is called from pointerdown, NOT at load. It also
+// needs a secure context: capacitor://localhost inside the app qualifies, https qualifies, and a plain
+// http://192.168.x.x page served to a phone for testing DOES NOT. That is the whole reason the on-device
+// test below wants either Xcode or a tunnel.
+function tiltEnable(){
+  if(tiltReady) return;
+  const D=window.DeviceOrientationEvent;
+  if(!D){ tiltReady=true; return; }                            // no sensor: stay on touch, say nothing
+  const attach=()=>{ window.addEventListener('deviceorientation',onTilt); tiltReady=true; tiltOn=true; tiltCalibrate(); };
+  if(typeof D.requestPermission==='function'){
+    D.requestPermission().then(r=>{ if(r==='granted') attach(); else tiltReady=true; }).catch(()=>{ tiltReady=true; });
+  } else attach();                                             // Android and older iOS just deliver events
+}
+
+// Off by default on anything with a real pointer: a laptop with a lid sensor would otherwise start
+// drifting the core the moment someone leans. Stored so a player who turns it off stays off.
+const tiltWanted=()=>{
+  try{ const v=localStorage.getItem('orbitalcrash_tilt'); if(v!==null) return v==='1'; }catch(_){}
+  return matchMedia('(pointer: coarse)').matches;
+};
+function tiltSet(on){
+  try{ localStorage.setItem('orbitalcrash_tilt', on?'1':'0'); }catch(_){}
+  if(on){ tiltEnable(); if(tiltReady) tiltOn=true; tiltCalibrate(); }
+  else { tiltOn=false; tiltVec.x=tiltVec.y=0; }
+}
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
 // press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
 canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); });
@@ -4575,6 +4682,13 @@ window.__orbital=window.__polaris=window.__flux={
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
       odOn, odCount, odTotal:+odTotal.toFixed(2), odT:+odT.toFixed(2)}; },
   get odLog(){return odLog;}, get anomLog(){return anomLog;},
+  // TILT. `raw` is the untouched sensor reading and `vec` the smoothed [-1,1] result, so a mirrored or
+  // dead axis can be told apart on a real phone: raw moving while vec stays 0 is a dead zone or a
+  // permission that never landed; vec moving the wrong way is a sign error in tiltMap for THIS angle.
+  tilt(){ return {on:tiltOn, ready:tiltReady, ref:tiltRef, raw:{...tiltRaw},
+                  vec:{x:+tiltVec.x.toFixed(3), y:+tiltVec.y.toFixed(3)},
+                  maxUnitsPerFrame:TILT.speed*(P?P.moveMult:1), TILT:{...TILT}}; },
+  TILT, tiltSet, tiltCalibrate, stepTilt,
   // ⚠️ overdrive() is PRESS, not toggle. A harness that calls it twice ignites once and never releases;
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},

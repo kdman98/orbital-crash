@@ -33,20 +33,28 @@
 	<array>
 		<string>arm64</string>
 	</array>
-	<!-- PORTRAIT ONLY, ON BOTH FAMILIES. This is not a presentation preference, it is a fairness one:
-	     the world scale is `S = min(1, min(vw,vh)/800)`, so the SHORT side fixes the scale and the long
-	     side decides how much arena you get. Rotating to landscape would hand the player a wider field
-	     for the same enemy count and the same spawn rate — an easier run, on the same score table.
-	     The web manifest asks for portrait too, but that is only advisory and only in a PWA; on native
-	     this plist is the enforcement. Keep the two in step.
-	     UIRequiresFullScreen accompanies it because iPad refuses a partial orientation set without it. -->
+	<!-- LANDSCAPE ONLY, ON BOTH FAMILIES, BOTH WAYS ROUND.
+	     An earlier revision locked this to portrait and justified it as fairness — the claim was that
+	     landscape hands the player a wider field at the same spawn rate. THAT CLAIM WAS FALSE, and the
+	     arithmetic is worth keeping so nobody reinstates it. The scale is `S = min(1, min(vw,vh)/800)`,
+	     which keys on the SHORT side, so on iPhone 17 Pro:
+	         portrait   402x874 -> S=0.502 -> world  800 x 1739, area 1.391M, spawnR = max(W,H)*0.6 = 1044
+	         landscape  874x402 -> S=0.502 -> world 1739 x  800, area 1.391M, spawnR                = 1044
+	     Rotating is exactly area-neutral AND spawn-radius-neutral; width is traded for height one for
+	     one. Landscape is in fact the more faithful shape: aspect 2.17 against the 1.78 of the desktop
+	     window every constant in this game was tuned in, where portrait's 0.46 was 3.9x off.
+	     Both landscape variants are allowed so the notch can sit on either hand. UIRequiresFullScreen
+	     stays because iPad refuses a partial orientation set without it. The web manifest must agree —
+	     on native this plist is the enforcement; there `orientation` is only advisory, and only in a PWA. -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
-		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
-		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>

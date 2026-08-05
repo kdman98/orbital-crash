@@ -6,6 +6,13 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8777"],
       "port": 8777
+    },
+    {
+      "_comment": "Second port because 2-3 sessions share this checkout and 8777 is usually already taken; a session that cannot bind its own port ends up measuring another session's tree.",
+      "name": "orbital-crash-alt",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8791"],
+      "port": 8791
     }
   ]
 }
