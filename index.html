@@ -1821,19 +1821,25 @@ function spawnBoss(forceVariant){
 //   mine   — drifts, arms, then detonates.           Answer: don't be standing there. Denies ground.
 //   spear  — telegraphs a line, then fires down it.  Answer: leave the line before it goes.
 const MSL={
-  // ⚠️ A MISSILE MUST NEVER EXPIRE WHERE YOU CAN SEE IT. Author: "it doesnt have to expire on screen."
-  // A shot that winks out mid-arena is the game taking back a threat it already made, and it reads as a
-  // bug whether or not it is one. `life` exists as a BACKSTOP against a projectile that never leaves —
-  // a curving seeker, mostly — not as the thing that ends an ordinary flight. The screen edge should
-  // always get there first (`L.seen && !inb` in stepLances).
-  //   Every non-mine value below is therefore sized PAST the longest crossing, with margin: measured
-  // x1.25 on top of the previous numbers already took mid-arena expiries to zero for all three variants
-  // at both Epoch I and Epoch III, and these sit near x1.4. Extra life past that point costs nothing at
-  // all, because a straight missile is culled the frame it exits and never sees the surplus.
-  //   ⚠️ THE MINE IS NOT IN THIS RULE, and its `life` means something else entirely: it is a FUSE. A
-  // mine is SUPPOSED to run out on screen — that is how it detonates (`mineBlast` on the life<=0 path).
-  // Scaling it with the others would push its blast later and thin the minefield. It stays at 3.4.
-  //   This distinction cost a wrong report: an earlier sweep counted mines expiring as "fizzles" and
+  // NO MISSILE CURRENTLY EXPIRES ON SCREEN, and that is a tuning state rather than a law. Author, on
+  // being asked: "it doesnt have to expire on screen… it is not a 'MUST', but, yeah, whatsoever. not
+  // currently." So: the reason it is worth holding is that a shot winking out mid-arena is the game
+  // taking back a threat it already made, and it reads as a bug whether or not it is one. That is an
+  // argument, and a future projectile with a good enough reason can overrule it.
+  //   ⚠️ THE FIRST DRAFT OF THIS COMMENT SAID "A MISSILE MUST NEVER EXPIRE WHERE YOU CAN SEE IT", in
+  // caps, off that same remark — and the paragraph below already contradicted it, because the MINE
+  // expires on screen deliberately. A rule stated so hard that the code beneath it is an exception is
+  // not a rule, and "doesn't have to" is not "must never". Read the modality the author actually used.
+  //   How the values got here: `life` is a BACKSTOP against a projectile that never leaves — a curving
+  // seeker, mostly — not the thing that ends an ordinary flight, so the screen edge (`L.seen && !inb`
+  // in stepLances) normally gets there first. Every non-mine value is sized past the longest crossing:
+  // x1.25 on the previous numbers already measured zero mid-arena expiries for all three variants at
+  // both Epoch I and Epoch III, and these sit near x1.4. Surplus past that costs nothing, because a
+  // straight missile is culled the frame it exits and never sees it.
+  //   THE MINE IS DELIBERATELY NOT LIKE THE OTHERS, and its `life` means something else: it is a FUSE.
+  // A mine is SUPPOSED to run out on screen — that is how it detonates (`mineBlast` on the life<=0
+  // path). Scaling it with the rest would push its blast later and thin the minefield. It stays at 3.4.
+  //   That distinction cost a wrong report: an earlier sweep counted mines expiring as "fizzles" and
   // made the Pulsar look 15-18% broken when 16 of its 20 expiries were mines going off exactly as
   // designed. Count by kind, or the metric describes the wrong mechanic.
   volley:{sp:5.4, r:9,  life:6.0},
