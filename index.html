@@ -626,10 +626,17 @@ const RING_GRACE=0.8, RING_GRACE_R=2.4;
 // 18 HP Epoch I pool, a bot orbiting at 130px that never fires a volley solo-kills the boss; that is why
 // it once sat at 0.5, and it is back at 1 only because the pool was raised above it.
 // OPEN, DOWNGRADED, NOT CLOSED. The pool dropped to 15 — below that 18 — and the same test then showed 5
-// of 9 runs solo-killing the Epoch I Anomaly. It is 30 now, double the 18 the warning was written
-// against, so the TRIGGER is gone. The DEFECT may not be: HP is a scalar and moves no ratio, so a longer
-// pool makes a solo grind slower without making it impossible. ⚠️ Nobody has re-run the bot at 30 — this
-// is argued, not tested. Do not read the buff as a clearance. See docs/MECHANICS.md ## Open.
+// of 9 runs solo-killing the Epoch I Anomaly. Epoch I is 25 now, still above the 18 the warning was
+// written against, so the TRIGGER stays gone — but the margin went 12 to 7 when the buff was trimmed from
+// +15 to +10, so this is closer to re-arming than it looks. The DEFECT may not be gone at all: HP is a
+// scalar and moves no ratio, so a longer pool makes a solo grind slower without making it impossible.
+// ⚠️ Nobody has re-run the bot at any pool above 18 — this is argued, not tested. Do not read the buff as
+// a clearance, and re-check it if the pool is ever trimmed again. See docs/MECHANICS.md ## Open.
+//   One measured fact that bears on it, and cuts against the obvious reading: Overdrive does NOT make
+// grinding stronger. It moves the band where a grind connects at all (orbit 114 → 175px, so roughly
+// 67-161px becomes 128-222px) and inside 150px it makes grinding about 4x WORSE. Throughput is
+// feed-limited — usable ring Dots run inverse to damage dealt, i.e. the grind eats its whole supply — so
+// ring SPEED cannot raise its ceiling. Only gathering more matter can.
 const RING_GRIND_DMG=1;
 // A COMMITTED CHARGE driven into the Anomaly — the biggest single hit in the game, and the only erosion
 // that costs you no ammunition and no Capacitor, so it is the whole answer for a player stripped of
@@ -637,21 +644,25 @@ const RING_GRIND_DMG=1;
 // had, this is a single Dot you kept alive, read, and then stood in front of. The lane locks at wind-up
 // along the charger→YOU ray, so the only way it crosses the Anomaly is to put the Anomaly on that line —
 // STANDING IN THE KILL LANE and leaving it late, for 16 damage and a broken streak if you misread it.
-// THE PIN TO VOLLEY_DMG IS RELEASED, DELIBERATELY. This sat at 8 = 4 × VOLLEY_DMG and the ratio was
-// called the constant; it is 6 × now. When the Anomaly pool doubled, the two rules in this block came
-// apart — "pinned at 4 ×" said leave it at 8, "if the pool moves, move this with them" said raise it —
-// and only one of them was ever the point. The ratio existed to keep a bait worth a FIXED SHARE OF A BAR,
-// which is the thing a player feels; 4 × was how you got that share at the old pool, not a law. The share
-// is what is preserved here.
-//   ⚠️ SO DO NOT RE-DERIVE THIS FROM VOLLEY_DMG. Reprice it against the pool in spawnBoss:
+// THE PIN TO VOLLEY_DMG IS RELEASED, DELIBERATELY, AND IT IS 4 × AGAIN BY ACCIDENT.
+// ⚠️⚠️ READ THIS BEFORE TRUSTING THE RATIO. This sat at 8 = 4 × VOLLEY_DMG with the ratio called the
+// constant. The pool doubled; 8 stayed; the block's two rules came apart — "pinned at 4 ×" said leave it,
+// "if the pool moves, move this with them" said raise it — and only one of them was ever the point. The
+// ratio existed to keep a bait worth a FIXED SHARE OF A BAR, which is the thing a player feels. 4 × was
+// how you reached that share at a pool of 15, not a law. The share is what is preserved.
+//   It then became 12 while VOLLEY_DMG was 2 (= 6 ×), and VOLLEY_DMG later went to 3 for its OWN reason —
+// so 12 / 3 = 4 × once more. THAT IS A COINCIDENCE OF TWO INDEPENDENT DECISIONS, NOT THE PIN RETURNING.
+// Anyone who reads the restored 4 × as the rule and re-derives this from VOLLEY_DMG on the next pool move
+// reintroduces the exact defect that cost a full pass to find. The pool is the reference. Not the volley.
+//   Reprice against the pool in spawnBoss:
 //     was  8 vs 15/20/25/30/35 → 53% / 40% / 32% / 27% / 23% of a bar, 2/3/4/4/5 baits
 //     then 8 vs 30/35/40/45/50 → 27% / 23% / 20% / 18% / 16%,          4/5/5/6/7 baits  (the buff, unfixed)
-//     now 12 vs 30/35/40/45/50 → 40% / 34% / 30% / 27% / 24%,          3/3/4/4/5 baits
-// A partial restoration on purpose: Epoch I is back to 3 baits rather than the old 2, because the pool
-// was raised for difficulty and the bait should not undo that — it should stay the answer a stripped
-// player has, not become the fast way past the fight.
+//     now 12 vs 25/30/35/40/45 → 48% / 40% / 34% / 30% / 27%,          3/3/3/4/4 baits
+// A partial restoration on purpose: Epoch I is 3 baits rather than the old 2, because the pool was raised
+// for difficulty and the bait should not undo that — it should stay the answer a stripped player has, not
+// become the fast way past the fight.
 //   12 was explicitly REJECTED as a ceiling here once, on the grounds that it would one-shot an Epoch I
-// Pulsar with 11 hp. That Pulsar has 23 hp now, so 12 takes two baits to kill it — the exact count 8 took
+// Pulsar with 11 hp. That Pulsar has 19 hp now, so 12 takes two baits to kill it — the exact count 8 took
 // against 11. The number the old comment named as too strong is the number that preserves what it was
 // protecting. That is the pool moving, not the argument being wrong.
 const CHARGE_DMG=12;
@@ -682,13 +693,19 @@ const VOLLEY_HOLD=1.75;
 // EROSION PRICES. The ordering is what gives the three channels meaning: aimed beats opportunistic
 // beats drift, which pays nothing at all (docs/MECHANICS.md ## The Anomaly, "Ways in").
 // A FIGHT IS PRICED IN CONNECTING BODIES, NOT IN DAMAGE — read this against the pool in spawnBoss or
-// neither number means anything. 30 ÷ 2 = 15 Dots at Epoch I, 40 ÷ 2 = 20 at Epoch III.
-// This block also used to claim 2 divides the pool evenly, so the last Dot of a purge is never overkill
-// thrown at a corpse. THE TABLE HAS NEVER SATISFIED THAT: it was odd at 15 / 25 / 35 and is odd at 35 /
-// 45, so two Epochs still end on a half-connect. The property is worth having and is one +1 or -1 in the
-// pool away at each of them — but it was written as an invariant while being false, which is worse than
-// not having it, so it is recorded here as a wish rather than a rule.
-const VOLLEY_DMG=2;      // per Dot that connects — aimed and guided, the highest price in the game
+// neither number means anything. 25 ÷ 3 = 8.3 Dots at Epoch I, 35 ÷ 3 = 11.7 at Epoch III.
+//   RAISED 2 → 3 BECAUSE THE POOL MOVED AND THIS DID NOT. That is the same defect that had to be fixed at
+// CHARGE_DMG one commit earlier: a channel whose damage stands still is silently halved by a pool that
+// doubles, and this is the AIMED channel the whole fight is built around — it had gone from a 7.5-body
+// proposition at Epoch I to 15. At 3 against the 25/30/35/40/45 pool it costs 8.3 / 10 / 11.7 / 13.3 / 15
+// bodies, against 7.5 / 10 / 12.5 / 15 / 17.5 before any of this — identical at Epoch II, a shade harder
+// early, a shade easier late. Whenever the pool moves, walk THIS list and CHARGE_DMG's together.
+// This block also used to claim the price divides the pool evenly, so the last Dot of a purge is never
+// overkill thrown at a corpse. THE TABLE HAS NEVER SATISFIED THAT: at 2 it was odd at 15 / 25 / 35, and
+// at 3 only 30 and 45 divide cleanly, so three of five Epochs still end on a part-connect. Worth having,
+// one ±1 in the pool away at each — but it was once written as an invariant while being false, which is
+// worse than not having it, so it stays recorded as a wish rather than a rule.
+const VOLLEY_DMG=3;      // per Dot that connects — aimed and guided, the highest price in the game
 const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrades) — Overdrive widens it only while its timer runs
 // CAPACITOR INCOME IS BOUNDED. Both combo-driven streams cap at combo ~90, and they must stay in step:
 // this one in onKill (`Math.min(CHG_KILL_CAP, 0.006 + combo*0.0002)`, binding at 90) and the streak
@@ -1474,17 +1491,21 @@ function testPick(i){                          // 1-3 → jump to a specific kin
 function spawnBoss(forceVariant){
   const col=Math.random()<0.5?'red':'cyan';
   const variant = forceVariant || pickAnomalyVariant();
-  // 30 / 35 / 40 / 45 / 50 across Epochs, +5 per Epoch. THIS POOL AND THE EROSION PRICES ARE ONE NUMBER
-  // IN TWO PLACES — price it in CONNECTING BODIES against VOLLEY_DMG (15 at Epoch I, 20 at Epoch III),
+  // 25 / 30 / 35 / 40 / 45 across Epochs, +5 per Epoch. THIS POOL AND THE EROSION PRICES ARE ONE NUMBER
+  // IN TWO PLACES — price it in CONNECTING BODIES against VOLLEY_DMG (8.3 at Epoch I, 11.7 at Epoch III),
   // never in raw HP, and reprice the charge with it. The Anomaly has no clock and no second win
   // condition, so the pool is the entire length of the fight: padding it makes the third answer a chore
   // rather than a question.
-  //   The flat +15 was a difficulty call, not a rebalance: the fight measured much too weak. Note the
-  // curve it changes — the pool used to TRIPLE from Epoch I to V (15->35) and now less than doubles
-  // (30->50), so the buff is worth +100% at Epoch I and +43% at Epoch V. Early Anomalies took the brunt
-  // of it, which is where the complaint was. anomLog on the run summary is the readout for whether this
-  // landed: it prices each fight in HP the fight actually cost you.
-  let hp=25+act*5;
+  //   +10, TRIMMED FROM +15, AND THE PRICES CAME WITH IT THIS TIME. The buff was a difficulty call — the
+  // fight measured much too weak — but it was reached partly on the belief that Overdrive-boosted grinding
+  // would be very strong here, and that turned out not to hold: Overdrive MOVES the band where a grind
+  // connects (orbit 114 -> 175px) rather than raising its damage, and inside 150px it makes grinding about
+  // 4x worse. See the note at RING_GRIND_DMG.
+  //   Note what the curve does, because it is not just a level change: the pool used to TRIPLE from Epoch
+  // I to V (15->35) and now less than doubles (25->45), so this is +67% at Epoch I and +29% at Epoch V.
+  // Early Anomalies still take the brunt, which is where the complaint was. anomLog on the run summary is
+  // the readout for whether it landed: it prices each fight in HP the fight actually cost you.
+  let hp=20+act*5;
   if(variant==='pulsar') hp=Math.round(hp*0.75); // the kind that moves you rather than out-damaging you — footwork is its answer, so it should not also be the longest fight
   bossN++;
   anomLog.push(0);   // opens this fight's tab — see the two `boss &&` accumulators in the damage paths
@@ -1496,14 +1517,29 @@ function spawnBoss(forceVariant){
   // launch offset (`b.r+14`) and every shock ring keyed to `b.r*k`.
   // Its size is also its hittability — ring fire is radial, so this Dot subtends ~3.9% of the circle at
   // 300px. Shrinking it makes the fight longer for free; read it against the pool above.
-  boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0, dmg:30,
+  // ---- PACE: the Anomaly's first fights are SLOWER, and it reaches full speed at Epoch III ----
+  // The pool is not the only thing an early Anomaly should be gentler about. `cad` stretches every gap
+  // between attacks, `spd` slows every projectile — 25% at Epoch I, easing to no change at Epoch III and
+  // flat forever after. Both axes, because either alone reads wrong: fewer shots at full speed is still
+  // unreadable, and slow shots at full cadence just fills the field.
+  //   ⚠️ FROZEN AT SPAWN, NEVER READ PER FRAME. If this sampled `act` live, an Epoch rolling over mid-fight
+  // would speed the patterns up while the player was standing inside them — the difficulty spike attached
+  // to nothing the player did that the cadence comment in updateBoss argues against. The Anomaly you are
+  // fighting keeps the pace of the Epoch it arrived in.
+  const pt = clamp((act-1)/2, 0, 1);
+  const pace = { cad: 1.25-0.25*pt,     // MULTIPLIES the gap, so bigger is SLOWER: 1.25 / 1.125 / 1.0
+                 spd: 0.75+0.25*pt };   // MULTIPLIES projectile speed: 0.75 / 0.875 / 1.0
+  boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0, dmg:30, pace,
     x:W/2, y:-60, vx:0, vy:0, dead:false, queued:false, ph:0, hexRot:rand(0,TAU), variant, spiral:null,
-    fireT:2.2, emitMode:true,                 // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
+    // ⚠️ These are FIRST intervals and they need `pace.cad` as much as the resets in updateBoss do —
+    // without it Epoch I's opening shot of every kind still arrives at full speed, which is the one the
+    // slowdown most exists for.
+    fireT:2.2*pace.cad, emitMode:true,        // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
     orbA:-Math.PI/2,                          // sentinel: start at the top of its circle
-    novaT:rand(2.4,3.4), novaCharge:0,        // pulsar: telegraphed radial bursts
-    lungeT:rand(4,6), lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
-    seedT:rand(2.6,3.8),                       // sentinel: swarmers shed along its orbit
-    hunt:0, huntT:rand(6,10), huntBreak:0, huntR:undefined };   // every kind: periodically leaves station and walks onto your core
+    novaT:rand(2.4,3.4)*pace.cad, novaCharge:0,        // pulsar: telegraphed radial bursts
+    lungeT:rand(4,6)*pace.cad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
+    seedT:rand(2.6,3.8)*pace.cad,              // sentinel: swarmers shed along its orbit
+    hunt:0, huntT:rand(6,10)*pace.cad, huntBreak:0, huntR:undefined };   // every kind: periodically leaves station and walks onto your core
   enemies.push(boss);
   trauma=Math.min(1,trauma+0.45); flash=0.5; flashCol=COL[col];
 }
@@ -1551,14 +1587,28 @@ function leadAngle(b,speed,frac){
   return Math.atan2(P.y+(P.dy||0)*frames*k - b.y, P.x+(P.dx||0)*frames*k - b.x);
 }
 function fireMissile(b,a,kind,spOverride){
-  const m=MSL[kind]||MSL.volley, r0=b.r+14, sp=spOverride||m.sp;
-  const L={ kind, a, color:bossOpp(b.color), r:m.r, life:m.life,
+  // EARLY-EPOCH SLOWDOWN — see `pace` in spawnBoss. Missiles fired by the Anomaly travel `pace.spd` of
+  // their table speed, so an Epoch I shot gives you a third again as long to read it.
+  const ps = (b && b.pace ? b.pace.spd : 1);
+  const m=MSL[kind]||MSL.volley, r0=b.r+14, sp=(spOverride||m.sp)*ps;
+  // ⚠️ `life` MUST BE DIVIDED BY THE SAME FACTOR, and this is not optional bookkeeping. It decrements by
+  // dt, but what it is FOR is reach — see the distance-budget warning at the lance step. Slow a missile
+  // 25% and leave `life` alone and it covers 25% less ground, so patterns stop arriving instead of
+  // arriving later: the Pulsar's ring no longer reaches you, the Emitter's fan dies short of the lane it
+  // was sweeping. That is a different fight, not a slower one.
+  //   The cost of doing it right: a slower shot that still travels its full distance is ON SCREEN longer,
+  // so more are in the air at once. `pace.cad` firing fewer of them is what pays for that. If an early
+  // Epoch ever reads as MORE cluttered rather than calmer, this coupling is the cause and `life` is the
+  // lever — not `spd`.
+  const L={ kind, a, color:bossOpp(b.color), r:m.r, life:m.life/ps,
             x:b.x+Math.cos(a)*r0, y:b.y+Math.sin(a)*r0,
             vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
             px:b.x, py:b.y, seen:true };
-  if(kind==='seeker'){ L.seekT=m.seekFor; L.turn=m.turn; L.sp=m.sp; }
+  // L.sp is read by the seeker's turn-and-commit maths and by the spear's launch, so it carries the same
+  // scale or the steering desynchronises from the travel it is steering.
+  if(kind==='seeker'){ L.seekT=m.seekFor; L.turn=m.turn; L.sp=m.sp*ps; }
   if(kind==='mine'){ L.arm=m.arm; L.blast=m.blast; }
-  if(kind==='spear'){ L.tel=m.tel; L.sp=m.sp; L.vx=0; L.vy=0; }
+  if(kind==='spear'){ L.tel=m.tel; L.sp=m.sp*ps; L.vx=0; L.vy=0; }
   lances.push(L);
   return L;
 }
@@ -1749,11 +1799,15 @@ function bossMove(b,dt){
 }
 function updateBoss(dt){
   const b=boss;
-  // The cadence multiplier, flat at 1 and threaded through the ~12 cadence expressions below. Kept as a
-  // named constant rather than inlined so a ramp has one home. NOT on a timer: with no clock in the
-  // fight there is nothing to race, so a timed ramp is a difficulty spike attached to nothing the player
-  // did. If a ramp is wanted, hang it on the Anomaly's own HP.
-  const fast = 1;
+  // THE CADENCE MULTIPLIER, threaded through the ~12 cadence expressions below. It MULTIPLIES THE GAP, so
+  // a bigger value is a SLOWER Anomaly. (It was called `fast` while pinned at 1, where the name could not
+  // mislead anyone. It can now.)
+  //   NOT ON A TIMER, and the ramp it carries does not break that. The objection has always been to an
+  // INTRA-FIGHT clock: with nothing to race, a fight that speeds up while you are inside it is a spike
+  // attached to nothing you did. `b.pace` is frozen at spawn and keyed to the EPOCH — the same axis the HP
+  // pool has always ramped on — so the Anomaly in front of you never changes pace, and the next one is
+  // faster only because you survived to reach it. Still true: do not hang a ramp on elapsed fight time.
+  const cadence = b.pace ? b.pace.cad : 1;
   // schedule the hunt BEFORE moving, so the move this frame already reflects it. A hunt never STARTS
   // mid-dash or mid-charge (both are commitments the player has already read and answered), but one
   // already running carries through — a Pulsar closing on you while it winds up is the point of it.
@@ -1764,7 +1818,7 @@ function updateBoss(dt){
     if(b.huntT<=0 && b.lunging<=0 && b.novaCharge<=0){
       // 3.0-4.2s was sized for a walk that stopped 117px short. Now that it closes all the way it needs
       // long enough to actually arrive from its station (~250-350px) at the slowed HUNT_SPD.
-      b.hunt=rand(6,8); b.huntT=rand(9,14)*fast;
+      b.hunt=rand(6,8); b.huntT=rand(9,14)*cadence;
       b.huntR=undefined;                       // the Sentinel's spiral starts wide again each hunt
       sfx.closing();                           // it breaks station audibly — same voice as the dash wind-up
       spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*2.6);
@@ -1777,8 +1831,8 @@ function updateBoss(dt){
     // orbit writes itself into the field as a trail you have to run down to keep chasing it.
     // seekers are the most punishing missile in the set (measured 10.5 dps naive / 6.7 dodging, vs 3.2/2.1
     // for volleys), so the Sentinel throws them less often than it threw the old straight pincers
-    b.fireT-=dt; if(b.fireT<=0){ firePincer(b); b.fireT=rand(2.2,3.0)*fast; }
-    b.seedT-=dt; if(b.seedT<=0){ b.seedT=rand(2.4,3.4)*fast;
+    b.fireT-=dt; if(b.fireT<=0){ firePincer(b); b.fireT=rand(2.2,3.0)*cadence; }
+    b.seedT-=dt; if(b.seedT<=0){ b.seedT=rand(2.4,3.4)*cadence;
       // the trail leans toward YOUR ammo colour, exactly as ambient spawn already does during a boss.
       // At a flat 50/50 the Sentinel stacks three pressures at once (seekers + swarmers + its orbit) and
       // never lets you go 3.8s untouched, so Integrity regen never starts — 0-for-4 against a bot that
@@ -1794,9 +1848,9 @@ function updateBoss(dt){
   } else if(b.variant==='pulsar'){
     // ground denial: the RING says "be in the seam", the MINES say "and not there, or there". Between
     // them you are always being moved, which is the whole point of the kind.
-    if(b.novaCharge>0){ b.novaCharge-=dt; if(b.novaCharge<=0){ bossNovaRing(b); b.novaT=rand(3.0,4.2)*fast; } }
+    if(b.novaCharge>0){ b.novaCharge-=dt; if(b.novaCharge<=0){ bossNovaRing(b); b.novaT=rand(3.0,4.2)*cadence; } }
     else { b.novaT-=dt; if(b.novaT<=0) b.novaCharge=0.9; } // telegraphed wind-up before the ring
-    b.fireT-=dt; if(b.fireT<=0){ fireMines(b, 2+(act>=3?1:0)); b.fireT=rand(2.6,3.6)*fast; }
+    b.fireT-=dt; if(b.fireT<=0){ fireMines(b, 2+(act>=3?1:0)); b.fireT=rand(2.6,3.6)*cadence; }
   } else {   // EMITTER (default / teaching): ALTERNATES a hexagon crossfire BURST and a sweeping spiral
              // STREAM — and from Epoch II it LUNGES too (this absorbed the old separate 'lunger' kind,
              // which was this exact boss with a dash bolted on). Boss Rush always shows the grown-up one.
@@ -1807,15 +1861,18 @@ function updateBoss(dt){
       // commit is exactly what made the dash unreadable (see LUNGE_TEL).
       if(b.telegraph<=0){ b.telegraph=0; b.lunging=0.55; fireSpear(b); trauma=Math.min(1,trauma+0.28); } }
     else if(b.spiral){ b.spiral.t-=dt;   // mid-stream: a leading fan every 0.3s, sweeping across you
-      if(b.spiral.t<=0){ b.spiral.t=0.3; fireAimedVolley(b,2,0.34);
-        if(--b.spiral.left<=0){ b.spiral=null; b.fireT=rand(2.6,3.4)*fast; } } }
+      // The fan's INTERNAL rhythm takes the slowdown too. It is the densest thing the Emitter does, so
+      // leaving it out would have made an Epoch I stream arrive at full rate between slowed bursts —
+      // the one place the ramp is most obviously supposed to apply.
+      if(b.spiral.t<=0){ b.spiral.t=0.3*cadence; fireAimedVolley(b,2,0.34);
+        if(--b.spiral.left<=0){ b.spiral=null; b.fireT=rand(2.6,3.4)*cadence; } } }
     else {
       b.fireT-=dt; if(b.fireT<=0){ b.emitMode=!b.emitMode;
         if(b.emitMode){ b.spiral={left:4,t:0}; spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*2.2); bossFlash=0.4; sfx.lance(); } // → spiral STREAM
-        else { fireHexVolley(b); b.fireT=rand(2.3,3.1)*fast; } }                                                             // → hex BURST
+        else { fireHexVolley(b); b.fireT=rand(2.3,3.1)*cadence; } }                                                             // → hex BURST
       // never wind up a dash while hunting: it would already be crowding you, and a dash from 117px is
       // an unreadable hit rather than a telegraph. The hunt is the pressure; the dash is the punctuation.
-      if(canLunge && b.hunt<=0){ b.lungeT-=dt; if(b.lungeT<=0){ aimLunge(b); b.lungeT=rand(3.6,5.2)*fast; } }
+      if(canLunge && b.hunt<=0){ b.lungeT-=dt; if(b.lungeT<=0){ aimLunge(b); b.lungeT=rand(3.6,5.2)*cadence; } }
     }
   }
   if(bossFlash>0)bossFlash-=dt;
@@ -4310,6 +4367,9 @@ window.__orbital=window.__polaris=window.__flux={
   get orbs(){ return []; },
   get FX(){ return {overdrive: odOn ? P.charge/OD_DRAIN : 0}; },
   get bossN(){return bossN;}, set bossN(v){bossN=v;},
+  // Same reason as bossN: `act` gates the Anomaly's HP pool AND its pace ramp, and both are per-Epoch
+  // curves that are untestable if a harness can only reach Epoch V by surviving to it.
+  get act(){return act;}, set act(v){act=v;},
   openCodex, queueKill,
   get flipCd(){return P&&P.flipCd;},
 };
