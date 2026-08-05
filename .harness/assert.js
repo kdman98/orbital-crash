@@ -74,7 +74,7 @@
 
   const want = ['start','tick','diag','render','flip','overdrive','spawnBoss','spawnEnemy','odOn',
                 'P','enemies','boss','lances','orbs','store','motes','FX','lastDmg',
-                'formWall','formNoose','formPulse','formSorter','formComet'];
+                'formWall','formNoose','formPulse','formCross','formComet','formNRing'];
   const missing = g ? want.filter(k => !(k in g)) : want;
   ok('seam exposes what the harness needs', g && missing.length === 0, missing.length ? 'MISSING: ' + missing : Object.keys(g).length + ' keys, all present');
   ok('game is at the menu (safe to probe)', g && g.diag().state === 'menu', g ? g.diag().state : '?');

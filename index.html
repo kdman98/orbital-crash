@@ -1203,19 +1203,46 @@ function freshRun(){
 // =====================================================================
 //  ENEMIES
 // =====================================================================
+// THE ROSTER IS SIX, AND IT USED TO BE NINE. `split`, `mini` and `orbiter` are gone, and the reason is
+// one sentence: every survivor has an identity that is not "a Drifter, but a bit different".
+//   · SPLITTER  — its removal CLOSES A DOCUMENTED DEFECT rather than expressing a taste. MECHANICS'
+//     `Open` section carried "the Splitter has no answer the player can aim — and this is an agency
+//     problem, not a population one", with a measured write-up and no fix: popping one added two Minis,
+//     and the only death that skipped `onKill` and so paid no fragments was a Bomber blast, i.e. a
+//     coincidence the player could occasionally set up rather than a verb they owned. A body whose
+//     answer is a coincidence is not a body, and shrinking its population was never going to fix that.
+//   · MINI      — existed only as Splitter shrapnel and as Sentinel trail. It was the one fully solid
+//     Dot in the sky because at r=7 an internal mark is ~1.2 CSS px on a phone, which is another way of
+//     saying it read as a shrunken Drifter and was identified by SIZE, the weakest channel in the game.
+//   · ORBITER   — a tangential push of 0.34 bolted onto an ordinary seek. It never converged to a
+//     radius and never orbited; it drifted in on a lazy damped spiral that reads, at speed, as a
+//     Drifter taking a slightly worse line.
+//   ⚠️ THE ANNULUS AND THE TWIN-LOBE SILHOUETTES ARE NOW FREE, and that is not an invitation to reuse
+// them casually — the Planet below deliberately takes NEITHER, because a new species wearing a retired
+// one's outline inherits every expectation the old one taught.
 const ETYPE={
   drift:  {r:11, hp:1, mass:1.0,  maxsp:3.4, seek:0.22, dmg:10},
   fast:   {r:8,  hp:1, mass:0.7,  maxsp:6.4, seek:0.42, dmg:8},
   heavy:  {r:20, hp:3, mass:2.7,  maxsp:2.0, seek:0.15, dmg:22},
-  split:  {r:14, hp:1, mass:1.1,  maxsp:3.2, seek:0.24, dmg:12},
-  mini:   {r:7,  hp:1, mass:0.6,  maxsp:5.2, seek:0.38, dmg:6},
   neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:15},
-  orbiter:{r:10, hp:1, mass:0.9,  maxsp:4.7, seek:0.30, dmg:11}, // curves around the core
   // BOMBER at Drifter parity (10) on purpose. Contact is deliberately NOT where the Bomber is dangerous —
   // strictly weaker than a Drifter (same damage, slower, lower seek, far bigger target at r17). Its
   // threat is the 120px detonation in bomberBlast, which costs you no health at all, only your hoard.
   bomber: {r:17, hp:1, mass:1.5,  maxsp:2.5, seek:0.17, dmg:10},
   charger:{r:13, hp:1, mass:1.0,  maxsp:3.0, seek:0.14, dmg:16}, // telegraphs then dashes; ignores your field
+  // THE PLANET — the one body you WANT in your rings, and the only one that charges while it is there.
+  // Author: "holding that dot alive is a demerit. it is hard. we should reward that action for that,
+  // destroying enemy dots — no need to deal damage to boss though." See stepPlanet / planetBlast.
+  //   EVERY STAT HERE IS PART OF THE COST, not decoration:
+  //     hp 4     — it can be LOST. Opposite-colour matter drifting into your ring annihilates against it
+  //                one hp at a time, and a Bomber inside BOMB_R kills it outright. Holding it means
+  //                keeping the other colour off it, during the exact stretch you cannot flip.
+  //     mass 3.2 — heavier than a Brute, so it shoulders your other ring Dots around: the hoard you are
+  //                protecting is also in the way of the hoard you are spending.
+  //     maxsp 1.7 / seek 0.13 — the slowest, laziest body in the game. It does not hunt you; you have to
+  //                go and get it, which is the first half of the price.
+  //     r 23     — the largest ordinary Dot. It cannot be hidden in a crowd and it cannot be dodged late.
+  planet: {r:23, hp:4, mass:3.2,  maxsp:1.7, seek:0.13, dmg:20},
 };
 function spawnEnemy(type,color,x,y){
   const t=ETYPE[type];
@@ -1507,25 +1534,171 @@ function formPulse(){
     }
   }
 }
-// THE SORTER — two solid walls converging, one RED and one CYAN, their doors at different heights.
-// Neither wall has a gap you can use for the other, and no polarity is safe from both: you match the
-// one arriving first, then flip for the second. The flip stops being a convenience and becomes the
-// solution.
+// (THE SORTER STOOD HERE — two solid full-height walls converging, one RED from the left and one CYAN
+//  from the right, doors at different heights, sold as "match the one arriving first, then flip for the
+//  second; the flip stops being a convenience and becomes the solution."
+//    IT COULD NOT DO THAT, AND THE GEOMETRY SAYS SO. Red spanned x in [-80,640] and cyan [640,1360] on a
+//  1280 arena: EACH WALL ONLY EVER COVERED HALF THE FIELD. A player at x=100 met red at t=1.25s and never
+//  met cyan at all; a player at x=1180 met only cyan. The advertised sequence was reachable for nobody
+//  except a player standing near x=W/2 — and for them the two walls arrived in the SAME INSTANT, so there
+//  was no "first" and no window to flip in. The one thing it uniquely asked, "hold X and stand in X-bar's
+//  door", was asked only of whoever happened to be mid-arena at t=5.
+//    AND IT ENDED WITHOUT YOU, which is rule 3. The walls met at t=5.0s at x=640 with `hold` (11.2s) still
+//  running on both, so the unpaid `e.hold>0 && o.hold>0` branch in stepAnnihilation fired down the line
+//  and 4 of 36 Dots survived. Standing off to one side let the shape resolve itself.
+//    Nothing unique was lost. Sequential colour matching belongs to formPulse and belongs there BETTER:
+//  PULSE_GAP gives a 1.04s spacing deliberately sized against CHG_WIND 0.9 and LUNGE_TEL 1.3 as an
+//  actionable flip window. The Sorter offered zero.
+//    ⚠️ DO NOT DELETE THE `e.hold>0 && o.hold>0` GUARD IN stepAnnihilation on the grounds that it "existed
+//  for the Sorter". Its own comment says DELETE THE GUARD, NEVER THE BRANCH, and formCross below needs it
+//  the moment two of its arms ever cross.)
 //
-// This deliberately breaks the LETTER of rule 2 (every shipped shape alternates every Dot) while
-// keeping its spirit, which is that no single polarity ever walks through a wave for free. One solid
-// red wall is a free door if you are red — two, in opposite colours, cannot both be.
-// They also annihilate each other where they meet, which is what ends the shape: not a timer.
-function formSorter(){
-  const N=Math.max(8,Math.ceil(H/FORM_STEP)+1), step=H/(N-1), m=80;
-  const gapA=irand(1,Math.max(1,N-4));
-  let gapB=irand(1,Math.max(1,N-4));
-  if(Math.abs(gapB-gapA)<4) gapB=(gapA+Math.floor(N/2))%Math.max(1,N-3)+1;   // the doors must not line up
-  const hold=formFlightTime(W+m*2);
-  for(let i=0;i<N;i++){
-    const y=i*step;
-    if(i<gapA || i>=gapA+2) holdBody(spawnEnemy('drift','red',  -m,  y),  FORM_SPD, 0, hold);
-    if(i<gapB || i>=gapB+2) holdBody(spawnEnemy('drift','cyan', W+m, y), -FORM_SPD, 0, hold);
+// THE CROSS — four arms on one hub, spanning the arena, turning. The first shape whose question is
+// neither "find the door" (Wall) nor "find the seam" (Noose) nor "match the colour" (Pulse), but KEEP
+// MOVING: you live in a rotating quadrant and it does not stay yours.
+//
+// ⚠️ IT ROTATES RATHER THAN CONTRACTING, and the contracting version is the one to not rebuild. Three
+// separate failures, all measured off this file's own constants:
+//   1. `holdOrbit` captures cx,cy at SPAWN and stepEnemyForces reads o.cx/o.cy — there is no indirection,
+//      so a cross cannot follow you. stepPlayer is an uncapped (pointer-P)*0.185, which moves 37px in ONE
+//      FRAME on a 200px mouse throw, so a 176px cross was scenery within about five frames. Contraction
+//      makes that WORSE, not better: it vacates the outer arena as it shrinks, so ignoring it is rewarded.
+//      Rule 3 inverted. Arms that reach past the arena are the fix, and it is the Noose's fix — it spawns
+//      at "farthest padded corner + 70" for exactly this reason.
+//   2. With a SHARED rmin every Dot on an arm reaches the floor at the same angle, becomes co-located,
+//      and `formAlt` makes neighbours opposite — so the shape would eat itself through the unpaid branch,
+//      which is precisely the rule-3 failure the Sorter was deleted for.
+//   3. Between-arm chord at four arms is 2r*sin(PI/4) = 1.414r, over the 52px walkable threshold for any
+//      r > 36.8. A contracting cross is therefore four 90-degree doors and four spokes; rule 1's own
+//      wording makes the SPOKES the decoration in that arrangement.
+// Rotation answers rule 3 the way the Noose's seam does: stand still and an arm sweeps you every quarter
+// turn. The quadrants are wide open on purpose — this shape is not a wall, and it does not pretend to be.
+//
+// THE HUB IS NOT A HIDING PLACE, and that is derived rather than felt. Four Dots at CROSS_R0 sitting 90
+// degrees apart are 1.414*R0 apart, so at R0=30 that is 42px: above the 22px where the colour law would
+// make the knot annihilate itself, and below the 52px that would make it walkable. The centre is a solid
+// tangle, the rim is fast, and the answer is a mid-radius band you have to keep circling.
+//
+// ⚠️ AND FOR EXACTLY THAT REASON IT CENTRES ON THE ARENA, NOT ON THE STAR. Centring the hub where the
+// player is standing spawns that 42px tangle ON them: core contact is P.r + dot.r = 26, so a hub at 30
+// leaves FOUR PIXELS of clearance and the shape opens by killing you before it has said anything. This is
+// the Noose's problem in reverse — the Noose may target you precisely because it starts past the farthest
+// corner and takes seconds to arrive, whereas a rigid shape is wherever it spawns, instantly. So the Cross
+// is a WORLD event like the Wall (which also ignores where you are) rather than a personal one like the
+// Noose and the Pulse. The hub becomes a permanently lethal landmark in the middle of the field, the four
+// quadrants are the room you have, and rule 3 lands harder this way, not softer: a still player anywhere
+// off the hub is swept every QUARTER revolution rather than needing the shape to come and find them.
+const CROSS_ARMS=4;
+const CROSS_R0=30;                      // hub radius — see the 22/52 bracket above
+// ⚠️ SPIN IS SET AT A MID-ARENA RADIUS, NOT AT THE ARM TIPS, AND THE DIFFERENCE IS THE WHOLE SHAPE.
+// Tangential speed is `va * r`, so a rigid cross has no single speed — bounding the FASTEST point (the tip,
+// past the far corner) sets `va = FORM_SPD/rMax` and measured that gives a **34.7 second revolution**, one
+// arm sweep per 35s. That is not a pattern, it is scenery: the Wall crosses in 11.2s and the player moves
+// up to 37px in a single frame. The arm tips are OFF SCREEN by construction, so their speed cannot be read
+// and does not need protecting; what needs to move at a legible pace is the part on screen.
+//   So the reference is a mid-arena radius, derived from the viewport so it scales to a phone. At
+// ~304px (an 800x894 arena) that is FORM_SPD exactly, a ~13s revolution — the Wall's own order — and the
+// tips run to about 5.5px/frame, which is still under a Dart's own top speed and therefore not "running
+// away" in the sense the Pulse's bound guards against. (For comparison, NOOSE_SPIN is 0.38 rad/s.)
+const CROSS_REF=0.38;                   // fraction of the short axis where tangential speed == FORM_SPD
+// ⚠️ A RIGID SHAPE IS WHEREVER IT SPAWNS, INSTANTLY, and every other pattern in this file dodges that
+// problem by starting OFF SCREEN and arriving — the Wall marches in, the Pulse expands in from past the
+// edge, the Noose closes from beyond the farthest corner. A cross that spans the arena cannot do any of
+// that, so it has to guarantee a fair start by CONSTRUCTION or it is the "unfair Dot" the Bomber's scoping
+// note refuses: measured before this guard, an arm materialised SEVEN PIXELS from a stationary Star.
+//   Two guards, and between them the shape can never open on a hit:
+//     · the hub steps aside if the Star is standing on it (a 42px tangle at the arena centre is lethal to
+//       anyone who happens to be centred), and
+//     · the arm rotation is SOLVED rather than rolled, so the Star always begins exactly mid-quadrant.
+//   The second one buys the warning window as a side effect: from mid-quadrant the first arm is an eighth
+// of a revolution away, ~1.7s at a 13.3s turn, which sits right in this file's own actionable band
+// (CHG_WIND 0.9, LUNGE_TEL 1.3). You start safe, and you are told how long that lasts by watching.
+function formCross(){
+  let cx=W/2, cy=H/2;                   // the arena, not the Star — see the note above
+  const px=P?P.x:cx, py=P?P.y:cy;
+  const clear=CROSS_R0+(P?P.r:15)+20;
+  const hd=Math.hypot(px-cx,py-cy);
+  if(hd<clear){                          // the Star is on the hub: slide the hub off it, not the other way
+    const ux=hd>0.001?(cx-px)/hd:1, uy=hd>0.001?(cy-py)/hd:0;
+    cx=px+ux*clear; cy=py+uy*clear;
+  }
+  // Reach past the furthest padded corner so there is no "outside the cross" to walk to — the same
+  // measurement the Noose makes, and for the same reason.
+  const rMax=Math.max(Math.hypot(cx,cy), Math.hypot(W-cx,cy),
+                      Math.hypot(cx,H-cy), Math.hypot(W-cx,H-cy)) + 70;
+  const N=Math.max(4, Math.ceil((rMax-CROSS_R0)/FORM_STEP)+1);
+  const va=(Math.random()<0.5?1:-1)*FORM_SPD/(Math.min(W,H)*CROSS_REF);   // rad/frame — see CROSS_REF
+  // One full revolution, so every bearing is swept exactly once and the shape has an obvious end.
+  const hold=(TAU/Math.abs(va))/60;
+  // Solved, not rolled: half a quadrant off the Star's own bearing puts it dead between two arms.
+  const a0=Math.atan2(py-cy, px-cx) + Math.PI/CROSS_ARMS;
+  for(let k=0;k<CROSS_ARMS;k++){
+    const arm=a0+k*TAU/CROSS_ARMS;
+    for(let i=0;i<N;i++){
+      const r=CROSS_R0+i*FORM_STEP;
+      // `formAlt` along the arm, so no polarity walks an arm for free (rule 2). Indexed by i+k so
+      // adjacent arms do not start on the same colour and the hub is not four of one charge.
+      const e=holdOrbit(spawnEnemy('drift',formAlt(i+k), cx+Math.cos(arm)*r, cy+Math.sin(arm)*r),
+                        cx,cy,arm,r,0,va,hold);            // vr = 0: RIGID. it turns, it does not close
+      // rmin is per-Dot and equals its own radius, so the `o.r<=6` collapse in the flight branch can
+      // never fire and no two Dots on an arm can converge. With vr=0 this is belt and braces — but the
+      // braces are what stop a future edit to vr from silently recreating failure 2 above.
+      if(e&&e.orb) e.orb.rmin=r;
+    }
+  }
+}
+// THE NEUTRAL RING — a converging cage of Neutrals, and the only shape in the game whose answer is your
+// OTHER verb. A Neutral ignores the Field, ignores the Fling, and cannot be annihilated by the colour
+// law; the ONE thing that clears it is a reversal Shockwave, which fires every 0.5s. So the question is
+// how many you can pop before the ring arrives, and where you intend to be standing for the rest.
+//
+// RULE 2 IS INAPPLICABLE HERE RATHER THAN BROKEN. Neutrals have no polarity, so "alternate every Dot" has
+// no referent — while the rule's actual purpose, that no pole is ever safe, is satisfied maximally: no
+// pole is safe from any of them. This is a different claim from the Sorter's old excuse, which broke the
+// letter of a rule that DID apply to it.
+//
+// RULE 3 IS CLEARED OUTRIGHT, and by a property no other shape has. The file's own control measurement is
+// that sixteen ORDINARY Dots on a 106px ring annihilate 16 of 16 — a dense alternating group near the
+// core always eats itself. For Neutrals that figure is ZERO: stepAnnihilation's `opposite` test excludes
+// them on both sides, and the same-colour shove skips formation bodies. This cage cannot self-terminate,
+// so ignoring it is strictly worse, with nothing to hope for.
+//
+// ⚠️ THE FLOOR RADIUS IS THE WHOLE DESIGN, AND 106 WOULD HAVE RUINED IT. The Shockwave's radius is
+// min(310, 104*amp) with amp = 1+hc*0.5, so R lives in [104,156] — the 310 never binds (it has now been
+// deleted; see flipShockwave). And hc=0 is UNREACHABLE after the first flip: flip() zeroes holdT and sets
+// flipCd=0.28 while holdT accrues every frame, so the earliest possible next flip already has
+// hc >= 0.28/1.5 = 0.187, i.e. R >= 113.7. A ring floored at NOOSE_MIN_R (106) would therefore have died
+// ENTIRELY to one keypress available every half second — a larger instance of the very thing rule 2
+// forbids ("a free door that costs one keypress").
+//   At 145, clearing the cage needs 104*(1+0.5hc) >= 145, i.e. hc >= 0.788, i.e. holdT >= 1.18s. That is
+// well above RING_FIRE_HC (0.5), so the flip that clears it NECESSARILY also spends your ring hoard
+// through hungryFlipBurst. "Press flip" becomes "have been holding a pole for over a second, and pay for
+// it" — the mastery axis the game already measures and gates nothing else on.
+const NRING_R=145;
+// A NEUTRAL IS r15, NOT r11, so both of this file's spacing thresholds move with it: core contact is
+// 15+15 = 30 (not 26) and walkable is 60 (not 52). Chord 2R*sin(PI/N) <= 60 at R=145 needs
+// N >= PI/asin(30/145) = 15.1, so sixteen. Solved, not chosen.
+const NRING_SLOTS=16;
+// ⚠️ AND IT MUST NOT SCALE WITH `act`. Contact CONSUMES the Neutral, and IFRAME is 0.8s, so barging out
+// costs exactly one touch: 15 against maxHp 100 with regen 2.6 after 3.8s. The Noose's measured delivery
+// is 2.3 bodies, i.e. ~23 damage — sixteen Neutrals is already at parity with the shape this one sits
+// beside. Growing the count with Epoch would not raise the difficulty, it would raise the CEILING on a
+// single mistake, which is a different and worse knob.
+function formNRing(){
+  const cx=P?P.x:W/2, cy=P?P.y:H/2;
+  const R=Math.max(Math.hypot(cx,cy), Math.hypot(W-cx,cy),
+                   Math.hypot(cx,H-cy), Math.hypot(W-cx,H-cy)) + 70;
+  const close=(R-NRING_R)/FORM_SPD/60;
+  const spin=(Math.random()<0.5?1:-1)*NOOSE_SPIN/60;
+  // NO SEAM, and no bite. Both would be answering the wrong question: a gap says "find the way through",
+  // and the way through a Neutral ring is a Shockwave, not a doorway. Leaving it solid is what forces the
+  // second verb — and unlike the Noose it needs no bite to reach a still player, because it does not stop
+  // being lethal when it stops closing.
+  for(let i=0;i<NRING_SLOTS;i++){
+    const a=i/NRING_SLOTS*TAU;
+    const e=holdOrbit(spawnEnemy('neutral',null, cx+Math.cos(a)*R, cy+Math.sin(a)*R),
+                      cx,cy,a,R,FORM_SPD,spin, close+NOOSE_CAGE+NOOSE_BITE_DWELL);
+    if(e&&e.orb) e.orb.rmin=NRING_R;
   }
 }
 // THE COMET — not a formation but an EVENT: one Dot crossing the whole sky on a fixed line, far faster
@@ -1584,12 +1757,25 @@ function formComet(){
 // The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
 // like any other — and a comet should read as a thing that happens to the sky, not as this turn's
 // shape. It gets its own, much longer timer below.
-const FORMS=[formWall,formNoose,formPulse,formSorter];
-const LAB_SHAPES=[formWall,formNoose,formPulse,formSorter,formComet];   // Pattern Lab: all five, on demand
+// ⚠️ THE NEUTRAL RING IS NOT IN THIS ROTATION EITHER, and the reason is a measured knob rather than taste.
+// With five entries and the no-repeat memo below, a given shape recurs about every 5 draws x rand(30,46)
+// (mean 38s), i.e. ~190s. Sixteen Neutrals every 190s is 0.084/s against the AMBIENT Neutral rate of
+// 0.077/s — so putting it in `FORMS` would have DOUBLED the game's total Neutral budget, and 0.3 is a
+// number the file arrived at by measurement ("an interruption that arrives every few seconds is just
+// weather"). Its own long timer keeps that argument intact instead of quietly invalidating it.
+const FORMS=[formWall,formNoose,formPulse,formCross];
+const LAB_SHAPES=[formWall,formNoose,formPulse,formCross,formComet,formNRing];   // Pattern Lab: on demand
+// ⚠️ THE LAB LEGEND IS DERIVED FROM THIS ARRAY, and it did not used to be. `updateHUD` carried the string
+// '1 2 3 4 5  Wall · Noose · Pulse · Sorter · Comet' as a hardcoded literal POSITIONALLY COUPLED to
+// LAB_SHAPES — so removing one shape silently made key 4 fire a different pattern than the HUD named, with
+// nothing anywhere to catch it. Two lists in two files that must agree, and only one of them was code.
+// Keep this in step with the line above and the legend follows; the key COUNT can no longer drift at all.
+const LAB_NAMES=['Wall','Noose','Pulse','Cross','Comet','Neutral Ring'];
 // The first one lands early enough that a short run still sees one; after that they space out, and
 // the timer PAUSES during a boss (an Anomaly is already the thing demanding your attention).
 let formT=rand(9,16), lastForm=-1;
 let cometT=rand(90,150);                // the first comet lands well after the first formation
+let nringT=rand(150,220);               // and the first Neutral Ring after that again — see the gate below
 function spawnFormation(){
   if(enemies.length>200) return;                          // these are far denser than the old shapes
   let i; do{ i=irand(0,FORMS.length-1); }while(FORMS.length>1 && i===lastForm);
@@ -1638,6 +1824,15 @@ function director(dt){
     // what makes a naive "make it rarer" pass land at twice the intended rate.
     cometT-=dt;
     if(cometT<=0){ cometT=rand(200,300); formComet(); }
+    // THE NEUTRAL RING, on its own clock for the budget reason at FORMS, and gated LATE for a second
+    // reason: Neutrals enter no ambient table until t>=125, so before that a ring of sixteen would be
+    // somebody's FIRST Neutral — sixteen at once, answerable only by a verb the shape itself has to
+    // teach them. 150 leaves a couple of minutes of meeting them one at a time first. Same
+    // advances-only-outside-a-boss caveat as the comet above: the wall-clock gap is about double.
+    if(elapsed>150){
+      nringT-=dt;
+      if(nringT<=0){ nringT=rand(210,300); formNRing(); }
+    }
   }
   // phase timing
   if(wavePhase!=='boss'){ phaseT-=dt; if(phaseT<=0) advancePhase(); }
@@ -1677,13 +1872,19 @@ function director(dt){
 // every spawned body by identity: 293 Bombers -> 153, i.e. −47.8%. By band, share of all arrivals went
 // 8.61% -> 4.95% (t 80–125) and 7.15% -> 3.76% (t ≥ 125). Do not "fix" the shortfall by compensating
 // elsewhere — the bag IS the model, and the arithmetic is 4.5/95.5, not 4.5/100.
-//   The measured mix is wider than this table because formations, storm surges and Splitter fragments
-// also arrive; Minis are ~12% of all bodies and appear in no table at all.
+//   The measured mix is wider than this table because formations and storm surges also arrive.
+//   ⚠️ That used to end "and Splitter fragments also arrive; Minis are ~12% of all bodies and appear in
+// no table at all." Both clauses died with the Splitter — and note WHICH kind of staleness this was: the
+// 12% was a correct measurement of a population that no longer exists, i.e. exactly the sort of figure
+// that survives the thing it described and goes on being quoted. Re-measure the mix; do not carry it.
 const BOMB_RARITY=0.5;
 // THE NEUTRAL IS A JOKER, NOT A SPECIES YOU FIGHT. It is the one body polarity cannot answer — the
 // magnetic loop and ring capture both skip it by type, and the hungry flip skips it too ("uncharged is
 // not the other colour — that's the Shockwave's job"), so the ONLY tool that clears one is a flip
-// Shockwave. It also carries the highest contact damage on the roster. A body that ignores your main
+// Shockwave. ⚠️ It does NOT carry "the highest contact damage on the roster" — that line was wrong when
+// it was written (the Brute has always been dmg 22 against the Neutral's 15) and the Planet's 20 makes it
+// wrong twice over. What is true is the thing that matters: it is the only body no polarity makes safe.
+// A body that ignores your main
 // verb and forces your other one is an interruption, and an interruption that arrives every few seconds
 // is just weather.
 //   Measured before the change, with an immortal pilot run to t=400 because Neutrals enter no table
@@ -1693,6 +1894,19 @@ const BOMB_RARITY=0.5;
 // ⚠️ RARITY, NOT A WEIGHT. Same shape as BOMB_RARITY above: it MULTIPLIES the act-scaled weight rather
 // than replacing it, so the late-Act climb the table was written for survives being made rare.
 const NEUTRAL_RARITY=0.3;
+// THE PLANET IS RARER STILL, and for a different reason than the Neutral. A Neutral is rare because it
+// INTERRUPTS; a Planet is rare because it is an OPPORTUNITY, and an opportunity that arrives every few
+// seconds is not one — it is a rotation. Two on the field at once is also incoherent: the whole shape of
+// the thing is "give up your flip for one body", and you cannot give it up twice.
+//   Same multiplicative form as the two above, so the act climb written into the table survives.
+const PLANET_RARITY=0.35;
+// HOW LONG IT MUST BE HELD, and what letting go costs. PLANET_FUSE is ~4.7x `holdMax` (1.5s), which is
+// the game's own unit for "a long hold" — the charge is deliberately several times the longest hold the
+// Capacitor already asks for, because the reward is an arena-wide clear.
+//   ⚠️ THE DECAY IS FASTER THAN THE CHARGE, AND THAT IS THE DEMERIT. Drop it and you lose ground at 2x
+// the rate you gained it, so a panic flip is not a pause, it is a setback. `RING_GRACE` (0.8s) already
+// forgives a hard dodge, so this only bites when membership is genuinely lost.
+const PLANET_FUSE=7.0, PLANET_COOL=2.0;
 function doSpawns(dt){
   const cap=Math.min(330, 40 + elapsed*1.0 + act*10);         // later Acts hold a denser arena
   const interval=Math.max(0.16, lerp(1.7,0.30,intensity) - act*0.012);
@@ -1703,16 +1917,21 @@ function doSpawns(dt){
     const t=testMode?130:elapsed; let table;   // Boss Rush skips the slow drift-only intro — jump to the full mid-game mix
     if(t<20) table=[['drift',100]];
     else if(t<45) table=[['drift',64],['fast',36]];
-    else if(t<80) table=[['drift',42],['fast',26],['heavy',16],['orbiter',10],['charger',6]];
-    else if(t<125) table=[['drift',32],['fast',22],['heavy',15],['orbiter',12],['charger',10],['bomber',9*BOMB_RARITY]];
+    // ⚠️ THE WEIGHTS BELOW ARE RELATIVE AND `wchoice` NORMALISES, so pulling `orbiter` and `split` out
+    // did NOT thin the swarm — the remaining species absorb their share in proportion, and `count` and
+    // `cap` are what set density. What it DID cost is one of the climbing species named below, and the
+    // Planet takes that slot rather than leaving the late mix one verb short.
+    else if(t<80) table=[['drift',42],['fast',26],['heavy',16],['charger',6]];
+    else if(t<125) table=[['drift',32],['fast',22],['heavy',15],['charger',10],['bomber',9*BOMB_RARITY]];
     else {
       // past the intro ramp the MIX scales with ACT, not just time: Drifters thin out and the
-      // positioning-demanding species (Chargers, Bombers, Splitters, Neutrals) climb. "Stronger"
-      // means the swarm asks harder questions of your Flip, never just more meat.
+      // positioning-demanding species (Chargers, Bombers, Neutrals, and now the Planet) climb.
+      // "Stronger" means the swarm asks harder questions of your Flip, never just more meat.
       const a=act;
-      table=[['drift',Math.max(8,30-a*3)],['fast',20],['heavy',12+a],['orbiter',12],
-             ['charger',8+a],['bomber',(7+a)*BOMB_RARITY],['split',4+a],
-             ['neutral',(3+Math.floor(a/2))*NEUTRAL_RARITY]];
+      table=[['drift',Math.max(8,30-a*3)],['fast',20],['heavy',12+a],
+             ['charger',8+a],['bomber',(7+a)*BOMB_RARITY],
+             ['neutral',(3+Math.floor(a/2))*NEUTRAL_RARITY],
+             ['planet',(2+Math.floor(a/2))*PLANET_RARITY]];
     }
     // during a boss fight, keep a mild lean toward the OPPOSITE of the anomaly's colour for ammo,
     // but the reliable kill is the flip-chip (below) — so colour stays varied
@@ -2071,19 +2290,121 @@ function fireSpear(b){                                         // EMITTER (Epoch
   }
   bossFlash=0.3;
 }
+// ⚠️ A MINE TRAVELS 35.6*sp, NOT 26.3*sp, AND THE OLD NUMBER WAS A LIVE BUG: every mine landed 35% past
+// the point it was aimed at, in the one function whose entire job is landing a mine where it was aimed.
+// The derivation here used to come from the ARMING DECAY ALONE —
+//     travel = sp*(1-0.965^N)/0.035,  N = arm*60 = 72   ->   26.3*sp
+// — but `stepLances` decays `L.vx` only while `L.arm>0`, while `L.x+=L.vx` runs unconditionally. So the
+// mine keeps its residual sp*0.965^72 = 0.0769*sp for the entire 2.2s it is ARMED, and the honest sum has
+// two terms, not one:
+//     arming     sp * 0.965*(1-0.965^72)/0.035 = 25.45*sp   (the decay is applied BEFORE the move)
+//     post-arm   sp * 0.0769 * 132 frames      = 10.15*sp
+//     total                                      35.6*sp     ->  1.354x the assumed reach
+//   IT READ AS CORRECT FOR ONE REASON, AND IT WAS A COINCIDENCE: at Epoch I `pace.spd` is 0.75 and
+// 1.354*0.75 = 1.015, so the only Epoch anyone tests by hand was the only Epoch it was right at. From
+// Epoch II on it was 35% long. If either the arming decay or `MSL.mine.life` moves, re-derive both terms
+// — a one-term model of a two-phase flight is the failure, not the constant.
+//   ⚠️ AND FIXING THE MODEL EXPOSED THAT THE CEILING WAS SET AGAINST THE WRONG ONE. `MINE_SPMAX` was 13
+// because 13*26.3 = 342 "looked like" a sensible reach under the old arithmetic; the true reach at 13 is
+// 35.6*13*spd, and with the honest solve in place the Pulsar could only cover a fraction of the field.
+// Measured on an 800x894 arena with the Pulsar at its hover (y~150):
+//     SPMAX 13 -> the full 8-station box is layable from 24.8% of player positions
+//     SPMAX 16 -> 46.3%      18 -> 57.9%      20 -> 68.4%      24 -> 88.2%
+// 16 is the pick, and the bound on it is a READ rather than a coverage target: launch speed is `sp`, and
+// at 16 a mine covers 131px in its first 10 frames against the spear's 92 — thrown hard, but still a lob,
+// and the arming decay has taken 92% of it by the time it settles. Past ~20 the opening frames outrun the
+// game's fastest telegraphed missile and a mine stops reading as something LOBBED.
+const MINE_TRAVEL=35.6, MINE_SPMAX=16;
+// How far this Anomaly can throw a mine at all, given the ceiling above. `fireMissile` multiplies the
+// override by `pace.spd`, so the pace is in the reach and must be in the guard too.
+const minePace=b=>((b&&b.pace)?b.pace.spd:1);
+const mineReach=b=>MINE_TRAVEL*MINE_SPMAX*minePace(b);
+function layMine(b,tx,ty){
+  const dx=tx-b.x, dy=ty-b.y, d=Math.hypot(dx,dy)||1;
+  fireMissile(b, Math.atan2(dy,dx), 'mine', clamp(d/(MINE_TRAVEL*minePace(b)), 1.2, MINE_SPMAX));
+}
+// The band the scatter lands in. ⚠️ THE FLOOR IS NOT TASTE — it is what makes the stratification below
+// mean anything. Two mines on a ring of radius rho at angular separation D sit a chord 2*rho*sin(D/2)
+// apart, and one blast DIAMETER is 208, so a pair only stops overlapping once rho >= 104 (n=2) or
+// rho >= 120 (n=3). At 120 the jitter budget is exactly zero. 140 is the first radius that separates
+// three mines AND leaves room to vary them.
+const MINE_RHO0=140, MINE_RHO1=190;
 function fireMines(b,n){                                       // PULSAR: ground denial between rings
   // Mines have to arm on ground you might actually WANT, so they are lobbed at scattered points around
   // the Star, not sprinkled around the Anomaly — denying territory nobody is standing in denies nothing
   // (dropped at the boss they arm ~270px from anyone and measure 12 damage across a 40s fight).
-  // Speed is solved from the arming decay so each one arrives and settles roughly where it was aimed:
-  // travel = sp * (1-0.965^N)/0.035 with N = arm*60, i.e. ~26.3*sp.
   if(!P) return;
+  // ⚠️ STRATIFY BY INDEX. This was the ONLY multi-shot pattern in the file with no `i`-derived term —
+  // every sibling has one (hex `i/6*TAU`, aimed `(i-(n-1)/2)*spread`, spear `SPEAR_SPREAD`, nova
+  // `i/n*TAU`) — and it showed: two independent uniform draws in a 260px box, against a 104px blast,
+  // put one mine's centre inside the other's blast 21% of the time and overlapped them at all 61%.
+  // Two coincident mines deny one circle for the price of two, and `mineBlast` still fires per mine.
+  const base=rand(0,TAU), rho=rand(MINE_RHO0,MINE_RHO1);
+  // JITTER, BOUNDED BY THE THING IT COULD BREAK. Pulling two neighbours toward each other by `j` each
+  // leaves TAU/n - 2j between them, and the no-overlap condition is D >= 2*asin(blast/rho), so
+  // j <= PI/n - asin(blast/rho). Computed rather than written down, so it cannot go stale against
+  // `MSL.mine.blast` or the band above. (n=3 at rho=140 gives +/-0.21 rad; n=2 gives +/-0.73.)
+  const jit=Math.max(0, Math.PI/n - Math.asin(clamp(MSL.mine.blast/rho,0,1)));
+  // ⚠️ DROP THE STATIONS IT CANNOT REACH — PER MINE, NOT PER VOLLEY. `MINE_SPMAX` caps the throw, so a
+  // Pulsar further from a station than `mineReach` lands that mine on the rail: short, boss-side, in the
+  // empty middle of the arena. That is exactly the "denying territory nobody is standing in denies
+  // nothing" failure this function opens by naming, and aiming the target inward only relocates it.
+  //   ⚠️ BUT AN ALL-OR-NOTHING VOLLEY GUARD IS WORSE THAN THE BUG. Measured: reach is
+  // 35.6*13*pace.spd, which is 347px at Epoch I, and the Pulsar hovers at y~150 while the Star ranges
+  // over the whole arena — so requiring every station to be in range silenced the kind's entire second
+  // verb across most of the play field. Dropping the FAR stations instead degrades to "it cannot reach
+  // past you", which is legible, true, and leaves the near-side denial doing its job. The bearing
+  // stratification survives untouched for whatever does fire.
+  const reach=mineReach(b);
+  let laid=0;
   for(let i=0;i<n;i++){
-    const tx=P.x+rand(-130,130), ty=P.y+rand(-130,130);
-    const dx=tx-b.x, dy=ty-b.y, d=Math.hypot(dx,dy)||1;
-    fireMissile(b, Math.atan2(dy,dx), 'mine', clamp(d/26.3, 1.2, 13));
+    const a=base + i/n*TAU + rand(-jit,jit);
+    const tx=P.x+Math.cos(a)*rho, ty=P.y+Math.sin(a)*rho;
+    if(Math.hypot(tx-b.x, ty-b.y) > reach) continue;
+    layMine(b, tx, ty);
+    laid++;
   }
+  if(!laid) return;                     // nothing fired: no flash, no sound, no lie about a volley
   bossFlash=0.25; sfx.buy();
+}
+// THE BOX — the Pulsar's Epoch III escalation, and the author's "square-lineup mine spawn". Eight
+// stations on an axis-aligned square around the Star, one omitted as the door.
+//   EVERY NUMBER HERE IS DERIVED FROM THE BLAST, because a mine's danger is an AREA and not a contact
+// radius, so eyeballing the side length would be guessing at the only thing that matters:
+//   · Stations are corners AND edge midpoints, so neighbours sit MINE_SQ_HALF apart.
+//   · For the perimeter to be one continuous denied band, that spacing must not exceed a blast
+//     diameter: 165 <= 208. It is a wall, not a dotted line.
+//   · For a POCKET to exist at the centre there has to be somewhere the blast cannot reach, and the
+//     damage radius is `blast + P.r` = 119. At 165 the pocket is a 46px disc — it holds the Star (r15)
+//     with 31px of slack, which is tight enough to be a real hold and wide enough not to be a coin flip.
+//   · The door is worth 2*165 = 330px of frontage, of which the two flanking blasts eat 238, leaving
+//     92px of clear passage. That is a door you can run, not a rumour of one.
+//   THE QUESTION IT ASKS IS NOT THE SCATTER'S. The scatter says "not there, or there"; the box says
+// "hold this pocket for the fuse, or run the door before it arms" — and the arming ring that closes
+// inward is already the perfect telegraph for the 1.2s you have to decide in. No new art.
+const MINE_SQ_HALF=165;
+const MINE_SQ_ST=[[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]];
+function fireMineSquare(b){
+  if(!P) return;
+  // ALL-OR-NOTHING HERE, unlike the scatter, and measured to the FARTHEST station: a box that lands as a
+  // partial arc is not a box, and half of one reads as a bug rather than as a shape. The scatter can drop
+  // stations because three loose mines are still three loose mines; a box with a side missing is a
+  // different, easier shape wearing the same telegraph.
+  //   ⚠️ SO THE BOX IS A PROXIMITY PUNISHER, AND THAT IS THE POINT RATHER THAN A LIMITATION. Requiring
+  // every corner in reach means it can only be laid when the Star is reasonably close — 46% of arena
+  // positions at SPMAX 16. Which act does the fight demand? Closing the range: a Ring only reaches the
+  // Anomaly if you PUT it between you and the Anomaly. So the one attack that boxes you in fires exactly
+  // when you come in to erode it, and the kind answers its own weakness without a special case.
+  const reach=mineReach(b);
+  for(const s of MINE_SQ_ST){
+    if(Math.hypot(P.x+s[0]*MINE_SQ_HALF-b.x, P.y+s[1]*MINE_SQ_HALF-b.y) > reach) return;
+  }
+  const door=irand(0,MINE_SQ_ST.length-1);
+  for(let i=0;i<MINE_SQ_ST.length;i++){
+    if(i===door) continue;
+    layMine(b, P.x+MINE_SQ_ST[i][0]*MINE_SQ_HALF, P.y+MINE_SQ_ST[i][1]*MINE_SQ_HALF);
+  }
+  bossFlash=0.4; trauma=Math.min(1,trauma+0.10); sfx.buy();
 }
 function bossNovaRing(b){                                      // PULSAR: a wall with ONE seam to stand in
   const n=13, base=rand(0,TAU), gap=irand(0,n-1);
@@ -2264,10 +2585,16 @@ function updateBoss(dt){
       // went 4-for-4 on the other two kinds. Leaning the trail makes it half threat and half VOLLEY
       // AMMO, which is also the better read: chasing it through its own trail should feed you.
       const opp=bossOpp(b.color);
-      const n=2+(act>=3?1:0), kinds=['fast','mini','orbiter'];
+      // ⚠️ THE SENTINEL SHEDS DARTS, and the index is derived from the array rather than written down.
+      // This was `['fast','mini','orbiter']` picked with a HARDCODED `irand(0,2)` — so removing two kinds
+      // without touching the index would have returned `undefined` two thirds of the time and handed
+      // `spawnEnemy` a type with no ETYPE entry. A literal bound on a literal array is a trap that only
+      // fires when someone shortens the array, which is precisely when nobody is looking at the index.
+      // "It sheds Darts" is also a sharper read than a three-way roll nobody could have named.
+      const n=2+(act>=3?1:0), kinds=['fast'];
       for(let i=0;i<n && enemies.length<300;i++){ const a=rand(0,TAU);
         const col = Math.random()<0.62 ? opp : b.color;
-        spawnEnemy(kinds[irand(0,2)], col, b.x+Math.cos(a)*34, b.y+Math.sin(a)*34); }
+        spawnEnemy(kinds[irand(0,kinds.length-1)], col, b.x+Math.cos(a)*34, b.y+Math.sin(a)*34); }
       spawnRing(b.x,b.y,'#fff',b.r*1.7); sfx.buy();
     }
   } else if(b.variant==='pulsar'){
@@ -2275,7 +2602,18 @@ function updateBoss(dt){
     // them you are always being moved, which is the whole point of the kind.
     if(b.novaCharge>0){ b.novaCharge-=dt; if(b.novaCharge<=0){ bossNovaRing(b); b.novaT=rand(3.0,4.2)*cadence; } }
     else { b.novaT-=dt; if(b.novaT<=0) b.novaCharge=0.9; } // telegraphed wind-up before the ring
-    b.fireT-=dt; if(b.fireT<=0){ fireMines(b, 2+(act>=3?1:0)); b.fireT=rand(2.6,3.6)*cadence; }
+    b.fireT-=dt;
+    if(b.fireT<=0){
+      const box = act>=3 && Math.random()<0.3;
+      if(box) fireMineSquare(b); else fireMines(b, 2+(act>=3?1:0));
+      // ⚠️ THE BOX EARNS A LONGER GAP, and this is not politeness — it is the density guard `lances` does
+      // not have. It lays SEVEN mines against the scatter's three, and `MSL.mine.life` is 3.4s, so firing
+      // it on the scatter's own 2.6-3.6s beat would routinely hold two boxes on the field at once and
+      // deny the arena outright. Every other spawner in the file is capped (`enemies.length>200` for
+      // formations, `cap` in doSpawns); the missile array is capped by CADENCE alone, so the cadence has
+      // to carry it.
+      b.fireT=rand(2.6,3.6)*cadence*(box?2.2:1);
+    }
   } else {   // EMITTER (default / teaching): ALTERNATES a hexagon crossfire BURST and a sweeping spiral
              // STREAM — and from Epoch II it LUNGES too (this absorbed the old separate 'lunger' kind,
              // which was this exact boss with a dash bolted on). Boss Rush always shows the grown-up one.
@@ -2405,6 +2743,15 @@ function stepMotes(dt){
       sfx.mote(moteN);
       // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
       // several times a second, on top of the Core, on the exact pixels the flip read happens on.
+      //   BUT THAT RULED OUT TEXT, NOT A MARK, and for a long time this was the only event in the game
+      // with no visual at all: the Mote's whole arc is a hoover INTO the star and the moment it arrived
+      // was audio-only. Author: "흡수되는 느낌" — the absorbed feeling was already in the physics
+      // (stepMotes above, two force tiers and a consume radius) and simply never drawn.
+      //   An INWARD ring at the consume radius, in the Mote's own colour, is exactly what just happened —
+      // the one place in the file where a converging hoop is not a telegraph but a report. It also costs
+      // no new vocabulary and no new palette entry, and it cannot be mistaken for the flip's burst ring,
+      // which is 3-9x wider and fires on an input rather than on an arrival.
+      spawnRing(P.x,P.y,COL[m.color],P.r+8);
     }
   }
   if(moteT>0){ moteT-=dt; if(moteT<=0) moteN=0; }
@@ -2591,8 +2938,13 @@ function stepEnemyForces(dt){
     let dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
     ax+=dx/d*e.seek*P.seekMult;
     ay+=dy/d*e.seek*P.seekMult;
-    // orbiters curve around the core (tangential push) instead of beelining
-    if(e.type==='orbiter'){ ax+=-dy/d*0.34; ay+=dx/d*0.34; }
+    // (THE ORBITER'S TANGENTIAL PUSH STOOD HERE: `ax+=-dy/d*0.34; ay+=dx/d*0.34`, added on top of a 0.30
+    //  inward seek. It was the only per-kind steering branch among the ordinary Dots and it never did
+    //  what its name claimed — with friction at 0.86 and the speed clamp at maxsp*1.9*DOTSPD it produced
+    //  a damped inward spiral, not an orbit, and it never converged to a radius. If a real orbiter is
+    //  ever wanted, the missing pieces are a HEADING and a turn-rate cap, which no ordinary Dot has:
+    //  momentum plus a bounded turn is what makes an ellipse. A tangential accel on a heading-less body
+    //  cannot, at any constant.)
     const attracted=(e.type!=='neutral' && e.type!=='boss' && e.color!==P.polarity);
     // RINGING: like-charge matter the star captures into a holding orbit (its rings).
     const ringing=(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity);
@@ -2692,6 +3044,21 @@ function stepEnemyForces(dt){
       ax+=-dy/d*spin; ay+=dx/d*spin;
       e.ring=1;
     } else if(e.ring) e.ring=0;
+    // THE PLANET'S DWELL. ⚠️ NOTHING ELSE IN THE GAME MEASURES HOW LONG A DOT HAS BEEN IN THE RING, and it
+    // could not be reused from either of the two things that look like they would do: `e.ring` is a 0/1
+    // flag REWRITTEN FROM SCRATCH every frame (two lines up), so it carries no history at all, and
+    // `e.ringGrace` is a countdown RESET to full every frame membership holds — it measures how long since
+    // the Dot LEFT, which is the inverse of dwell. `P.holdT` is the player's hold, not any Dot's.
+    //   So `burn` is a genuine accumulator, and it must be maintained HERE rather than in a stepper of its
+    // own: this is the one place that has just decided membership for this frame, and any second opinion
+    // about `e.ring` computed elsewhere would drift from it.
+    if(e.type==='planet'){
+      // Charging costs you your flip; DROPPING it costs you twice what holding it earned. That asymmetry
+      // is the demerit, and it is the whole reason this is a decision rather than a timer you wait out.
+      if(e.ring) e.burn=(e.burn||0)+dt;
+      else if(e.burn>0) e.burn=Math.max(0, e.burn-dt*PLANET_COOL);
+      if(e.burn>=PLANET_FUSE && !e.dead && !e.queued) planetBlast(e);
+    }
     // a FLUNG Dot cannot immediately fight the throw. Without this the fling reads as a nudge: measured
     // 12 Dots thrown from 120px reached only 163px before their own seek (0.22/frame, ~12px/frame of
     // inward velocity across the 0.9s window) cancelled a 10.6px/frame impulse outright and dragged them
@@ -2790,7 +3157,21 @@ function stepAnnihilation(){
                       : (charging ? CHARGE_DMG
                       : (X.ring ? RING_GRIND_DMG*(GRIND_MULT[B.variant]||1) : 0));
               // the grind pays a half, so the readout has to survive a fraction without printing "-0.5000000001"
-              if(d>0){ damageBoss(B,d); pushText(B.x,B.y-B.r-8,'-'+(Number.isInteger(d)?d:d.toFixed(1)),COL[X.color],0.45,15);
+              // ⚠️ WHITE, NOT THE DOT'S POLARITY COLOUR — and this is the one collision in the whole text
+              // channel that a glyph cannot fix. This line used to print `COL[X.color]`, so a red ring Dot
+              // chipping the Anomaly drew `-1` in #ff3f6c while `hurtText` drew `-10` in #ff3f6c: same sign,
+              // same hue, same 800-weight face, same rise, concurrent for the length of every boss fight.
+              // Everywhere else in the game a leading `+`/`-` separates income from injury; here BOTH are
+              // negative, because one is damage you dealt and one is damage you took. Sign is spent, so the
+              // channel has to be colour.
+              //   ONE ROLE PER COLOUR, and that is now the whole rule for this channel:
+              //     COL.red  — damage TAKEN. Nothing else prints it.
+              //     COL.gold — a reward (bounty, purge, the baited charge below).
+              //     white    — damage DEALT.
+              //   Income has no text at all any more; see the note where the kill popup used to be.
+              // White also stops the number competing with the polarity read the entire game runs on: a
+              // figure in red or cyan near the boss is one more thing on screen wearing a meaning.
+              if(d>0){ damageBoss(B,d); pushText(B.x,B.y-B.r-8,'-'+(Number.isInteger(d)?d:d.toFixed(1)),'#ffffff',0.45,15);
                 // THE BAIT LANDS, AND YOU KNOW IT. This is the hardest erosion in the fight and it
                 // arrives in the busiest moment the game has, so damage alone cannot carry it — a number
                 // nobody sees is not a reward. It gets its own signature on every channel the game
@@ -2802,7 +3183,9 @@ function stepAnnihilation(){
                 //            to where the lane actually crossed: a white one at contact scale and a
                 //            wider one in the charger's colour.
                 //   TEXT     gold, 22px, the size the game reserves for a purge and a streak tier. Gold
-                //            is the reward channel; the red/cyan number stays for ordinary erosion.
+                //            is the reward channel; the WHITE number above stays for ordinary erosion.
+                //            (That used to read "the red/cyan number" and went stale the moment ordinary
+                //            erosion moved off the polarity palette — see the one-role-per-colour note.)
                 //   SOUND    sfx.baited() — its own voice, low impact then a rising confirm, so it is
                 //            distinguishable from bosshit() with your eyes on the far side of the field.
                 // Deliberately NOT slowmo: the dash resolves in ~0.17s and a Charger is usually not
@@ -3052,7 +3435,7 @@ function processKills(){
 // ⚠️ `boss` BELONGS IN HERE. The Anomaly's body damages you through the Dot-contact path like everything
 // else, so a missing key printed the raw type on the death screen — "Lost to boss (red)" — the same class
 // of internal-identifier leak that put `phase` behind DEV two lines below the receipt.
-const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',split:'Splitter',mini:'Mini',orbiter:'Orbiter',bomber:'Bomber',charger:'Charger',neutral:'Neutral',boss:'Anomaly'};
+const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',bomber:'Bomber',charger:'Charger',neutral:'Neutral',planet:'Planet',boss:'Anomaly'};
 let lastDmg=null; // {src, act, phase} — death receipt
 function breakStreak(src){
   lastDmg={src, act, phase:wavePhase};
@@ -3076,15 +3459,11 @@ function onKill(e){
   // still an ordinary dot in every stat (dmg 10, hp 1, no exemptions anywhere); the explosion is a
   // field-clearing hazard, not a stat.
   if(e.type==='bomber') bomberBlast(e);
-  // splitter spawns minis — unconditionally now. The `!unstable` that used to sit here is why the
-  // Bestiary could say "a Collapse kills it clean": a Collapse was the one thing that killed a Splitter
-  // without paying its two Minis. Nothing does that any more, so the Splitter has no stated escape.
-  if(e.type==='split'){
-    for(let i=0;i<2;i++){
-      const a=rand(0,TAU);
-      spawnEnemy('mini',Math.random()<0.5?'red':'cyan',e.x+Math.cos(a)*10,e.y+Math.sin(a)*10);
-    }
-  }
+  // (THE SPLITTER'S FRAGMENTATION STOOD HERE — two Minis per death, unconditionally. It went with the
+  //  species, and with it the `Open` item that said the Splitter "has no answer the player can aim". The
+  //  shape of that defect is worth keeping in mind for anything added later: a body whose only clean
+  //  death was a coincidence the player could occasionally set up is a body with no verb pointed at it,
+  //  and no amount of retuning its POPULATION addresses that. Ask what the player DOES about it first.)
   // scoring / combo
   combo++; if(combo>peakCombo)peakCombo=combo;
   if(combo>=60) grantAchv('combo60');
@@ -3159,10 +3538,31 @@ function onKill(e){
   // a number already on screen, which is the exact argument that deleted the bolt glyph from that HUD line.
   //   The shake and the sting stay. They were never the redundant part: they say "that one mattered"
   //   without saying anything, which is what the rest of this game does.
-  // ⚠️ NOT an `else if` any more. It was, so the +score popup was suppressed on precisely the kills that
-  // got the fanfare — the loudest moment in the run was the one that stopped telling you what it paid.
   if(combo>1 && combo%10===0){ trauma=Math.min(1,trauma+0.14); sfx.milestone(); }
-  if(Math.random()<0.4) pushText(e.x,e.y-10,'+'+gain, c, .7, 12);
+  // SCORE IS NOT TEXT ON THE FIELD ANY MORE. A `pushText(e.x,e.y-10,'+'+gain, COL[e.color], .7, 12)`
+  // stood here, and it was the same code path, the same 800-weight face, the same `vy:-0.8` rise and the
+  // same linear fade as `hurtText` — and on a red Dot the SAME BYTES of colour, #ff3f6c. Author: "체력
+  // 닳는거랑 구분이 안감." The two channels separating income from injury were a leading glyph and 2px of
+  // size, printed inside the same 40px band of screen, because matter is attracted to the core so the
+  // dead Dot and the star are frequently within 30px of each other. The worst case is plain contact,
+  // which both hurts you and kills the Dot: `-10` at the core and `+20` beside it, same frame, same hue.
+  //   IT WAS A GARNISH, NOT A RECEIPT, which is what made it safe to delete: the call was gated
+  // `Math.random()<0.4`, so SIXTY PERCENT of kills already printed nothing. Nobody was reading a number
+  // that showed up on two kills in five.
+  //   AND THE SCORE WAS NEVER THE THING IT REPORTED. `scoreV.textContent` at top-left is on screen at all
+  // times, is always exact, and streams at ~112/s in the late game. A per-kill popup restates a running
+  // number 5.6 times a second at the other end of the display, which is the same argument that deleted
+  // `N CHAIN` and the `VOLLEY xn` tally: a second encoding of a figure already on screen.
+  //   ⚠️ NO REPLACEMENT EFFECT, AND TWO WERE TRIED ON PAPER. A 4-point sparkle at the kill is barred —
+  // that path is the MOTE's, the one thing on the field you are meant to steer INTO, and a
+  // non-collectible wearing a collectible's silhouette teaches chasing nothing (same rule that keeps a
+  // Bomber off the Gilded Bounty's outline). A pulse on the HUD score is barred too: the grant pulse
+  // exists to explain a bar that LURCHES with no visible cause, and the score never sits still. The
+  // gain's real cues are the burst below, the sound, and the Mote it sheds.
+  //   ⚠️ THE MOTE IS NOT A GUARANTEED RECEIPT — the cap binds. At ~5.6 kills/s and 1.4 motes/kill against
+  // a mean 6s life the equilibrium is ~47 against `moteCap` 40, and motes carry the DEAD Dot's colour, so
+  // through the hold-a-pole play this game rewards they sit inert and pile up. Some kills shed nothing.
+  // If that ever reads as dead air, the answer is the burst's count and speed on the line above — not text.
   sfx.kill(combo);
 }
 
@@ -3193,10 +3593,61 @@ const BOMB_R=120, BOMB_DMG=2;
 // colours as the 5.6 kills a second happening around it, at 32 particles against a Brute kill's 18 —
 // more of the same thing, in a field already full of that thing. A colour nobody else can wear is
 // worth more than any amount of extra size, and it costs nothing.
+// THE PLANET'S DETONATION. The reward for a hold nothing else in the game asks for, and the SCOPING is
+// again the whole design. Author: "we should reward that action for that, destroying enemy dots — no need
+// to deal damage to boss though. just a volley damage?"
+//   IT ERASES ONE COLOUR, ARENA-WIDE — the one OPPOSITE the Planet. And since a Planet only charges while
+//   it is in your rings, and rings are like-charge by definition, the colour it erases is exactly the
+//   colour that can hurt you at the moment it goes off. That is the polarity law used as a weapon, and it
+//   means the blast cannot eat the ammunition you spent seven seconds protecting.
+//   IT DOES NOT TOUCH THE ANOMALY. Not reduced damage — none. The author's constraint, and the same
+//   two-channel rule that scopes the Bomber: erosion is a Volley you fired, a Ring you carried, or a
+//   Charger's dash you aimed. The Planet is already ring matter, so it ALREADY grinds and ALREADY volleys
+//   for vdmg 1 like anything else in the hoard — which is the whole fork. Volley it now for 1, or hold it
+//   for the arena. Giving the blast a boss channel would collapse that choice into "always hold".
+//   IT DOES NOT POP NEUTRALS. A reversal Shockwave remains the only thing that clears one, singular, as
+//   the Codex and the Bestiary both state.
+//   IT PAYS NOTHING — `dead` alone, never queueKill, for the Planet itself as well as its victims. Same
+//   law as bomberBlast, and here the argument is even sharper: an arena-wide clear that paid per body
+//   would be worth 40+ kills at once, so hold-then-detonate would out-earn playing, and the reward for a
+//   defensive tool would be a score fountain. THE EMPTY SCREEN IS THE REWARD.
+//   ⚠️ AND THIS IS NOT COLLAPSE COMING BACK, though it is the first thing to check it against. Collapse
+//   was deleted for being "the game's only 0.15-of-a-boss button", and four things separate them: Collapse
+//   was a BUTTON on a meter filled by ordinary play, this is a BODY you must find and protect and can
+//   lose (hp 4, and a Bomber inside BOMB_R kills it); Collapse damaged the boss, this cannot touch it;
+//   Collapse was always available once charged, this is thrown away by your own panic flip, which flings
+//   the Planet out of the ring along with the hoard; Collapse paid, this pays nothing. If a future change
+//   erodes any one of those four, it is Collapse again under a new name.
+function planetBlast(e){
+  const col=COL[bossOpp(e.color)];         // drawn in the colour of what it is erasing, not its own
+  // Outward to the far corner, so the ring IS the claim: everything of that colour, everywhere.
+  spawnRing(e.x,e.y,col,Math.max(W,H),true); spawnRing(e.x,e.y,'#fff',e.r*3.2);
+  spawnBurst(e.x,e.y,'#fff',22,5.8); spawnBurst(e.x,e.y,col,18,4.2);
+  // White wash, for the reason bomberBlast learned the hard way: `flash` renders in whatever colour the
+  // last setter left, and on red polarity a polarity-coloured wash is death's colour. Louder than the
+  // Bomber's 0.16 because this is a rarer and larger event, but the same colour, because "big white
+  // flash" already means "something detonated" and this is one of those.
+  trauma=Math.min(1,trauma+0.55); hitstop=Math.max(hitstop,0.10);
+  flash=Math.max(flash,0.28); flashCol='#fff';
+  if(typeof sfx!=='undefined') sfx.streakMile(3);
+  for(const o of enemies){
+    if(o===e || o.dead || o.queued) continue;
+    if(o.type==='boss') continue;          // never. see the scoping note above
+    if(o.type==='neutral') continue;       // the Shockwave keeps its monopoly
+    if(o.color===e.color) continue;        // your own charge is the hoard, not a target
+    o.dead=true;                           // `dead`, never queueKill: pays nothing, by construction
+    spawnBurst(o.x,o.y,col,5,2.6);
+  }
+  e.dead=true;
+}
 function bomberBlast(e){
-  // OUTWARD to exactly BOMB_R — the only expanding ring in the game, and it draws the area that was
-  // actually affected rather than a decoration. The inward white one stays as the centre "pop", so the
-  // pair reads as a detonation with a core rather than a single expanding hoop.
+  // OUTWARD to exactly BOMB_R, and it draws the area that was actually affected rather than a decoration.
+  // The inward white one stays as the centre "pop", so the pair reads as a detonation with a core rather
+  // than a single expanding hoop.
+  //   ⚠️ This used to claim "the only expanding ring in the game", and planetBlast above makes that false.
+  // What is still true, and is the property worth protecting, is the PAIRING: an outward ring wearing
+  // LIME means a Bomber and nothing else. The Planet's is a polarity colour and arena-sized; the flip's
+  // rings are deliberately still inward (see the note in hungryFlipBurst). Do not spend `out` casually.
   spawnRing(e.x,e.y,COL.lime,BOMB_R,true); spawnRing(e.x,e.y,'#fff',BOMB_R*0.5);
   spawnBurst(e.x,e.y,'#fff',18,5.4); spawnBurst(e.x,e.y,COL.lime,14,3.6);
   // ⚠️ `flashCol` MUST be set here, and for a long time it was not. `flash` is a full-screen wash drawn
@@ -3296,7 +3747,7 @@ function hungryFlipBurst(hc){
       const pw=flingSpeed(chg,d,R);
       e.vx=dx/d*pw; e.vy=dy/d*pw;
       e.flung=FLING_HOLD;                            // un-clamped, low-friction travel
-      spawnBurst(e.x,e.y,COL[e.color]||'#fff',4,2.6);
+      spawnBurst(e.x,e.y,COL[e.color]||'#fff',6,2.6,dx/d,dy/d);   // wake, along the throw
       purged++;
     }
     // spend the rings. With no Anomaly on the field this is the tuned short outward scatter (a discharge
@@ -3326,7 +3777,9 @@ function hungryFlipBurst(hc){
         const pw=flingSpeed(chg,ed,R);
         e.vx=ex/ed*pw; e.vy=ey/ed*pw; e.flung=FLING_HOLD;
       }
-      spawnBurst(e.x,e.y,COL[e.color]||'#fff',3,2.4);
+      // Both branches above fire along (ex,ey) — volleyed or flung, the discharge is radial — so one
+      // wake serves both, and the two read as the same gesture at different speeds.
+      spawnBurst(e.x,e.y,COL[e.color]||'#fff',5,2.4,ex/ed,ey/ed);
     }
     // No `VOLLEY ×n` / `FLUNG ×n` counters. They were the one place the reversal talked to you in text,
     // and it broke §8's own rule — the reversal already announces itself with a ring at the burst's true
@@ -3339,7 +3792,26 @@ function hungryFlipBurst(hc){
     }
     // the burst ring is drawn AT its true radius, so it always shows you exactly what it covered
     spawnRing(P.x,P.y,COL[P.polarity],R);
-    spawnRing(P.x,P.y,'#fff',R*0.62);
+    // (A white ring at R*0.62 stood here. It was the SECOND contracting hoop in a gesture whose whole
+    //  subject is matter leaving, and it carried no information the ring above does not — R is the
+    //  number that means something. Deleting it halves the inward motion competing for the eye.)
+    //
+    // ⚠️ AND DO NOT PASS `out` TO THE RING ABOVE. Author: "when flipping, it gives pulling visual, but
+    // actually pushing away visual is more buying" — the complaint is real, the physics here is 100%
+    // outward, and `out:true` is still the wrong fix. Three reasons, in order of how much they cost:
+    //   1. IT DESTROYS THE LINE'S OWN JOB. `drawParticles` runs `a` from 1 to 0, so an INWARD ring
+    //      draws its true radius on FRAME 0 — the frame the impulse lands — at alpha 0.50 and 3.5px.
+    //      Outward, R is reached on the LAST frame: alpha 0.0333^0.4*0.55 = 0.14, width 2.5, and 0.48s
+    //      late. That is 3.6x dimmer and half a second after the thing it is describing.
+    //   2. BY THEN IT DESCRIBES NOTHING. The flung Dots cover 370px (rim) to 575px (point-blank) —
+    //      see the FLING note — while R maxes at 210. An outward hoop would arrive at 210 chasing
+    //      matter already past 370, i.e. it stops being a record of what it covered and becomes a
+    //      slower second event trailing behind the real one.
+    //   3. IT SPENDS THE BOMBER'S SIGNATURE. `out` is paired with lime on purpose: outward hoop +
+    //      lime = a Bomber went off, and nothing else in the game. A held flip fires rings at up to
+    //      ~1.33 Hz, so borrowing `out` here erases that pairing permanently for a polish gain.
+    // THE PUSH READ LIVES IN THE MATTER, NOT IN THE HOOPS — see the wakes at the two fling sites
+    // above. If it needs to be louder, the levers are FLING_V0/FLING_VCHG and those particle counts.
     trauma=Math.min(1,trauma+0.07+Math.min(purged,14)*0.012);
     sfx.deflect(Math.min(4,1+Math.floor(purged/3)));
   }
@@ -3351,7 +3823,12 @@ function flipShockwave(hc){
   // (66.7ms), shorter than human reaction time and 4.25x shorter than the cooldown that gates it.
   if(P.pulseCd<=0){
     const amp=1+hc*P.conduitAmp;    // a charged flip fires a bigger, stronger shockwave
-    const R=Math.min(310, 104*amp);
+    // (A `Math.min(310, …)` wrapped this and was DEAD CODE from the day it was written: `amp` is
+    //  1+hc*conduitAmp with conduitAmp 0.5 and hc in [0,1], so amp <= 1.5 and R <= 156 — the clamp
+    //  was 2x above anything reachable and had never bound once. It would only wake up if
+    //  `conduitAmp` went past 2.0, and a ceiling nothing can touch is not a guard, it is a claim
+    //  about the range that reads as one. Restore a clamp WITH the constant that needs it.)
+    const R=104*amp;
     spawnRing(P.x,P.y,COL[P.polarity],R);
     if(hc>0.4){ spawnRing(P.x,P.y,'#fff',R*0.7); trauma=Math.min(1,trauma+hc*0.12); }
     // The Shockwave does NOT touch the Anomaly. It repels matter and pops a Neutral outright; that is
@@ -3391,6 +3868,12 @@ function flipShockwave(hc){
 //   `inhaleT` also went, and it was the file's one documented fixed-step exception: it counted down in
 // frameBody in REAL time rather than in step(), which is why the scripted pilot could never fire the
 // blast. Overdrive's drain lives inside step(), so the second verb is finally reachable by the oracle.
+//   ⚠️ AN ARENA-SWEEPING CLEAR EXISTS AGAIN, and it is `planetBlast`. Whoever reads this tombstone next
+// should go and check that function against these three paragraphs rather than assuming the rule held:
+// the test is not "is there a screen clear" — it is the FOUR properties that made Collapse wrong (a button
+// on a meter filled by ordinary play, a boss damage channel, permanent availability once charged, and a
+// payout). The Planet has none of them, and the argument is written out at planetBlast. THE ANOMALY STILL
+// HAS EXACTLY THREE WAYS IN; the Planet's blast is deliberately not a fourth.
 let chargeReady=false;   // has the OVERDRIVE READY chime already fired for this fill
 
 // DEATH CEREMONY: the Core shatters and the world drifts for a beat BEFORE the ledger appears —
@@ -3434,9 +3917,22 @@ function revealDead(){
 // =====================================================================
 //  PARTICLES / TEXT / BANNER
 // =====================================================================
-function spawnBurst(x,y,color,n,spd){
+// A WAKE, NOT A POP, when a heading is supplied — and that is the whole of the flip's push read.
+// Isotropic sparks at a Dot's own position say "something happened here"; the same sparks thrown
+// BACKWARD along the launch vector say "it went THAT WAY", which is the one thing a fling has to
+// communicate. Same idiom as the Dart's streak, which is also drawn backward along the path already
+// travelled: a trail behind a body promises nothing about the space in front of it.
+//   ⚠️ THE SPARKS CANNOT KEEP UP, AND THAT IS WHY IT WORKS. A flung Dot leaves at 11.7-18 px/frame
+// (see the flingSpeed law) against a spark's `rand(.3,1)*spd` of at most 2.6, so the separation rate
+// is ~17 px/frame and the trail visibly STRETCHES behind the body. An isotropic puff at the same
+// speeds is outrun in one frame and reads as a "was here" mark instead of a departure.
+//   The cone is narrow on purpose. Widen it past ~0.6 rad and it re-reads as a pop with a lean — the
+// direction has to be unambiguous at one frame's glance or it is not carrying anything.
+//   `hx,hy` need not be normalised; only the bearing is used.
+function spawnBurst(x,y,color,n,spd,hx,hy){
+  const wake=(hx!==undefined), ba=wake?Math.atan2(-hy,-hx):0;
   for(let i=0;i<n;i++){
-    const a=rand(0,TAU), s=rand(.3,1)*spd;
+    const a=wake?(ba+rand(-0.55,0.55)):rand(0,TAU), s=rand(.3,1)*spd;
     parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.3,.7),max:.7,color,r:rand(1.5,3.5),ring:false});
   }
 }
@@ -3747,27 +4243,17 @@ function drawEnemies(){
     // glow — same extent as before, but ramped to zero so there is no boundary to aim at
     const GR=e.r*1.9;
     ctx.drawImage(glowSprite(c), e.x-GR, e.y-GR, GR*2, GR*2);
-    // SPLITTER is drawn as a BINARY — two overlapping lobes with two nuclei, because it literally IS
-    // two Dots wearing one shell. Every other Dot in the sky is one circle with one white centre,
-    // so "pop this and you get MORE of them" reads off the silhouette alone. Silhouette is the only
-    // channel that survives a 300-body screen: rings stacked outside the body (Bomber, Charger) are
-    // legible one at a time, but they smear together in a crowd. Enemies draw under 'lighter', so a
-    // dark fracture line would add nothing and be invisible — the split has to be in the SHAPE.
-    const sp=(e.type==='split');
+    // (THE SPLITTER'S BINARY stood here — two overlapping lobes at 0.72r offset 0.30, two nuclei, on a
+    //  turning seam, so that "pop this and you get MORE of them" read off the silhouette alone. The
+    //  argument it was built on is still the best summary of this whole draw pass and is worth keeping
+    //  even though its subject is gone: SILHOUETTE IS THE ONLY CHANNEL THAT SURVIVES A 300-BODY SCREEN.
+    //  Rings stacked outside a body are legible one at a time and smear together in a crowd; the enemy
+    //  pass runs under 'lighter', so a dark internal line adds nothing and is invisible. Whatever a new
+    //  species has to say, it has to say in its SHAPE.)
     const na=e.ph+elapsed*0.5;   // the Neutral's turning seam: the halves and the seam line share one angle
-    let sca=0, ssa=0, soff=0;
-    if(sp){
-      const a=e.ph+elapsed*0.55;                                // the seam turns, so it is never edge-on and lost
-      sca=Math.cos(a); ssa=Math.sin(a);
-      soff=e.r*(0.30+0.05*Math.sin(elapsed*3.4+e.ph));          // the pair strains apart and settles
-    }
-    // body — lobe radius 0.72 at offset 0.30 keeps the drawn extent at ~1.02r, so the silhouette still
-    // matches the r=14 hitbox and the shape never lies about how much room it takes
+    // body
     ctx.fillStyle=c;
-    if(sp){
-      ctx.beginPath(); ctx.arc(e.x-ssa*soff, e.y+sca*soff, e.r*0.72,0,TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(e.x+ssa*soff, e.y-sca*soff, e.r*0.72,0,TAU); ctx.fill();
-    } else if(e.type==='neutral'){
+    if(e.type==='neutral'){
       // THE NEUTRAL WEARS BOTH POLES — half red, half cyan, split down a turning seam. It is the one
       // Dot the colour law does not reach: the Field ignores it, the Fling ignores it, and no polarity
       // you can hold makes it safe or makes it ammunition. A single flat violet disc said "some third
@@ -3825,17 +4311,36 @@ function drawEnemies(){
         if(k===0) ctx.moveTo(bxp,byp); else ctx.lineTo(bxp,byp);
       }
       ctx.closePath(); ctx.fill();
-    } else if(e.type==='orbiter'){
-      // THE ORBITER IS AN ANNULUS — a ring of matter with a hole through it, marked by negative space
-      // rather than by an arc outside the hull (which would sit near 60% of the radius that actually
-      // kills, and collide with the spent Charger's mark).
-      // Negative space is the right channel here. Under `lighter` a hole costs nothing and cannot smear
-      // into a neighbour the way a stacked fill does, and it stays legible when Dots overlap. The
-      // reversed winding on the inner circle is what punches it.
-      ctx.beginPath();
-      ctx.arc(e.x,e.y,e.r,0,TAU,false);
-      ctx.arc(e.x,e.y,e.r*0.52,0,TAU,true);
-      ctx.fill();
+    } else if(e.type==='planet'){
+      // THE PLANET IS A BODY COMING APART — a whole core with five PLATES around it, and the gaps between
+      // the plates WIDEN as it charges. That widening is the entire charge readout: no bar, no ring, no
+      // number, and nothing outside the hull. You can see across the arena how close it is.
+      //   NEGATIVE SPACE, BECAUSE ADDITIVE BLENDING LEAVES NOTHING ELSE. Under `lighter` a stacked fill
+      // saturates toward white and a dark line is invisible, so brightness and shape are the only
+      // channels a mark inside a hull can use — the Orbiter's annulus proved a hole costs nothing here
+      // and cannot smear into a neighbour. A growing hole is unambiguous where a colour fill is not.
+      //   PLATES, NOT PUNCHED CRACKS. Drawn as annular sectors (outer arc forward, inner arc reversed)
+      // between `inr` and `e.r`, which needs no winding trickery and cannot mis-fill. The core disc stays
+      // solid at 0.42r so the plates read as attached to something rather than as floating debris.
+      //   FIVE, AT JITTERED ANGLES. An even count at even spacing reads as a wheel or a flower at some
+      // rotation — the same reason the Bomber has seven spikes and not nine. The jitter is seeded off
+      // `e.ph`, so a given Planet's fracture pattern is its own and does not change under it.
+      //   ⚠️ AND THE SPIN ACCELERATES, WHICH IT IS ALLOWED TO DO HERE AND THE BOMBER IS NOT. Rate increase
+      // is this game's idiom for imminence (the mine runs 9 -> 15 rad/s as its fuse burns), and it is
+      // honest only for a body that HAS a timer. A Bomber has none — it goes off when killed — so a
+      // quickening mark there would promise a clock that does not exist. A charging Planet has exactly
+      // that clock, so the acceleration states something true.
+      const f=clamp((e.burn||0)/PLANET_FUSE,0,1);
+      const NP=5, inr=e.r*0.42, gap=0.03+0.22*f, base=e.ph+elapsed*(0.25+0.9*f);
+      ctx.beginPath(); ctx.arc(e.x,e.y,inr,0,TAU); ctx.fill();      // the core stays whole
+      for(let k=0;k<NP;k++){
+        const c0=base+k*TAU/NP+0.11*Math.sin(e.ph*3+k*2.3);         // uneven plates, stable per Dot
+        const a0=c0+gap, a1=c0+TAU/NP-gap;
+        ctx.beginPath();
+        ctx.arc(e.x,e.y,e.r,a0,a1,false);
+        ctx.arc(e.x,e.y,inr,a1,a0,true);
+        ctx.closePath(); ctx.fill();
+      }
     } else if(e.type==='heavy'){
       // THE BRUTE IS A HEXAGON. It was a plain disc, separated from a Drifter by size alone (20 vs 11) —
       // and size is the weakest channel in the game: Dots overlap, they are read in peripheral vision,
@@ -3853,19 +4358,20 @@ function drawEnemies(){
     } else {
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,TAU); ctx.fill();
     }
-    // Core dot — two on a Splitter, one on most things, and DELIBERATELY NONE on three.
+    // Core dot — one on most things, and DELIBERATELY NONE on three.
     // The absences are marks in their own right, which is the cheapest channel there is:
-    //   · Orbiter — the annulus hole IS the centre; a dot in it would fill the thing that identifies it.
-    //   · Mini    — at r=7 the dot is ~1.2 CSS px on a phone: it carries no information and is the only
-    //               reason a Mini reads as a shrunken Drifter. Without it the Mini is the one fully solid
-    //               Dot in the sky, which is what a piece of Splitter shrapnel should look like.
     //   · spent Charger — the cooldown wedge is the centre.
-    const noCore = (e.type==='orbiter') || (e.type==='mini') || (e.type==='charger' && e.spent);
+    //   · Bomber   — the lime fuse below IS its centre, and it must not be drawn on top of a white one.
+    //               Two stacked cores would say "generic Dot" first and "carries a lime blast" second,
+    //               which is the wrong order for the only body on the field that clears matter when it dies.
+    //   · Planet   — same argument. Its centre is the whole plate-core drawn above, and its own core mark
+    //               below has to be free to BRIGHTEN with the charge; a fixed 0.85 white underneath would
+    //               flatten the bottom of that range.
+    //   (The Orbiter and the Mini were here too. The Orbiter's hole WAS its centre, and the Mini's dot was
+    //    ~1.2 CSS px on a phone — an absence that carried more than the mark would have.)
+    const noCore = (e.type==='charger' && e.spent) || (e.type==='bomber') || (e.type==='planet');
     ctx.fillStyle='rgba(255,255,255,0.85)';
-    if(sp){
-      ctx.beginPath(); ctx.arc(e.x-ssa*soff, e.y+sca*soff, e.r*0.26,0,TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(e.x+ssa*soff, e.y-sca*soff, e.r*0.26,0,TAU); ctx.fill();
-    } else if(!noCore){
+    if(!noCore){
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(e.type==='neutral'?0.24:0.34),0,TAU); ctx.fill();
     }
     if(e.type==='neutral'){
@@ -3878,14 +4384,16 @@ function drawEnemies(){
       ctx.moveTo(e.x+Math.cos(na)*e.r, e.y+Math.sin(na)*e.r);
       ctx.lineTo(e.x-Math.cos(na)*e.r, e.y-Math.sin(na)*e.r);
       ctx.stroke();
-    } else if(e.type==='orbiter'){
-      // A PIP RUNNING THE HOLE. The tangential push that defines this species has a fixed handedness (a
-      // +90° rotation of the radial vector, i.e. clockwise on screen), and an increasing pip angle
-      // matches it — so the mark states the behaviour it exists to advertise, which a fixed world-space
-      // angle cannot. Inside the hull, riding the negative space rather than competing with it.
-      const oa=e.ph+elapsed*2.6;
-      ctx.fillStyle='rgba(255,255,255,0.9)';
-      ctx.beginPath(); ctx.arc(e.x+Math.cos(oa)*e.r*0.74, e.y+Math.sin(oa)*e.r*0.74, e.r*0.20,0,TAU); ctx.fill();
+    } else if(e.type==='planet'){
+      // THE CORE GOES WHITE-HOT AS IT CHARGES — the second, redundant channel, for the same reason the
+      // Bomber gets a blink on top of its spikes: at a distance, or under a crowd, the plate gaps are a
+      // FINE cue and brightness is a coarse one. Two channels for one fact, and neither outside the hull.
+      //   ⚠️ NOT A RING, and not a bar. A concentric ring here would be the Gilded Bounty's vocabulary on
+      // the one Dot you also want to steer toward, which is exactly the confusion the Bomber's note
+      // refuses. Brightness has no rim and cannot be mistaken for a radius.
+      const f=clamp((e.burn||0)/PLANET_FUSE,0,1);
+      ctx.fillStyle=hexA('#ffffff',0.55+0.45*f);
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.16+0.14*f),0,TAU); ctx.fill();
     } else if(e.type==='fast'){
       // THE DART GETS A WAKE. It and the Drifter are the two most common Dots in the sky (8.1 and 20.1
       // per sample, sharing the screen in 77% of them) and radius alone — 8 against 11 — cannot separate
@@ -3907,9 +4415,35 @@ function drawEnemies(){
       // Everything stays inside the hull. A standoff ring invites the player to hold station just outside
       // it, which is well inside the real contact envelope of e.r + P.r — and it would bear no relation
       // to the 120px blast either, i.e. lie about both numbers at once.
+      // IT WEARS ITS OWN EXPLOSION. The fuse is LIME — `COL.lime`, the blast's colour and the only
+      // thing else in the play field wearing it — so the body pre-teaches the detonation it carries.
+      // A white core said nothing: every other Dot has one.
+      //   ⚠️ AND THIS IS WHY IT IS WRAPPED IN source-over. The enemy pass runs under `lighter`, i.e.
+      // dst + src*a, and lime (141,255,107) over a red hull (255,63,108) at a=0.55 resolves to
+      // (255,203,167) — CREAM. Over cyan it goes pale blue-white. The green channel saturates either
+      // way, so an additive lime is not merely washed out, it is a DIFFERENT COLOUR on each polarity:
+      // warm on red, cool on cyan, i.e. a mark that cannot even be self-consistent. The boss body
+      // already takes this exact escape hatch for this exact reason. Restore to `lighter` immediately
+      // after, because the rest of the loop depends on it.
+      //   ⚠️ THE RATE STAYS AT 7 AND MUST NOT BE DETUNED. The author asked for an "unstable" core, and
+      // the obvious build — summing two incommensurate sines — is wrong here: PERIODICITY IS THE
+      // DETECTION CHANNEL. The blink exists so a Bomber reads when the silhouette cannot (crowded,
+      // overlapped, far away), and two frequencies produce a beat envelope that passes through
+      // near-zero, so the Dot would periodically STOP BLINKING. `bl` also drives the radius, so the
+      // mark's size would jitter aperiodically over additively-blended bodies — the signature of a
+      // rendering artifact, not of instability.
+      //   Nor may it ACCELERATE. That is this game's idiom for imminence (the mine runs 9 -> 15 rad/s
+      // as its fuse burns), and a Bomber has NO fuse: it detonates when killed, never on a clock. A
+      // quickening blink would promise a timer that does not exist.
+      //   So the instability is spatial. A sub-pixel wobble on the core's POSITION, at rates that do
+      // not divide the blink's, reads as a thing that will not sit still while leaving the brightness
+      // cadence — the part carrying information — exactly as periodic as it was.
       const bl=0.5+0.5*Math.sin(elapsed*7+e.ph);
-      ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.26+0.16*bl),0,TAU); ctx.fill();
+      const wx=Math.sin(elapsed*13.7+e.ph)*0.9, wy=Math.cos(elapsed*11.1+e.ph*1.7)*0.9;
+      ctx.globalCompositeOperation='source-over';
+      ctx.fillStyle=hexA(COL.lime,0.62+0.38*bl);
+      ctx.beginPath(); ctx.arc(e.x+wx,e.y+wy,e.r*(0.26+0.16*bl),0,TAU); ctx.fill();
+      ctx.globalCompositeOperation='lighter';
     } else if(e.type==='charger' && e.spent){
       // COOLDOWN CLOCK, as a WEDGE FROM THE CENTRE rather than an arc around the rim. An arc is not a
       // safe alternative even as a "partial sweep": the sweep is TAU*frac and frac starts at exactly 1.0,
@@ -4236,7 +4770,7 @@ function updateHUD(){
   // mid-fight; keys belong with the other keys, in the control legend.
   const mk=el('modeKeys');
   if(labMode){ al.textContent='PATTERN LAB'; al.style.color=COL.violet;
-    mk.innerHTML='<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd> Wall · Noose · Pulse · Sorter · Comet'; }
+    mk.innerHTML=LAB_SHAPES.map((_,i)=>'<kbd>'+(i+1)+'</kbd>').join('')+' '+LAB_NAMES.join(' · '); }
   else if(testMode){ al.textContent='BOSS RUSH'; al.style.color=COL.violet;
     mk.innerHTML='<kbd>1</kbd>–<kbd>'+TEST_ORDER.length+'</kbd> Change Anomaly'; }
   else { al.textContent='EPOCH '+ROMAN[(act-1)%12]+' · '+info.name.toUpperCase(); al.style.color=info.tint; }
@@ -5261,10 +5795,21 @@ window.__orbital=window.__polaris=window.__flux={
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
   spawnBoss, fireLanceVolley, get store(){return store;},
-  spawnFormation, formWall, formNoose, formPulse, formSorter, formComet,
+  // The mine layer, exposed because its geometry is the only part of the Pulsar's kit that cannot be
+  // read off a screenshot: where a mine LANDS is a two-phase flight solved at launch, and the reach
+  // constant was wrong by 35% for months precisely because nothing could measure it from outside.
+  fireMines, fireMineSquare, MINE_TRAVEL, MINE_SPMAX, MINE_SQ_HALF, mineReach,
+  spawnFormation, formWall, formNoose, formPulse, formCross, formComet, formNRing,
+  // The Planet's charge is the one mechanic in the game with no external tell a screenshot can time —
+  // `burn` accrues silently on ring dwell — so the accumulator's own constants have to be reachable.
+  PLANET_FUSE, PLANET_COOL, planetBlast, CROSS_R0, NRING_R, NRING_SLOTS,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
   get motes(){return motes;}, KILL_SCORE, MOTE_SCORE, GRAZE_SCORE,
+  // Particles are normally beneath a harness's notice, but the flip's PUSH READ lives entirely in them
+  // now (the wake at the two fling sites), and a direction is not something a screenshot can be raced
+  // for — the sparks are gone in 0.3-0.7s. Exposed so the cone can be asserted rather than eyeballed.
+  get parts(){return parts;}, get texts(){return texts;},
   get combo(){return combo;}, get odOn(){return odOn;}, OD_DRAIN, OD_MIN,
   get timeScale(){return timeScale;}, get lances2(){return lances;}, get lastDmg(){return lastDmg;},
   breakStreak,
