@@ -28,6 +28,13 @@ gone looking for the number. Two sessions audited comment liveness across that s
 window and neither looked at the copy, because the checkers are all identifier-shaped and *`8` is not
 an identifier*. **A grep-shaped audit cannot see a wrong number, only a wrong name.**
 
+The general form, and the reason this file is allowed to keep its own duplicates: **a duplicated value
+is only checkable where it is duplicated with its name.** MECHANICS may print a figure because it
+writes `CHARGE_DMG` beside it, so a checker has a handle. Player copy never could — *"the baited charge
+does 8"* cannot carry the identifier without reading like a spec sheet to the one person it is written
+for. That is why the fix was deletion rather than a better checker: the duplicate was in the one place
+no tool could ever reach it.
+
 The measured argument for deleting rather than re-syncing: `VOLLEY_DMG` was repriced 2 → 3 about a
 minute after `28c4ea8` landed. Under the old Codex that was a third site to remember; under the new
 one there was nothing to edit. **Copy that states a value is a copy of that value** — and the cheap
@@ -1112,6 +1119,19 @@ you cannot contrast with a non-zero is not a measurement; a constraint from a st
 produce is not a constraint. Both then get filed as settled, and the plausible one is the more dangerous
 — a suspicious zero at least invites a second look.
 
+**A harness that can force a state is a harness that can invent one**, and that is exactly how the 11 HP
+figure was born: a verification run called `spawnBoss` for a Pulsar at Epoch I, printed a pool the
+roster cannot produce, and the number was copied into a sentence about what a player meets. The seam
+answers every question you ask it, including the ones with no answer. **A formula is defined at every
+Epoch; the roster is not** — so price a variant against the first Epoch its gate lets it appear in.
+
+**An edited comment is a new comment, and has to be read as one.** The grind block held a threshold
+model and a no-threshold model three sentences apart for weeks, because the second was *appended* to a
+block whose existing sentences already assumed the first, and nobody re-read the whole thing as a single
+claim. It is the stale-figure failure one level up — the parts were each defensible and the block was
+incoherent — and no checker in this repo looks at whether adjacent sentences agree. After appending to a
+comment, read it from the top as though someone else wrote it.
+
 **The defence is a precondition asserted inside the harness, which refuses to report when it fails**:
 usable ring Dots `> 0`, actual distance within 12px of intended. That is what finally produced a
 non-zero, and it is what resolved the volley probe that had returned 0 twice — single-Dot ring, six
@@ -1266,13 +1286,29 @@ Drive `overdrive()` by hand through the seam if you are testing anything downstr
 
 Questions the game has not answered. These are live; everything else in this file is settled.
 
-**🟡 `RING_GRIND_DMG` was stranded above its pool, and then the pool moved.** This item used to open
-*"Epoch I is now below the HP at which the grind previously had to be halved"* — and the flat pool buff
-took Epoch I to double that line. **The trigger condition is gone. The defect it was a symptom of is
-not**, and the reason is written two paragraphs down: HP is a scalar on every channel at once, so
-raising it slows the exploit and the intended loop by the same factor and **moves no ratio**. The doc
-argued that before the pool moved for unrelated reasons; the argument is now load-bearing rather than
-hypothetical, and it is still *argued*, not *tested*.
+**🟡 The grind exploit, restated without the cliff that was never there.** This item spent months
+reasoned as a threshold — a line at 18 HP, a *trigger condition*, a margin above it that widened and
+narrowed as the pool moved. **There is no threshold, and the margin arithmetic was measuring nothing.**
+
+18 was the pool at which one immortal bot, on one time budget, won the race often enough to be worth
+writing down. `d214716`'s measurement settles it rather than merely supporting it: grind throughput is
+**feed-limited**, not speed-limited — usable ring Dots run inverse to damage dealt, so the ceiling is
+gathering rate and arena density, and time-to-solo-kill is roughly **linear in the pool**. A linear cost
+has no cliff anywhere in it.
+
+So **a pool trim buys minutes, not immunity, and a pool buff is not a clearance.** HP is a scalar on
+every channel at once: raising it slows the exploit and the intended loop by the same factor and moves
+no ratio. That was argued here before the pool moved for unrelated reasons, and the measurement has now
+made it load-bearing rather than hypothetical.
+
+**The open question was never the pool.** It is whether a pilot who never volleys can close the fight
+inside a window they survive — and nobody has run that at any pool above 18, at any of the three values
+the pool has held since. Still *argued*, not *tested*.
+
+⚠️ *Two framings retired with the cliff, because both were it wearing other words:* the **trigger /
+defect** split, and any sentence comparing the current pool to 18. If a future entry reaches for either,
+it has reintroduced the threshold model. Price the Pulsar against **Epoch II**, the first Epoch its
+variant gate lets it appear in — see *Traps*.
 
 *What is superseded:* an immortal bot orbiting close, never firing a volley and never spending the
 meter, solo-killed the Epoch I Anomaly in **5 of 9 runs at the old pool**. Do not quote that number
