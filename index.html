@@ -23,7 +23,20 @@
   #game{position:fixed;inset:0;display:block;width:100%;height:100%;cursor:crosshair;}
 
   /* ---------- HUD ---------- */
-  #hud{position:fixed;inset:0;z-index:5;pointer-events:none;}
+  /* SAFE AREA, IN ONE PLACE. Every HUD child is `position:absolute`, which resolves against #hud — so
+     insetting this one box moves score, best, the boss bar, the bottom bars, the control legend, the
+     tilt readout and all three round buttons out of the notch and off the home indicator together.
+     Eight edge-pinned rules, one fix, and nothing to forget when a ninth is added.
+       The CANVAS is deliberately NOT inset. The playfield should reach the physical edges of the
+     screen; it is only the readouts and the touch targets that must not. In landscape the insets are
+     left/right (~59pt on the notch side, and which side that is flips with rotation) plus ~21pt at the
+     bottom, so a HUD pinned at a raw 16px was sitting under the sensor housing on one of the two ways
+     you can hold the phone.
+       The `, 0px` fallbacks matter: a bare env() is invalid where unsupported and would take the whole
+     declaration with it, which on desktop would drop the positioning entirely. */
+  #hud{position:fixed;z-index:5;pointer-events:none;
+    top:env(safe-area-inset-top,0px); right:env(safe-area-inset-right,0px);
+    bottom:env(safe-area-inset-bottom,0px); left:env(safe-area-inset-left,0px);}
   /* (The active-powerup chip column lived here — one #powerups chip per live timed effect, each with its
      own draining bar. With one effect left and its timer already drawn as the Capacitor bar running
      backwards, a chip would just say the same thing twice, further from the star.) */
@@ -153,7 +166,15 @@
      fallback: anything that does not parse `safe` keeps the plain `center` above it. */
   .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
     justify-content:center;justify-content:safe center;
-    text-align:center;padding:22px;background:radial-gradient(120% 90% at 50% 40%,rgba(14,22,44,.55),rgba(6,8,20,.94));
+    text-align:center;padding:22px;
+    /* The overlay keeps inset:0 so its backdrop still covers the whole screen including the notch —
+       it is the CONTENT that must clear the sensor housing, which is padding's job, not inset's.
+       max() rather than calc(): on a device with no notch these must not grow past the 22px the
+       design was built on. */
+    padding-left:max(22px,env(safe-area-inset-left,0px));
+    padding-right:max(22px,env(safe-area-inset-right,0px));
+    padding-bottom:max(22px,env(safe-area-inset-bottom,0px));
+    background:radial-gradient(120% 90% at 50% 40%,rgba(14,22,44,.55),rgba(6,8,20,.94));
     -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:fade .35s ease both;
     /* overflow-x is explicit: setting only overflow-y computes the other axis to auto, and the title
        rings are wider than the wordmark — that was one stray horizontal scrollbar waiting to happen */
@@ -291,7 +312,10 @@
        Keyed on HEIGHT rather than on a device or an orientation, because a short desktop window has
      exactly the same problem and there is no reason to make it a phone-only fix. */
   @media (max-height:520px){
-    .overlay{padding:10px 12px;}
+    .overlay{padding:10px 12px;
+      padding-left:max(12px,env(safe-area-inset-left,0px));
+      padding-right:max(12px,env(safe-area-inset-right,0px));
+      padding-bottom:max(10px,env(safe-area-inset-bottom,0px));}
     .logo .l1{font-size:clamp(11px,2.2vh,15px);}
     .logo .l2{font-size:clamp(34px,8.5vh,54px);}
     /* max-width goes UP, not down. 26em is a reading-length cap that assumes height is cheap and width
@@ -313,6 +337,16 @@
      height. (The in-game HUD legend says the same wrong thing and belongs to the HUD pass.) */
   @media (pointer:coarse){ .hint{display:none;} }
   .hidden{display:none!important;}
+
+  /* Tilt state. Amber rather than red: a fault here is "this control is not available", not damage.
+     Centred at the top because in landscape that is the one band no HUD element occupies and no thumb
+     covers — the corners are all spoken for by score, bars and buttons. pointer-events stays off so it
+     can never eat a tap on a device where tapping is the only working input left. */
+  #tiltDiag{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:6;pointer-events:none;
+    max-width:min(86vw,520px);text-align:center;font-size:11px;letter-spacing:.06em;line-height:1.5;
+    color:var(--gold);background:rgba(8,12,26,.72);border:1px solid rgba(255,207,77,.28);
+    border-radius:9px;padding:5px 11px;}
+  #tiltDiag.ok{color:var(--dim);border-color:rgba(255,255,255,.12);}
 </style>
 </head>
 <body>
@@ -341,6 +375,11 @@
     <div class="cr hidden" id="modeKeys"></div>
   </div>
   <div id="achv"></div>
+  <!-- TILT STATE. Lives in the HUD rather than the menu because it has to be readable while a run is
+       going wrong, not only before one starts. Two jobs: name the failure when tilt is dead (the game
+       is uncontrollable then, and silence would be cruel), and on the menu show the live vector so the
+       tilt can be aimed by hand on a device with no console attached. -->
+  <div id="tiltDiag" class="hidden"></div>
   <button id="pauseBtn">❚❚</button>
   <button id="motionBtn" title="Reduced motion: calmer shake and flashes">✺</button>
   <button id="muteBtn">♪</button>
@@ -4136,6 +4175,23 @@ function updateHUD(){
     bb.querySelector('.bl').textContent = boss.hunt>0 ? 'IT IS COMING FOR THE CORE · MOVE' : tip;
     bb.querySelector('.bl').style.color = boss.hunt>0 ? COL.red : ''; }
   else bb.classList.add('hidden');
+  updateTiltDiag();
+}
+
+// A FAULT IS ALWAYS SHOWN; A HEALTHY READOUT ONLY ON THE MENU. During a run a working tilt needs no
+// narration and the band is better empty, but a BROKEN one has to speak everywhere, because with touch
+// steering gone the player is holding a device that does nothing and has no console to ask why.
+// On the menu the live vector is shown instead, so the sign convention can be checked by hand —
+// tilt right, watch x go positive — which is the one thing about tilt that cannot be tested off-device.
+function updateTiltDiag(){
+  const d=el('tiltDiag'); if(!d) return;
+  const fault=tiltFault();
+  if(fault){ d.textContent=fault; d.classList.remove('ok','hidden'); return; }
+  if(state==='menu' && tiltOn){
+    d.textContent='TILT ✓  x '+tiltVec.x.toFixed(2)+'   y '+tiltVec.y.toFixed(2)+'   ('+tiltEvents+' events)';
+    d.classList.add('ok'); d.classList.remove('hidden'); return;
+  }
+  d.classList.add('hidden');
 }
 
 // =====================================================================
@@ -4547,6 +4603,15 @@ const TAP_TIME=300;    // ms; hold longer than this and you meant to steer, even
 // to read. So the target rides above the contact point. The core clamps to the arena, so pushing this
 // off the top of the screen still reaches the top edge.
 const TOUCH_LIFT=55;   // CSS px
+// STRICT TILT-ONLY. On a device that uses tilt, touch does not steer AT ALL — not "unless tilt happens
+// to be on", but never. Falling back to touch when tilt dies was rejected on purpose: that is precisely
+// how the first tilt bug hid. The game stayed playable, so nothing looked broken, and tilt was simply
+// dead for an entire build. Now the core does not move and #tiltDiag names the reason.
+//   Cached, not recomputed per event: tiltWanted() reads localStorage, and pointermove fires 60+ times
+// a second. Seeded `true` because tiltWanted() is a `const` defined further down and touching it here
+// would be a temporal-dead-zone ReferenceError — the exact class of bug `node --check` does not catch.
+// refreshTouchSteer() sets the real value as soon as the tilt block has loaded.
+let touchSteers=true;
 let touchId=null, tapX=0, tapY=0, tapT=0, tapMoved=false;
 let odTouchId=null;   // the finger currently HOLDING Overdrive, so its release can be told from any other
 const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
@@ -4555,13 +4620,13 @@ canvas.addEventListener('pointermove',e=>{
   if(!isTouch(e)){ setPointer(e.clientX,e.clientY); return; }
   if(e.pointerId!==touchId) return;                       // ignore every finger but the steering one
   if(!tapMoved && Math.hypot(e.clientX-tapX,e.clientY-tapY)>TAP_SLOP) tapMoved=true;
-  if(tapMoved && !tiltOn) setPointer(e.clientX,e.clientY-TOUCH_LIFT); // a drag steers; a jitter does not.
-  // Under tilt a drag must not steer: stepTilt clears pointer.has every frame anyway, so writing here
-  // would only produce a one-frame twitch. Taps still flip — that path never touches the target.
+  // The travel test still runs even where a drag cannot steer, because `tapMoved` is also what stops a
+  // drag being counted as a flip on release. Losing that would make every swipe reverse your poles.
+  if(tapMoved && touchSteers) setPointer(e.clientX,e.clientY-TOUCH_LIFT);
 });
 canvas.addEventListener('pointerdown',e=>{
-  audioInit();
-  if(tiltWanted()) tiltEnable();   // must be inside the gesture: iOS grants motion access nowhere else
+  audioInit();   // tilt is armed by a document-level capture listener in the TILT block, not from here:
+                 // the first gesture of a session lands on an HTML button, which never reaches the canvas
   if(isTouch(e)){
     if(touchId===null){ touchId=e.pointerId; tapX=e.clientX; tapY=e.clientY; tapT=performance.now(); tapMoved=false; }
     else if(state==='play'){ odTouchId=e.pointerId; overdrive(); }  // a second finger while steering: HOLD it for Overdrive
@@ -4620,6 +4685,13 @@ const TILT={
 let tiltOn=false, tiltReady=false, tiltRef=null;
 const tiltVec={x:0,y:0};                 // smoothed, dead-zoned, clamped to [-1,1] per axis
 const tiltRaw={beta:0,gamma:0,angle:0};  // last untouched reading, for the seam and for tuning on device
+// THREE COUNTERS, BECAUSE "TILT DOESN'T WORK" HAS FOUR DIFFERENT CAUSES AND THEY LOOK IDENTICAL FROM
+// the outside: never asked, asked and refused, granted but silent, or delivering fine while the maths
+// is wrong. The first build shipped tilt that failed with no way to tell which — these exist so the
+// panel below can name the one that actually happened, on the phone, without a Mac attached.
+let tiltTries=0;                         // gestures that have asked for motion access
+let tiltEvents=0;                        // deviceorientation events actually delivered
+let tiltVerdict='not-asked';             // not-asked | no-api | granted | denied | threw | auto
 
 // Neutral is wherever you were holding it when the run began — nobody plays with the phone flat, and the
 // comfortable angle differs per person and per posture (desk vs sofa vs bed). Clearing the reference makes
@@ -4645,6 +4717,7 @@ function tiltMap(db,dg,a){
 
 function onTilt(e){
   if(e.beta===null || e.gamma===null) return;                  // some devices report nulls before settling
+  tiltEvents++;                                                // counted BEFORE the maths: proves delivery
   const a=(window.screen && screen.orientation && typeof screen.orientation.angle==='number')
     ? screen.orientation.angle : (window.orientation||0);
   tiltRaw.beta=e.beta; tiltRaw.gamma=e.gamma; tiltRaw.angle=a;
@@ -4655,8 +4728,15 @@ function onTilt(e){
   tiltVec.y+=(ty-tiltVec.y)*TILT.ease;
 }
 
+// ⚠️ GATED ON `touchSteers` TOO, NOT JUST `tiltOn`. Those two can disagree: `tiltOn` means the sensor
+// is attached, `touchSteers` means this device steers by pointer — and a device that once attached tilt
+// keeps `tiltOn` true forever. Without this second test, turning tilt back off left `tiltOn` set, so
+// `pointer.has=false` ran every frame and killed pointer steering while contributing nothing to replace
+// it: a frozen core and no error, on a machine with a perfectly good mouse. Found by measurement — the
+// desktop leg of the input test moved the core 0 units. Testing both makes the two inputs mutually
+// exclusive by construction rather than by everyone remembering to keep them in step.
 function stepTilt(dt){
-  if(!tiltOn || !P) return;
+  if(!tiltOn || touchSteers || !P) return;
   pointer.has=false;                                           // tilt drives; the chase must let go
   const sp=TILT.speed*P.moveMult;
   P.x+=tiltVec.x*sp; P.y+=tiltVec.y*sp;                        // stepPlayer clamps to the arena right after
@@ -4669,12 +4749,15 @@ function stepTilt(dt){
 // test below wants either Xcode or a tunnel.
 function tiltEnable(){
   if(tiltReady) return;
+  tiltTries++;
   const D=window.DeviceOrientationEvent;
-  if(!D){ tiltReady=true; return; }                            // no sensor: stay on touch, say nothing
-  const attach=()=>{ window.addEventListener('deviceorientation',onTilt); tiltReady=true; tiltOn=true; tiltCalibrate(); };
+  if(!D){ tiltReady=true; tiltVerdict='no-api'; return; }
+  const attach=v=>{ window.addEventListener('deviceorientation',onTilt); tiltReady=true; tiltOn=true; tiltVerdict=v; tiltCalibrate(); };
   if(typeof D.requestPermission==='function'){
-    D.requestPermission().then(r=>{ if(r==='granted') attach(); else tiltReady=true; }).catch(()=>{ tiltReady=true; });
-  } else attach();                                             // Android and older iOS just deliver events
+    D.requestPermission()
+      .then(r=>{ if(r==='granted') attach('granted'); else { tiltReady=true; tiltVerdict='denied'; } })
+      .catch(()=>{ tiltReady=true; tiltVerdict='threw'; });
+  } else attach('auto');                                       // Android, and any WebView that just delivers
 }
 
 // Off by default on anything with a real pointer: a laptop with a lid sensor would otherwise start
@@ -4683,10 +4766,40 @@ const tiltWanted=()=>{
   try{ const v=localStorage.getItem('orbitalcrash_tilt'); if(v!==null) return v==='1'; }catch(_){}
   return matchMedia('(pointer: coarse)').matches;
 };
+// Whether touch may steer is the exact inverse of whether this device is on tilt, and it is cached in
+// the input block above (pointermove cannot afford a localStorage read per event). Everything that can
+// change tiltWanted() has to call this, or the two disagree and the core answers to nothing.
+function refreshTouchSteer(){ touchSteers=!tiltWanted(); }
+refreshTouchSteer();
+
 function tiltSet(on){
   try{ localStorage.setItem('orbitalcrash_tilt', on?'1':'0'); }catch(_){}
   if(on){ tiltEnable(); if(tiltReady) tiltOn=true; tiltCalibrate(); }
   else { tiltOn=false; tiltVec.x=tiltVec.y=0; }
+  refreshTouchSteer();
+}
+
+// ARMED BY THE FIRST GESTURE ANYWHERE, NOT JUST ON THE CANVAS. iOS grants motion access only from
+// inside a real user gesture, and the first gesture of a session is "Enter the field" — an HTML
+// <button> in the overlay, which never reaches the canvas handler. Arming from the canvas alone meant
+// the request waited for the first in-game tap, and now that touch no longer steers there may not be
+// one. Capture phase on the document sees every press before any target handler runs.
+// tiltEnable() is idempotent (`if(tiltReady) return`), so firing on every press costs nothing.
+addEventListener('pointerdown',()=>{ if(tiltWanted()) tiltEnable(); },{capture:true});
+
+// WHY TILT CAN FAIL, NAMED RATHER THAN GUESSED. Returns null when tilt is working or not wanted, and
+// otherwise the one sentence that says which of the four failures happened. Touch no longer steers on
+// these devices, so a mute failure here is an unplayable game — this is what stops that being a
+// mystery. It is deliberately NOT gated behind DEV: the player who needs it most cannot open a console.
+function tiltFault(){
+  if(!tiltWanted()) return null;                        // deliberately on touch: nothing to report
+  if(!tiltTries)    return 'Tap anywhere to allow motion access.';
+  if(tiltVerdict==='no-api') return 'This device reports no motion sensor.';
+  if(tiltVerdict==='denied') return 'Motion access was denied. Enable it for this app, then reopen.';
+  if(tiltVerdict==='threw')  return 'Motion access errored. Reopen the app and try again.';
+  if(!tiltOn)       return 'Waiting on motion access…';
+  if(!tiltEvents)   return 'Motion access granted, but no sensor data is arriving.';
+  return null;                                          // events flowing: tilt is alive
 }
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
 // press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
@@ -4934,8 +5047,11 @@ window.__orbital=window.__polaris=window.__flux={
   // permission that never landed; vec moving the wrong way is a sign error in tiltMap for THIS angle.
   tilt(){ return {on:tiltOn, ready:tiltReady, ref:tiltRef, raw:{...tiltRaw},
                   vec:{x:+tiltVec.x.toFixed(3), y:+tiltVec.y.toFixed(3)},
+                  tries:tiltTries, events:tiltEvents, verdict:tiltVerdict,
+                  wanted:tiltWanted(), touchSteers, fault:tiltFault(),
                   maxUnitsPerFrame:TILT.speed*(P?P.moveMult:1), TILT:{...TILT}}; },
-  TILT, tiltSet, tiltCalibrate, stepTilt,
+  TILT, tiltSet, tiltCalibrate, stepTilt, tiltFault, refreshTouchSteer,
+  get touchSteers(){return touchSteers;},
   // ⚠️ overdrive() is PRESS, not toggle. A harness that calls it twice ignites once and never releases;
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
