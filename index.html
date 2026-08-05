@@ -4742,9 +4742,14 @@ const sfx={
   // replacement was built BRIGHT — square 920->380, top voice at 1950Hz — and the pilot could not find
   // it at all: "i can't identify bomb sound in complex battle still." Measured, that was inevitable.
   // In a late-game fight `kill()` fires 5.6 times a second and `mote()` 6.2, and BOTH ARE SQUARE WAVES
-  // IN 380-1720Hz — about four voices sounding inside any 300ms window, a dozen a second of them square
+  // IN 380-1970Hz — about four voices sounding inside any 300ms window, a dozen a second of them square
   // and bright. The new bomb's lead was square, in that band. It was not competing with the mix; it WAS
   // the mix. Volume had also gone 0.22 -> 0.13 and duration 0.30 -> 0.17 in the same edit.
+  //   (⚠️ That top figure read 1720 first, which is `mote()`'s highest STARTING frequency — but it
+  // slides, 1720->1970 at n=16, so the band it occupies runs 250Hz past where I stopped reading. A
+  // gliding tone owns a RANGE; quoting either endpoint describes a tone that is never played. Caught on
+  // review. It widens the crowded band rather than narrowing it, so the argument was never at risk —
+  // which is exactly why nothing would have flagged it.)
   //   THE OLD SOUND WORKED FOR A REASON THAT WAS NEVER "IT IS LOW". It worked because at 88->28Hz it
   // was the ONLY thing in the sub-bass, an octave and a half under everything else. Register
   // separation is what makes a cue findable in a crowd; brightness is not, because the crowd is
