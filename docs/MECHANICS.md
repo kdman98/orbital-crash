@@ -317,6 +317,16 @@ tap, and a tap never moves the star — it would otherwise yank the core to wher
 which is the opposite of aiming. Under tilt a drag must not steer either: `stepTilt` clears the pointer
 every frame, so writing a target there buys a one-frame twitch and nothing else.
 
+**Tilt is a rate, and its smoothing is a time constant.** An angle means *keep going this way*, not *be
+there*, so `stepTilt` adds velocity to the star directly rather than naming a target for the position
+chase to follow — feeding a rate through that chase would weld tilt's speed to the chase coefficient,
+and retuning the mouse would change tilt for reasons nobody would think to look for. The low-pass on the
+reading is `TILT.tau`, in **seconds**, integrated against the real gap between samples. It has to be time
+and not a per-sample fraction, because the sensor arrives at 60Hz over the web feed and 30Hz over the
+CoreMotion bridge; see the trap on that below, which is what it cost to learn. `tilt().lagMs` reports the
+resulting delay in milliseconds, which is the number to put in front of a human — nobody can feel a
+coefficient.
+
 **None of this reaches mouse play.** The lift is applied only inside the `isTouch(e)` branch — pointer
 input takes an early return with the raw coordinates — which is also what made the port measurable:
 the on-device drag landing within half a point of `TOUCH_LIFT`'s prediction could not have happened
@@ -1620,6 +1630,20 @@ lesson, check whether the lesson actually rests on the story or merely arrived w
 `min(15, 1+motesBank*0.1)`, deleted with the score multiplier — so it belongs with `cwave` and
 `stepCollapseWave`. "settleR" and "v0" were never symbols at any point. If the sweep flagged deleted
 names too, the residue would be noise and nobody would run it twice.
+
+**A smoothing coefficient applied per *event* silently encodes the sample rate it was tuned at.** Change
+the transport and the control changes feel with no code touched, no constant edited and nothing to see in
+review — the line is identical before and after. Tilt smoothing was a fixed fraction applied once per
+`deviceorientation` event, tuned against the web feed at 60Hz. The CoreMotion bridge then delivered at
+30Hz, and the same coefficient took **233ms to reach 63% where it had taken 117ms** — the controls got
+twice as slow because the *feed* halved. `bf48f87` fixed it.
+
+**The shape to recognise: any per-tick constant is really a rate in disguise, and the rate is not written
+down anywhere near it.** Express it as a time constant instead and integrate against the real gap —
+`k = 1 - exp(-gap/tau)`. Derived here rather than taken on trust: the same 200ms of held tilt now lands on
+0.9426 at 20, 30, 40, 60 **and** 120Hz, spread **0.000000**, where the old form gave 0.5954 against 0.8363
+across a single doubling. This is the cousin of the unit-drift trap below — there a figure stayed correct
+while its denominator moved; here a figure stays correct while its *clock* moves.
 
 **Every row of a comparison must be on one basis, and a row that is not looks exactly like a row that
 is.** This produced two wrong conclusions in one section of this file inside an hour, from two people, in

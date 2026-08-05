@@ -113,6 +113,33 @@ no-hit line is the identification channel, and a rising pitch would be a second 
 over 502 declarations found no other dead symbol; its one hit was a false positive from stripping template
 literals.
 
+### Tilt got twice as slow without anyone touching it `bf48f87`
+**The smoothing on the tilt reading was a fixed fraction applied once per sensor event**, tuned against
+the browser's own feed at 60Hz. When iOS started reading the sensor natively it delivered at 30Hz — and
+the identical coefficient, unchanged, went from **117ms to reach 63% of a new reading to 233ms**. The
+control got twice as laggy because the *transport* changed. Nothing in the code moved, so nothing looked
+wrong.
+
+**It is a time constant now**, integrated against the real gap between samples, so the feel is the same
+whatever the rate: the same 200ms of held tilt lands on the same value at 20, 30, 40, 60 and 120Hz, to
+six decimal places. `tilt().lagMs` reports the delay in milliseconds, because that is the number a person
+can judge and a coefficient is not.
+
+### A settings screen, and tilt gets an off switch `5a75dbd` `97d31b7`
+**Tilt has been on by default on every phone and there was no way to turn it off.** The setter existed
+and was reachable only from the debug seam, which made it an accessibility hole for anyone who cannot
+play by leaning a device — in bed, on a bus, or at all. There is a Settings screen now, from the menu and
+**from the pause panel**, on the reasoning that the moment you need to change tilt is the moment tilt is
+not working, and that moment is always mid-run.
+
+Turning tilt off hands steering back to your finger immediately, no reload. Three switches: tilt, reduced
+motion, sound — each with a sentence saying what it does, because a toggle whose name is its only
+explanation is how "reduced motion" comes to mean nothing to the person it was built for.
+
+**The tilt row says why nothing is happening.** If motion access was denied, or the sensor is not
+reporting, it says so where you can act on it, and it says *"Motion is live"* when readings are arriving —
+silence would otherwise mean both "working" and "nothing tried yet", which a phone cannot tell you apart.
+
 ### A limiter on the master bus `7f90646`
 **Nothing was catching the peaks.** Every voice summed into a 0.9 master and went straight out, so about
 four concurrent voices over the ambient bed cleared 1.0 and hard-clipped. That matters more than it
