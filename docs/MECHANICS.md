@@ -1380,10 +1380,24 @@ that always looks alarming into a list that clears in one pass. Run it mechanica
 collect backticked tokens that appear *only* in comment text, test each against the stripped code)
 rather than by eye, because the tokens worth catching are the ones that look most like names.
 
-⚠️ **Two runs of this sweep over the same tree returned 13 and 12.** The odd one out was `mult`, a
-deleted score multiplier that belongs in the list exactly like the other nine. The *conclusion* was
-identical both times and only the count moved — which is the dangerous shape, because a conclusion
-both sides already agree on is the one nobody re-derives. Reconcile the count anyway.
+⚠️ **A defective sweep under-reports, so it looks exactly like a clean one.** Two runs over the same
+tree returned 13 and 12, and the gap was not a judgement call about what counts as deliberate — one
+instrument was broken. It stripped `//` lines only, so every `/* */` block counted as **code**, and a
+token named solely inside one was scored as used. `mult` lives in exactly that blind spot: two
+mentions, both `#mult` in the stylesheet header, both cleared as real usage.
+
+**The direction is the whole lesson.** 12 read as a *tidier* file than 13, and nobody re-checks the
+result that says things are fine. Had the same bug swallowed a genuine orphan instead of a benign one,
+the output would have looked identical — better, even — and the sweep would have certified the exact
+condition it exists to catch. So: **test a sweep on something you know is dirty before believing it
+when it says clean.** Note also that the paragraph above already prescribed stripping all three comment
+forms, and a sweep written after reading it still shipped with one. A written instruction is not the
+control; a known-dirty input is.
+
+*Keep the two classes straight, because the audit's value is the split.* `mult` was a real symbol —
+`min(15, 1+motesBank*0.1)`, deleted with the score multiplier — so it belongs with `cwave` and
+`stepCollapseWave`. "settleR" and "v0" were never symbols at any point. If the sweep flagged deleted
+names too, the residue would be noise and nobody would run it twice.
 
 **A comment that quotes a derived number needs deriving, not re-reading.** Three comments survived the
 Anomaly buff still pricing a bait at half a bar, still calling an Epoch I Pulsar 11 HP, and still
