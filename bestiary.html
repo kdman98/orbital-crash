@@ -54,7 +54,9 @@
   </div>
 <script>
 (function(){
-  const COL={red:'#ff3f6c',cyan:'#38e0ff',neutral:'#c7b8ff'};
+  // `lime` is the Bomber blast's colour and the Bomber's own fuse, and it must match index.html exactly —
+  // a card that teaches a different hue than the game shows is worse than a card with no mark at all.
+  const COL={red:'#ff3f6c',cyan:'#38e0ff',neutral:'#c7b8ff',lime:'#8dff6b'};
   const TAU=Math.PI*2;
   const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
 
@@ -67,9 +69,6 @@
     {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,tag:'The plain one. Comes straight at you, in no particular hurry. Learn the colours on these.'},
     {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, tag:'Small, quick, and trailing a wake. Nothing else in the sky moves like that.'},
     {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,tag:'Big, slow, tough. It can take hard hits and survive.'},
-    {kind:'dot',type:'split',  name:'Splitter',col:'red',    r:14,tag:'Pop it, it will split in half!'},
-    {kind:'dot',type:'mini',   name:'Mini',    col:'cyan',   r:7, tag:'What a Splitter leaves behind. Small, solid, and never alone.'},
-    {kind:'dot',type:'orbiter',name:'Orbiter', col:'red',    r:10,tag:'This one will not charge you. It circles instead, and waits.'},
     {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,
      tag:'A normal Dot, but it explodes when it dies. Harmless to you, deadly to every Dot around you. Use it well, or take care.'},
     {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,tag:'Draws a line, then dashes down it. The one Dot you cannot pull off course. Step aside.'},
@@ -77,6 +76,11 @@
     // Codex has stopped listing rules, and "you cannot beat this" is the wrong thing to leave a new
     // player holding when a flip does in fact kill it.
     {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,tag:'Wears both colours at once, so neither of yours makes it safe. Do not touch it. A flip pops it anyway.'},
+    // The Planet earns a longer tag than anything else here, and it is the one card that has to say what
+    // the PAYOFF is. Every other Dot is a thing you avoid or annihilate on sight; this is the only body
+    // you are meant to keep alive and carry, and none of that is guessable from watching it.
+    {kind:'dot',type:'planet', name:'Planet',  col:'cyan',   r:23,
+     tag:'Hold it in your rings and it starts to break apart. Keep it there long enough and it takes every Dot of the other colour with it. Flip, and you throw it away.'},
   ];
   // r is the hull AND the collider, same law as every dot row.
   const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:37,
@@ -90,9 +94,9 @@
     {kind:'anom',key:'pulsar',  name:'Pulsar',  col:'red',
      tag:'Throws up a wall with one way through. Find the gap and be standing in it.'},
   ];
-  // The five shapes, in Pattern Lab key order (1-5). Four are true Patterns — irregular waves that
-  // arrive between the drizzle from ~0:42 onward — and the fifth, the Comet, is an EVENT on its own
-  // much longer clock.
+  // The six shapes, in Pattern Lab key order (1-6). Four are true Patterns — irregular waves that
+  // arrive between the drizzle from ~0:42 onward — and two, the Comet and the Neutral Ring, are EVENTS on
+  // their own much longer clocks.
   //   NAME AND ANIMATION ONLY, no copy, by the user's call on 2026-08-05: working a shape out for
   // yourself is part of the game. The animations here run the real geometry, so the card can afford to
   // stay quiet in a way the Dot cards cannot — a Dot is a thing you must recognise mid-fight, a Pattern
@@ -101,8 +105,9 @@
     {kind:'form',key:'wall',  name:'The Wall',  col:'cyan'},
     {kind:'form',key:'noose', name:'The Noose', col:'red' },
     {kind:'form',key:'pulse', name:'The Pulse', col:'red' },
-    {kind:'form',key:'sorter',name:'The Sorter',col:'cyan'},
+    {kind:'form',key:'cross', name:'The Cross', col:'cyan'},
     {kind:'form',key:'comet', name:'The Comet', col:'cyan'},
+    {kind:'form',key:'nring', name:'Neutral Ring', col:'neutral'},
   ];
 
   const renders=[];
@@ -144,15 +149,7 @@
     const r=s.r;
     ctx.globalCompositeOperation='lighter';
     ctx.fillStyle=hexA(c,0.28); ctx.beginPath(); ctx.arc(x,y,r*1.9,0,TAU); ctx.fill();
-    if(s.type==='split'){ // the binary — two lobes, two nuclei, exactly as in the game
-      const a=t*0.55, ca=Math.cos(a), sa=Math.sin(a), off=r*(0.30+0.05*Math.sin(t*3.4));
-      ctx.fillStyle=c;
-      ctx.beginPath(); ctx.arc(x-sa*off,y+ca*off,r*0.72,0,TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(x+sa*off,y-ca*off,r*0.72,0,TAU); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.85)';
-      ctx.beginPath(); ctx.arc(x-sa*off,y+ca*off,r*0.26,0,TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(x+sa*off,y-ca*off,r*0.26,0,TAU); ctx.fill();
-    } else if(s.type==='neutral'){ // both poles at once, on a turning seam — exactly as in the game
+    if(s.type==='neutral'){ // both poles at once, on a turning seam — exactly as in the game
       const na=t*0.5;
       ctx.fillStyle=COL.red;  ctx.beginPath(); ctx.arc(x,y,r, na, na+Math.PI); ctx.fill();
       ctx.fillStyle=COL.cyan; ctx.beginPath(); ctx.arc(x,y,r, na+Math.PI, na+TAU); ctx.fill();
@@ -175,13 +172,25 @@
         if(k===0) ctx.moveTo(bxp,byp); else ctx.lineTo(bxp,byp);
       }
       ctx.closePath(); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
-    } else if(s.type==='orbiter'){ // annulus: the hole IS the mark, exactly as in the game
-      ctx.fillStyle=c; ctx.beginPath();
-      ctx.arc(x,y,r,0,TAU,false); ctx.arc(x,y,r*0.52,0,TAU,true); ctx.fill();
-      const oa=t*2.6;               // pip runs clockwise, matching the tangential push in the game
-      ctx.fillStyle='rgba(255,255,255,0.9)';
-      ctx.beginPath(); ctx.arc(x+Math.cos(oa)*r*0.74, y+Math.sin(oa)*r*0.74, r*0.20,0,TAU); ctx.fill();
+      // no core here — the lime fuse in the MARK section below is the Bomber's centre, exactly as in the
+      // game (where `noCore` skips the generic white dot for this kind). Drawing one here too would put a
+      // white disc under the fuse and the lime would be the thing you notice second.
+    } else if(s.type==='planet'){  // plates around a whole core, gaps widening as it charges — as in the game
+      // The card cycles the charge so the reader sees the whole range: this is the one Dot whose art
+      // CHANGES over its life, and a card frozen at burn=0 would be showing the least useful frame.
+      const f=0.5+0.5*Math.sin(t*0.55);
+      const NP=5, inr=r*0.42, gap=0.03+0.22*f, base=t*(0.25+0.9*f);
+      ctx.fillStyle=c;
+      ctx.beginPath(); ctx.arc(x,y,inr,0,TAU); ctx.fill();
+      for(let k=0;k<NP;k++){
+        const c0=base+k*TAU/NP+0.11*Math.sin(k*2.3);
+        const a0=c0+gap, a1=c0+TAU/NP-gap;
+        ctx.beginPath();
+        ctx.arc(x,y,r,a0,a1,false); ctx.arc(x,y,inr,a1,a0,true);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle=hexA('#ffffff',0.55+0.45*f);
+      ctx.beginPath(); ctx.arc(x,y,r*(0.16+0.14*f),0,TAU); ctx.fill();
     } else if(s.type==='heavy'){   // hexagon: flats on exactly r, so the silhouette still tells the truth
       const HR=r*1.1547, hs=t*0.35;
       ctx.fillStyle=c; ctx.beginPath();
@@ -189,8 +198,6 @@
         k?ctx.lineTo(hx,hy):ctx.moveTo(hx,hy); }
       ctx.closePath(); ctx.fill();
       ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(x,y,r*0.34,0,TAU); ctx.fill();
-    } else if(s.type==='mini'){    // the one fully solid Dot in the sky — no core dot, on purpose
-      ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
     } else if(s.type==='fast'){    // the wake: aspect ratio is the cue that survives a phone screen
       ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=r*0.9; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-r*2.4,y); ctx.stroke(); ctx.lineCap='butt';
@@ -208,9 +215,15 @@
       // mirrors index.html: NO STANDOFF RING. Any ring drawn outside a hull reads as "the edge where I
       // die", which is `e.r + P.r` = 32. A 1.55r ring scaled to the blast would be 26px — understating
       // the 32px envelope AND bearing no relation to the 120px blast, i.e. lying about both at once.
-      const bl=0.5+0.5*Math.sin(t*7);      // a blinking fuse, not another concentric ring
-      ctx.fillStyle=hexA('#ffffff',0.55+0.45*bl);
+      // LIME, AND UNDER source-over — the same escape hatch index.html takes, for the same reason: these
+      // cards draw under 'lighter', where lime over a coloured hull saturates to cream on red and to pale
+      // blue on cyan, i.e. a mark that is not even the same colour on the two polarities. Mirror the game
+      // exactly or the card teaches a fuse the player will never actually see.
+      const bl=0.5+0.5*Math.sin(t*7);      // a blinking fuse, not another concentric ring. RATE STAYS 7.
+      ctx.globalCompositeOperation='source-over';
+      ctx.fillStyle=hexA(COL.lime,0.62+0.38*bl);
       ctx.beginPath(); ctx.arc(x,y,r*(0.26+0.16*bl),0,TAU); ctx.fill();
+      ctx.globalCompositeOperation='lighter';
     } else if(s.type==='charger'){
       const tt=Math.sin(t*3)*0.5+0.5;
       ctx.strokeStyle=hexA('#ffffff',0.4+0.5*tt); ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,r+4+6*tt,0,TAU); ctx.stroke();
@@ -404,26 +417,34 @@
         }
       }
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
-    } else if(s.key==='sorter'){
-      // Two SOLID single-colour walls closing on each other, red from the left and cyan from the
-      // right, each with a two-Dot door — and the doors deliberately do not line up (formSorter()
-      // re-rolls gapB until they are at least 4 slots apart). No arrows: the two colours converging
-      // is the whole read, and a pair of arrows would collide in the middle exactly when they meet.
-      const cyc=(t*0.28)%1, sp=13.4, N=13, gapA=3, gapB=8;
-      const lx=x-70+cyc*54, rx=x+70-cyc*54;
-      for(let i=0;i<N;i++){
-        const yy=y-(N-1)*sp/2+i*sp;
-        if(i!==gapA && i!==gapA+1){ ctx.fillStyle=hexA(COL.red,0.92);
-          ctx.beginPath(); ctx.arc(lx,yy,4.4,0,TAU); ctx.fill(); }
-        if(i!==gapB && i!==gapB+1){ ctx.fillStyle=hexA(COL.cyan,0.92);
-          ctx.beginPath(); ctx.arc(rx,yy,4.4,0,TAU); ctx.fill(); }
+    } else if(s.key==='cross'){
+      // Four RIGID arms on one hub, turning. No convergence — formCross() runs vr=0 on purpose, so the
+      // card must not animate it closing in or it teaches the shape that was rejected. The arms run off
+      // the edge of the card because in game they run off the edge of the arena: there is no outside.
+      // Colours alternate ALONG each arm (formAlt(i+k)), so neighbouring arms start on opposite charges.
+      const sp=13.0, N=9, rot=t*0.42;
+      for(let k=0;k<4;k++){
+        const arm=rot+k*TAU/4;
+        for(let i=0;i<N;i++){
+          const rr=8+i*sp;
+          ctx.fillStyle=hexA(((i+k)%2===0)?COL.red:COL.cyan,0.92);
+          ctx.beginPath(); ctx.arc(x+Math.cos(arm)*rr, y+Math.sin(arm)*rr, 4.4,0,TAU); ctx.fill();
+        }
       }
-      // what actually ends the shape: the two walls annihilating each other as they overlap
-      if(cyc>0.72){ const f=(cyc-0.72)/0.28;
-        for(let i=0;i<N;i++){ if(i===gapA||i===gapA+1||i===gapB||i===gapB+1) continue;
-          const yy=y-(N-1)*sp/2+i*sp;
-          ctx.fillStyle=hexA('#ffffff',0.5*f*(0.5+0.5*Math.sin(t*11+i)));
-          ctx.beginPath(); ctx.arc(x,yy,3+4*f,0,TAU); ctx.fill(); } }
+      ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
+    } else if(s.key==='nring'){
+      // A SOLID ring of Neutrals closing to a floor and holding there. No seam — formNRing() has none,
+      // deliberately, because the way through is not a doorway. Each body wears both poles on a turning
+      // seam, exactly as the Dot card draws them, which is the fact the whole shape rests on.
+      const cyc=(t*0.20)%1, R=Math.max(30, 74-cyc*44), N=16, na=t*0.5;
+      for(let i=0;i<N;i++){
+        const a=i/N*TAU+cyc*0.5;
+        const bx=x+Math.cos(a)*R, by=y+Math.sin(a)*R;
+        ctx.fillStyle=hexA(COL.red,0.92);
+        ctx.beginPath(); ctx.arc(bx,by,4.6, na, na+Math.PI); ctx.fill();
+        ctx.fillStyle=hexA(COL.cyan,0.92);
+        ctx.beginPath(); ctx.arc(bx,by,4.6, na+Math.PI, na+TAU); ctx.fill();
+      }
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
     } else if(s.key==='comet'){
       // One Dot on a fixed line, far faster than anything else, with the tail formComet() actually
