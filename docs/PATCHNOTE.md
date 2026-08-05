@@ -14,6 +14,61 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### A limiter on the master bus `7f90646`
+**Nothing was catching the peaks.** Every voice summed into a 0.9 master and went straight out, so about
+four concurrent voices over the ambient bed cleared 1.0 and hard-clipped. That matters more than it
+sounds: **clipping preferentially destroys transients**, and the transient is precisely what makes one
+short cue tellable from another — so the moments where you most need to identify a sound were the
+moments the mix was flattening it. Now compressed rather than brickwalled: 6:1 over a soft 12dB knee at
+−14dB, 3ms attack and 180ms release.
+
+Landed as its own commit on purpose. It changes every sound in the game, and bundling it with a single
+cue's rebuild would make the next person read one as the cause of the other.
+
+⚠️ **Unheard.** See the note on `bf2eb84`.
+
+### The blast expands, in a colour nothing else wears `bf2eb84`
+**The Bomber detonation was imploding.** `spawnRing` collapses inward by default — right for a
+telegraph, backwards for a blast — so the ring that should have swept out to the kill radius was
+travelling the wrong way the whole time. It expands now, and it is the only expanding ring in the game.
+
+**And it has its own colour.** `COL.lime` was worn by nothing else on the play field, so the blast, its
+sparks and its survivors' scorch all read as **one event** rather than six coincidental deaths.
+
+**The voice moved out of the crowded band, which is the part with a general lesson.** The previous
+rebuild obeyed the sound rule perfectly — it rose, correct valence — and the player still could not find
+it: *"I can't identify bomb sound in complex battle."* In a late fight `kill()` fires 5.6 times a second
+and `mote()` 6.2, **both square**, so four voices crowd one timbre in one narrow band, and the bomb's
+lead had been put right inside it. It was not competing with the mix; it *was* the mix. The lead is a
+triangle now, rising over a sine sub that sits below everything else in combat. The general form is in
+[MECHANICS.md](MECHANICS.md): valence picks the direction, register picks whether it is heard at all.
+
+⚠️ **CHANGED AND UNHEARD — read this before trusting any of it.** None of the audio in `bf2eb84` or
+`7f90646` has been listened to. The harness tab runs `document.hidden`, so `requestAnimationFrame` never
+fires and nothing plays; every claim above is spectrum and geometry, not a verdict. If the blast still
+does not read in a fight, **the measurements stay true and the conclusion is the wrong part** — the band
+analysis would not need redoing, the choice of where to move to would.
+
+**The open question under *The Bomber gets rarer* got a partial answer, and it was not one of the two on
+offer.** That entry asks whether the blast reads as an event or as a tax. The first honest answer was
+**neither: it did not read at all.** Recorded because the question as written implies the outcome must
+be one of its two candidates, and the real first result was invisibility.
+
+### Overdrive cools, the Bomber stops sounding like damage, Neutrals go rare `f0b2f72`
+**Overdrive now cools for a second after a ride, timed from release.** Hold-to-burn had fixed igniting
+and forgetting, but it made *tapping* free — feather the trigger and you hold the Overdrive physics on a
+duty cycle while paying drain only during the pressed fraction, which turns a spend into a modulation.
+Every end path cools, including a double-tap too short to reach the ride log. Measured identically after
+a very short ride and a very long one, so sipping buys no head start on the next burn. The full rule is
+in [MECHANICS.md](MECHANICS.md) — it is the game's third cooldown and it had been documented nowhere.
+
+**Neutrals are much rarer.** Measured **3.35% → 1.07%** of bodies, **15.5 → 5.2 arrivals a minute**. The
+Neutral is the one Dot no polarity makes safe, so its job is to punctuate rather than to populate.
+
+⚠️ *Measuring that needed an immortal pilot run out to t=400.* Neutrals enter no spawn table until
+`t≥125` and the bot dies around 57s, so the first census returned a confident **0%** — a clean number
+describing a table the run never reached.
+
 ### The iOS app runs `6430ebe`
 **Built, installed and played through on an iPhone 17 Pro simulator** — a full run, an Anomaly met and
 died to, and the death receipt drawn. The port is real rather than merely compiling. No game code
@@ -392,6 +447,11 @@ Splitters dying — are about an eighth of everything that arrives.
 
 Not settled, and the bot cannot settle it: whether the blast now reads as an event rather than a tax. The
 median scripted pilot dies before the first Bomber can spawn.
+
+*Answered in part by `bf2eb84`, and with neither option.* A human said it did not read **at all** — the
+ring was expanding the wrong way and the voice sat inside the busiest band in the mix. Left as written
+because this is dated history, but note the shape: a question offering two outcomes quietly assumes the
+thing is perceptible, and "invisible" was not on the ballot.
 
 ### Score is addition; the multiplier was a coin flip `71c961e`
 Deleted `mult`, `motesBank`, `recalcMult`, `bankMote`, the `#mult` HUD stat and the `sfx.streakLost`

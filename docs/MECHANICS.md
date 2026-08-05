@@ -385,6 +385,22 @@ at all. Either one drains the meter while the game is not in front of you. Losin
 the ride for the same reason. `endOverdrive()` being a no-op when nothing is burning is what lets every
 release path fire unconditionally.
 
+**It cools for `OD_CD` after a ride, and the clock starts at RELEASE — not at ignition.** Measured
+identically after a ten-frame ride and a hundred-and-twenty-frame one, so the wait is the same whether
+you sipped or emptied the bar. **Every** end path sets it, including a double-tap too short to reach the
+ride log at all. This is the third cooldown in the game, alongside the flip's and the Shockwave's
+longer one.
+
+*It is there because hold-to-burn made tapping free.* Holding fixed the older failure — igniting and
+forgetting — but it opened a worse one: feather the trigger and you hold the Overdrive **physics** on a
+duty cycle, paying drain only during the pressed fraction. That converts a spend into a modulation, and
+a resource you can modulate for free is not a resource. Cooling from release is what makes the tap cost
+the same as the commitment.
+
+While cooling, the Capacitor drops its spendable glow and the Overdrive button **dims in place rather
+than hiding**. Deliberate: on touch that button is the only Overdrive control a thumb has, and a control
+that vanishes reads as broken, where a dimmed one reads as *not yet*.
+
 **Repriced 4× — twice in each direction, compounding.** The drain doubled (`OD_DRAIN`) *and* income
 halved (`P.chargeGain`), so a meter is twice as slow to earn and buys half as long a ride. Measured:
 **1.67 meters and 5.0s of Overdrive per minute, against 3.34 and 20.0s** before. It is now a resource
@@ -1207,6 +1223,23 @@ without one the receipt printed the raw internal type back at the player.
 a heavy low slam that then rises. Cues that must be tellable apart with your eyes elsewhere are built as
 each other's opposites, not as variations.
 
+**Valence picks the direction; register picks whether it is heard at all.** The rule above is about
+meaning and it is not sufficient, which was proved the expensive way: a rebuilt Bomber voice satisfied
+it exactly — it rose, no sawtooth, correct valence — and the player still could not find it in a fight.
+*"I can't identify bomb sound in complex battle."*
+
+The reason is arithmetic, not taste. In a late fight `kill()` fires **5.6 times a second** and `mote()`
+**6.2**, and both are **square waves** — `kill()` flat blips from 380Hz up, `mote()` sliding above it —
+so roughly four voices crowd one timbre and one octave-and-a-bit inside any 300ms window. A new cue
+placed in that band is not competing with the mix, it **is** the mix. The old Bomber sound worked for a
+reason nobody had written down: at its lowest it was the only thing in the sub-bass, and that, not its
+direction, is what made it findable.
+
+So a cue that must survive a crowd needs somewhere of its own to stand — a different waveform, a
+different octave, or both. The current blast leads on a **triangle** rising 150→700Hz over a **sine**
+sub at 75Hz, which clears the square band on timbre and sits under it on pitch. Check a new voice
+against what is *already sounding* at that moment, not only against the rule.
+
 ---
 
 ## The title screen
@@ -1463,6 +1496,22 @@ lesson, check whether the lesson actually rests on the story or merely arrived w
 `min(15, 1+motesBank*0.1)`, deleted with the score multiplier — so it belongs with `cwave` and
 `stepCollapseWave`. "settleR" and "v0" were never symbols at any point. If the sweep flagged deleted
 names too, the residue would be noise and nobody would run it twice.
+
+**`spawnRing` collapses inward by default, so anything you add called a "shockwave" will implode.**
+`drawParticles` sizes a ring as `p.R*a` with `a` running 1 → 0 over its life, which starts at full
+radius and closes to a point. That is right for a **telegraph** — a Pulsar winding up, an Overdrive
+ignition — where the statement is at full radius and the convergence says *this is where it lands*. It
+is exactly backwards for a **blast**, which the Bomber detonation was doing unnoticed until someone
+looked. Pass `out` for the outward curve. Nothing about the call site announces which one you got, and
+both look plausible in motion at 0.5s, so the failure survives review — the Bomber's white inner ring is
+still deliberately inward as a counterpoint, which is also why "they all implode" was never obvious.
+
+**A species that enters the spawn table late reads as absent, not as rare.** Neutrals are gated behind
+`t≥125` and the immortal-pilot harness dies around 57s, so a species-mix census confidently returned
+**0%** — a clean number, no error, describing a table the run never reached. The fix was an immortal
+pilot out to t=400. Note which harnesses this is safe on: the spawn table keys off `elapsed` and `act`,
+so forcing a long run is legitimate for a **mix census** and illegitimate for anything priced on a
+streak, where an immortal pilot is measuring a state the game cannot produce.
 
 **A comment that quotes a derived number needs deriving, not re-reading.** Three comments survived the
 Anomaly buff still pricing a bait at half a bar, still calling an Epoch I Pulsar 11 HP, and still
