@@ -1805,7 +1805,18 @@ const MSL={
   // out-RUN a Star doing 6.2, so the answer is to run, not to juke. Tracking was 1.1s and the Sentinel
   // (seekers + swarmers + orbit) went 0-for-2 against a bot the other two kinds lost to 0-for-4; 0.85s
   // lets a late cut beat them without making them ignorable.
-  seeker:{sp:3.3, r:9,  life:5.2, turn:0.055, seekFor:0.85},
+  // ⚠️ `life` 5.2 -> 6.9, and it is the ONE table value the reach change forced. The seeker is the only
+  // kind that CURVES: it spends 0.85s turning toward you before committing, so its path is much longer
+  // than the distance it closes, and reach has to pay for the arc as well as the approach. Straight
+  // flyers do not — volley/spear/ring clear the arena at 0.75 speed with room to spare.
+  //   The old per-shot `life/ps` correction was hiding this. It held reach constant, so a seeker value
+  // that was too low for a slowed curve never showed. Measured at Epoch I once the correction went:
+  // Sentinel fizzled 44.4% of its shots ON SCREEN against 11.1% before, Emitter 6.8% against 0. At 6.9
+  // (= 5.2 / 0.75, the old effective figure) both return to their previous numbers and Epoch III is
+  // untouched — 11.8% and 17.9% either way, because at ps=1 nothing about it changed.
+  //   The general form, now that reach is `sp × 60 × life` and nothing corrects it: A TABLE VALUE MUST
+  // BE SIZED FOR THE SLOWEST PACE IT WILL EVER FLY AT, not for the nominal one.
+  seeker:{sp:3.3, r:9,  life:6.9, turn:0.055, seekFor:0.85},
   ring:  {sp:4.6, r:9,  life:4.2},
   mine:  {sp:0.9, r:11, life:3.4, arm:1.2, blast:104},
   spear: {sp:9.2, r:8,  life:2.8, tel:0.55},
@@ -1824,21 +1835,29 @@ function fireMissile(b,a,kind,spOverride){
   // their table speed, so an Epoch I shot gives you a third again as long to read it.
   const ps = (b && b.pace ? b.pace.spd : 1);
   const m=MSL[kind]||MSL.volley, r0=b.r+14, sp=(spOverride||m.sp)*ps;
-  // ⚠️ `life` MUST BE DIVIDED BY THE SAME FACTOR, and this is not optional bookkeeping. It decrements by
-  // dt, but what it is FOR is reach — see the distance-budget warning at the lance step. Slow a missile
-  // 25% and leave `life` alone and it covers 25% less ground, so patterns stop arriving instead of
-  // arriving later: the Pulsar's ring no longer reaches you, the Emitter's fan dies short of the lane it
-  // was sweeping. That is a different fight, not a slower one.
-  //   REACH IS AN IDENTITY HERE, NOT A MEASUREMENT: (sp × ps) × (life / ps) = sp × life, exactly, for
-  // every kind and every ps. `ps` cancels. The 599px measured at both Epoch I and III confirmed algebra
-  // rather than sampling it — which is the useful part, because it means NO FUTURE CHANGE TO `pace.spd`
-  // CAN EVER NEED THIS RE-MEASURED. The only thing that moves reach is `sp × life` itself, in the table
-  // above. An identity is the strongest pin a number can have; prefer one to a remembered figure.
-  //   The cost of doing it right: a slower shot that still travels its full distance is ON SCREEN longer,
-  // so more are in the air at once. `pace.cad` firing fewer of them is what pays for that. If an early
-  // Epoch ever reads as MORE cluttered rather than calmer, this coupling is the cause and `life` is the
-  // lever — not `spd`.
-  const L={ kind, a, color:bossOpp(b.color), r:m.r, life:m.life/ps,
+  // `life` IS A LIFETIME, IN SECONDS, AND NOTHING CORRECTS IT. Reach is simply what falls out:
+  //   reach = sp × 60 × life   →  volley 1361px · seeker 1030 · ring 1159 · spear 1546 · mine 184
+  // Slow a missile with `pace.spd` and it covers proportionally less ground, which is the whole model
+  // and needs no bookkeeping to hold. Author: "having lifetime and speed, so reach is actually
+  // lifetime * speed, easy calculation."
+  //   ⚠️ `life` HARDLY EVER BINDS, and that is why this is safe. A lance is removed by whichever comes
+  // first — leaving the screen or running out of life — and against a 1280-wide arena every reach above
+  // clears the screen edge comfortably. Measured at Epoch I: 0% of projectiles reached `life<=0`; every
+  // one was culled off-screen. At Epoch III it is 13.3%, because they cover their ground faster.
+  //   THIS USED TO DIVIDE `life` BY `ps` TO HOLD REACH CONSTANT, and the comment here called that "not
+  // optional bookkeeping" — the Pulsar's ring would stop reaching you, the Emitter's fan would die
+  // short. Measured with `act` held fixed and only `pace` varying, compensated and uncompensated were
+  // INDISTINGUISHABLE: 3.02 mean lances on screen, 80 fired, 0% life-culled, both arms. The
+  // compensation was dormant at every value that ships.
+  //   ⚠️ AND THE MEASUREMENT THAT "CONFIRMED" IT COULD NOT HAVE FAILED. This block used to cite 599px
+  // measured at both Epoch I and III as proof the identity held. That figure was the SCREEN EDGE, not
+  // the life budget: compensated reach is 1361px and uncompensated 1021px, and both exceed what the
+  // arena lets you see, so the probe returns 599 either way. It was insensitive to the thing it was
+  // offered as evidence for, and it was written up as the strongest kind of pin.
+  //   The compensation would only start to matter if `pace.spd` dropped far below 0.75 — enough that
+  // sp × 60 × life fell under the screen crossing. If you ever push it that low, this is the block that
+  // decides whether patterns still arrive, and it will need a real measurement rather than an identity.
+  const L={ kind, a, color:bossOpp(b.color), r:m.r, life:m.life,
             x:b.x+Math.cos(a)*r0, y:b.y+Math.sin(a)*r0,
             vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
             px:b.x, py:b.y, seen:true };
@@ -2148,9 +2167,16 @@ function stepLances(dt){
         mineBlast(L); lances.splice(i,1); continue;
       }
     }
-    // ⚠️ `life` is a DISTANCE budget, not a clock. Any time-scale multiplier applied to L.vx/L.vy MUST
-    // scale this tick too, or the budget drains at full speed against a slowed Dot and missiles fizzle
-    // mid-flight.
+    // `life` IS A CLOCK, and reach is `sp × 60 × life` — see fireMissile. This block used to say the
+    // opposite in caps ("a DISTANCE budget, not a clock") and warn that slowing a missile without
+    // scaling the tick makes it fizzle mid-flight. Under the model now in force, a slower missile
+    // covering less ground is the DEFINITION rather than a fault, so that warning was guarding against
+    // the intended behaviour.
+    //   ⚠️ The hazard that does remain is a GLOBAL slowdown, and it is already handled: `timeScale`
+    // scales the ACCUMULATOR, not `dt`, so a slowmo frame steps the sim fewer times rather than
+    // stepping it smaller. Velocity and this tick stay in step by construction. If anything ever scales
+    // `L.vx`/`L.vy` per-lance WITHOUT going through `pace.spd` at birth, that is the case to think
+    // about — reach would move and nothing here would say so.
     L.px=L.x; L.py=L.y; L.x+=L.vx; L.y+=L.vy; L.life-=dt;
     const M=48, inb=(L.x>-M && L.x<W+M && L.y>-M && L.y<H+M);  // on-screen (with margin)?
     if(inb) L.seen=true;                                       // it has now entered the arena
@@ -2958,7 +2984,7 @@ function onKill(e){
   //   without saying anything, which is what the rest of this game does.
   // ⚠️ NOT an `else if` any more. It was, so the +score popup was suppressed on precisely the kills that
   // got the fanfare — the loudest moment in the run was the one that stopped telling you what it paid.
-  if(combo>1 && combo%10===0){ trauma=Math.min(1,trauma+0.14); sfx.milestone(combo); }
+  if(combo>1 && combo%10===0){ trauma=Math.min(1,trauma+0.14); sfx.milestone(); }
   if(Math.random()<0.4) pushText(e.x,e.y-10,'+'+gain, c, .7, 12);
   sfx.kill(combo);
 }
@@ -4724,7 +4750,12 @@ function noise(dur,vol){
 const sfx={
   flip(hc){ const c=hc||0; beep(320+c*260,0.08+c*0.05,'triangle',0.12,520+c*520); if(c>0.55) beep(900,0.1,'sine',0.08,1500); },
   kill(c){ const f=380+Math.min(c,40)*22; beep(f,0.06,'square',0.06); },
-  milestone(c){ beep(500,0.12,'sawtooth',0.12,900); beep(760,0.14,'triangle',0.08,1200); },
+  // THE EVERY-TENTH-KILL STING. Took a `c` (the combo) and never read it — a dead parameter the call
+  // site was dutifully filling in. Dropped rather than wired up: scaling the pitch by streak was
+  // considered and declined, because the HUD's no-hit streak line is the identification channel for
+  // where the chain is and a rising sting would be a second encoding of it. Both beeps rise, so the
+  // beat still reads as a reward under the rule at baited() — it just does not report a number.
+  milestone(){ beep(500,0.12,'sawtooth',0.12,900); beep(760,0.14,'triangle',0.08,1200); },
   hurt(){ beep(150,0.18,'sawtooth',0.22,60); noise(0.18,0.18); },
   level(){ beep(523,0.14,'triangle',0.14); beep(659,0.16,'triangle',0.12); beep(784,0.2,'triangle',0.12); },
   buy(){ beep(660,0.07,'square',0.12,880); },
