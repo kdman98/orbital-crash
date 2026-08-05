@@ -197,6 +197,33 @@
   .btn.sm{padding:12px 30px;font-size:15px;}
   .btn.ghost{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:0 0 0 1px rgba(255,255,255,.16) inset;}
 
+  /* MENU SIDE DOORS. Two of these start a run and two open a page over the menu, and until now all
+     four were the same ghost pill in one column, told apart by an 8px-vs-12px margin. The shape says
+     it instead: a box you press to leave the menu, a link you press to read something and come back.
+     No @media anywhere — this file has none — so the pair is sized off the container, not the
+     viewport: min(100%,384px) is already inside the overlay's 22px padding, which min(46vw,…) is not,
+     and that is the difference between fitting a 375px phone and overrunning it by a hair.
+       EDIT BUDGET, same idea as .tag's: each cell gives its second line 165px, and the longest one
+     currently sets 150px. Under that and both cells hold one line on a desktop and wrap to a matched
+     two on a phone; over it and one cell wraps while its neighbour does not, which is the one way
+     this pair can look broken. Measure, do not count characters — 368px left only 7px of slack. */
+  .doors{display:flex;gap:10px;justify-content:center;width:min(100%,384px);margin-top:15px;}
+  .door{flex:1 1 0;min-width:0;pointer-events:auto;cursor:pointer;border:none;font-family:inherit;
+    text-align:center;padding:11px 11px 12px;border-radius:15px;background:rgba(255,255,255,.05);
+    box-shadow:0 0 0 1px rgba(255,255,255,.13) inset;transition:transform .12s ease,background .12s ease;}
+  .door:hover{background:rgba(255,255,255,.1);}
+  .door:active{transform:translateY(2px) scale(.98);}
+  .door .dn{display:block;color:var(--ink);font-size:15px;font-weight:800;letter-spacing:.04em;}
+  .door .dd{display:block;color:var(--dim);font-size:11px;line-height:1.5;margin-top:5px;}
+  /* Sits under the boxes and above a gap, so there is now exactly one group it can be read against.
+     Hung between the two pairs, it could have been captioning either. */
+  .doornote{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;}
+  .refs{display:flex;gap:28px;justify-content:center;margin-top:16px;}
+  .ref{pointer-events:auto;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 2px;
+    color:var(--ink);font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+    border-bottom:1px solid rgba(255,255,255,.24);transition:color .12s ease,border-color .12s ease;}
+  .ref:hover{color:var(--cyan);border-color:var(--cyan);}
+
   #codexBody{width:min(720px,94vw);max-height:74vh;overflow-y:auto;text-align:left;padding:4px 14px 30px 4px;}
   .cxs{margin:0 0 18px;}
   .cxs h3{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);margin:0 0 7px;}
@@ -279,13 +306,27 @@
   <p class="tag" style="opacity:.82;margin-top:2px;">Nothing accumulates but time.</p>
   <button class="btn" id="startBtn">Enter the field</button>
   <!-- No glyph prefixes and no em-dash explainers. Four ghost buttons each carrying a different
-       decorative mark read as a menu assembled by something that had never seen a menu. -->
-  <button class="btn sm ghost" id="arenaBtn" style="margin-top:14px;">Boss Rush</button>
-  <button class="btn sm ghost" id="labBtn" style="margin-top:8px;">Pattern Lab</button>
+       decorative mark read as a menu assembled by something that had never seen a menu.
+         They then sat as four IDENTICAL ghost pills in one column, which was the same mistake with the
+       decoration taken off: a column of five pills reads as a list of five equal things, and these are
+       one door, two rooms and two pages. Grouped now — the modes side by side as a pair, the pages as
+       links — so the shape carries what the margins were being asked to.
+         "Pattern Lab" is the one label here a first-time player cannot decode: Boss Rush, Bestiary and
+       Codex are all conventions they have met before, and that one is ours. Hence the line under it.
+         Both lines are built to hold ONE line inside the cell, and they open on the same word so the
+       pair scans as a pair. The Lab's line said "on keys 1-5" first and the range broke across the
+       wrap, orphaning a lone "5" — the exact keys live in the HUD legend the moment you are inside,
+       so the menu only has to say that this room answers to the keyboard. -->
+  <div class="doors">
+    <button class="door" id="arenaBtn"><span class="dn">Boss Rush</span><span class="dd">Every Anomaly, back to back</span></button>
+    <button class="door" id="labBtn"><span class="dn">Pattern Lab</span><span class="dd">Every wave shape, on a key</span></button>
+  </div>
   <!-- A real rule that the UI never stated anywhere: both practice modes are score-sandboxed. -->
-  <div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;">Practice only · neither can set your best</div>
-  <button class="btn sm ghost" id="bestiaryBtn" style="margin-top:12px;">Bestiary</button>
-  <button class="btn sm ghost" id="codexBtn" style="margin-top:8px;">Codex</button>
+  <div class="doornote">Practice only · neither can set your best</div>
+  <div class="refs">
+    <button class="ref" id="bestiaryBtn">Bestiary</button>
+    <button class="ref" id="codexBtn">Codex</button>
+  </div>
   <div class="hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
 </div>
 
@@ -843,10 +884,13 @@ function stepOverdrive(dt){
   //      18.7s, so at n=12 the standard error is 5.4s and this rig will hand you a confident -7% median
   //      that is not there. It handed me exactly that, first try. Report the replications, not the run.
   //   2. IT MOVED THE RING OFF THE TARGET. `orbR` is a FRACTION of `fieldR`, so widening the Field
-  //      multiplied into the orbit twice over: the shell settled at 214px, outside the 190 rim it is
-  //      drawn against, and the grind band — `settleR +/- (boss.r + dot.r)` — went with it. Burning to
-  //      grind harder made grinding several times WORSE inside normal fighting range. Pinning the Field
-  //      pulls the shell back to ~181, just inside the rim, where it overlaps the base band again.
+  //      multiplied into the orbit twice over: the shell settled at 214.1px, outside the 190 rim it is
+  //      drawn against, and the grind band — the settle radius plus and minus (boss.r + dot.r) — went
+  //      with it. Burning to grind harder made grinding several times WORSE inside normal fighting
+  //      range. Pinning the Field brings the shell to 183.1, just inside the rim, where the two bands
+  //      overlap instead of being disjoint. (183.1 is MEASURED. "~181" stood here first and was the
+  //      prediction from the equilibrium algebra — close enough to look like the measurement, which is
+  //      how a predicted number gets quoted as a result. Solve, then measure, then write the measurement.)
   //   3. IT INVERTED THE HUNGRY FLIP'S OWN INVARIANT. See PURGE_R0: the fling ceiling is 210 and must
   //      stay past the Field or every Dot it exists to shove is already ring-captured. At 243.2 it was
   //      33px short, and a fully-loaded hungry flip under Overdrive flung exactly ZERO loose Dots
@@ -2293,23 +2337,32 @@ function stepEnemyForces(dt){
       // radius is the only term left: every px you pull the orbit in is rotation you get back.
       //   ⚠️ `orbR` IS NOT WHERE THE RING SITS. It is the spring's TARGET; the spin drives the shell past
       // it and the two balance out further. Measured settle vs nominal: base 114.2 against 114 (the spin
-      // is gentle, so they agree), EDDY 183.1 against 136.8 — a 34% overshoot. Every consequence of the
-      // orbit — what the shell looks like, and the grind band `settleR +/- (boss.r + dot.r)` — keys off
-      // the SETTLE radius. Quoting `orbR` for any of them understates it by a third.
+      // is gentle, so they agree), EDDY 183.1 against 136.8 — a 34% overshoot. Everything that follows
+      // from the orbit — what the shell looks like, and the grind band, which spans the settle radius
+      // plus and minus (boss.r + dot.r) — keys off the SETTLE radius. Quoting `orbR` understates it by
+      // a third. ⚠️ There is NO SYMBOL for the settle radius, deliberately: it is an equilibrium the sim
+      // arrives at, not a value anything stores, so it cannot be read, only measured. `orbR` is the only
+      // real name here, and it is the one that is wrong to quote. (Do not write it in backticks — it
+      // reads as something you can grep for, and two comments did exactly that.)
       //   It is also SPECIES-DEPENDENT, for the same v/r reason: under EDDY a Drifter settles at 183.1,
-      // a Mini at 191.1, a Brute at 156.3, because each sits on its OWN speed ceiling. There is no single
-      // shell radius, and a rig that feeds one species is measuring that species.
+      // a Mini at 191.1, a Brute at 156.3, because each sits on its OWN speed ceiling. So the band's
+      // CENTRE varies by species as well as its WIDTH (which varies by hull radius) — two independent
+      // species terms. There is no single shell radius, and a rig that feeds one species measures that
+      // species.
       // ⚠️ MEASURE THIS IN REV/S, NEVER IN GAUGE FRACTIONS. Both figures were first recorded "per half
       // gauge", and a half gauge was 3.0s at OD_DRAIN 1/6 and is 1.5s at 1/3 — the NUMBER never changed,
       // its UNIT silently did, which is the one kind of staleness re-reading the comment cannot catch.
       // Seconds are invariant under any future repricing; gauge fractions are the right unit for the
-      // METER and the wrong one for RING PHYSICS. (Cross-check, Drifter under EDDY: 1.083 rev/s = one
-      // turn per 0.92s = 6.80 rad/s, the three ways of saying it in this file. If a re-measurement
-      // disagrees with all three, it is the measurement that is wrong.)
-      //   That triple moved once — 0.926 / 1.08s / 5.82 — when the Field stopped widening under Overdrive.
-      // Nothing here was retuned: `orbR` fell from 175.1 to 136.8 purely because it is a fraction OF
-      // `fieldR`, the shell came in from 214.1 to 183.1, and the spin rose 17% for free. That is the v/r
-      // trade above running in the direction that pays.
+      // METER and the wrong one for RING PHYSICS. Drifter under EDDY: 1.083 rev/s.
+      //   ⚠️ ONE FIGURE, ONCE. This used to carry the same quantity three ways — rev/s, seconds/turn,
+      // rad/s — as a self-consistency check, and `fbe4d18` moved all three in one edit. The conversions
+      // are arithmetic and the reader can do them; stating them tripled the surface without adding a
+      // check, because nothing re-derives them. THE UNIT DEFENDS AGAINST A REPRICING, NOT AGAINST A
+      // GEOMETRY CHANGE: rev/s did its job when the drain doubled and was helpless when the Field
+      // stopped widening. Only deleting a value defends the value.
+      //   Nothing here was retuned when it moved: `orbR` fell from 175.1 to 136.8 purely because it is a
+      // fraction OF `fieldR`, the shell came in from 214.1 to 183.1, and the spin rose 17% for free.
+      // That is the v/r trade above running in the direction that pays.
       const orbR=P.fieldR*(P.eddy?0.72:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
       ax+=(dx/d)*toRing*err*0.03*rm; ay+=(dy/d)*toRing*err*0.03*rm;   // spring onto the ring radius
       // Ring whirl is `spin/(1-bleed)` where the `0.80` bleed below (ordinary matter gets 0.86) is what
