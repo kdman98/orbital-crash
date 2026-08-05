@@ -692,6 +692,14 @@ const VOLLEY_SPD=8.4;
 const VOLLEY_HOLD=1.75;
 // EROSION PRICES. The ordering is what gives the three channels meaning: aimed beats opportunistic
 // beats drift, which pays nothing at all (docs/MECHANICS.md ## The Anomaly, "Ways in").
+// ⚠️ IF YOU REPRICE ANY OF THE THREE, docs/MECHANICS.md IS THE ONLY OTHER COPY — AND IT CANNOT FAIL LOUDLY.
+// The game itself no longer states these numbers anywhere a player can read, deliberately: the Codex and
+// the Bestiary carried a hard-coded "8" for CHARGE_DMG and went on saying it for fifteen hours after the
+// constant became 12, understating the hardest attack in the game by half again. Removing the figures from
+// the copy is what makes THAT class of lie impossible, and it worked immediately — VOLLEY_DMG went 2 → 3
+// ninety seconds later with nothing to edit. It moved the last remaining duplicate into MECHANICS, which
+// still has to be walked by hand. Two checkers were running over this file that whole window and neither
+// could have caught it: both match on IDENTIFIERS, and a bare `8` is not an identifier.
 // A FIGHT IS PRICED IN CONNECTING BODIES, NOT IN DAMAGE — read this against the pool in spawnBoss or
 // neither number means anything. 25 ÷ 3 = 8.3 Dots at Epoch I, 35 ÷ 3 = 11.7 at Epoch III.
 //   RAISED 2 → 3 BECAUSE THE POOL MOVED AND THIS DID NOT. That is the same defect that had to be fixed at
