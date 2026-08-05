@@ -1927,18 +1927,23 @@ function fireMissile(b,a,kind,spOverride){
   //   ⚠️ THAT LINE WENT STALE ONE COMMIT AFTER IT WAS WRITTEN. 9fd8dcb raised four `life` values and left
   // it quoting the old products — 1361/1030/1159/1546 — inside a comment whose whole subject is that reach
   // is a product of the table above. Touch `MSL`, and this line is downstream of you.
-  //   ⚠️ `life` HARDLY EVER BINDS, and that is why this is safe. A lance is removed by whichever comes
-  // first — leaving the screen or running out of life — and the edge normally gets there. Measured at
-  // Epoch I: 0% of projectiles reached `life<=0`, every one culled off-screen; at Epoch III 13.3%,
-  // because they cover their ground faster.
-  //   ⚠️ BUT REACH IS FIXED AND THE ARENA IS NOT. `resize()` sets `W = vw/S` with `S` clamped at 1, so in
-  // design units the play field IS the viewport on anything desktop-sized — 1440 wide at 1440x900, 2560 at
-  // 2560x1440. Every reach above clears the first; NONE clears the second. Every fizzle figure in this
-  // block was taken at one harness viewport and none of them can speak to a big display. Arithmetic, not
-  // an observed fault — the boss fires from its own body, not from an edge, so whether a shot ever has
-  // 2200 units of arena ahead of it is a question about where it stands. Filed under Open in
-  // docs/MECHANICS.md with the run that would settle it; the lever if it bites is the table, not a return
-  // to the per-shot correction, which is what hid the seeker's deficit to begin with.
+  //   ⚠️ `life` HARDLY EVER BINDS at the harness viewport, which is what makes this safe there. After the
+  // 9fd8dcb raise: ZERO non-mine mid-arena expiries, all three variants, both Epochs. (An earlier draft
+  // cited "13.3% at Epoch III" here. DO NOT PUT IT BACK — that is a culled-by-`life` rate with MINES in
+  // it, and mines are supposed to hit life<=0; 16 of the Pulsar's 20 expiries were mines detonating as
+  // designed. A rate whose numerator holds a working mechanic describes neither it nor the fault.)
+  //   ⚠️ AND ARENA SIZE IS NOT WHAT DECIDES THIS — BOSS BEHAVIOUR IS. Reach is fixed while the arena is
+  // not (`resize()` sets `W = vw/S`, `S` clamped at 1, so in design units the field IS the viewport on
+  // anything desktop-sized), which invites a straight-line test against the width. Every version of that
+  // test is falsified by numbers we already have, at Epoch III pre-raise:
+  //     Emitter  volley 1361 (ABOVE the full 1280 width), no mines in its kit  ->  fizzled 11.8%
+  //     Sentinel seeker 1030, the SHORTEST reach in the game, below every test ->  fizzled 0%
+  // The ranking is inverted. The Sentinel chases, so it fires from close range and its paths are short
+  // whatever the display; the Emitter hovers and sweeps its shots across open ground. Reach must beat the
+  // path THE BOSS'S OWN BEHAVIOUR produces, and no arithmetic over `resize()` can supply that term.
+  // Open in docs/MECHANICS.md has the check: per variant at a real desktop viewport, non-mine expiries
+  // counted BY KIND. If it bites, the lever is the table, not a return to the per-shot correction — that
+  // is what hid the seeker's deficit to begin with.
   //   THIS USED TO DIVIDE `life` BY `ps` TO HOLD REACH CONSTANT, and the comment here called that "not
   // optional bookkeeping" — the Pulsar's ring would stop reaching you, the Emitter's fan would die
   // short. Measured with `act` held fixed and only `pace` varying, compensated and uncompensated were
