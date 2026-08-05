@@ -4812,8 +4812,18 @@ const TILT={
   full : 20,    // degrees from neutral for full speed — roughly the wrist's range before the screen
                 // tips far enough to be hard to read.
   speed: 14,    // design units per frame at full deflection, before moveMult
-  ease : 0.14,  // low-pass on the reading. Accelerometers are noisy and a raw feed judders; this also
-                // supplies the ease-in that the position chase gives every other input for free.
+  // SMOOTHING AS A TIME CONSTANT, IN SECONDS — not a per-event fraction.
+  //   It was `ease:0.14` applied once per event, which silently welded the feel of the control to the
+  // SAMPLE RATE. Tuned against the web deviceorientation feed at 60Hz it meant ~110ms; the CoreMotion
+  // bridge then arrived at 30Hz and the identical coefficient became ~221ms to reach 63% and ~663ms to
+  // reach 95%. Nobody changed the smoothing and the controls got twice as slow. Reported as "tilt
+  // reaction is a little slow", which is exactly what 221ms is.
+  //   Expressed as tau it is rate-independent: 30Hz native and 60Hz web now feel identical, and a
+  // future change to the sample rate cannot quietly retune the game again.
+  //   70ms rather than the old 221ms also because CoreMotion hands us sensor-FUSED attitude, already
+  // filtered, where the web feed was raw enough to need the heavy averaging. Smoothing it twice was
+  // paying latency for noise that had already been removed.
+  tau  : 0.07,  // seconds to reach 63% of a new reading (95% at ~3x that)
 };
 
 let tiltOn=false, tiltReady=false, tiltRef=null;
@@ -4830,7 +4840,8 @@ let tiltVerdict='not-asked';             // not-asked | no-api | granted | denie
 // Neutral is wherever you were holding it when the run began — nobody plays with the phone flat, and the
 // comfortable angle differs per person and per posture (desk vs sofa vs bed). Clearing the reference makes
 // the next sample the new zero.
-function tiltCalibrate(){ tiltRef=null; tiltVec.x=tiltVec.y=0; }
+let tiltLastT=0;   // performance.now() of the last reading; 0 means "no gap to measure yet"
+function tiltCalibrate(){ tiltRef=null; tiltVec.x=tiltVec.y=0; tiltLastT=0; }
 
 function tiltCurve(d){
   const s=Math.sign(d), m=Math.abs(d);
@@ -4856,11 +4867,25 @@ function onTilt(e){
   const a=(window.screen && screen.orientation && typeof screen.orientation.angle==='number')
     ? screen.orientation.angle : (window.orientation||0);
   tiltRaw.beta=e.beta; tiltRaw.gamma=e.gamma; tiltRaw.angle=a;
-  if(tiltRef===null){ tiltRef={beta:e.beta,gamma:e.gamma}; return; }  // this sample IS the new zero
+  if(tiltRef===null){ tiltRef={beta:e.beta,gamma:e.gamma}; tiltLastT=0; return; }  // this sample IS the new zero
   const m=tiltMap(e.beta-tiltRef.beta, e.gamma-tiltRef.gamma, a);
   const tx=tiltCurve(m.x), ty=tiltCurve(m.y);
-  tiltVec.x+=(tx-tiltVec.x)*TILT.ease;
-  tiltVec.y+=(ty-tiltVec.y)*TILT.ease;
+  // The smoothing factor comes from the time SINCE THE LAST READING, so the feel of the control does not
+  // depend on how fast the sensor reports.
+  //   The first reading after a calibration is SPENT, not guessed at. Assuming 1/60 for it instead left a
+  // measurable rate dependence — across 20-120Hz the same 200ms of tilt landed between 0.908 and 0.949,
+  // and only 60Hz matched theory, because the guess was only true at 60Hz. Skipping one sample costs
+  // ~16ms once per run, at the moment the phone is being held still to calibrate, and buys an identical
+  // response at every rate.
+  //   The 0.1s clamp covers a resume: after the app is backgrounded the gap can be minutes, exp() of that
+  // is 1, and the core would snap to full deflection on the first tick back.
+  const now=performance.now();
+  if(!tiltLastT){ tiltLastT=now; return; }
+  const gap=Math.min(0.1,(now-tiltLastT)/1000);
+  tiltLastT=now;
+  const k=1-Math.exp(-gap/Math.max(0.001,TILT.tau));
+  tiltVec.x+=(tx-tiltVec.x)*k;
+  tiltVec.y+=(ty-tiltVec.y)*k;
 }
 
 // ⚠️ GATED ON `touchSteers` TOO, NOT JUST `tiltOn`. Those two can disagree: `tiltOn` means the sensor
@@ -5218,6 +5243,9 @@ window.__orbital=window.__polaris=window.__flux={
   tilt(){ return {on:tiltOn, ready:tiltReady, ref:tiltRef, raw:{...tiltRaw},
                   vec:{x:+tiltVec.x.toFixed(3), y:+tiltVec.y.toFixed(3)},
                   tries:tiltTries, events:tiltEvents, verdict:tiltVerdict,
+                  // What the smoothing actually costs you, in ms, rather than as a coefficient to
+                  // reason about. 63% is the honest "it responded" figure; 95% is "it has arrived".
+                  lagMs:{to63:Math.round(TILT.tau*1000), to95:Math.round(TILT.tau*3000)},
                   wanted:tiltWanted(), touchSteers, fault:tiltFault(),
                   maxUnitsPerFrame:TILT.speed*(P?P.moveMult:1), TILT:{...TILT}}; },
   TILT, tiltSet, tiltCalibrate, stepTilt, tiltFault, refreshTouchSteer,

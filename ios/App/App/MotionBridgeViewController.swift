@@ -24,9 +24,14 @@ class MotionBridgeViewController: CAPBridgeViewController {
 
     private let motion = CMMotionManager()
 
-    /// 30Hz, not 60. Each update crosses into JS as an evaluated string, and the game low-passes the
-    /// reading anyway (TILT.ease), so sampling faster would buy nothing but main-thread work.
-    private let hz = 30.0
+    /// 60Hz, matching the game's step. This was 30Hz on the reasoning that the JS side low-passes the
+    /// reading anyway so sampling faster bought nothing — which was wrong twice over. The smoothing was
+    /// a per-EVENT fraction back then, so halving the rate doubled the lag (~221ms to 63%, felt and
+    /// reported as sluggish). That is fixed properly on the JS side, where smoothing is now a time
+    /// constant and rate-independent. What remains is staleness: at 30Hz a reading is up to 33ms old
+    /// before the game reads it, against a 16ms step. 60 costs one more string eval per frame and
+    /// removes half of that.
+    private let hz = 60.0
 
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
