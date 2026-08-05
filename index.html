@@ -634,6 +634,9 @@ const RING_GRACE=0.8, RING_GRACE_R=2.4;
 // roughly LINEAR in the pool. 18 was never a boundary; it was the pool at which one bot, on one time
 // budget, won the race often enough to matter. So "still above 18" is not a safety property and margin
 // arithmetic against it measures nothing — a pool trim buys MINUTES, not immunity.
+//   Where 18 came from, since it settles the question: the first commit's pool was `hp=13+act*5`, so
+// Epoch I WAS 18. It is the pool that happened to be in force when the test was run, not a boundary
+// anyone derived. Provenance beats argument here — a number with an era attached is a sample.
 //   OPEN, AND THE RIGHT QUESTION IS NOT THE POOL. It is whether a pilot who never volleys can still close
 // the fight inside a window they survive. Nobody has run that at any pool above 18 — argued, not tested.
 // Do not read a pool buff as a clearance, and do not read a trim as re-arming it. docs/MECHANICS.md ## Open.
@@ -665,16 +668,21 @@ const RING_GRIND_DMG=1;
 // A partial restoration on purpose: Epoch I is 3 baits rather than the old 2, because the pool was raised
 // for difficulty and the bait should not undo that — it should stay the answer a stripped player has, not
 // become the fast way past the fight.
-//   12 was explicitly REJECTED as a ceiling here once, on the grounds that it would one-shot an Epoch I
-// Pulsar with 11 hp. ⚠️ THAT FIGHT DOES NOT EXIST AND NEVER DID — `pickAnomalyVariant` returns the Emitter
-// unconditionally while `bossN===0`, and gates the Pulsar behind `act>=2`; Boss Rush pins `act=2`. So the
-// weakest Pulsar a player can meet is the EPOCH II one at 23 hp, not the Epoch I arithmetic at 19, and 19
-// is reachable only by calling spawnBoss('pulsar') from the debug seam — which is how it got written down.
-// Against 23, one bait leaves 11 and two finish it: the exact count 8 took against the old 11. The number
-// the old comment named as too strong is the number that preserves what it was protecting. That is the
-// pool moving, not the argument being wrong.
-//   Price variant HP against the EPOCH IT CAN FIRST APPEAR IN, not against the formula. The formula is
-// defined for every Epoch; the roster is not.
+//   ⚠️⚠️ 12 WAS EXCLUDED FOR MONTHS BY AN ARGUMENT THAT WAS NEVER VALID, not by one the pool later
+// invalidated. The rejection was "12 would one-shot an Epoch I Pulsar with 11 hp" — and an Epoch I Pulsar
+// has never been reachable in any commit of this repo. `pickAnomalyVariant` returns the Emitter
+// unconditionally while `bossN===0` and gates the Pulsar behind `act>=2`; Boss Rush pins `act=2`. Both
+// gates are in e21eda6, the first commit. Under the old pool the weakest Pulsar a player could actually
+// meet was the EPOCH II one at 15 hp, which 12 leaves alive at 3. It never one-shot anything.
+//   An earlier version of this note called that "the pool moving, not the argument being wrong". That was
+// the generous reading and it was false: the argument was wrong when written, and the pool moving is
+// irrelevant to it. Recorded rather than quietly replaced, because the failure is the interesting part —
+// a constraint computed from a state the game cannot produce reads exactly like a finished argument, and
+// gets obeyed for months. Nothing fails; the number is simply never revisited.
+//   Today: the weakest reachable Pulsar is the Epoch II one at 23 hp. One bait leaves 11, two finish it.
+// The Epoch I arithmetic of 19 is a seam artefact — spawnBoss('pulsar') will build it, play will not.
+//   PRICE A VARIANT AGAINST THE EPOCH IT CAN FIRST APPEAR IN, NOT AGAINST THE FORMULA. The formula is
+// defined for every Epoch; the roster is not. Check the gate before quoting a row.
 const CHARGE_DMG=12;
 // EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
 // Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
@@ -1614,6 +1622,11 @@ function fireMissile(b,a,kind,spOverride){
   // 25% and leave `life` alone and it covers 25% less ground, so patterns stop arriving instead of
   // arriving later: the Pulsar's ring no longer reaches you, the Emitter's fan dies short of the lane it
   // was sweeping. That is a different fight, not a slower one.
+  //   REACH IS AN IDENTITY HERE, NOT A MEASUREMENT: (sp × ps) × (life / ps) = sp × life, exactly, for
+  // every kind and every ps. `ps` cancels. The 599px measured at both Epoch I and III confirmed algebra
+  // rather than sampling it — which is the useful part, because it means NO FUTURE CHANGE TO `pace.spd`
+  // CAN EVER NEED THIS RE-MEASURED. The only thing that moves reach is `sp × life` itself, in the table
+  // above. An identity is the strongest pin a number can have; prefer one to a remembered figure.
   //   The cost of doing it right: a slower shot that still travels its full distance is ON SCREEN longer,
   // so more are in the air at once. `pace.cad` firing fewer of them is what pays for that. If an early
   // Epoch ever reads as MORE cluttered rather than calmer, this coupling is the cause and `life` is the
