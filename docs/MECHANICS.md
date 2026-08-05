@@ -350,19 +350,29 @@ halved (`P.chargeGain`), so a meter is twice as slow to earn and buys half as lo
 you spend on a moment rather than a mode you live in.
 
 **What it does is reach, and speed.** `P.eddy` moves the ring orbit outward and spins it harder,
-`P.ringMul` raises capacity, `P.fieldR` widens the catch, `P.moveMult` speeds the star. Measured, the
-shell settles at **214px** against a base 114px and gets most of the way there inside a fifth of a
-second — it arrives as a snap, not a drift — and turns at **5.82 rad/s against a base 2.52**, one
-revolution every **1.08s**. A **full** meter buys **2.78 revolutions**.
+`P.ringMul` raises capacity, `P.moveMult` speeds the star. Measured on a Drifter, the shell settles at
+**183px** against a base 114px and gets most of the way there inside a fifth of a second — it arrives as
+a snap, not a drift — and turns at **6.80 rad/s against a base 2.52**, one revolution every **0.92s**. A
+**full** meter buys **3.25 revolutions**.
 
-⚠️ *That used to read "half a meter", and the geometry is not what changed* — the shell and the spin are
-untouched. The drain doubled, so a meter buys half the seconds it did and the same 2.78 revolutions now
-cost the whole bar. Any older figure quoted per *half* gauge is a figure per *full* gauge today.
+⚠️ **`P.fieldR` is no longer one of the levers.** The Field is `BASE_FIELDR` in every state; Overdrive
+used to widen it too and stopped in `fbe4d18`, because a shell bulging past the rim read as unexpected
+reach rather than as a faster sweep. **Nothing about the ring was retuned** — `orbR` is a fraction *of*
+`fieldR`, so it fell on its own, the shell came in from 214px, and **the spin rose 17% for free**. That
+is the v/r trade below running in the direction that pays: ring speed is pinned at a ceiling, so pulling
+the orbit in returns the difference as rotation.
+
+⚠️ *Two older restatements of the revolutions figure, both now superseded.* It read **2.78** until the
+Field change, and before that it read "half a meter" when the drain was half what it is. Neither the
+geometry nor the drain is what moved this time. **Any figure here quoted per *half* gauge is a figure per
+*full* gauge today, and any 2.78 predates `fbe4d18`.**
 
 **Three constants own that, and they only work together.** The eddy orbit, the eddy spin, and the
 ringed-matter speed ceiling `RING_CAP`. Widening the shell and spinning it faster *fight each other* —
 angular rate is v/r, so a wider ring is a slower-looking one — and the ceiling caps the result of both.
-Change one and you will measure almost nothing; that is the whole reason they are documented as a set.
+**Since `fbe4d18` there is only one widener left**, the eddy fraction; the Field no longer contributes,
+which is why removing it bought rotation instead of costing sweep. Change one and you will measure almost
+nothing; that is the whole reason they are documented as a set.
 `closing` is deliberately **not** on `RING_CAP`: like-charge on its way in is not a ring yet, and giving
 it ring-grade speed makes gathering feel like a vacuum, which is the misconception the game works
 hardest to avoid.
@@ -777,20 +787,30 @@ it makes it far worse.** This was assumed the other way round for a long time, a
 was taken partly on the assumption. Measured:
 
 **The band is an identity, and it is written as one because every attempt to write it as numbers has
-been wrong.** Contact requires `|R − orbR|` under `boss.r + dot.r`, so:
+been wrong.** Contact requires the gap between the shell and the Anomaly to fall under `boss.r + dot.r`,
+so:
 
-> band = `orbR ± (boss.r + dot.r)`  ·  width = `2 × (boss.r + dot.r)`
+> band = *settle radius* ± `(boss.r + dot.r)`  ·  width = `2 × (boss.r + dot.r)`
 
-**Centred on the ring's orbit, with a width that does not contain `orbR` at all.** So Overdrive **shifts
-the band outward and cannot widen it** — `orbR` is a fraction of `P.fieldR`, and burning scales *both*
-the field and the fraction, moving the centre out twice over while the width is untouched. Retune either
-and the width provably does not move; only `boss.r` or the Dot's own radius can change it.
+*The settle radius has no name in the code* — it is an emergent equilibrium, not a variable, so it is
+written here in words rather than backticks. Only `orbR`, the target it overshoots, is a symbol.
 
-*Two things the numbers hid.* The band is **species-dependent** — a Brute ring grinds across a window
-wider than a Mini ring's by **twice the difference in their hull radii**, at any orbit, which is a real
-mechanical difference nobody has measured for effect. And **there is no single band**: the inner edge
-spans the whole roster's radii, a spread an order of magnitude larger than the precision the endpoints
-were once quoted to.
+⚠️ **The settle radius, not `orbR` — and this doc said `orbR` for two commits, which was wrong.** `orbR` is only
+the spring's *target*; the tangential spin drives the shell past it and the two balance out further
+along. At rest they agree, but while burning the shell settles about a third beyond the target. Quoting
+`orbR` understates every consequence of the orbit by that much. The correction is in `index.html` at the
+ring-capture block, with the measurement.
+
+**Centred on where the shell actually sits, with a width that does not contain the radius at all.** So
+Overdrive **shifts the band outward and cannot widen it** — retune the orbit and the width provably does
+not move; only `boss.r` or the Dot's own radius can change it.
+
+*Two things the numbers hid, and species-dependence turned out to enter twice.* A Brute ring grinds
+across a window wider than a Mini ring's by **twice the difference in their hull radii** — and, separately,
+each species **settles at a different radius**, because every Dot rides its own speed ceiling and the
+shell balances at v/r. So the band's width *and* its centre both vary by species. **There is no single
+band, and there is no single shell radius either**; a rig that feeds one species is measuring that
+species, which is exactly how the endpoints went wrong.
 
 ⚠️ *Endpoints were quoted here and are gone on purpose.* They read as measurements and were arithmetic —
 computed from a hull radius that did not even match the species the rig fed. The measurement bracketed
@@ -800,6 +820,13 @@ while burning, varying about threefold across the band, so it is a range and not
 
 At the range the rest of the fight pushes you toward, Overdrive takes the grind away rather than adding
 to it. **Closing to raise your volley hit rate and burning to grind harder are not compatible plans.**
+
+⚠️ *That conclusion survived `fbe4d18` but its mechanism changed, which is the more interesting half.*
+When Overdrive also widened the Field the two bands were **disjoint** — burning moved the shell clean off
+everything the base ring could reach. With the Field pinned they now **overlap**, and the conclusion
+holds anyway, on the measurement rather than on the geometry: close in, grinding is still several times
+worse while burning. **A conclusion that outlives the argument it was built on has to be re-derived, not
+re-asserted** — this one was checked and kept; it could as easily have gone the other way.
 
 **The mechanism is why this is a finding and not a table.** Grind throughput is **feed-limited, not
 speed-limited**: usable ring Dots run *inverse* to damage dealt, because the grind eats its own supply on
@@ -1361,9 +1388,17 @@ could be compared.
 
 *The defence, which generalises well past that block:* **pick the unit that survives the constants
 around it, then pin the value with two independent restatements.** Ring physics belongs in rev/s, not
-in fractions of a meter whose seconds are a tunable — and `0.927 rev/s = one turn per 1.08s =
-5.82 rad/s` is one quantity said three ways. A re-measurement disagreeing with all three is the
-measurement's problem; disagreeing with one is a conversion error you can actually find. **Gauge
+in fractions of a meter whose seconds are a tunable — and a rate written as `rev/s`, `s per turn` and
+`rad/s` together is one quantity said three ways. A re-measurement disagreeing with all three is the
+measurement's problem; disagreeing with one is a conversion error you can actually find. `index.html`
+carries the current triple at the ring-capture block, and this entry deliberately no longer copies it.
+
+⚠️ *Because the triple this entry used to quote went stale — inside the entry warning about stale
+figures.* `fbe4d18` pulled the ring orbit in and the spin rose, so all three numbers moved at once. **A
+unit that survives repricing is not a value that never changes**, and the two are easy to conflate:
+choosing `rev/s` protected the figure from a *drain* change, exactly as advertised, and did nothing
+about a *geometry* change, which was never the claim. The defence is the unit. Only deleting the value
+defends the value. **Gauge
 fractions are the right unit for the meter and the wrong one for the ring**, and choosing by what the
 sentence is *about* rather than by what is convenient is most of this trap.
 

@@ -14,6 +14,23 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### Overdrive stops widening the Field, and the ring gets faster for free `fbe4d18`
+**Burning no longer stretches your gathering reach.** The Field is now the same size in every state.
+Overdrive used to widen it as well as the ring, which made a burn read as unexpected extra *reach*
+rather than as a faster sweep — the shell bulged past the rim instead of filling it.
+
+**Nothing about the ring was retuned, and it came out quicker anyway.** The ring's orbit is a fraction
+*of* the Field, so pinning one pulled the other in on its own — and ringed matter rides a fixed speed
+ceiling, so a tighter orbit hands the difference back as rotation. **The shell now turns about 17%
+faster and a full meter buys more revolutions than it did**, with no constant touched. Angular rate is
+speed over radius; this is that trade running in the direction that pays.
+
+**One silent bug went with it.** The fling shell has a fixed ceiling, and the widened Field had grown
+*past* it — so a fully-loaded hungry flip while burning threw **no** loose Dots at all, where the same
+flip at base threw a share of them. Nothing surfaced it: the ring-spend path reports a fling either way,
+so a count of thrown Dots looked healthy in both states. The shell is now pinned clear of the Field in
+every state.
+
 ### Early Anomalies are slower, the pool is trimmed, and the volley finally gets repriced `d214716`
 **The Anomaly's first fights now run slower on two axes**, easing to full speed by Epoch III and flat
 after. Every gap between its attacks is stretched and every projectile is slowed. Both, because either
