@@ -776,25 +776,30 @@ hoard you actually built.
 it makes it far worse.** This was assumed the other way round for a long time, and one balance decision
 was taken partly on the assumption. Measured:
 
-The band where a grind connects at all sits at roughly **67–161px**, and **128–222px** while burning. At
-every distance measured inside your usual fighting range, grinding is **several times worse** under
-Overdrive — the penalty varies about threefold across the band, so it is a range and not a factor, and
-naming a single multiplier would be quoted back as though it were uniform.
+**The band is an identity, and it is written as one because every attempt to write it as numbers has
+been wrong.** Contact requires `|R − orbR|` under `boss.r + dot.r`, so:
 
-**The band shifts outward and its width cannot change, and that is an identity rather than an
-observation.** Contact requires `|R − orbR|` under `boss.r + dot.r`, so the band is always
-`orbR ± (boss.r + dot.r)` — **centred on the ring's orbit, with a width that does not contain `orbR` at
-all.** The measured endpoints above differ by the same span twice because they could not have differed
-by anything else.
+> band = `orbR ± (boss.r + dot.r)`  ·  width = `2 × (boss.r + dot.r)`
 
-So **if the Overdrive orbit is ever retuned, the band's centre moves and its width provably does not**,
-and nobody needs to re-measure it. Only `boss.r` or the Dot's own radius can widen it — which also means
-the band is **species-dependent**: a hoard of Brutes grinds across a meaningfully wider window than a
-hoard of Minis, at any orbit. That follows from the geometry and has not been measured for effect.
+**Centred on the ring's orbit, with a width that does not contain `orbR` at all.** So Overdrive **shifts
+the band outward and cannot widen it** — `orbR` is a fraction of `P.fieldR`, and burning scales *both*
+the field and the fraction, moving the centre out twice over while the width is untouched. Retune either
+and the width provably does not move; only `boss.r` or the Dot's own radius can change it.
 
-The consequence for play is unchanged and now rests on the identity rather than the four numbers: at the
-range the rest of the fight pushes you toward, Overdrive takes the grind away rather than adding to it.
-**Closing to raise your volley hit rate and burning to grind harder are not compatible plans.**
+*Two things the numbers hid.* The band is **species-dependent** — a Brute ring grinds across a window
+wider than a Mini ring's by **twice the difference in their hull radii**, at any orbit, which is a real
+mechanical difference nobody has measured for effect. And **there is no single band**: the inner edge
+spans the whole roster's radii, a spread an order of magnitude larger than the precision the endpoints
+were once quoted to.
+
+⚠️ *Endpoints were quoted here and are gone on purpose.* They read as measurements and were arithmetic —
+computed from a hull radius that did not even match the species the rig fed. The measurement bracketed
+the band; it never produced its edges. **The qualitative result is robust and was never the part at
+risk**: at every distance tested inside your usual fighting range, grinding is **several times worse**
+while burning, varying about threefold across the band, so it is a range and not a factor.
+
+At the range the rest of the fight pushes you toward, Overdrive takes the grind away rather than adding
+to it. **Closing to raise your volley hit rate and burning to grind harder are not compatible plans.**
 
 **The mechanism is why this is a finding and not a table.** Grind throughput is **feed-limited, not
 speed-limited**: usable ring Dots run *inverse* to damage dealt, because the grind eats its own supply on
