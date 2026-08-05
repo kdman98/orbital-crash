@@ -1427,27 +1427,48 @@ function formSorter(){
 // rather than gained an enemy — which is what makes it an event. Strand it mid-sky and it is just one
 // more Brute hunting you, i.e. exactly the "this turn's shape" the timer below exists to prevent.
 const COMET_SPD=7.6;
+// A SHOWER, NOT A COMET — 3 to 5 of them on one heading. A single body crossing the sky was a curio;
+// a stream of them is weather, which is what the note below always wanted this to be. Author: "shower
+// 3-5 comets at a pattern. wont it be cosmic?"
+//   ⚠️ THE SPREAD IS THE WHOLE THING, and getting it wrong makes a WALL, which is `formWall`'s job and
+// a completely different demand. Three separate spreads keep it a stream you weave through:
+//   LATERAL  — abreast across the heading, so they arrive as a rank rather than single file.
+//   TRAIL    — each pushed BACK along the heading, so the rank is ragged and they cross in sequence
+//              instead of as one line. This is the one that makes it read as falling rather than sweeping.
+//   AIM      — every body solves its own near-miss point, so the stream FANS as it crosses. With one
+//              shared target they would converge, which is a noose, not a shower.
+// Speed varies per body too, so the gaps keep opening the whole way across.
 function formComet(){
-  const edge=irand(0,3), m=120;
-  let x,y;
-  if(edge===0){ x=-m;   y=rand(H*0.15,H*0.85); }
-  else if(edge===1){ x=W+m; y=rand(H*0.15,H*0.85); }
-  else if(edge===2){ x=rand(W*0.15,W*0.85); y=-m; }
-  else { x=rand(W*0.15,W*0.85); y=H+m; }
-  // aimed to pass NEAR the Star rather than at it — a comet has its own path and you go to meet it
+  const edge=irand(0,3), m=120, n=irand(3,5);
+  let bx,by;
+  if(edge===0){ bx=-m;   by=rand(H*0.15,H*0.85); }
+  else if(edge===1){ bx=W+m; by=rand(H*0.15,H*0.85); }
+  else if(edge===2){ bx=rand(W*0.15,W*0.85); by=-m; }
+  else { bx=rand(W*0.15,W*0.85); by=H+m; }
+  // one shared heading, so the whole shower is legibly ONE event arriving from one place
   const tx=(P?P.x:W/2)+rand(-230,230), ty=(P?P.y:H/2)+rand(-230,230);
-  const dx=tx-x, dy=ty-y, d=Math.hypot(dx,dy)||1;
-  const ux=dx/d, uy=dy/d;
-  // Distance to clear the far side, SOLVED rather than guessed: ray-vs-box against the viewport padded
-  // by the same margin it spawned outside of. One fixed distance cannot serve both a level crossing and
-  // a steep corner-to-corner one — it is aimed at a point near the middle, so the far half of the
-  // journey is never the same length as the near half.
-  // Both components are finite-guarded: (ux,uy) is a unit vector, so at least one axis always crosses.
-  const ex = ux>0 ? (W+m-x)/ux : ux<0 ? (-m-x)/ux : Infinity;
-  const ey = uy>0 ? (H+m-y)/uy : uy<0 ? (-m-y)/uy : Infinity;
-  const e=spawnEnemy('heavy', Math.random()<0.5?'red':'cyan', x, y);
-  holdBody(e, ux*COMET_SPD, uy*COMET_SPD, Math.min(ex,ey)/COMET_SPD/60);
-  if(e) e.comet=1;
+  const bdx=tx-bx, bdy=ty-by, bd=Math.hypot(bdx,bdy)||1;
+  const hx=bdx/bd, hy=bdy/bd, sx=-hy, sy=hx;      // heading, and its perpendicular
+  for(let i=0;i<n;i++){
+    const lateral=(i-(n-1)/2)*rand(72,132), trail=i*rand(60,150);
+    const x=bx+sx*lateral-hx*trail, y=by+sy*lateral-hy*trail;
+    // aimed to pass NEAR the Star rather than at it — a comet has its own path and you go to meet it
+    const ax=(P?P.x:W/2)+rand(-260,260), ay=(P?P.y:H/2)+rand(-260,260);
+    const dx=ax-x, dy=ay-y, d=Math.hypot(dx,dy)||1;
+    const ux=dx/d, uy=dy/d, sp=COMET_SPD*rand(0.9,1.12);
+    // Distance to clear the far side, SOLVED rather than guessed: ray-vs-box against the viewport padded
+    // by the same margin it spawned outside of. One fixed distance cannot serve both a level crossing and
+    // a steep corner-to-corner one — each body is aimed at its own point, so no two journeys match.
+    // Both components are finite-guarded: (ux,uy) is a unit vector, so at least one axis always crosses.
+    // The `max(0.5, …)` floor matters now that TRAIL can push a body further out than the base point:
+    // a negative solve would hand `holdBody` a hold of 0 and the comet would drop out of formation
+    // flight on its first frame, becoming an ordinary Brute sitting in the margin.
+    const ex = ux>0 ? (W+m-x)/ux : ux<0 ? (-m-x)/ux : Infinity;
+    const ey = uy>0 ? (H+m-y)/uy : uy<0 ? (-m-y)/uy : Infinity;
+    const e=spawnEnemy('heavy', Math.random()<0.5?'red':'cyan', x, y);
+    holdBody(e, ux*sp, uy*sp, Math.max(0.5, Math.min(ex,ey)/sp/60));
+    if(e) e.comet=1;
+  }
 }
 // The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
 // like any other — and a comet should read as a thing that happens to the sky, not as this turn's
@@ -1800,26 +1821,40 @@ function spawnBoss(forceVariant){
 //   mine   — drifts, arms, then detonates.           Answer: don't be standing there. Denies ground.
 //   spear  — telegraphs a line, then fires down it.  Answer: leave the line before it goes.
 const MSL={
-  volley:{sp:5.4, r:9,  life:4.2},
+  // ⚠️ A MISSILE MUST NEVER EXPIRE WHERE YOU CAN SEE IT. Author: "it doesnt have to expire on screen."
+  // A shot that winks out mid-arena is the game taking back a threat it already made, and it reads as a
+  // bug whether or not it is one. `life` exists as a BACKSTOP against a projectile that never leaves —
+  // a curving seeker, mostly — not as the thing that ends an ordinary flight. The screen edge should
+  // always get there first (`L.seen && !inb` in stepLances).
+  //   Every non-mine value below is therefore sized PAST the longest crossing, with margin: measured
+  // x1.25 on top of the previous numbers already took mid-arena expiries to zero for all three variants
+  // at both Epoch I and Epoch III, and these sit near x1.4. Extra life past that point costs nothing at
+  // all, because a straight missile is culled the frame it exits and never sees the surplus.
+  //   ⚠️ THE MINE IS NOT IN THIS RULE, and its `life` means something else entirely: it is a FUSE. A
+  // mine is SUPPOSED to run out on screen — that is how it detonates (`mineBlast` on the life<=0 path).
+  // Scaling it with the others would push its blast later and thin the minefield. It stays at 3.4.
+  //   This distinction cost a wrong report: an earlier sweep counted mines expiring as "fizzles" and
+  // made the Pulsar look 15-18% broken when 16 of its 20 expiries were mines going off exactly as
+  // designed. Count by kind, or the metric describes the wrong mechanic.
+  volley:{sp:5.4, r:9,  life:6.0},
   // seeker turn radius is v/w = 3.3/0.055 = 60px — it out-TURNS you easily, but at 3.3px/frame it cannot
   // out-RUN a Star doing 6.2, so the answer is to run, not to juke. Tracking was 1.1s and the Sentinel
   // (seekers + swarmers + orbit) went 0-for-2 against a bot the other two kinds lost to 0-for-4; 0.85s
   // lets a late cut beat them without making them ignorable.
-  // ⚠️ `life` 5.2 -> 6.9, and it is the ONE table value the reach change forced. The seeker is the only
-  // kind that CURVES: it spends 0.85s turning toward you before committing, so its path is much longer
-  // than the distance it closes, and reach has to pay for the arc as well as the approach. Straight
-  // flyers do not — volley/spear/ring clear the arena at 0.75 speed with room to spare.
-  //   The old per-shot `life/ps` correction was hiding this. It held reach constant, so a seeker value
-  // that was too low for a slowed curve never showed. Measured at Epoch I once the correction went:
-  // Sentinel fizzled 44.4% of its shots ON SCREEN against 11.1% before, Emitter 6.8% against 0. At 6.9
-  // (= 5.2 / 0.75, the old effective figure) both return to their previous numbers and Epoch III is
-  // untouched — 11.8% and 17.9% either way, because at ps=1 nothing about it changed.
+  // ⚠️ THE SEEKER NEEDS THE MOST LIFE OF ANYTHING, 5.2 -> 9.6, because it is the only kind that CURVES.
+  // It spends 0.85s turning toward you before committing, so its PATH is far longer than the distance it
+  // closes, and reach has to pay for the arc as well as the approach. The straight flyers do not.
+  //   This is why it was the one that broke when the per-shot `life/ps` correction went. That correction
+  // held reach constant, so a seeker value too low for a slowed curve never showed: at Epoch I the
+  // Sentinel — which fires seekers and nothing else, 36 of 36 — went from 15 shots dying mid-arena to 4
+  // at 6.9, and to 0 here. The correction had been hiding a table value, which is the argument for
+  // setting reach in the table rather than patching it at the muzzle.
   //   The general form, now that reach is `sp × 60 × life` and nothing corrects it: A TABLE VALUE MUST
   // BE SIZED FOR THE SLOWEST PACE IT WILL EVER FLY AT, not for the nominal one.
-  seeker:{sp:3.3, r:9,  life:6.9, turn:0.055, seekFor:0.85},
-  ring:  {sp:4.6, r:9,  life:4.2},
-  mine:  {sp:0.9, r:11, life:3.4, arm:1.2, blast:104},
-  spear: {sp:9.2, r:8,  life:2.8, tel:0.55},
+  seeker:{sp:3.3, r:9,  life:9.6, turn:0.055, seekFor:0.85},
+  ring:  {sp:4.6, r:9,  life:6.0},
+  mine:  {sp:0.9, r:11, life:3.4, arm:1.2, blast:104},   // FUSE, not reach — see the block above
+  spear: {sp:9.2, r:8,  life:4.0, tel:0.55},
 };
 // Aim that LEADS the Star's current motion. Without this a "straight shot at you" only ever asks you
 // to keep doing what you were already doing, which is not a dodge.
@@ -2645,7 +2680,16 @@ function stepAnnihilation(){
                   trauma=Math.min(1,trauma+0.34);
                   spawnRing(ix,iy,'#fff',B.r+26); spawnRing(ix,iy,COL[X.color],B.r+96);
                   spawnBurst(ix,iy,'#fff',16,4.6); spawnBurst(ix,iy,COL[X.color],12,3.4);
-                  pushText(B.x,B.y-B.r-34,'BAITED  -'+d,COL.gold,1.15,22);
+                  // ⚠️ IT DOES NOT REPRINT THE NUMBER. This read 'BAITED  -12', and the ordinary erosion
+                  // readout four lines up has ALREADY drawn '-12' at this exact moment, 26px below it —
+                  // the same figure twice, in two colours, in the busiest frame the game has. Author:
+                  // "somewhat not fun and explaining". Same second-encoding fault as the chain text.
+                  // The gold line says WHAT HAPPENED; the red/cyan number underneath says how much.
+                  //   Mixed case is the minor design tell, and it is the only mixed-case string in the
+                  // world layer — every other one is a caps readout (BOUNTY +, STREAK BURST, EPOCH II).
+                  // A remark reads differently from a measurement, which is the point: this is the game
+                  // reacting to something you set up, not reporting a quantity.
+                  pushText(B.x,B.y-B.r-34,'Charger Poked!',COL.gold,1.15,22);
                   if(typeof sfx!=='undefined') sfx.baited();
                 }
                 // 'Skeet Shooter' — you fired your Gilded Bounty as ammunition and it connected. The
