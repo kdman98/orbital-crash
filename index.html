@@ -624,19 +624,23 @@ const RING_GRACE=0.8, RING_GRACE_R=2.4;
 //
 // THIS NUMBER ONLY MEANS ANYTHING AGAINST THE HP CURVE — never read or reprice it alone. At 1 against an
 // 18 HP Epoch I pool, a bot orbiting at 130px that never fires a volley solo-kills the boss; that is why
-// it once sat at 0.5, and it is back at 1 only because the pool was raised above it.
-// OPEN, DOWNGRADED, NOT CLOSED. The pool dropped to 15 — below that 18 — and the same test then showed 5
-// of 9 runs solo-killing the Epoch I Anomaly. Epoch I is 25 now, still above the 18 the warning was
-// written against, so the TRIGGER stays gone — but the margin went 12 to 7 when the buff was trimmed from
-// +15 to +10, so this is closer to re-arming than it looks. The DEFECT may not be gone at all: HP is a
-// scalar and moves no ratio, so a longer pool makes a solo grind slower without making it impossible.
-// ⚠️ Nobody has re-run the bot at any pool above 18 — this is argued, not tested. Do not read the buff as
-// a clearance, and re-check it if the pool is ever trimmed again. See docs/MECHANICS.md ## Open.
-//   One measured fact that bears on it, and cuts against the obvious reading: Overdrive does NOT make
-// grinding stronger. It moves the band where a grind connects at all (orbit 114 → 175px, so roughly
-// 67-161px becomes 128-222px) and inside 150px it makes grinding about 4x WORSE. Throughput is
-// feed-limited — usable ring Dots run inverse to damage dealt, i.e. the grind eats its whole supply — so
-// ring SPEED cannot raise its ceiling. Only gathering more matter can.
+// it once sat at 0.5. At a pool of 15 the same test solo-killed in 5 of 9 runs.
+//   ⚠️ 18 IS NOT A THRESHOLD, AND THIS COMMENT USED TO CLAIM IT WAS. It carried both models three lines
+// apart — "the margin went 12 to 7, closer to re-arming than it looks" (a cliff at 18) and "HP is a scalar
+// and moves no ratio, so a longer pool makes a solo grind slower without making it impossible" (no cliff
+// at all). Both cannot hold. The second one is right, and the measurement now backs it: grind throughput
+// is FEED-LIMITED — usable ring Dots run inverse to damage dealt, so the grind eats its whole supply and
+// the ceiling is set by gathering rate and arena density, not by the pool. Time-to-solo-kill is therefore
+// roughly LINEAR in the pool. 18 was never a boundary; it was the pool at which one bot, on one time
+// budget, won the race often enough to matter. So "still above 18" is not a safety property and margin
+// arithmetic against it measures nothing — a pool trim buys MINUTES, not immunity.
+//   OPEN, AND THE RIGHT QUESTION IS NOT THE POOL. It is whether a pilot who never volleys can still close
+// the fight inside a window they survive. Nobody has run that at any pool above 18 — argued, not tested.
+// Do not read a pool buff as a clearance, and do not read a trim as re-arming it. docs/MECHANICS.md ## Open.
+//   One more measured fact, which cuts against the obvious reading: Overdrive does NOT make grinding
+// stronger. It moves the band where a grind connects at all (orbit 114 → 175px, so roughly 67-161px
+// becomes 128-222px) and inside 150px it makes grinding about 4x WORSE. Ring SPEED cannot raise the
+// ceiling. Only gathering more matter can.
 const RING_GRIND_DMG=1;
 // A COMMITTED CHARGE driven into the Anomaly — the biggest single hit in the game, and the only erosion
 // that costs you no ammunition and no Capacitor, so it is the whole answer for a player stripped of
@@ -662,9 +666,15 @@ const RING_GRIND_DMG=1;
 // for difficulty and the bait should not undo that — it should stay the answer a stripped player has, not
 // become the fast way past the fight.
 //   12 was explicitly REJECTED as a ceiling here once, on the grounds that it would one-shot an Epoch I
-// Pulsar with 11 hp. That Pulsar has 19 hp now, so 12 takes two baits to kill it — the exact count 8 took
-// against 11. The number the old comment named as too strong is the number that preserves what it was
-// protecting. That is the pool moving, not the argument being wrong.
+// Pulsar with 11 hp. ⚠️ THAT FIGHT DOES NOT EXIST AND NEVER DID — `pickAnomalyVariant` returns the Emitter
+// unconditionally while `bossN===0`, and gates the Pulsar behind `act>=2`; Boss Rush pins `act=2`. So the
+// weakest Pulsar a player can meet is the EPOCH II one at 23 hp, not the Epoch I arithmetic at 19, and 19
+// is reachable only by calling spawnBoss('pulsar') from the debug seam — which is how it got written down.
+// Against 23, one bait leaves 11 and two finish it: the exact count 8 took against the old 11. The number
+// the old comment named as too strong is the number that preserves what it was protecting. That is the
+// pool moving, not the argument being wrong.
+//   Price variant HP against the EPOCH IT CAN FIRST APPEAR IN, not against the formula. The formula is
+// defined for every Epoch; the roster is not.
 const CHARGE_DMG=12;
 // EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
 // Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
