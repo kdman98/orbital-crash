@@ -107,8 +107,8 @@
   /* ---- ONE persistent feedback channel now. No centre banner: the world announces itself by DOING it.
      #achv (top centre, gold) — a feat was recorded.
      The second channel was #pickup, and it was justified on the grounds that a powerup's EFFECT is the
-     one thing you cannot read off the screen. Overdrive does not need it: you pressed it, and the field
-     visibly swells the frame you do. ---- */
+     one thing you cannot read off the screen. Overdrive does not need it: you pressed it, and your ring
+     snaps outward and starts whirling within a fifth of a second. ---- */
   /* achievement toast (separate from the centre banner) */
   #achv{position:absolute;left:50%;top:94px;transform:translateX(-50%);pointer-events:none;max-width:90vw;
     padding:9px 20px;border-radius:100px;background:rgba(22,17,6,.9);border:1px solid rgba(255,207,77,.5);
@@ -598,6 +598,13 @@ const RING_FIRE_HC=0.5; // a flip only FLINGS once hold-charge passes this — q
 // IT MUST STAY PAST IT. Ring capture is `d<P.fieldR` — the whole Field — so a fling radius inside 190
 // diverts every Dot this exists for to the ring branch instead: at 170 a full-charge flip with 30
 // Dots around the core measured 25 ringed and 0 flung.
+//   ⚠️ THE MARGIN IS 20px AND IT HAS BEEN NEGATIVE ONCE. Overdrive used to widen the Field to 243.2 —
+// 33px PAST the fling's own ceiling — so a fully-loaded hungry flip while burning flung exactly ZERO
+// loose Dots, against 9 of the same 75 at base. Nothing warned; `purged` is not printed any more and
+// the ring-spend path sets `flung` too, so a naive count of thrown Dots reports 66 either way and looks
+// healthy. The Field is pinned now (see stepOverdrive) and the shell is +20 in every state, but this is
+// the shape of the failure: ANY future multiplier on `fieldR` silently deletes this mechanic, and the
+// only honest check is loose-flung count with ring membership snapshotted BEFORE the flip.
 const PURGE_R0=80, PURGE_RCHG=70, PURGE_RPER=6, PURGE_RING_CAP=10;
 // Impulse, not damage. `flung` skips the speed clamp, drops friction to 0.985 and zeroes seek, so the
 // throw distance is `v0 · (1-0.985^N)/0.015` with `N = FLING_HOLD·60` — roughly 370px at the rim and
@@ -732,7 +739,7 @@ const VOLLEY_HOLD=1.75;
 // one ±1 in the pool away at each — but it was once written as an invariant while being false, which is
 // worse than not having it, so it stays recorded as a wish rather than a rule.
 const VOLLEY_DMG=3;      // per Dot that connects — aimed and guided, the highest price in the game
-const BASE_FIELDR=190;  // the star's gravity reach never changes now (no upgrades) — Overdrive widens it only while its timer runs
+const BASE_FIELDR=190;  // the star's gravity reach. CONSTANT — no upgrades, and Overdrive no longer widens it either (see stepOverdrive)
 // CAPACITOR INCOME IS BOUNDED. Both combo-driven streams cap at combo ~90, and they must stay in step:
 // this one in onKill (`Math.min(CHG_KILL_CAP, 0.006 + combo*0.0002)`, binding at 90) and the streak
 // trickle in stepRunTimers (`Math.min(0.035, combo*0.0004)`, binding at ~88). `combo` is a no-hit streak
@@ -751,6 +758,14 @@ const RING_CAP=5.0;
 //  spins them FAST, so the armour you gathered by holding a polarity
 //  becomes a sweeping perimeter — every point of it paid for out of the
 //  same meter, in real time, while you watch it go.
+//
+//  IT DOES NOT MAKE THE FIELD BIGGER, deliberately, and that is the one
+//  thing about it people try to add back. The shell rides out to the rim
+//  and fills it; it does not push past it. Everything Overdrive is for
+//  lives in the RING — radius, spin, capacity — and the Field it rides
+//  inside is the same Field you steer with when the meter is empty, so
+//  what the burn changes is your matter, never your reach. See
+//  stepOverdrive for the three measurements that killed the widening.
 //
 //  THERE ARE NO POWERUPS AND NO COLLAPSE. Three orbs (Aegis / Overdrive /
 //  Nova) and a full-screen Collapse wave stood here. Measured, they did
@@ -782,8 +797,11 @@ let odFrom=0;                // charge at ignition — only so 'Redline' can tel
 // goes with them.
 const OD_DRAIN=1/3;          // charge per second while burning
 // ARMING FLOOR, and the reason this is a drain and not a button. At 0.25 the cheapest ride is 0.75s,
-// still five times the ~0.15s a ring needs to travel 114 -> 206.7px, so even the smallest spend buys a
-// real shell rather than a wobble. It also means a player who never fills the meter still gets to use the
+// still nearly four times the 0.20s a Drifter shell needs to travel 114.2 -> 183.1px, so even the
+// smallest spend buys a real shell rather than a wobble. (It ARRIVES as a snap and then relaxes: 95% of
+// the way in 12 frames, overshooting to a peak of 190.0 at frame 17 before easing back by frame ~30.
+// The peak landing on the Field radius is a coincidence, not a clamp — nothing bounds the shell there.)
+// It also means a player who never fills the meter still gets to use the
 // verb — the old Collapse needed a FULL bar, which is why a pilot taking hits fired it 0 times in 8 of 10
 // runs while a clean one fired every few seconds.
 const OD_MIN=0.25;
@@ -812,7 +830,32 @@ function stepOverdrive(dt){
   }
   P.eddy      = odOn ? 1 : 0;                  // wide, fast rings — see the ring block in stepEnemyForces
   P.moveMult  = odOn ? 1.4 : 1;
-  P.fieldR    = odOn ? BASE_FIELDR*1.28 : BASE_FIELDR;
+  // ⚠️ THE FIELD DOES NOT WIDEN. This was `odOn ? BASE_FIELDR*1.28 : BASE_FIELDR`, and it is the one
+  // Overdrive lever that was removed rather than retuned. Three separate reasons, none of them taste:
+  //   1. IT WAS MEASURED AS DOING NOTHING ON ITS OWN. Field x2.2 with everything else held is
+  //      indistinguishable from baseline on standing population — a wider Field pulls more matter onto
+  //      you at the same rate it catches more. The reach Overdrive actually sells is the RING SHELL and
+  //      the spin, and both live on `eddy`/`ringMul`/RING_CAP, which are untouched.
+  //      Confirmed again on removal, PAIRED, one build, 30 seeds run both ways (the old physics restored
+  //      as a `fieldR` accessor so nothing else could differ): survival 59.5s -> 59.6s, paired mean delta
+  //      +0.1s, t=0.03. ⚠️ 25 of the 30 runs DID change, several by 40s in each direction — a different
+  //      capture radius changes which Dot is caught when and the run diverges chaotically. Paired SD is
+  //      18.7s, so at n=12 the standard error is 5.4s and this rig will hand you a confident -7% median
+  //      that is not there. It handed me exactly that, first try. Report the replications, not the run.
+  //   2. IT MOVED THE RING OFF THE TARGET. `orbR` is a FRACTION of `fieldR`, so widening the Field
+  //      multiplied into the orbit twice over: the shell settled at 214px, outside the 190 rim it is
+  //      drawn against, and the grind band — `settleR +/- (boss.r + dot.r)` — went with it. Burning to
+  //      grind harder made grinding several times WORSE inside normal fighting range. Pinning the Field
+  //      pulls the shell back to ~181, just inside the rim, where it overlaps the base band again.
+  //   3. IT INVERTED THE HUNGRY FLIP'S OWN INVARIANT. See PURGE_R0: the fling ceiling is 210 and must
+  //      stay past the Field or every Dot it exists to shove is already ring-captured. At 243.2 it was
+  //      33px short, and a fully-loaded hungry flip under Overdrive flung exactly ZERO loose Dots
+  //      (9 of the same 75 at base). Measured both ways on one rig.
+  // Still written EVERY TICK, on purpose. `freshRun` also sets `fieldR:190` and this must remain the
+  // only other writer — a second source is how a restore gets missed. If you re-introduce a multiplier
+  // here, `orbR`, the drawn rim, the Mote hoover, the like-charge gather and the fling shell all move
+  // with it, and the last one moves silently.
+  P.fieldR    = BASE_FIELDR;
   P.ringMul   = odOn ? 1.8 : 1;
 }
 // PRESS AND HOLD. This was a toggle; it is a dead-man's switch now, so the meter only ever drains while
@@ -829,7 +872,9 @@ function overdrive(){
   if(odOn) return;                      // already burning: a repeat press is not a second ignition
   if(P.charge<OD_MIN) return;
   odOn=true; odFrom=P.charge; odT=0;
-  spawnRing(P.x,P.y,OD_COL,BASE_FIELDR*1.28); spawnRing(P.x,P.y,'#fff',P.r+18);
+  // the ignition ring lands ON the rim, not past it — the Field no longer swells, so a ring drawn wider
+  // than `fieldR` would be a promise about reach the physics stopped making
+  spawnRing(P.x,P.y,OD_COL,BASE_FIELDR); spawnRing(P.x,P.y,'#fff',P.r+18);
   spawnBurst(P.x,P.y,OD_COL,14,3.4);
   slowmo(0.5,0.14);
   if(typeof sfx!=='undefined') sfx.harp(5);
@@ -2242,16 +2287,29 @@ function stepEnemyForces(dt){
     if(inField || inGrace){
       const rm=P.ringMul||1;
       // 0.72 under EDDY, not 0.85. Pilot: "with half a gauge, i could barely spin once" — and they were
-      // exactly right: 0.53 rev/s before the fix, 0.927 after. A wider ring is a SLOWER-LOOKING one:
-      // angular rate is v/r, so the 1.28x Field widening was cancelling most of the spin it was sold with.
-      // Pulling the orbit in trades radius for visible rotation, and is also nearer "a little bigger".
+      // exactly right: 0.53 rev/s at 0.85, 0.926 at 0.72. A wider ring is a SLOWER-LOOKING one, because
+      // angular rate is v/r and `v` is PINNED AT ITS CEILING (see the clamp below — a ringed Drifter sits
+      // on `maxsp*RING_CAP*DOTSPD` = 20.74 px/frame exactly, in every condition measured). With v fixed,
+      // radius is the only term left: every px you pull the orbit in is rotation you get back.
+      //   ⚠️ `orbR` IS NOT WHERE THE RING SITS. It is the spring's TARGET; the spin drives the shell past
+      // it and the two balance out further. Measured settle vs nominal: base 114.2 against 114 (the spin
+      // is gentle, so they agree), EDDY 183.1 against 136.8 — a 34% overshoot. Every consequence of the
+      // orbit — what the shell looks like, and the grind band `settleR +/- (boss.r + dot.r)` — keys off
+      // the SETTLE radius. Quoting `orbR` for any of them understates it by a third.
+      //   It is also SPECIES-DEPENDENT, for the same v/r reason: under EDDY a Drifter settles at 183.1,
+      // a Mini at 191.1, a Brute at 156.3, because each sits on its OWN speed ceiling. There is no single
+      // shell radius, and a rig that feeds one species is measuring that species.
       // ⚠️ MEASURE THIS IN REV/S, NEVER IN GAUGE FRACTIONS. Both figures were first recorded "per half
       // gauge", and a half gauge was 3.0s at OD_DRAIN 1/6 and is 1.5s at 1/3 — the NUMBER never changed,
       // its UNIT silently did, which is the one kind of staleness re-reading the comment cannot catch.
       // Seconds are invariant under any future repricing; gauge fractions are the right unit for the
-      // METER and the wrong one for RING PHYSICS. (Cross-check: 0.927 rev/s = one turn per 1.08s =
-      // 5.82 rad/s, the three ways of saying it in this file. If a re-measurement disagrees with all
-      // three, it is the measurement that is wrong.)
+      // METER and the wrong one for RING PHYSICS. (Cross-check, Drifter under EDDY: 1.083 rev/s = one
+      // turn per 0.92s = 6.80 rad/s, the three ways of saying it in this file. If a re-measurement
+      // disagrees with all three, it is the measurement that is wrong.)
+      //   That triple moved once — 0.926 / 1.08s / 5.82 — when the Field stopped widening under Overdrive.
+      // Nothing here was retuned: `orbR` fell from 175.1 to 136.8 purely because it is a fraction OF
+      // `fieldR`, the shell came in from 214.1 to 183.1, and the spin rose 17% for free. That is the v/r
+      // trade above running in the direction that pays.
       const orbR=P.fieldR*(P.eddy?0.72:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
       ax+=(dx/d)*toRing*err*0.03*rm; ay+=(dy/d)*toRing*err*0.03*rm;   // spring onto the ring radius
       // Ring whirl is `spin/(1-bleed)` where the `0.80` bleed below (ordinary matter gets 0.86) is what
@@ -2990,7 +3048,12 @@ function pushText(x,y,txt,color,life,size){
 // off the field at the exact moment you need them on it. The world says what it is by doing it.
 //   THERE IS NOW ONE PERSISTENT TEXT CHANNEL, not two. The other was the pickup pill, and it was
 // justified on the grounds that a powerup's EFFECT is the one thing you cannot read off the screen. That
-// argument does not transfer to Overdrive: you pressed it, and the field visibly swells when you do.
+// argument does not transfer to Overdrive: you pressed it, and your own matter answers — the shell snaps
+// 114 -> 183px inside a fifth of a second and its whirl goes 0.40 -> 1.08 rev/s.
+//   ⚠️ That used to read "the field visibly swells", and it was TRUE until the Field stopped widening.
+// The conclusion survived the argument it was resting on, which is the failure mode this file keeps
+// finding: three separate comments justified "no pickup pill" on a halo resize that no longer happens.
+// The pill still should not come back — but check WHY a thing is absent before quoting the reason.
 //   Nor does Overdrive get a word for its AVAILABILITY. An '⚡ OVERDRIVE READY ⚡' stood over the core and
 // was measured as near-useless in play: 14px for 1.3s over the busiest part of the field, and it announced
 // itself about once a run because its flag only reset BELOW the arming floor — every Collapse spend
@@ -3049,9 +3112,12 @@ function render(){
     ctx.globalAlpha=flash*(store.reduceMotion?0.14:0.4); ctx.fillStyle=flashCol; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
   }
   // (No Overdrive screen tint. A cyan full-screen wash lived here for the Collapse window — 25.3% of a
-  //  strong run spent under a coloured overlay. Overdrive says itself, in the world: the field halo swells
-  //  28%, the ring sits at 206.7px instead of 114, it whirls three times faster, the eddy dashes turn
-  //  inside the rim, and the Capacitor bar runs visibly BACKWARDS — nothing else in the game does that.)
+  //  strong run spent under a coloured overlay. Overdrive says itself, in the world: the ring snaps from
+  //  114 out to 183px in a fifth of a second, whirls 2.7x faster, the eddy dashes appear on the shell,
+  //  you move 1.4x, and the Capacitor bar runs visibly BACKWARDS — nothing else in the game does that.
+  //  ⚠️ The halo used to swell 28% and was listed first here; it does not any more, and "206.7px" was
+  //  stale on top of that — a figure from before the eddy orbit went 0.85 -> 0.72, sitting in a comment
+  //  through two separate changes to the number it names.)
 }
 // (No background lattice, deliberately: a square grid is the visual language of a scoreboard and reads
 // as arcade playfield laid over a nebula. The one job it does — something fixed to judge your own
@@ -3221,11 +3287,18 @@ function drawField(){
   ctx.globalCompositeOperation='source-over';
   ctx.strokeStyle=hexA(c,0.22); ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.arc(P.x,P.y,P.fieldR,0,TAU); ctx.stroke();
-  // EDDY keystone: the spin made visible — slow rotating dashes inside the rim
+  // EDDY keystone: the spin made visible — slow rotating dashes ON the shell the ring settles into.
+  // 0.96, from 0.88. THE DASHES TRACE THE RING, and that is the whole point of them: at 0.88 against the
+  // OLD widened Field this drew at 214.0px and a Drifter shell settled at 214.1 — 0.1px apart, which is
+  // not luck. Pinning the Field moved the shell to 183.1 and left the dashes at 167.2, floating 16px
+  // inside the matter they exist to describe. 190*0.96 = 182.4 puts them back on it.
+  //   It can only match ONE species — the shell is v/r and every Dot rides its own speed ceiling, so a
+  // Brute ring sits at 156.3 and a Mini at 191.1. Drifter is the right one to track: it is the modal
+  // spawn, and the dashes are a cue that says "your ring is whirling", not a hitbox.
   if(P.eddy){
     ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(elapsed*0.8);
     ctx.strokeStyle=hexA(c,0.3); ctx.lineWidth=2; ctx.setLineDash([14,26]);
-    ctx.beginPath(); ctx.arc(0,0,P.fieldR*0.88,0,TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,P.fieldR*0.96,0,TAU); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
   }
 }
