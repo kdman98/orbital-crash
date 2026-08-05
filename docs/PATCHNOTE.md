@@ -14,6 +14,30 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-05
 
+### The Codex and the Bestiary are written for a person now `28c4ea8`
+**Every glyph used as a bullet or a button prefix is gone**, and with it the mixed-marker lists — the
+Codex ran eight different shapes across six sections with no rule saying which meant what. What stays
+are the marks in real icon slots: pause, mute, reduced motion, close, and the achievement tick, which
+is the only glyph left in the Codex and earns it by carrying state.
+
+Three removals were a second encoding of something already said: the bolt on a 5+ combo sat beside a
+line the next statement recolours by tier, and the bolt on the live Overdrive chip sat inside a gold
+border that already reads "left". The achievement star became a **word** instead of vanishing — the
+gold pill said *something happened* without saying what kind.
+
+**The Codex lost all 21 of its figures** and is now a welcome rather than a spec; `MECHANICS.md` holds
+the values. **Bestiary cards came down to about fifteen words each with no numbers at all**, and the
+`r · hp · dmg` stat line went with the footer that advertised it. Pattern cards are name and animation
+only: working a shape out is part of playing it.
+
+Two corrections fell out of the rewrite. The old Codex said both *"opposite charge drifts toward you"*
+and *"your star never pulls matter in"* three lines apart — both true, and a contradiction as printed.
+And **the Charger card had been understating the baited charge by half again since `06fbc15`**, which
+is the drift [MECHANICS.md](MECHANICS.md) had warned about on that exact constant.
+
+The Neutral card **gained** a line: with the Codex no longer listing rules, nothing in the game said a
+flip pops one outright.
+
 ### The baited charge is repriced, and the pin comes off on purpose `06fbc15`
 **`CHARGE_DMG` raised, and its pin to `VOLLEY_DMG` deliberately released.** The pool buff had halved the
 bait's share of a bar — the one erosion channel costing no ammunition and no Capacitor, and with the

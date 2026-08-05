@@ -13,11 +13,30 @@ restate their values — `index.html` is the only place a value lives, so there 
 drift. A number appears only when the number *is* the argument: contact happens at 26px, so pattern
 spacing must stay under 52px. That relationship is the content; `FORM_STEP`'s actual setting is not.
 
-**The rule stops at the docs, and the game has two surfaces it cannot reach.** `bestiary.html` and the
-in-game Codex are *copy*, so they hardcode: the Charger card prints the baited-charge damage as a
-literal, and the Codex prints all four streak thresholds as literals against `MILES`. Change
-`CHARGE_DMG` or `MILES` and grep both files — nothing will fail, the game will simply lie to the
-player.
+**The rule now reaches the game too, and it got there by deletion.** `bestiary.html` and the in-game
+Codex are *copy*, not generated, so every figure printed in them was a second copy of a value that
+lives in `index.html`. They used to print a lot of them: the Charger card carried the baited-charge
+damage, and the Codex carried the four streak thresholds against `MILES`, the per-Dot erosion table,
+and the Bounty multiplier. `28c4ea8` removed **every tunable value from both**, because a screen
+written for somebody who has not played yet cannot use a figure anyway. This file is the spec, and it
+is now the only place the numbers live.
+
+⚠️ **That warning had already come true, on the exact constant it named, and nobody caught it.**
+`CHARGE_DMG` went to 12 in `06fbc15`. Both surfaces still said **8** fifteen hours later — so the game
+spent that time understating its hardest-to-set-up attack by half again, to the one player who had
+gone looking for the number. Two sessions audited comment liveness across that same file in that
+window and neither looked at the copy, because the checkers are all identifier-shaped and *`8` is not
+an identifier*. **A grep-shaped audit cannot see a wrong number, only a wrong name.**
+
+The measured argument for deleting rather than re-syncing: `VOLLEY_DMG` was repriced 2 → 3 about a
+minute after `28c4ea8` landed. Under the old Codex that was a third site to remember; under the new
+one there was nothing to edit. **Copy that states a value is a copy of that value** — and the cheap
+fix is usually not a better checker, it is a sentence that does not need the number.
+
+**Two literals survive on purpose.** The achievement rows `Land a 60-chain` and `Reach Epoch III`
+restate the thresholds tested at `combo>=60` and `act>=3`; a criterion without its number is not a
+criterion. They are the same shape of hazard and are only safer because an achievement threshold is
+not a tuning knob and has never moved. Change one, grep the other.
 
 ---
 
