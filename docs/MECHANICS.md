@@ -1893,6 +1893,34 @@ check is a run at 2560×1440 counting non-mine expiries by kind, which nobody ha
 the lever is the table (law 15 — size for the worst case it will fly in), not a return to the per-shot
 correction, which is what was hiding the seeker's deficit in the first place.
 
+*Re-derived independently, and the figures above hold: `W = vw` exactly once the short axis reaches 800,
+and reach is 1944 · 1901 · 1656 · 2208 at full pace, three quarters of that at Epoch I. Three
+refinements, one of which softens the item and one of which sharpens it.*
+
+**Which distance you test against is doing more work than the arena width.** "Clears a 2560-wide arena"
+is the *full* width — a boss standing on one edge firing at the other. A centred boss needs only **half**
+that, and by the half-width measure the picture is much later: nothing falls short at 1920 or below at
+either pace, only the Epoch I ring falls short at 2560, and the case where it bites across the board is
+**3440 — ultrawide, not 2560**. The truth sits between the two tests and moves with the boss, which the
+item already says; it is worth saying *which* of the two the numbers are.
+
+⚠️ **The arithmetic under-predicts expiry, and that is already proved.** At the 1280-wide harness
+viewport this model says nothing should ever reach `life<=0` — every reach exceeds the 640 half-width
+several times over — and the measurement at Epoch III is **13.3%**. So real paths are substantially
+longer than the straight line to the nearest edge: seekers turn, rings go out at every angle, the boss
+is not centred and does not hold still. **Treat every crossover above as a floor.** A model that already
+reads 13.3% as 0% at the one viewport we have measured is not the conservative case.
+
+**And the harness viewport is the narrowest desktop arena there is**, which fixes the direction of the
+bias. 1280×800 sits exactly on the `S=1` boundary, and every standard desktop width — 1366, 1440, 1536,
+1920, 2560 — is wider, so the edge is further away and `life` binds *more* often than measured, never
+less. The 13.3% is a lower bound on every real display. It is also the origin of the "1280-wide arena"
+that stood in `fireMissile`'s comment as though it were a property of the game: it was the harness
+default, promoted to a constant by being written down next to real ones.
+
+So the cheap check is better run at **3440×1440 than 2560×1440**, and it should record where the boss
+was standing, because that is the term the arithmetic cannot supply.
+
 **The comet shower multiplied comet mass by 3–5× and left the timer alone.** `9fd8dcb` turned one crossing
 body into 3–5 on a shared heading, and nothing about `cometT` moved — so the *event* is exactly as rare as
 before while the Brutes it delivers per event went up by the full factor. That is the intended shape (a
