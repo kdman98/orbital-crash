@@ -656,6 +656,20 @@ const PURGE_R0=80, PURGE_RCHG=70, PURGE_RPER=6, PURGE_RING_CAP=10;
 // Backticking both made them read as peers. Same error the ring block had with "settleR": a formula
 // symbol dressed as an identifier, next to a real one. Backticks promise grep will find it — so a name
 // that was never a symbol gets plain quotes even when you are talking ABOUT the name.)
+//   THE SWEEP THAT FINDS THESE, and the way it lies. Strip comments, collect backticked tokens that
+// appear ONLY in comment text, check each against the code: 86 tokens, 13 orphans, all deliberate —
+// ten deleted symbols the file records on purpose, two DOM APIs, one commit hash. Naming a symbol that
+// no longer exists is a fair use of backticks; naming one that never was is not, and that split is what
+// keeps the output a short list instead of noise.
+//   ⚠️ STRIP `/* */` AND `<!-- -->`, NOT JUST `//`. The first version of this sweep handled line
+// comments only, so every CSS block comment counted as CODE — and a token mentioned solely in one got
+// cleared as "used". It reported 12 and missed "mult", which lives in a `/* */` at the top of the
+// stylesheet. A peer's independent run found 13.
+//   The lesson is not the off-by-one. A defective audit UNDER-reports, so it looks exactly like a clean
+// one — 12 orphans reads as a tidier file than 13, which is why nobody re-runs it. Both runs reached
+// the same conclusion and only the count moved, and that is precisely the shape where agreement stops
+// anyone checking. If a sweep tells you a file is clean, test the sweep on something you KNOW is dirty
+// before believing it.
 // The 65% rim floor is load-bearing. The proximity scale cuts the impulse with distance, so a lower
 // floor throws the Dots furthest from you — exactly the ones a wide push is for — the least.
 const FLING_V0=10.8, FLING_VCHG=7.2;
