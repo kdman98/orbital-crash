@@ -733,6 +733,58 @@ let grazeN=0, grazeT=0;                // near-miss ladder (pitch rises, decays 
 let gildTimer=14;                      // seconds until the next Gilded Bounty spawns
 let motes=[];                          // Flux Motes: annihilation loot. Worth points where they land.
 let moteN=0, moteT=0;                  // pickup ratchet ladder
+// =====================================================================
+//  TELEGRAPHED SPAWN — the danger sign, and the file's first scheduled spawn
+// =====================================================================
+// Author: "neutrals spawn from nowhere might seem dangerous. show danger sign, and spawn neutrals there
+// ... it would be good to re-use danger sign like hostile singularity spawn or something."
+//
+// EVERY OTHER SPAWNER IN THE GAME IS FAIR BY GEOMETRY RATHER THAN BY WARNING. `spawnAtEdge` puts a body
+// outside the viewport, the Wall and the Pulse start off-screen, and the Noose begins past the farthest
+// corner — so a body always arrives from somewhere you could have been watching, and nothing ever needed
+// a telegraph. The Drift broke that: it places bodies ON the field, so for the first time the game had a
+// spawn you genuinely could not have seen coming.
+//
+// ⚠️ THE MARK AND THE BODY ARE ONE OBJECT, and that is the point of building it this way rather than as a
+// draw call plus a timer somewhere else. There has never been a scheduled spawn in this file — no queue,
+// no setTimeout, no delayed-spawn list — and the reason formations fake delay with geometry is that two
+// lists which must agree are two lists that can disagree. A warn OWNS the spawn it is warning about: the
+// body's type, colour and position all live in the mark, so the sign cannot promise something the spawn
+// does not deliver, and a sign can never be orphaned by a spawn that failed to happen.
+//
+// IT IS DELIBERATELY GENERIC. `warnSpawn(x, y, type, colour, secs)` will telegraph any `ETYPE` kind, so
+// the next thing that wants to arrive on open ground — a hostile singularity, a boss escort, anything —
+// uses it as-is rather than inventing a second warning vocabulary. Adding a kind costs nothing here.
+let warns=[];
+// 1.2s, and the band is not arbitrary: this file has three other telegraphs whose durations were each
+// tuned until they could be answered — CHG_WIND 0.9, LUNGE_TEL 1.3, and the Pulse's 1.04s gap between
+// arcs. A warning outside that band is either unreadable or a pause.
+const WARN_T=1.2;
+function warnSpawn(x,y,type,color,secs){
+  const t=ETYPE[type]; if(!t) return null;
+  const w={x,y,type,color:color||null, life:secs||WARN_T, max:secs||WARN_T,
+    // ⚠️ THE MARK IS THE CONTACT ENVELOPE, NOT THE HULL. What is about to be denied is `body.r + P.r`,
+    // which is wider than the body — and the danger-edge law says a drawing that promises a distance must
+    // promise the true one. Drawing the hull would understate the space by the Star's own radius, which is
+    // the exact error the Bomber's "no standoff ring" note refuses.
+    r: t.r + (P?P.r:15),
+    ph: rand(0,TAU)};
+  warns.push(w);
+  return w;
+}
+function stepWarns(dt){
+  for(let i=warns.length-1;i>=0;i--){
+    const w=warns[i];
+    w.life-=dt;
+    if(w.life<=0){
+      spawnEnemy(w.type, w.color, w.x, w.y);
+      // The arrival is FELT, briefly. A body appearing in silence on ground you were told about is still
+      // a body appearing in silence; this is the one frame where the promise is kept.
+      spawnRing(w.x, w.y, COL.violet, w.r*2.0);
+      warns.splice(i,1);
+    }
+  }
+}
 // SCORE IS ADDITIVE. THERE IS NO MULTIPLIER. `mult` was `min(15, 1+motesBank*0.1)`, banked by Motes and
 // HALVED on every hit, and it read as a curve you built across a run. Measured, it was a coin flip:
 // median ×1.9 with P99 ×7.0 over 12 runs that took hits, versus a hard cap at ×15 inside 46s on 6 of 6
@@ -1665,34 +1717,62 @@ function formCross(){
 //   · The livery lied about it. Sixteen half-red/half-cyan bodies on a 145px ring read at a glance as an
 //     alternating Noose, i.e. as a shape you solve by matching colour — the exact opposite of true.
 //
-// SO IT IS WEATHER, LIKE THE COMET. Six Neutrals appear across the field and drift, with no formation
-// flight at all: no `hold`, no `orb`, ordinary from frame one. What makes them interesting is what was
-// always interesting about a Neutral — the Field ignores it, the Fling ignores it, the colour law cannot
-// touch it, and the only things that end one are a Shockwave or your own hull — delivered six at a time
-// instead of one every thirteen seconds. Nothing is choreographed, so nothing has to be argued past.
+// SO IT IS WEATHER, LIKE THE COMET. Six Neutrals arrive on open field with no formation flight at all —
+// no `hold`, no `orb`, ordinary from frame one. What makes them interesting is what was always interesting
+// about a Neutral: the Field ignores it, the Fling ignores it, the colour law cannot touch it, and the only
+// things that end one are a Shockwave or your own hull — delivered six at a time instead of one every
+// thirteen seconds. Nothing is choreographed after arrival, so nothing has to be argued past.
+//
+// ⚠️ THEY ARRIVE ON A HEXAGON, AND THEY ARRIVE TELEGRAPHED. Both were the author's call and both fix real
+// problems with the version before:
+//   · Author: "neutrals spawn from nowhere might seem dangerous." Correct, and it was the ONE place in the
+//     game where that could be said — every other spawner is fair by geometry (off-screen, past the
+//     corner, from an edge) and so never needed a warning. Random placement plus no warning is the only
+//     combination the file had never shipped. `warnSpawn` is the fix and is deliberately generic.
+//   · Author: "six in a hexagon position." Six loose points were also the only *arrangement* in the game
+//     drawn from `rand` twice per body, and it showed — two of the six routinely landed nearly on top of
+//     each other, which reads as an accident rather than as an event. A hexagon at one rotation is a
+//     designed arrival, and the shape carries information: equal spacing means no side of you is the safe
+//     one, which is the true thing about a body no polarity answers.
 //
 // ⚠️ SIX, AND IT MUST NOT SCALE WITH `act`. Contact CONSUMES a Neutral and IFRAME is 0.8s, so the worst
 // case is bounded by touches: 15 damage each against maxHp 100 with regen 2.6 after 3.8s. Six is already
 // 90 if you walk through every one of them. Growing the count with Epoch would not raise the difficulty,
 // it would raise the CEILING on a single bad stretch, which is a different and worse knob.
 const NDRIFT_N=6;
-// ⚠️ AND THEY DO NOT MATERIALISE IN YOUR LAP. This is the one hazard of placing bodies ON the field
-// rather than at an edge — every other spawner in the file either uses `spawnAtEdge` or starts its shape
-// off-screen, so none of them ever had to think about it. A Neutral cannot be annihilated and carries
-// dmg 15, so one appearing inside your own hull is damage with no decision attached. 220 is comfortably
-// outside the Field (190) as well as contact (30), so an arrival is always something you can answer.
-const NDRIFT_CLEAR=220;
+// ⚠️ RADIUS, AND WHY A HEXAGON OF SIX IS NOT A CAGE. A hexagon's side EQUALS its radius, so the gap
+// between neighbours is 260px against the 60px that would be walkable for r15 bodies — this is six bodies
+// distributed around you, not a wall, and it cannot become one by changing the count without also changing
+// the name. (Compare the Noose: 22 slots on 106px, chord 30. That is a wall. Six on 260 is weather.)
+const NDRIFT_R=260;
+// The warning is longer than the file's default, because six simultaneous marks are six things to read
+// rather than one, and the answer is a route rather than a step.
+const NDRIFT_TEL=1.5;
 function formNeutralDrift(){
   const px=P?P.x:W/2, py=P?P.y:H/2;
+  // ⚠️ THE HEXAGON HAS TO FIT ON SCREEN, and clamping the VERTICES is the wrong way to get that: a player
+  // in a corner would push three of them onto the same edge, collapsing the shape into a line and undoing
+  // the equal-spacing property that is the whole reason it is a hexagon. Clamp the CENTRE instead, so the
+  // figure stays a regular hexagon and simply stops being centred on you when you are near an edge — and
+  // shrink R first if the arena is too small to hold one at all (a portrait phone is narrow).
+  const M=70, R=Math.max(120, Math.min(NDRIFT_R, (W-2*M)/2, (H-M-130)/2));
+  const cx=clamp(px, M+R, Math.max(M+R, W-M-R));
+  const cy=clamp(py, 130+R, Math.max(130+R, H-M-R));
+  // ⚠️ ROTATION IS SOLVED, NOT ROLLED, exactly as the Cross's arms are: half a sector off the Star's own
+  // bearing from the centre puts it dead between two vertices. With the centre possibly displaced by the
+  // clamp above, a rolled angle could drop a vertex on the Star — and a Neutral materialising inside your
+  // hull is damage with no decision attached, which is the fault the warning exists to remove, reappearing
+  // by a different route. Worst case is the Star sitting exactly on the ring, where the nearest vertex is
+  // still 2*R*sin(15 deg) = 0.518*R away: 135px at R=260, comfortably past the 30px contact.
+  const a0=Math.atan2(py-cy, px-cx) + Math.PI/NDRIFT_N;
   for(let i=0;i<NDRIFT_N;i++){
-    // Rejection-sampled rather than solved, because the excluded disc is small against the arena and a
-    // closed-form placement would bias them toward the rim. The guard is a bounded loop: if the arena is
-    // ever so small that no clear point exists, it gives up and places anyway rather than spinning.
-    let x=px, y=py, g=0;
-    do{ x=rand(60,W-60); y=rand(130,H-60); g++; }        // 130 keeps them out of the top HUD strip
-    while(g<40 && Math.hypot(x-px,y-py)<NDRIFT_CLEAR);
-    spawnEnemy('neutral',null,x,y);
+    const a=a0+i/NDRIFT_N*TAU;
+    warnSpawn(cx+Math.cos(a)*R, cy+Math.sin(a)*R, 'neutral', null, NDRIFT_TEL);
   }
+  // The event announces itself as one thing before it resolves into six. Violet, matching both the marks
+  // and every other formation arrival.
+  flash=Math.max(flash,0.22); flashCol=COL.violet;
+  if(typeof sfx!=='undefined') sfx.lance();
 }
 // THE COMET — not a formation but an EVENT: one Dot crossing the whole sky on a fixed line, far faster
 // than anything else on the field, trailing a tail. It carries a charge like everything else, so it is
@@ -2796,6 +2876,10 @@ function step(){
 
   // ----- flux motes: hoover, vacuum, bank -----
   if(motes.length) stepMotes(dt);
+  // ⚠️ AFTER stepEnemyForces, so a body that arrives this frame is not stepped on the frame it appears —
+  // it should be exactly where its sign was for one frame before anything moves it. Ordinary spawns get
+  // this for free by arriving off-screen; a telegraphed one has to be given it.
+  if(warns.length) stepWarns(dt);
 
   stepAnnihilation();
 
@@ -4003,6 +4087,9 @@ function render(){
     drawField();
     // parts under enemies (rings) / over (sparks) — draw all with additive
     ctx.globalCompositeOperation='lighter';
+    // Warnings sit UNDER everything that can occupy the ground they are marking, so a body arriving on
+    // one is drawn over its own sign rather than behind it.
+    if(warns.length) drawWarns();
     drawParticles();
     drawMotes();
     drawEnemies();
@@ -4601,6 +4688,47 @@ function drawParticles(){
   }
   ctx.globalAlpha=1;
 }
+// THE DANGER SIGN. Violet, on bare ground, which is what makes it unmistakable before anything else does:
+// this is the ONLY thing in the game drawn on empty field away from a body, and violet already means
+// "matter is arriving" (it is the formation flash's colour). So the mark inherits a meaning rather than
+// inventing one, and it cannot be confused with the mine's lilac arming dashes, the Bounty's gold, the
+// Charger's white reticle or any boss telegraph — all of which are attached to something.
+//
+// THE INCOMING RING LANDS ON THE TRUE FOOTPRINT AND STOPS, and that is the whole difference between this
+// and the mine's arming ring, which is the closest existing idiom. A mine's ring closes to NOTHING — it is
+// a clock running out. This one closes from 3r onto exactly `body.r + P.r` and holds there, so its terminal
+// state is the piece of ground that is about to be taken. Same family, opposite information: one says
+// "time is up", this says "here, this much".
+//   It is allowed to be outside the footprint on the way in because it is visibly MOVING. The danger-edge
+// law forbids a mark that SITS outside a real envelope claiming to be it; a converging one states its
+// destination by arriving at it.
+//
+// Three ticks, odd and rotating, drawn INSIDE the footprint. Odd so the mark never resolves into a
+// symmetrical flower at some rotation (the Bomber's seven spikes, same reason), inside so nothing in the
+// drawing over-promises the envelope by a single pixel.
+function drawWarns(){
+  for(const w of warns){
+    const f=clamp(1-w.life/w.max,0,1);       // 0 at the warning, 1 at the arrival
+    const c=COL.violet;
+    // the footprint, brightening as its occupant approaches
+    ctx.strokeStyle=hexA(c,0.18+0.5*f); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(w.x,w.y,w.r,0,TAU); ctx.stroke();
+    // the incoming ring: 3r -> r, brightest as it arrives, which is where the statement is
+    ctx.strokeStyle=hexA(c,0.16+0.46*f); ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(w.x,w.y,w.r*(3-2*f),0,TAU); ctx.stroke();
+    // three ticks, inside the hull, turning
+    const ta=w.ph+elapsed*0.9;
+    ctx.lineWidth=2; ctx.strokeStyle=hexA(c,0.30+0.55*f);
+    for(let k=0;k<3;k++){
+      const a=ta+k*TAU/3, ca=Math.cos(a), sa=Math.sin(a);
+      ctx.beginPath();
+      ctx.moveTo(w.x+ca*w.r*0.52, w.y+sa*w.r*0.52);
+      ctx.lineTo(w.x+ca*w.r*0.90, w.y+sa*w.r*0.90);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha=1;
+}
 // Motes are LOOT, not enemies — so they twinkle as 4-point sparks with a white glint,
 // nothing like the round glowing bodies of Dots.
 function drawMotes(){
@@ -5037,6 +5165,9 @@ function startRun(mode){
   labMode = (mode==='lab');
   testMode = !!mode && !labMode; lastWasTest=testMode;
   enemies=[];parts=[];texts=[];killQ=[];
+  // ⚠️ A warn holds a PENDING SPAWN, so leaving one alive across a reset would drop a body into the next
+  // run out of nowhere — the exact thing the mark exists to prevent, wearing its own sign.
+  warns.length=0;
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
   grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
@@ -5800,7 +5931,11 @@ window.__orbital=window.__polaris=window.__flux={
   spawnFormation, formWall, formNoose, formPulse, formCross, formComet, formNeutralDrift,
   // The Planet's charge is the one mechanic in the game with no external tell a screenshot can time —
   // `burn` accrues silently on ring dwell — so the accumulator's own constants have to be reachable.
-  PLANET_FUSE, PLANET_COOL, planetBlast, CROSS_R0, NDRIFT_N, NDRIFT_CLEAR,
+  PLANET_FUSE, PLANET_COOL, planetBlast, CROSS_R0, NDRIFT_N, NDRIFT_R, NDRIFT_TEL,
+  // The telegraph layer. A pending spawn is state a harness cannot see from `enemies` — it lives in
+  // `warns` until it resolves — so both the list and the primitive are exposed: without them, "does the
+  // sign match the body it promised" is unaskable from outside.
+  get warns(){return warns;}, warnSpawn, WARN_T,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
   get motes(){return motes;}, KILL_SCORE, MOTE_SCORE, GRAZE_SCORE,
