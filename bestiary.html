@@ -95,8 +95,8 @@
      tag:'Throws up a wall with one way through. Find the gap and be standing in it.'},
   ];
   // The six shapes, in Pattern Lab key order (1-6). Four are true Patterns — irregular waves that
-  // arrive between the drizzle from ~0:42 onward — and two, the Comet and the Neutral Ring, are EVENTS on
-  // their own much longer clocks.
+  // arrive between the drizzle from ~0:42 onward — and two, the Comet and the Drift, are EVENTS on their
+  // own much longer clocks. The Drift is not a formation at all: six loose Neutrals, no choreography.
   //   NAME AND ANIMATION ONLY, no copy, by the user's call on 2026-08-05: working a shape out for
   // yourself is part of the game. The animations here run the real geometry, so the card can afford to
   // stay quiet in a way the Dot cards cannot — a Dot is a thing you must recognise mid-fight, a Pattern
@@ -107,7 +107,7 @@
     {kind:'form',key:'pulse', name:'The Pulse', col:'red' },
     {kind:'form',key:'cross', name:'The Cross', col:'cyan'},
     {kind:'form',key:'comet', name:'The Comet', col:'cyan'},
-    {kind:'form',key:'nring', name:'Neutral Ring', col:'neutral'},
+    {kind:'form',key:'drift', name:'The Drift', col:'neutral'},
   ];
 
   const renders=[];
@@ -432,20 +432,25 @@
         }
       }
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
-    } else if(s.key==='nring'){
-      // A SOLID ring of Neutrals closing to a floor and holding there. No seam — formNRing() has none,
-      // deliberately, because the way through is not a doorway. Each body wears both poles on a turning
-      // seam, exactly as the Dot card draws them, which is the fact the whole shape rests on.
-      const cyc=(t*0.20)%1, R=Math.max(30, 74-cyc*44), N=16, na=t*0.5;
-      for(let i=0;i<N;i++){
-        const a=i/N*TAU+cyc*0.5;
-        const bx=x+Math.cos(a)*R, by=y+Math.sin(a)*R;
+    } else if(s.key==='drift'){
+      // SIX NEUTRALS, SCATTERED AND UNCHOREOGRAPHED — so the card must NOT arrange them. An earlier
+      // version drew this as a closing ring, which is exactly the shape the mechanic stopped being, and a
+      // card that composes a formation out of six loose bodies teaches a pattern that is not there.
+      // Fixed pseudo-random offsets (no Math.random, so the card is stable frame to frame) with a slow
+      // independent wander per body. Each wears both poles on a turning seam, as the Dot card draws them.
+      const na=t*0.5;
+      for(let i=0;i<6;i++){
+        const sx=Math.sin(i*2.399)*66, sy=Math.cos(i*1.732)*44;      // scattered, not spaced
+        const bx=x+sx+Math.sin(t*0.31+i*1.7)*7, by=y+sy+Math.cos(t*0.27+i*2.3)*7;
         ctx.fillStyle=hexA(COL.red,0.92);
-        ctx.beginPath(); ctx.arc(bx,by,4.6, na, na+Math.PI); ctx.fill();
+        ctx.beginPath(); ctx.arc(bx,by,5.2, na, na+Math.PI); ctx.fill();
         ctx.fillStyle=hexA(COL.cyan,0.92);
-        ctx.beginPath(); ctx.arc(bx,by,4.6, na+Math.PI, na+TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(bx,by,5.2, na+Math.PI, na+TAU); ctx.fill();
+        ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(bx+Math.cos(na)*5.2, by+Math.sin(na)*5.2);
+        ctx.lineTo(bx-Math.cos(na)*5.2, by-Math.sin(na)*5.2); ctx.stroke();
       }
-      ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
     } else if(s.key==='comet'){
       // One Dot on a fixed line, far faster than anything else, with the tail formComet() actually
       // emits: particles laid down BEHIND the nucleus in world space, ~45% white and the rest the

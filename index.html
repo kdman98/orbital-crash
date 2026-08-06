@@ -1647,58 +1647,51 @@ function formCross(){
     }
   }
 }
-// THE NEUTRAL RING — a converging cage of Neutrals, and the only shape in the game whose answer is your
-// OTHER verb. A Neutral ignores the Field, ignores the Fling, and cannot be annihilated by the colour
-// law; the ONE thing that clears it is a reversal Shockwave, which fires every 0.5s. So the question is
-// how many you can pop before the ring arrives, and where you intend to be standing for the rest.
+// THE DRIFT — six Neutrals, scattered, floating. Author: "neutral rings are not ring, just random 6
+// neutrals float around field."
 //
-// RULE 2 IS INAPPLICABLE HERE RATHER THAN BROKEN. Neutrals have no polarity, so "alternate every Dot" has
-// no referent — while the rule's actual purpose, that no pole is ever safe, is satisfied maximally: no
-// pole is safe from any of them. This is a different claim from the Sorter's old excuse, which broke the
-// letter of a rule that DID apply to it.
+// ⚠️ IT IS NOT A PATTERN, AND CALLING IT ONE WAS THE MISTAKE. A closing 16-slot cage of Neutrals stood
+// here, floored at 145 so that only a flip held past 1.18s could reach it — a lot of derivation for a
+// shape whose whole content was "now do the other verb, on a timer you did not choose". Three of this
+// file's own tests say it was the wrong object:
+//   · The three PATTERN RULES do not apply to it. Rule 2 has no referent (Neutrals have no polarity),
+//     rule 1's thresholds are the wrong ones (a Neutral is r15, so contact is 30 and walkable 60, not
+//     26/52), and rule 3 was only satisfiable by bolting convergence onto it. A shape that has to be
+//     argued past all three rules is not a shape; it is something else wearing a shape's costume.
+//   · A CAGE ANSWERED BY EXACTLY ONE INPUT IS A QUIZ, NOT A QUESTION. Measured on the built version:
+//     0 of 16 popped at every hold below 1.18s and 16 of 16 at a full hold. Binary, because every body
+//     sat at one radius. The player's move was not positioning or timing, it was "have I pre-loaded the
+//     one answer", and there was no partial credit in either direction.
+//   · The livery lied about it. Sixteen half-red/half-cyan bodies on a 145px ring read at a glance as an
+//     alternating Noose, i.e. as a shape you solve by matching colour — the exact opposite of true.
 //
-// RULE 3 IS CLEARED OUTRIGHT, and by a property no other shape has. The file's own control measurement is
-// that sixteen ORDINARY Dots on a 106px ring annihilate 16 of 16 — a dense alternating group near the
-// core always eats itself. For Neutrals that figure is ZERO: stepAnnihilation's `opposite` test excludes
-// them on both sides, and the same-colour shove skips formation bodies. This cage cannot self-terminate,
-// so ignoring it is strictly worse, with nothing to hope for.
+// SO IT IS WEATHER, LIKE THE COMET. Six Neutrals appear across the field and drift, with no formation
+// flight at all: no `hold`, no `orb`, ordinary from frame one. What makes them interesting is what was
+// always interesting about a Neutral — the Field ignores it, the Fling ignores it, the colour law cannot
+// touch it, and the only things that end one are a Shockwave or your own hull — delivered six at a time
+// instead of one every thirteen seconds. Nothing is choreographed, so nothing has to be argued past.
 //
-// ⚠️ THE FLOOR RADIUS IS THE WHOLE DESIGN, AND 106 WOULD HAVE RUINED IT. The Shockwave's radius is
-// min(310, 104*amp) with amp = 1+hc*0.5, so R lives in [104,156] — the 310 never binds (it has now been
-// deleted; see flipShockwave). And hc=0 is UNREACHABLE after the first flip: flip() zeroes holdT and sets
-// flipCd=0.28 while holdT accrues every frame, so the earliest possible next flip already has
-// hc >= 0.28/1.5 = 0.187, i.e. R >= 113.7. A ring floored at NOOSE_MIN_R (106) would therefore have died
-// ENTIRELY to one keypress available every half second — a larger instance of the very thing rule 2
-// forbids ("a free door that costs one keypress").
-//   At 145, clearing the cage needs 104*(1+0.5hc) >= 145, i.e. hc >= 0.788, i.e. holdT >= 1.18s. That is
-// well above RING_FIRE_HC (0.5), so the flip that clears it NECESSARILY also spends your ring hoard
-// through hungryFlipBurst. "Press flip" becomes "have been holding a pole for over a second, and pay for
-// it" — the mastery axis the game already measures and gates nothing else on.
-const NRING_R=145;
-// A NEUTRAL IS r15, NOT r11, so both of this file's spacing thresholds move with it: core contact is
-// 15+15 = 30 (not 26) and walkable is 60 (not 52). Chord 2R*sin(PI/N) <= 60 at R=145 needs
-// N >= PI/asin(30/145) = 15.1, so sixteen. Solved, not chosen.
-const NRING_SLOTS=16;
-// ⚠️ AND IT MUST NOT SCALE WITH `act`. Contact CONSUMES the Neutral, and IFRAME is 0.8s, so barging out
-// costs exactly one touch: 15 against maxHp 100 with regen 2.6 after 3.8s. The Noose's measured delivery
-// is 2.3 bodies, i.e. ~23 damage — sixteen Neutrals is already at parity with the shape this one sits
-// beside. Growing the count with Epoch would not raise the difficulty, it would raise the CEILING on a
-// single mistake, which is a different and worse knob.
-function formNRing(){
-  const cx=P?P.x:W/2, cy=P?P.y:H/2;
-  const R=Math.max(Math.hypot(cx,cy), Math.hypot(W-cx,cy),
-                   Math.hypot(cx,H-cy), Math.hypot(W-cx,H-cy)) + 70;
-  const close=(R-NRING_R)/FORM_SPD/60;
-  const spin=(Math.random()<0.5?1:-1)*NOOSE_SPIN/60;
-  // NO SEAM, and no bite. Both would be answering the wrong question: a gap says "find the way through",
-  // and the way through a Neutral ring is a Shockwave, not a doorway. Leaving it solid is what forces the
-  // second verb — and unlike the Noose it needs no bite to reach a still player, because it does not stop
-  // being lethal when it stops closing.
-  for(let i=0;i<NRING_SLOTS;i++){
-    const a=i/NRING_SLOTS*TAU;
-    const e=holdOrbit(spawnEnemy('neutral',null, cx+Math.cos(a)*R, cy+Math.sin(a)*R),
-                      cx,cy,a,R,FORM_SPD,spin, close+NOOSE_CAGE+NOOSE_BITE_DWELL);
-    if(e&&e.orb) e.orb.rmin=NRING_R;
+// ⚠️ SIX, AND IT MUST NOT SCALE WITH `act`. Contact CONSUMES a Neutral and IFRAME is 0.8s, so the worst
+// case is bounded by touches: 15 damage each against maxHp 100 with regen 2.6 after 3.8s. Six is already
+// 90 if you walk through every one of them. Growing the count with Epoch would not raise the difficulty,
+// it would raise the CEILING on a single bad stretch, which is a different and worse knob.
+const NDRIFT_N=6;
+// ⚠️ AND THEY DO NOT MATERIALISE IN YOUR LAP. This is the one hazard of placing bodies ON the field
+// rather than at an edge — every other spawner in the file either uses `spawnAtEdge` or starts its shape
+// off-screen, so none of them ever had to think about it. A Neutral cannot be annihilated and carries
+// dmg 15, so one appearing inside your own hull is damage with no decision attached. 220 is comfortably
+// outside the Field (190) as well as contact (30), so an arrival is always something you can answer.
+const NDRIFT_CLEAR=220;
+function formNeutralDrift(){
+  const px=P?P.x:W/2, py=P?P.y:H/2;
+  for(let i=0;i<NDRIFT_N;i++){
+    // Rejection-sampled rather than solved, because the excluded disc is small against the arena and a
+    // closed-form placement would bias them toward the rim. The guard is a bounded loop: if the arena is
+    // ever so small that no clear point exists, it gives up and places anyway rather than spinning.
+    let x=px, y=py, g=0;
+    do{ x=rand(60,W-60); y=rand(130,H-60); g++; }        // 130 keeps them out of the top HUD strip
+    while(g<40 && Math.hypot(x-px,y-py)<NDRIFT_CLEAR);
+    spawnEnemy('neutral',null,x,y);
   }
 }
 // THE COMET — not a formation but an EVENT: one Dot crossing the whole sky on a fixed line, far faster
@@ -1757,25 +1750,27 @@ function formComet(){
 // The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
 // like any other — and a comet should read as a thing that happens to the sky, not as this turn's
 // shape. It gets its own, much longer timer below.
-// ⚠️ THE NEUTRAL RING IS NOT IN THIS ROTATION EITHER, and the reason is a measured knob rather than taste.
-// With five entries and the no-repeat memo below, a given shape recurs about every 5 draws x rand(30,46)
-// (mean 38s), i.e. ~190s. Sixteen Neutrals every 190s is 0.084/s against the AMBIENT Neutral rate of
-// 0.077/s — so putting it in `FORMS` would have DOUBLED the game's total Neutral budget, and 0.3 is a
+// ⚠️ THE NEUTRAL DRIFT IS NOT IN IT EITHER, and the reason is a measured knob rather than taste. With
+// four entries and the no-repeat memo below, a given shape recurs about every 4 draws x rand(30,46)
+// (mean 38s), i.e. ~150s. Six Neutrals every 150s is 0.040/s against the AMBIENT Neutral rate of
+// 0.077/s — so putting it in `FORMS` would lift the game's total Neutral budget by half, and 0.3 is a
 // number the file arrived at by measurement ("an interruption that arrives every few seconds is just
-// weather"). Its own long timer keeps that argument intact instead of quietly invalidating it.
+// weather"). On its own long timer (rand(210,300), advancing only outside a boss, so nearer 500s of
+// wall clock) it adds ~0.014/s, under a fifth of ambient. Same argument, re-derived for six rather
+// than the sixteen it was first written for — the ratio changed, the reasoning did not.
 const FORMS=[formWall,formNoose,formPulse,formCross];
-const LAB_SHAPES=[formWall,formNoose,formPulse,formCross,formComet,formNRing];   // Pattern Lab: on demand
+const LAB_SHAPES=[formWall,formNoose,formPulse,formCross,formComet,formNeutralDrift];   // Lab: on demand
 // ⚠️ THE LAB LEGEND IS DERIVED FROM THIS ARRAY, and it did not used to be. `updateHUD` carried the string
 // '1 2 3 4 5  Wall · Noose · Pulse · Sorter · Comet' as a hardcoded literal POSITIONALLY COUPLED to
 // LAB_SHAPES — so removing one shape silently made key 4 fire a different pattern than the HUD named, with
 // nothing anywhere to catch it. Two lists in two files that must agree, and only one of them was code.
 // Keep this in step with the line above and the legend follows; the key COUNT can no longer drift at all.
-const LAB_NAMES=['Wall','Noose','Pulse','Cross','Comet','Neutral Ring'];
+const LAB_NAMES=['Wall','Noose','Pulse','Cross','Comet','Drift'];
 // The first one lands early enough that a short run still sees one; after that they space out, and
 // the timer PAUSES during a boss (an Anomaly is already the thing demanding your attention).
 let formT=rand(9,16), lastForm=-1;
 let cometT=rand(90,150);                // the first comet lands well after the first formation
-let nringT=rand(150,220);               // and the first Neutral Ring after that again — see the gate below
+let ndriftT=rand(150,220);              // and the first Neutral Drift after that again — see the gate below
 function spawnFormation(){
   if(enemies.length>200) return;                          // these are far denser than the old shapes
   let i; do{ i=irand(0,FORMS.length-1); }while(FORMS.length>1 && i===lastForm);
@@ -1824,14 +1819,14 @@ function director(dt){
     // what makes a naive "make it rarer" pass land at twice the intended rate.
     cometT-=dt;
     if(cometT<=0){ cometT=rand(200,300); formComet(); }
-    // THE NEUTRAL RING, on its own clock for the budget reason at FORMS, and gated LATE for a second
-    // reason: Neutrals enter no ambient table until t>=125, so before that a ring of sixteen would be
-    // somebody's FIRST Neutral — sixteen at once, answerable only by a verb the shape itself has to
-    // teach them. 150 leaves a couple of minutes of meeting them one at a time first. Same
+    // THE NEUTRAL DRIFT, on its own clock for the budget reason at FORMS, and gated LATE for a second
+    // reason: Neutrals enter no ambient table until t>=125, so before that these six would be somebody's
+    // FIRST Neutral — six at once, of the one body no polarity answers, before the game has taught that
+    // with a single one. 150 leaves a couple of minutes of meeting them one at a time first. Same
     // advances-only-outside-a-boss caveat as the comet above: the wall-clock gap is about double.
     if(elapsed>150){
-      nringT-=dt;
-      if(nringT<=0){ nringT=rand(210,300); formNRing(); }
+      ndriftT-=dt;
+      if(ndriftT<=0){ ndriftT=rand(210,300); formNeutralDrift(); }
     }
   }
   // phase timing
@@ -5799,10 +5794,10 @@ window.__orbital=window.__polaris=window.__flux={
   // read off a screenshot: where a mine LANDS is a two-phase flight solved at launch, and the reach
   // constant was wrong by 35% for months precisely because nothing could measure it from outside.
   fireMines, fireMineSquare, MINE_TRAVEL, MINE_SPMAX, MINE_SQ_HALF, mineReach,
-  spawnFormation, formWall, formNoose, formPulse, formCross, formComet, formNRing,
+  spawnFormation, formWall, formNoose, formPulse, formCross, formComet, formNeutralDrift,
   // The Planet's charge is the one mechanic in the game with no external tell a screenshot can time —
   // `burn` accrues silently on ring dwell — so the accumulator's own constants have to be reachable.
-  PLANET_FUSE, PLANET_COOL, planetBlast, CROSS_R0, NRING_R, NRING_SLOTS,
+  PLANET_FUSE, PLANET_COOL, planetBlast, CROSS_R0, NDRIFT_N, NDRIFT_CLEAR,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
   get motes(){return motes;}, KILL_SCORE, MOTE_SCORE, GRAZE_SCORE,
