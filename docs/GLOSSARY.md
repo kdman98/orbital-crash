@@ -144,10 +144,11 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Arc** — one colour-uniform front of the Pulse. (`PULSE_ARC`)
 - **The Cross** — four arms from a hub, quartering the arena. The hub is the arena's centre, and slides
   off the Star rather than bending around it. (`formCross`, `CROSS_R0`)
-- **The Neutral Ring** — a closing ring of Neutrals with no seam and no bite; the one pattern answered by
-  a verb rather than a position. (`formNRing`, `NRING_SLOTS`, `NRING_R`)
 - **The Comet** — a rare event: a shower of 3–5 fast Dots crossing the whole sky on one heading and
   leaving. (`formComet`, `COMET_SPD`, `cometT`)
+- **The Drift** — a rare event, not a formation: six Neutrals scattered across the field with no
+  choreography at all. The only spawner that places bodies *on* the field, hence the clearance guard.
+  (`formNeutralDrift`, `NDRIFT_N`, `NDRIFT_CLEAR`, `ndriftT`)
 
 ## The Anomaly
 
@@ -170,10 +171,16 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   shortens it. Not a variable — a product of two table values. (`MSL`, law 15)
 - **Fizzle** — a missile reaching `life <= 0` inside the arena instead of leaving it. Only mines are
   meant to; for them `life` is a fuse, not a reach budget.
+- **Mine travel** — the mine's own reach, and **not** `sp × 60 × life`, because a mine decelerates while
+  arming and then coasts: `35.6 × sp`, of which 25.45 is the arming phase and 10.15 the coast. A solved
+  constant, not a knob. (`MINE_TRAVEL`, `MINE_SPMAX`, `layMine()`, law 15)
 - **Volley** *(missile)* — a spread that leads your motion. Cross it.
 - **Seeker** — turns onto you, then commits. Out-turns you, cannot out-run you.
 - **Ring** *(missile)* — an expanding wall with one seam.
 - **Mine** — lobbed at the ground around you; arms, draws its exact blast, detonates. (`mineBlast()`)
+- **The Box** — the Pulsar's Epoch III mine pattern: eight stations on a square around you, one omitted
+  as the door, every dimension derived from the blast rather than chosen. (`fireMineSquare`,
+  `MINE_SQ_HALF`)
 - **Spear** — telegraphs a line, tracks you along it, then fires. (`SPEAR_N`, `fireSpear()`)
 - **Integrity bar** — the boss health bar, which also carries the per-kind tip and the Hunt warning.
   (`updateHUD`)

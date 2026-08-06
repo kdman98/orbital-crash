@@ -12,6 +12,136 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-06
+
+### The Neutral Ring was not a ring `c738967`
+Same-day reversal of the shape below. Author: *"neutral rings are not ring, just random 6 neutrals float
+around field."* It becomes **the Drift**: six Neutrals placed across the field with **no formation flight
+at all** — no held vector, no polar path, ordinary from frame one. Weather, like the Comet, and it keeps
+its own long timer.
+
+**The cage failed three of the file's own tests, which is a better reason than taste.** The three pattern
+rules did not apply to it — rule 2 has no referent because Neutrals have no polarity, rule 1's thresholds
+were the wrong ones (a Neutral is r15, so contact is 30 and walkable 60, not 26/52), and rule 3 was only
+satisfiable by bolting convergence on. **A shape that has to be argued past all three rules is not a
+shape.** Measured, it was also binary: **0 of 16 popped at every hold below 1.18s and 16 of 16 at a full
+hold**, because every body sat at one radius — no partial credit in either direction. And the livery lied
+about it, since sixteen half-red/half-cyan bodies on a 145px ring read as an alternating Noose, i.e. as
+something answered by matching colour, which is the exact opposite of true.
+
+`NDRIFT_CLEAR` is new and exists because this is the **first spawner in the file that places bodies on the
+field** rather than at an edge or off-screen, so it is the first that had to think about materialising
+inside the player. 220, measured at 225px minimum clearance over 40 trials.
+
+### Three species out, the Planet in, and the Sorter replaced `6324914` `50c2389`
+**The roster is seven Dots, down from nine.** The **Splitter**, the **Mini** it spawned, and the
+**Orbiter** are gone. The Splitter took a standing open question with it: the one Dot whose death made
+the field *worse* had no answer the player could aim, because the only clean kill was a Bomber blast you
+could not arrange on purpose. Deleting the species answers an identity question bluntly, and the general
+form is kept in [MECHANICS.md](MECHANICS.md) because it outlives the Splitter — **an answer the player
+cannot choose to use is not an answer.**
+
+**The Planet is the new one, and it is the first Dot you *charge*.** Biggest and slowest thing in the
+sky. Hold it in your ring and a fuse burns down; let it go and it drains faster than it filled, so
+dropping costs more than the hold earned. Carry it to the end and it erases **every Dot of the opposite
+colour, arena-wide**. That asymmetry is the point: it is a decision, not a timer you wait out. Measured:
+detonates at 7.02s, clears the far corners, **pays 0 score and 0 combo**, leaves the Anomaly's integrity
+untouched and Neutrals alive. Flip mid-charge and it is thrown clear at 13.9 px/frame while the charge
+drains at 2.0/s.
+
+**The Sorter is gone; the Cross and the Drift take its place**, so patterns go five to six. The Cross
+quarters the arena from a hub that slides off you rather than bending around you. (The Sorter's stated
+reason for existing was geometric and false: each of its two walls only ever covered **half** the arena,
+so the advertised "match one, flip for the other" was reachable for nobody except a player at x=W/2 — for
+whom both walls arrived in the same instant.)
+
+The Bestiary is rebuilt to match in `50c2389`.
+
+### Mines landed 35% past the point they were aimed at `6324914`
+A live bug in the one function whose entire job is putting a mine where it was aimed. `stepLances` decays
+a mine's velocity **only while it is arming**, but integrates its position **every frame**, so the flight
+has two phases and the reach was solved from one:
+
+```
+arming     sp · 0.965·(1−0.965⁷²)/0.035 = 25.45·sp
+post-arm   sp · 0.0769 · 132 frames     = 10.15·sp
+total                                     35.6·sp    against the 26.3·sp assumed
+```
+
+**It read as correct for one reason and it was a coincidence:** at Epoch I `pace.spd` is 0.75 and
+1.354 × 0.75 = 1.015, so the only Epoch anyone checks by hand was the only Epoch it was right at.
+Landings now match prediction to within 0.1px. Fixing the model also showed the **speed ceiling had been
+set against the wrong arithmetic** — `MINE_SPMAX` 13 → 16.
+
+**Separately, the scatter had no angular distribution at all.** It was the only multi-shot pattern in the
+game with no index term while every sibling stratifies by one, so two uniform draws in a 260px box against
+a 104px blast **overlapped 60.7% of the time and put one centre inside the other's blast in 20.9%**. Now
+stratified by bearing with a jitter budget computed from the blast rather than written down: **0%
+overlapping**. Out-of-reach stations are dropped per-mine rather than cancelling the volley — all-or-
+nothing silenced the kind across most of the arena.
+
+### The Pulsar lays a box `6324914`
+Epoch III escalation of the mine scatter, and the author's *"square-lineup mine spawn"* — built as an
+Anomaly attack rather than a wave, because as a wave it broke eight things, four of them architectural
+(mines live outside the enemy array, need a boss-shaped emitter, are wiped by `killBoss`, and would print
+"Lost to Anomaly Mine" on a run with no Anomaly in it).
+
+Eight stations on a square around the Star, one omitted as the door, and **every number derived from the
+blast** rather than chosen: 165 spacing so the perimeter is one continuous denied band (≤ one blast
+diameter), a 46px pocket at the centre (side/2 minus the 119px damage radius), and 92px of clear passage
+through the door. It earns a 2.2× longer cadence, which is the density guard `lances` does not have.
+
+### One role per colour, and score stops being text `6324914`
+The kill `+20` and the hurt `−N` were the **same spawner, the same 800-weight face, the same rise, the
+same fade** — and on a red Dot the same bytes of colour. Author: *"체력 닳는거랑 구분이 안감."* The `+20`
+is gone; the running total at top-left was always the true channel, and the popup was firing on 40% of
+kills, so 60% already printed nothing.
+
+**The worse collision was elsewhere and the glyph could not fix it.** Damage you *deal* to the Anomaly
+printed `−1` in a polarity colour while damage you *take* printed `−10` in the same colour — both
+negative, concurrent through every boss fight. Sign was spent, so the channel had to be colour. The text
+layer now has exactly one role per colour: **red is damage taken, gold is a reward, white is damage
+dealt**, and income has no text at all.
+
+Mote consumption finally has a visual — an inward ring at the consume radius, in the Mote's own colour.
+It was the only event in the game with no visual whatsoever, audio only, despite being the moment the
+whole hoover arc exists for.
+
+### The flip's push lives in the matter, not the hoops `6324914`
+Author: *"when flipping, it gives pulling visual, but actually pushing away visual is more buying."* The
+complaint was right and the obvious fix was wrong. Every ring the flip spawns takes `spawnRing`'s inward
+default, so hoops contract while the physics throws everything outward — but **inverting them destroys
+the one job the main ring does**: an inward ring draws its true radius on frame 0 at alpha 0.50, and
+outward it arrives 0.48s late at alpha 0.14, by which time the Dots it is describing are 370–575px out.
+It would also spend the Bomber's only exclusive signature, since an outward hoop wearing lime means a
+Bomber and nothing else.
+
+So the second contracting hoop is deleted and **flung Dots trail wakes** — sparks thrown backward along
+the launch vector, the idiom the Dart already uses. Measured: 100% of sparks emitted backward, within
+exactly the 0.55 rad cone, and no `out` spent anywhere.
+
+**One dead constant found on the way.** The Shockwave's radius was `Math.min(310, 104*amp)` and the clamp
+had never bound once: `amp` maxes at 1.5, so R never passed 156.
+
+### The Bomber wears its own explosion `6324914`
+Its blink core was white — the same white every other Dot has, saying nothing about the one body that
+clears matter when it dies. It is **lime** now, `COL.lime`, the blast's own colour and the only thing else
+in the play field wearing it, so the hull pre-teaches the detonation it carries.
+
+**It has to be drawn under `source-over` and that is the whole subtlety.** The enemy pass runs additive,
+where lime over a red hull resolves to cream and over cyan to pale blue — not merely washed out but a
+*different colour on each polarity*, i.e. a mark that cannot be self-consistent. The boss body already
+takes the same escape hatch for the same reason.
+
+**The blink rate stays at 7 rad/s and must not be detuned.** The author asked for "unstable", and the
+obvious build — summing two incommensurate sines — is wrong here, because **periodicity is the detection
+channel**: the blink exists so a Bomber reads when its silhouette cannot, and a beat envelope passing
+through near-zero means it periodically stops blinking. Nor may it accelerate, which is this game's idiom
+for imminence, because a Bomber has no fuse — it detonates when killed. The instability is spatial
+instead: a sub-pixel wobble on the core's position, leaving the brightness cadence exactly as periodic.
+
+---
+
 ## 2026-08-05
 
 ### "Doesn't have to" is not "must never" `79e5783`
@@ -112,27 +242,6 @@ dutifully passing it; both dropped. Scaling the sting by streak was considered a
 no-hit line is the identification channel, and a rising pitch would be a second encoding of it. A sweep
 over 502 declarations found no other dead symbol; its one hit was a false positive from stripping template
 literals.
-
-### Three species out, the Planet in, and the Sorter replaced `6324914` `50c2389`
-**The roster is seven Dots, down from nine.** The **Splitter**, the **Mini** it spawned, and the
-**Orbiter** are gone. The Splitter took a standing open question with it: the one Dot whose death made
-the field *worse* had no answer the player could aim, because the only clean kill was a Bomber blast you
-could not arrange on purpose. Deleting the species answers an identity question bluntly, and the general
-form is kept in [MECHANICS.md](MECHANICS.md) because it outlives the Splitter — **an answer the player
-cannot choose to use is not an answer.**
-
-**The Planet is the new one, and it is the first Dot you *charge*.** Biggest and slowest thing in the
-sky. Hold it in your ring and a fuse burns down; let it go and it drains faster than it filled, so
-dropping costs more than the hold earned. Carry it to the end and it erases **every Dot of the opposite
-colour, arena-wide**. That asymmetry is the point: it is a decision, not a timer you wait out.
-
-**The Sorter is gone; the Cross and the Neutral Ring take its place**, so patterns go five to six. The
-Cross quarters the arena from a hub that slides off you rather than bending around you. The Neutral Ring
-closes with **no seam and no bite** — deliberately, because there is no way *through* a wall of Neutrals
-and the answer is a Shockwave rather than a doorway. It is the only pattern that asks for a verb instead
-of a position.
-
-The Bestiary is rebuilt to match in `50c2389`. Score presentation also stopped being text in `6324914`.
 
 ### Tilt got twice as slow without anyone touching it `bf48f87`
 **The smoothing on the tilt reading was a fixed fraction applied once per sensor event**, tuned against

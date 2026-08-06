@@ -2050,7 +2050,10 @@ function beginTestRun(){
 // ---- PATTERN LAB: the shapes on demand, with nothing else competing for your attention.
 // Boss Rush cannot serve this: formations are suppressed while `wavePhase==='boss'`, which is most of
 // what Boss Rush is. The Lab runs a live ambient field with NO Anomaly and no Epoch phases, and binds
-// 1-5 to the five shapes so you can fire one, watch it resolve, and fire it again.
+// one number key per entry in LAB_SHAPES so you can fire one, watch it resolve, and fire it again.
+// ⚠️ Do not write the COUNT here. `labFire` indexes modulo `LAB_SHAPES.length` and the HUD legend derives
+// from it, so the array is the only place the number lives — and this line said "1-5 to the five shapes"
+// through a change that made it six, which is exactly the coupling deriving the legend was meant to end.
 let labMode=false;
 function beginLabRun(){ act=1; wavePhase='calm'; phaseT=1e9; boss=null; bossTime=0; intensityTarget=0.34; }
 function labFire(i){
@@ -5084,7 +5087,7 @@ function togglePause(){ if(state==='play')pauseGame(); else if(state==='paused')
 
 el('startBtn').onclick=()=>startRun(false);
 el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anomalies back to back
-el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-5 to fire a shape
+el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-6 to fire a shape
 el('againBtn').onclick=()=>{ startRun(lastWasTest); }; // Reforge = instant retry, in the same mode you were in
 el('deadMenuBtn').onclick=()=>{ toMenu(); };
 // The touch control is HELD like every other Overdrive input, so it is pointerdown/up rather than click —

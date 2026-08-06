@@ -154,11 +154,31 @@ pickup pill named a powerup's effect, the one thing you genuinely could not read
 the powerups gone the pill had nothing left to say and went with them, which is the correct outcome: a
 channel exists to carry something unreadable, not to be preserved.
 
-**Everything else is floating text, and floating text must be drawn where its event happened.** That is
-the whole rule, and it is a rule about *position*, not about content — `-8` rises off the Anomaly you
-just bit, `BOUNTY +` off the Dot that paid, and a red `-8` off your own star when something bites
-**you**. The first and the last are the same minus sign and the same digits; nothing but where they are
-drawn tells them apart, which is the rule demonstrating itself. (A streak announcement stood here as the
+**Everything else is floating text, and floating text must be drawn where its event happened.** `-8`
+rises off the Anomaly you just bit, `BOUNTY +` off the Dot that paid, and `-8` off your own star when
+something bites **you**.
+
+⚠️ **Position is necessary and it is NOT sufficient, and this section used to claim otherwise.** It read
+*"nothing but where they are drawn tells them apart, which is the rule demonstrating itself"* — and that
+was the defect, not a demonstration of the rule. Matter is attracted to the core, so the Dot you bit and
+your own star are frequently within 30px of each other; during a boss fight `-1` dealt and `-10` taken
+were **the same sign, the same digits, the same face and the same bytes of colour**, concurrently, a few
+pixels apart. Two events cannot be separated by position when the events happen in the same place.
+
+**So the text layer now carries exactly one role per colour, and that is the second half of the rule:**
+
+| colour | role |
+|---|---|
+| `COL.red` | damage **taken**. Nothing else prints it. |
+| `COL.gold` | a reward — bounty, purge, the baited charge. |
+| white | damage **dealt**. |
+| *(none)* | income. Score has no floating text at all. |
+
+A number in a polarity colour was also competing with the polarity read the whole game runs on, so
+moving erosion to white bought back a channel as well as fixing a collision.
+
+*Catch it:* two readouts that can fire in the same frame need two channels, and "different place" only
+counts if the places cannot coincide. (A streak announcement stood here as the
 third example until `695779b` deleted it — under this same section's other test, not this one: the HUD
 already carried the streak permanently, so the text was a second encoding. The rule ate its own
 example, which is the right outcome and not a reason to restore it.) A label placed anywhere other than
@@ -246,6 +266,28 @@ and position and `life` advance in lockstep whatever it does.
 ⚠️ **The mine is exempt, and its `life` means something else entirely: it is a fuse.** A mine is *supposed*
 to run out where you can see it — that is how it detonates. There is no reach to preserve, so do not
 scale it to preserve one.
+
+⚠️ **But the mine still travels, and its flight has TWO phases while its reach was modelled from one.**
+This cost 35% of accuracy in the one function whose whole job is landing a mine where it was aimed.
+`stepLances` decays `L.vx` **only inside `if(L.arm>0)`**, while `L.x += L.vx` runs unconditionally below
+it — so after arming a mine keeps its residual `sp·0.965⁷²` for the rest of its fuse:
+
+```
+arming     sp · 0.965·(1−0.965⁷²)/0.035 = 25.45·sp     ← the decay is applied BEFORE the move
+post-arm   sp · 0.0769 · 132 frames     = 10.15·sp     ← the term that was missing
+total                                     35.6·sp  =  MINE_TRAVEL
+```
+
+**It read as correct for one reason and the reason was a coincidence.** At Epoch I `pace.spd` is 0.75 and
+1.354 × 0.75 = 1.015, so the only Epoch anyone checks by hand was the only Epoch the one-phase model was
+right at. It was 35% long from Epoch II on.
+
+*The general form, and it is not about mines:* **a decay applied under a condition, with integration
+applied unconditionally, is a two-phase flight** — and a closed-form reach derived from the conditional
+branch alone will be wrong by whatever the unconditional tail contributes. Grep for the integration, not
+for the decay. And if either `arm` or `MSL.mine.life` moves, re-derive **both** terms; `MINE_TRAVEL` is a
+solved constant, not a tuning knob, and `MINE_SPMAX` was itself set against the wrong arithmetic (13,
+because 13 × 26.3 "looked like" a sensible reach) until the model was fixed.
 
 ### 16. Every combo-driven income term must be capped
 `combo` is a *no-hit* streak: nothing decays it and nothing times it out, so it only falls when you are
@@ -672,16 +714,34 @@ so the shape never deforms to accommodate where you are. The arms reach past the
 which is the Noose's measurement and is there for the Noose's reason: there must be no *outside the
 Cross* to walk to. The answer is a quadrant, chosen early.
 
-### The Neutral Ring
+### The Drift
 
-A closing ring of Neutrals, `NRING_SLOTS` of them, and **it has no seam and no bite**. Both omissions are
-deliberate and they are the whole design. A gap would say *find the way through*, and there is no way
-through a wall of Neutrals — no polarity makes one safe, so the answer is a Shockwave rather than a
-doorway. And unlike the Noose it needs no bite to reach a player who stands still, because it does not
-stop being lethal when it stops closing.
+**Six Neutrals, scattered, with no choreography at all** — no held vector, no polar path, ordinary from
+frame one. It is on its own long timer rather than in the shape rotation, and it is not a formation: it is
+weather, like the Comet. What makes it worth an event is what was always true of a Neutral — the Field
+ignores it, the Fling ignores it, the colour law cannot touch it, and only a Shockwave or your own hull
+ends one — delivered six at a time instead of one every thirteen seconds.
 
-**This is the one pattern that names a verb rather than a position.** Every other shape asks where to
-stand; this one asks you to spend something.
+`NDRIFT_CLEAR` (220) is the one constant, and it exists because **this is the only spawner in the file
+that places bodies on the field** rather than at an edge or off-screen. Every other one got that guarantee
+for free from its geometry, so none of them ever had to state it. A Neutral cannot be annihilated and
+carries dmg 15, so one arriving inside your hull would be damage with no decision attached.
+
+⚠️ **A closing 16-slot cage stood here for one commit, and its failure is the reusable part.** It was
+floored at 145 so that only a flip held past 1.18s could reach it, which is a lot of derivation — and
+three of this file's own tests say the object was wrong, not the tuning:
+
+- **The three pattern rules did not apply to it.** Rule 2 has no referent (Neutrals have no polarity),
+  rule 1's thresholds are the wrong ones (a Neutral is r15, so contact is 30 and walkable 60, not 26/52),
+  and rule 3 was only satisfiable by bolting convergence on. **A shape that has to be argued past all
+  three rules is not a shape; it is something else wearing a shape's costume.**
+- **A cage answered by exactly one input is a quiz, not a question.** Measured: 0 of 16 popped at every
+  hold below 1.18s, 16 of 16 at a full hold. Binary, because every body sat at one radius — the player's
+  move was not positioning or timing but "have I pre-loaded the one answer", with no partial credit in
+  either direction.
+- **The livery lied about it.** Sixteen half-red/half-cyan bodies on a 145px ring read at a glance as an
+  alternating Noose, i.e. as a shape you solve by matching colour, which is the exact opposite of true.
+  Same fault class as a drawn boundary that states a reach the code does not have.
 
 ### The Comet
 Not a formation but an **event**, on its own much longer timer rather than in the shape rotation — and
@@ -815,6 +875,23 @@ regardless of your polarity**: you dodge a missile, you never match it.
 | **Ring** | an expanding wall with one seam — be in the seam |
 | **Mine** | lobbed at the ground around *you*, arms, then detonates; it draws its exact blast — leave |
 | **Spear** | telegraphs a line and tracks you along it, then fires — leave the line |
+
+**Mines come two ways, and the second is the Pulsar's Epoch III escalation.** The **scatter** lays 2–3 at
+stratified bearings on a jittered 140–190px ring around you; **the Box** (`fireMineSquare`) lays eight
+stations on a square, one omitted as the door. Every dimension of the Box is *derived from the blast*
+rather than chosen — 165px spacing so the perimeter is a single continuous denied band (≤ one blast
+diameter), a 46px pocket at the centre (half-side minus the 119px damage radius), and 92px of clear
+passage through the door — so the shape asks "hold the pocket or run the door", and the arming ring that
+closes inward is already the telegraph for the 1.2s you have to decide in.
+
+⚠️ The Box is **all-or-nothing on reach** while the scatter drops individual out-of-reach stations, and
+that asymmetry is deliberate: three loose mines are still three loose mines, but a box with a side missing
+is a different, easier shape wearing the same telegraph. The consequence is that the Box only fires from
+about **46% of arena positions** — it is a *proximity punisher*, which is the right shape for the kind,
+because closing the range is exactly what eroding an Anomaly demands of you.
+
+⚠️ And **a mine's reach is not `sp × 60 × life`** — it decelerates while arming and then coasts, so it is
+`35.6 × sp`. See law 15; getting this wrong put every mine 35% past its aim point for months.
 
 Its hits are priced by **how much warning you get**: a missile is the cheapest (the thing you eat most
 often), a mine blast is double (it announces itself twice — it arms, and it draws its own blast radius,
@@ -1103,10 +1180,10 @@ exact rather than rounded. The Bomber alone carries a rarity multiplier, `BOMB_R
 bands so it scales by the same factor at every Epoch — halving only the intro band would let the species
 creep back at high Act, where the weight climbs.
 
-Two things make the *measured* mix wider than either table: formations and storm surges spawn outside
-`doSpawns`, so the measured mix is wider than either table on its own. *(A second source used to sit
-here: Minis, spawned only by Splitters dying and appearing in no table at all, once about an eighth
-of all arrivals. Both species were deleted in `6324914`, so every Dot now comes from a table.)*
+Formations and storm surges spawn outside `doSpawns`, so the *measured* mix is wider than either table on
+its own. *(A third source used to sit here: Minis, spawned only by Splitters dying and appearing in no
+table at all, once about an eighth of all arrivals. Both species were deleted in `6324914`, so every Dot
+that is not part of a shape now comes from a table.)*
 
 ### Pressure is spawn-limited, not player-limited
 
@@ -1230,7 +1307,7 @@ shorter and far more alike. See *Open* for what is meant to fill that hole.
 |---|---|
 | **Survival** | the real run. The only mode that can set your best score |
 | **Boss Rush** | one Anomaly always present over a **live ambient field**, cycling kinds on kill; number keys jump to a kind. Epoch pinned, intro mix skipped. Gilded Bounty suppressed |
-| **Pattern Lab** | a live ambient field with **no Anomaly and no Epoch phases**; number keys fire the five shapes on demand, and auto-formations are suppressed so nothing arrives unless you asked. It exists because Boss Rush structurally cannot serve it — formations are gated on not-boss, which is most of what Boss Rush is |
+| **Pattern Lab** | a live ambient field with **no Anomaly and no Epoch phases**; number keys fire the six shapes on demand, and auto-formations are suppressed so nothing arrives unless you asked. It exists because Boss Rush structurally cannot serve it — formations are gated on not-boss, which is most of what Boss Rush is |
 
 **Game states:** `menu` · `play` · `ready` (GET READY) · `paused` · `dead`.
 
