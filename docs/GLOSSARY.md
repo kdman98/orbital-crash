@@ -146,9 +146,15 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   off the Star rather than bending around it. (`formCross`, `CROSS_R0`)
 - **The Comet** — a rare event: a shower of 3–5 fast Dots crossing the whole sky on one heading and
   leaving. (`formComet`, `COMET_SPD`, `cometT`)
-- **The Drift** — a rare event, not a formation: six Neutrals scattered across the field with no
-  choreography at all. The only spawner that places bodies *on* the field, hence the clearance guard.
-  (`formNeutralDrift`, `NDRIFT_N`, `NDRIFT_CLEAR`, `ndriftT`)
+- **The Drift** — a rare event, not a formation: six Neutrals arriving on a telegraphed hexagon, with no
+  choreography after arrival. The only spawner that places bodies *on* the field, which is why it is also
+  the only one that needs a warning. (`formNeutralDrift`, `NDRIFT_N`, `NDRIFT_R`, `NDRIFT_TEL`, `ndriftT`)
+- **Danger sign** *(a warn)* — the violet mark that appears where a body is about to arrive, drawn at the
+  incoming body's **contact envelope** rather than its hull. Its ring closes onto that footprint and stops,
+  which is what separates it from a mine's arming ring (that one closes to nothing). The only thing in the
+  game drawn on bare ground away from a body. (`warns`, `warnSpawn()`, `WARN_T`, `drawWarns()`)
+- **Telegraphed spawn** — a warn *owns* the body it advertises: type, colour and position live in the mark,
+  so the sign and the spawn cannot disagree. The file's only scheduled spawn. (`stepWarns()`)
 
 ## The Anomaly
 

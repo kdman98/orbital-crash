@@ -106,6 +106,29 @@ so the unmarked slot goes to the most common Dot.
 Marks are **negative space, not stacked fills** — the enemy pass runs under `lighter`, where layered
 fills saturate to white and erase the polarity contrast the colour law depends on.
 
+⚠️ **A SILHOUETTE THAT CHANGES OVER A BODY'S LIFE IS NOT A SILHOUETTE**, and the Planet broke this on its
+first day. Its plate gaps ran `0.03 → 0.25` rad with charge — an *eightfold* swing — so an uncharged
+Planet was a disc with five hairline slits (i.e. a plain disc, separated from a Drifter and a Brute by
+**size alone**, the channel this law exists to avoid) and a charged one was a rosette. Author: *"i find
+planet dot somewhat hard to identify, and its image is unstable by time."* Two complaints, one cause: the
+**charge state had been made the silhouette, which leaves the species without one.** You cannot learn to
+recognise a shape whose recognition target keeps moving.
+
+**So identity and state are separate channels, and they share one budget.** Identity gets the outline and
+it is held nearly still — the Planet's gaps now floor at 0.22 rad (~10px of arc at the rim, ~5 CSS px on a
+phone) and breathe by 36% rather than 800%, turning at a constant rate near the Brute's. State gets
+**brightness**, which is already this game's state channel (it is what the Bomber's fuse uses) and which
+can vary freely because a brightening point inside a hull cannot be mistaken for a different body. Having
+narrowed the outline's travel, the core's was widened to compensate: 0.14r → 0.36r, a 2.6× span.
+
+*A rejected justification worth recording, because it was sound in isolation:* the Planet's spin used to
+**accelerate** with charge, on the grounds that rate increase is this game's idiom for imminence (the
+mine runs 9 → 15 rad/s as its fuse burns). True, and it still lost — **imminence is worth less than
+identification**, and the core carries it at no cost to the outline.
+
+*Catch it:* screenshot a species at both ends of every state it has. If the two frames would be
+identified as different bodies, the state is wearing the identity's channel.
+
 *Ceiling:* nine species is the edge of what a shape vocabulary carries at 40+ Dots, and a tenth should
 reuse a silhouette and differ by behaviour. **The roster is seven**, so there is room — the ceiling is a
 limit that has not been reached rather than one being pressed against. It was nine until `6324914` cut
@@ -716,16 +739,65 @@ Cross* to walk to. The answer is a quadrant, chosen early.
 
 ### The Drift
 
-**Six Neutrals, scattered, with no choreography at all** — no held vector, no polar path, ordinary from
-frame one. It is on its own long timer rather than in the shape rotation, and it is not a formation: it is
-weather, like the Comet. What makes it worth an event is what was always true of a Neutral — the Field
-ignores it, the Fling ignores it, the colour law cannot touch it, and only a Shockwave or your own hull
-ends one — delivered six at a time instead of one every thirteen seconds.
+**Six Neutrals arriving on a telegraphed hexagon**, with no choreography after arrival — no held vector,
+no polar path, ordinary from frame one. It is on its own long timer rather than in the shape rotation, and
+it is not a formation: it is weather, like the Comet. What makes it worth an event is what was always true
+of a Neutral — the Field ignores it, the Fling ignores it, the colour law cannot touch it, and only a
+Shockwave or your own hull ends one — delivered six at a time instead of one every thirteen seconds.
 
-`NDRIFT_CLEAR` (220) is the one constant, and it exists because **this is the only spawner in the file
-that places bodies on the field** rather than at an edge or off-screen. Every other one got that guarantee
-for free from its geometry, so none of them ever had to state it. A Neutral cannot be annihilated and
-carries dmg 15, so one arriving inside your hull would be damage with no decision attached.
+**A hexagon's side equals its radius**, so at `NDRIFT_R` = 260 the neighbours sit 260px apart against the
+60px that would be walkable for r15 bodies. This is six bodies distributed around you, not a wall, and it
+cannot become one by raising the count without also changing what the thing is. *(Compare the Noose: 22
+slots on 106px, chord 30. That is a wall.)*
+
+Two guards, and the choice of **what** to clamp is the interesting half:
+
+- **The centre is clamped, not the vertices.** Clamping vertices would push three of them onto the same
+  edge for a player in a corner, collapsing the figure into a line and destroying the equal spacing that
+  is the entire reason it is a hexagon. Clamping the centre keeps it regular and simply stops it being
+  centred on you near an edge. `R` shrinks first if the arena cannot hold one at all.
+- **The rotation is solved, not rolled** — half a sector off the Star's bearing from the centre, the same
+  trick the Cross's arms use, so the Star always begins mid-sector. Worst case (Star exactly on the ring)
+  leaves the nearest vertex `2R·sin(15°)` = 135px away against a 30px contact. Measured over eight player
+  positions including all four corners: regular and on-screen every time, minimum 132px.
+
+### Telegraphed spawn — the danger sign
+
+⚠️ **Every other spawner in this file is fair by GEOMETRY, not by warning**, and that is why nothing needed
+a telegraph until now. `spawnAtEdge` starts outside the viewport; the Wall and the Pulse start off-screen;
+the Noose starts past the farthest corner. A body has always arrived from somewhere you could have been
+watching. The Drift is the first thing that places bodies **on** the field, so it is the first that could
+be accused of appearing out of nowhere. Author: *"neutrals spawn from nowhere might seem dangerous."*
+
+`warnSpawn(x, y, type, colour, secs)` draws a mark for `secs` and then spawns that body at that point.
+
+**The mark and the body are ONE OBJECT, and that is the design rather than a convenience.** There has never
+been a scheduled spawn in this file — no queue, no `setTimeout`, no delayed-spawn list — and the reason
+formations fake delay with geometry is that *two lists which must agree are two lists that can disagree*.
+A warn owns the spawn it advertises: type, colour and position all live in the mark, so a sign cannot
+promise a body the spawn does not deliver and a sign cannot be orphaned by a spawn that never happens.
+Measured: every body lands on its own mark with **0.00px** offset, and no body exists while a sign is up.
+
+**It is generic on purpose.** Any `ETYPE` kind can be telegraphed, verified across all seven, and an
+unknown kind is rejected rather than silently spawning nothing — so the next thing that wants to arrive on
+open ground uses this instead of inventing a second warning vocabulary.
+
+**The mark is the contact envelope (`body.r + P.r`), not the hull** — 30px for a Neutral, 38 for a Planet.
+Drawing the hull would understate the space about to be denied by the Star's own radius, which is the
+danger-edge law's exact failure mode.
+
+**Its one distinctive property: the incoming ring closes onto the true footprint and STOPS.** The mine's
+arming ring is the closest existing idiom and it closes to *nothing*, because it is a clock running out.
+Same family, opposite information — one says "time is up", this says "here, this much". Being outside the
+footprint on the way in is legal because it is visibly *moving*: the law forbids a mark that **sits**
+outside a real envelope claiming to be it, and a converging one states its destination by arriving there.
+
+Violet, because violet already means *matter is arriving* (it is the formation flash's colour), so the
+mark inherits a meaning rather than inventing one — and because this is **the only thing in the game drawn
+on bare ground away from a body**, which is what makes it unmistakable before any of the rest of it lands.
+
+⚠️ A pending spawn is cleared on run reset. Leaving one alive drops a body into the next run out of
+nowhere, i.e. the exact fault the mark exists to remove, wearing its own sign.
 
 ⚠️ **A closing 16-slot cage stood here for one commit, and its failure is the reusable part.** It was
 floored at 145 so that only a flip held past 1.18s could reach it, which is a lot of derivation — and

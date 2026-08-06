@@ -4415,8 +4415,30 @@ function drawEnemies(){
       // honest only for a body that HAS a timer. A Bomber has none — it goes off when killed — so a
       // quickening mark there would promise a clock that does not exist. A charging Planet has exactly
       // that clock, so the acceleration states something true.
+      // ⚠️ THE GAPS ARE WIDE AT ZERO CHARGE, AND THE SPIN DOES NOT ACCELERATE. Both were the other way
+      // round and both were wrong, on the author's report: "i find planet dot somewhat hard to identify,
+      // and its image is unstable by time." Two separate faults with one cause — I had made the CHARGE
+      // STATE the silhouette, which leaves the SPECIES without one:
+      //   · At `gap = 0.03 + 0.22*f` an uncharged Planet was a disc with five hairline slits, i.e. a plain
+      //     disc, separated from a Drifter and a Brute by SIZE ALONE — the channel this whole draw pass
+      //     exists to avoid relying on. And a Planet spends most of its life uncharged, because charging
+      //     requires the player to choose to do it.
+      //   · A silhouette that changes character over a body's life is not a silhouette. You cannot learn
+      //     to recognise a shape whose recognition target keeps moving, which is the "unstable by time"
+      //     half. `0.03 -> 0.25` is an EIGHTFOLD change in the gap; it read as a different species at each
+      //     end.
+      // So identity and state are split, and each gets one channel:
+      //   IDENTITY  the five plates, always clearly separated (gap floor 0.22 rad = ~10px of arc at the
+      //             rim, ~5 CSS px on a phone), turning at a CONSTANT 0.30 — near the Brute's own 0.35, so
+      //             it is never lost edge-on without ever becoming a different image.
+      //   STATE     the gaps breathe by 36% rather than 800%, and the core brightens (below). Brightness is
+      //             already this game's state channel — it is what the Bomber's fuse uses — and unlike an
+      //             outline it can vary without touching what the body IS.
+      //   ⚠️ The spin used to accelerate with charge, justified as this game's idiom for imminence (the
+      // mine's 9 -> 15 rad/s). That justification was sound in isolation and still lost: imminence is worth
+      // less than identification, and the core's brightness carries it at no cost to the outline.
       const f=clamp((e.burn||0)/PLANET_FUSE,0,1);
-      const NP=5, inr=e.r*0.42, gap=0.03+0.22*f, base=e.ph+elapsed*(0.25+0.9*f);
+      const NP=5, inr=e.r*0.42, gap=0.22+0.08*f, base=e.ph+elapsed*0.30;
       ctx.beginPath(); ctx.arc(e.x,e.y,inr,0,TAU); ctx.fill();      // the core stays whole
       for(let k=0;k<NP;k++){
         const c0=base+k*TAU/NP+0.11*Math.sin(e.ph*3+k*2.3);         // uneven plates, stable per Dot
@@ -4476,9 +4498,14 @@ function drawEnemies(){
       //   ⚠️ NOT A RING, and not a bar. A concentric ring here would be the Gilded Bounty's vocabulary on
       // the one Dot you also want to steer toward, which is exactly the confusion the Bomber's note
       // refuses. Brightness has no rim and cannot be mistaken for a radius.
+      //   THE CORE'S RANGE IS WIDE BECAUSE THE OUTLINE'S IS NARROW. These two are one budget: the plates
+      // gave up 90% of their travel to hold the species' identity still, so the charge readout has to come
+      // from here instead. 0.14r -> 0.36r is a 2.6x span in radius on top of the alpha ramp, which is a
+      // much stronger cue than the eightfold gap swing it replaces — and it costs nothing, because a
+      // brightening point inside a hull cannot be mistaken for a different body.
       const f=clamp((e.burn||0)/PLANET_FUSE,0,1);
-      ctx.fillStyle=hexA('#ffffff',0.55+0.45*f);
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.16+0.14*f),0,TAU); ctx.fill();
+      ctx.fillStyle=hexA('#ffffff',0.5+0.5*f);
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.14+0.22*f),0,TAU); ctx.fill();
     } else if(e.type==='fast'){
       // THE DART GETS A WAKE. It and the Drifter are the two most common Dots in the sky (8.1 and 20.1
       // per sample, sharing the screen in 77% of them) and radius alone — 8 against 11 — cannot separate

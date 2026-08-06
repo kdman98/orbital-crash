@@ -56,7 +56,11 @@
 (function(){
   // `lime` is the Bomber blast's colour and the Bomber's own fuse, and it must match index.html exactly —
   // a card that teaches a different hue than the game shows is worse than a card with no mark at all.
-  const COL={red:'#ff3f6c',cyan:'#38e0ff',neutral:'#c7b8ff',lime:'#8dff6b'};
+  // ⚠️ This palette is a SUBSET of the game's and has now been short twice — `lime` (the Bomber's fuse and
+  // blast) and `violet` (the danger sign, and every formation arrival) both had to be added after a card
+  // reached for them. If a card needs a colour the game uses, copy the value from index.html rather than
+  // approximating it: a card teaching a different hue than the game shows is worse than no mark at all.
+  const COL={red:'#ff3f6c',cyan:'#38e0ff',neutral:'#c7b8ff',lime:'#8dff6b',violet:'#9b6bff'};
   const TAU=Math.PI*2;
   const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
 
@@ -175,11 +179,14 @@
       // no core here — the lime fuse in the MARK section below is the Bomber's centre, exactly as in the
       // game (where `noCore` skips the generic white dot for this kind). Drawing one here too would put a
       // white disc under the fuse and the lime would be the thing you notice second.
-    } else if(s.type==='planet'){  // plates around a whole core, gaps widening as it charges — as in the game
-      // The card cycles the charge so the reader sees the whole range: this is the one Dot whose art
-      // CHANGES over its life, and a card frozen at burn=0 would be showing the least useful frame.
-      const f=0.5+0.5*Math.sin(t*0.55);
-      const NP=5, inr=r*0.42, gap=0.03+0.22*f, base=t*(0.25+0.9*f);
+    } else if(s.type==='planet'){  // five plates around a whole core, turning — as in the game
+      // ⚠️ A FIXED MID-CHARGE, NOT A CYCLE. This card used to sweep `f` from 0 to 1 so the reader "saw the
+      // whole range", and that was the wrong job: a Bestiary card exists to teach ONE image you can then
+      // recognise in play. Animating the charge taught six images and no silhouette — the same fault the
+      // game's own draw had (see index.html), reported as "hard to identify, and its image is unstable by
+      // time". The plates now sit at a constant separation here for the same reason they do in game.
+      const f=0.45;
+      const NP=5, inr=r*0.42, gap=0.22+0.08*f, base=t*0.30;
       ctx.fillStyle=c;
       ctx.beginPath(); ctx.arc(x,y,inr,0,TAU); ctx.fill();
       for(let k=0;k<NP;k++){
@@ -189,8 +196,8 @@
         ctx.arc(x,y,r,a0,a1,false); ctx.arc(x,y,inr,a1,a0,true);
         ctx.closePath(); ctx.fill();
       }
-      ctx.fillStyle=hexA('#ffffff',0.55+0.45*f);
-      ctx.beginPath(); ctx.arc(x,y,r*(0.16+0.14*f),0,TAU); ctx.fill();
+      ctx.fillStyle=hexA('#ffffff',0.5+0.5*f);
+      ctx.beginPath(); ctx.arc(x,y,r*(0.14+0.22*f),0,TAU); ctx.fill();
     } else if(s.type==='heavy'){   // hexagon: flats on exactly r, so the silhouette still tells the truth
       const HR=r*1.1547, hs=t*0.35;
       ctx.fillStyle=c; ctx.beginPath();
@@ -433,23 +440,42 @@
       }
       ctx.fillStyle=hexA('#ffffff',0.6); ctx.beginPath(); ctx.arc(x,y,3.4,0,TAU); ctx.fill();
     } else if(s.key==='drift'){
-      // SIX NEUTRALS, SCATTERED AND UNCHOREOGRAPHED — so the card must NOT arrange them. An earlier
-      // version drew this as a closing ring, which is exactly the shape the mechanic stopped being, and a
-      // card that composes a formation out of six loose bodies teaches a pattern that is not there.
-      // Fixed pseudo-random offsets (no Math.random, so the card is stable frame to frame) with a slow
-      // independent wander per body. Each wears both poles on a turning seam, as the Dot card draws them.
-      const na=t*0.5;
+      // THE WHOLE POINT OF THIS CARD IS THE WARNING, so it animates the full cycle: six violet danger
+      // signs on a hexagon, then the Neutrals arriving on them, then a beat, then round again. A card that
+      // showed only the bodies would teach the half of the event that needs no teaching.
+      //   (Two earlier versions were wrong in opposite directions: one drew a closing ring, which is the
+      //   shape the mechanic stopped being, and one drew six scattered bodies, which is the arrangement it
+      //   stopped having. Draw what it does now, and animate the part that is a promise.)
+      const cyc=(t*0.34)%1;                       // 0..0.55 warning, 0.55..1 arrived
+      const warned=cyc<0.55, f=warned?(cyc/0.55):1;
+      const R=52, na=t*0.5;
       for(let i=0;i<6;i++){
-        const sx=Math.sin(i*2.399)*66, sy=Math.cos(i*1.732)*44;      // scattered, not spaced
-        const bx=x+sx+Math.sin(t*0.31+i*1.7)*7, by=y+sy+Math.cos(t*0.27+i*2.3)*7;
-        ctx.fillStyle=hexA(COL.red,0.92);
-        ctx.beginPath(); ctx.arc(bx,by,5.2, na, na+Math.PI); ctx.fill();
-        ctx.fillStyle=hexA(COL.cyan,0.92);
-        ctx.beginPath(); ctx.arc(bx,by,5.2, na+Math.PI, na+TAU); ctx.fill();
-        ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=1;
-        ctx.beginPath();
-        ctx.moveTo(bx+Math.cos(na)*5.2, by+Math.sin(na)*5.2);
-        ctx.lineTo(bx-Math.cos(na)*5.2, by-Math.sin(na)*5.2); ctx.stroke();
+        const a=i/6*TAU-Math.PI/6;                // one vertex is never straight up: not axis-aligned
+        const bx=x+Math.cos(a)*R, by=y+Math.sin(a)*R;
+        if(warned){
+          // mirrors drawWarns(): footprint held, incoming ring 3r -> r, three turning ticks inside
+          const r=9;
+          ctx.strokeStyle=hexA(COL.violet,0.18+0.5*f); ctx.lineWidth=1.4;
+          ctx.beginPath(); ctx.arc(bx,by,r,0,TAU); ctx.stroke();
+          ctx.strokeStyle=hexA(COL.violet,0.16+0.46*f); ctx.lineWidth=1.6;
+          ctx.beginPath(); ctx.arc(bx,by,r*(3-2*f),0,TAU); ctx.stroke();
+          ctx.strokeStyle=hexA(COL.violet,0.30+0.55*f); ctx.lineWidth=1.4;
+          for(let k=0;k<3;k++){
+            const ta=t*0.9+i*1.1+k*TAU/3, ca=Math.cos(ta), sa=Math.sin(ta);
+            ctx.beginPath();
+            ctx.moveTo(bx+ca*r*0.52, by+sa*r*0.52);
+            ctx.lineTo(bx+ca*r*0.90, by+sa*r*0.90); ctx.stroke();
+          }
+        } else {
+          ctx.fillStyle=hexA(COL.red,0.92);
+          ctx.beginPath(); ctx.arc(bx,by,5.4, na, na+Math.PI); ctx.fill();
+          ctx.fillStyle=hexA(COL.cyan,0.92);
+          ctx.beginPath(); ctx.arc(bx,by,5.4, na+Math.PI, na+TAU); ctx.fill();
+          ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=1;
+          ctx.beginPath();
+          ctx.moveTo(bx+Math.cos(na)*5.4, by+Math.sin(na)*5.4);
+          ctx.lineTo(bx-Math.cos(na)*5.4, by-Math.sin(na)*5.4); ctx.stroke();
+        }
       }
     } else if(s.key==='comet'){
       // One Dot on a fixed line, far faster than anything else, with the tail formComet() actually

@@ -14,6 +14,65 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-06
 
+### The Planet's charge was wearing its silhouette
+Author: *"i find planet dot somewhat hard to identify, and its image is unstable by time."* Two complaints
+with one cause, and it is a law-level mistake rather than a tuning one: **the charge state had been made
+the silhouette, which leaves the species without one.**
+
+The plate gaps ran `0.03 → 0.25` rad with charge — an **eightfold** swing. So an uncharged Planet was a
+disc with five hairline slits, i.e. a plain disc, separated from a Drifter and a Brute by *size alone*,
+which is the channel the silhouette law exists to avoid relying on — and a Planet spends most of its life
+uncharged, because charging it is something the player has to choose to do. The other half is that a shape
+whose character changes over its life cannot be learned at all: the recognition target keeps moving.
+
+**Identity and state are separate channels now, sharing one budget.** The gaps floor at 0.22 rad (~10px of
+arc at the rim, ~5 CSS px on a phone) and breathe by 36% instead of 800%, turning at a constant rate near
+the Brute's own. The charge moved onto **brightness** — already this game's state channel, the one the
+Bomber's fuse uses — and the core's range was widened to compensate for the outline's being narrowed:
+0.14r → 0.36r, a 2.6× span.
+
+The spin used to **accelerate** with charge, justified as this game's idiom for imminence (the mine runs
+9 → 15 rad/s). That was sound in isolation and still lost: **imminence is worth less than identification.**
+Generalised into the silhouette law, with the check that catches it — screenshot a species at both ends of
+every state it has, and if the two frames read as different bodies, the state is on the identity's channel.
+
+### A danger sign that owns the spawn it warns about `7b68016`
+Author: *"neutrals spawn from nowhere might seem dangerous. show danger sign, and spawn neutrals there,
+six in a hexagon position. it would be good to re-use danger sign like hostile singularity spawn or
+something."*
+
+**The problem was real and it was exactly one place.** Every other spawner in the game is fair by
+*geometry* rather than by warning — `spawnAtEdge` starts outside the viewport, the Wall and the Pulse start
+off-screen, the Noose starts past the farthest corner. A body has always arrived from somewhere you could
+have been watching, which is why nothing had ever needed a telegraph. The Drift below places bodies **on**
+the field, so random placement with no warning was the one combination the game had never shipped.
+
+`warnSpawn(x, y, type, colour, secs)` draws a mark and then spawns that body there, and **the mark and the
+body are one object.** There has never been a scheduled spawn in this file, and the reason formations fake
+delay with geometry is that two lists which must agree are two lists that can disagree — so type, colour
+and position all live in the mark. Measured: every body lands on its own sign with **0.00px** offset, no
+body exists while a sign is up, and a pending spawn is cleared on reset (leaving one alive would drop a
+body into the next run out of nowhere, which is the fault the sign exists to remove, wearing its own sign).
+
+It is **generic on purpose** — verified across all seven species, rejecting unknown kinds — so the next
+thing that arrives on open ground uses it rather than inventing a second warning vocabulary.
+
+**The sign's one distinctive property: its ring closes onto the true footprint and stops.** The mine's
+arming ring is the nearest existing idiom and it closes to *nothing*, because it is a clock running out.
+Same family, opposite information — one says "time is up", this says "here, this much". It is drawn at the
+**contact envelope** (`body.r + P.r`), not the hull, because drawing the hull understates the denied space
+by the Star's own radius. Violet, since violet already means *matter is arriving*, and it is the only thing
+in the game drawn on bare ground away from a body.
+
+**The Drift also arrives on a hexagon now**, replacing six independent `rand` draws — the only
+*arrangement* in the game rolled twice per body, and it showed: two of six routinely landed nearly on top
+of each other, reading as an accident rather than an event. A hexagon's side equals its radius, so 260
+gives 260px between neighbours against the 60px that would be walkable for r15 bodies. The **centre** is
+clamped rather than the vertices (clamping vertices collapses the figure into a line for a player in a
+corner and destroys the equal spacing that is the whole point), and the rotation is solved so the Star
+always begins mid-sector — worst case 132px to the nearest vertex against a 30px contact, measured over
+eight player positions including all four corners.
+
 ### The Neutral Ring was not a ring `c738967`
 Same-day reversal of the shape below. Author: *"neutral rings are not ring, just random 6 neutrals float
 around field."* It becomes **the Drift**: six Neutrals placed across the field with **no formation flight
