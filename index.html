@@ -1255,7 +1255,11 @@ function freshRun(){
 // =====================================================================
 //  ENEMIES
 // =====================================================================
-// THE ROSTER IS SIX, AND IT USED TO BE NINE. `split`, `mini` and `orbiter` are gone, and the reason is
+// THE ROSTER IS EIGHT. It was nine, `split`/`mini`/`orbiter` took it to six, then the Planet and the
+// Harrier brought it back to eight. ⚠️ This line said SIX for two commits after the Planet was added
+// **in the same comment block** — a count is the easiest thing in a file to leave behind, because nothing
+// reads it and nothing can fail on it. Three separate places in this repo have stated the roster size and
+// all three have disagreed at once. If you add a species, grep the WORD, not the number. The reason is
 // one sentence: every survivor has an identity that is not "a Drifter, but a bit different".
 //   · SPLITTER  — its removal CLOSES A DOCUMENTED DEFECT rather than expressing a taste. MECHANICS'
 //     `Open` section carried "the Splitter has no answer the player can aim — and this is an agency
@@ -1295,7 +1299,59 @@ const ETYPE={
   //                go and get it, which is the first half of the price.
   //     r 23     — the largest ordinary Dot. It cannot be hidden in a crowd and it cannot be dodged late.
   planet: {r:23, hp:4, mass:3.2,  maxsp:1.7, seek:0.13, dmg:20},
+  // THE HARRIER — the one body that ORBITS you instead of arriving at you. Author: "fast velocity, slow
+  // turn → making a ellipse ring when chasing or being pulled."
+  //   `ballistic` is the whole species and it is a flag rather than a number because it switches a MODE,
+  // not a magnitude: inside your rings it keeps its momentum and loses the whirl. See ARC_* below.
+  //     maxsp 5.0 — second only to the Dart. This is the "fast velocity" half, and it exists mostly to
+  //                 keep the ring clamp far away: a ringed body is normally PINNED at `maxsp*RING_CAP*
+  //                 DOTSPD`, and a pinned speed is a CIRCLE. The ellipse needs the cap to never bind.
+  //     seek 0.16 — the "slow turn" half. On a heading-less body, weak steering IS a slow turn — and once
+  //                 captured this is the only force left acting, so it doubles as the orbit's gravity.
+  //     r 13      — ⚠️ AND IT MUST STAY UNDER 27. `stepAnnihilation` buckets on `cell=64` with a +/-1
+  //                 neighbourhood, so the widest pair it can see is 64; against the Anomaly's r37 that
+  //                 caps any new species at 27 before boss contact starts being missed entirely.
+  harrier:{r:13, hp:1, mass:0.9,  maxsp:5.0, seek:0.16, dmg:12, ballistic:1},
 };
+// ⚠️ THE ORBIT IS WHAT THE RING DOES *NOT* DO TO THIS ONE. Three of the four terms that hold ordinary
+// matter in your rings are switched off for a ballistic body, and the fourth — plain `seek` — is left as
+// the only force acting on it. That is the entire mechanism, and it is why the path is an ellipse:
+//   · NO SPRING. The ring spring pulls toward a fixed RADIUS from both sides, which is an annular well —
+//     it produces a wobbling circle, never an ellipse. Deleting it leaves `seek`, a force toward the
+//     CENTRE, and a central force plus momentum is an orbit.
+//   · NO SPIN. The 1.2/frame tangential shove is a drive, not a force: under the low bleed below it would
+//     accumulate to `spin/(1-fr)` = 1200 px/frame and slam straight into the speed clamp — and a body
+//     pinned at its clamp travels a circle at constant speed. The whirl and the ellipse are mutually
+//     exclusive; this species trades one for the other.
+//   · ALMOST NO BLEED. This is the load-bearing one. The ring's 0.80 is a 1/e decay in ~4.5 frames, which
+//     is precisely why the deleted Orbiter spiralled instead of orbiting — there was no momentum for an
+//     ellipse to be made of. 0.999 loses ~17% of the speed per revolution, so the path visibly decays
+//     over several orbits rather than persisting forever or collapsing at once.
+//   · AND A WIDER LEASH. Capture is `d < fieldR`; an eccentric orbit swings past that by design, and a
+//     body that keeps crossing the boundary would strobe `e.ring` 1/0 — which flickers the boss-grind
+//     channel and the flip's ammunition count. Extending only the CAPTURE radius (never `orbR`, which
+//     stays where every other species' does) turns the strobe into one stable wide orbit.
+const ARC_GRIP=0.005;                       // multiplies the ring bleed's LOSS: 1-(1-0.80)*0.005 = 0.999
+const ARC_FR=1-(1-0.80)*ARC_GRIP;
+const ARC_CAPR=1.9;                         // capture/retention radius, as a multiple of fieldR
+// ⚠️ AND CAPTURE IS AN EVENT, NOT A FORCE — the piece the first build was missing, and it failed loudly
+// without it. `seek` points straight at you, so a body that has been steering toward the Star for its
+// whole approach arrives with almost NO ANGULAR MOMENTUM: it does not enter an orbit, it falls down the
+// middle. Measured on 12 natural edge arrivals with no injection: every one was captured and held for 28s
+// with zero drops — and the median eccentricity was 9.5, ranging 6.2 to 29. Perigees of 13-58px (inside
+// the 28px contact envelope, so it hit the Star every pass) against apogees of 400. That is a comet on a
+// plunging line, not an ellipse, and the shape was set by arrival luck rather than by design.
+//   Injecting a TANGENTIAL velocity on the frame of capture fixes all of it at once: the orbit becomes a
+// property of the mechanic instead of the approach, so it is consistent from every edge. It is a discrete
+// event, so unlike a tangential force it cannot accumulate under the near-zero bleed — which is exactly
+// why the spin had to go. The Field catches the body and swings it, once.
+//   For a constant central force `a` at radius `r`, circular speed is sqrt(a*r). Injecting slightly UNDER
+// that is what makes the path an ellipse rather than a circle: the body cannot hold the radius it was
+// caught at, falls inward, and swings back out. This is the eccentricity knob, and it is sharp — 1.0 is a
+// circle, 0.78 measured 1.36 (nearly circular), 0.5 measured the ~2.4 wanted. The perigee it implies is
+// the constraint that matters: at 0.5 it lands near 80px, comfortably outside the 28px contact envelope,
+// and pushing lower walks the body into the Star on every pass.
+const ARC_INJ=0.5;
 function spawnEnemy(type,color,x,y){
   const t=ETYPE[type];
   const c=color || (type==='neutral'?'neutral':(Math.random()<0.5?'red':'cyan'));
@@ -1305,6 +1361,11 @@ function spawnEnemy(type,color,x,y){
   const aDmg=1+(act-1)*0.08, aSpd=1+(act-1)*0.04;
   const e={
     type, color:c, r:t.r, hp:t.hp, mass:t.mass, maxsp:t.maxsp*aSpd, seek:t.seek, dmg:t.dmg*aDmg,
+    // Copied onto the body like every other per-species stat, deliberately: the force loop reads `e` and
+    // has never touched `ETYPE`, and a per-frame table lookup in the hot path would be the one place this
+    // file goes indirect for no reason. `||0` so the field is a number on every Dot rather than undefined
+    // on seven of them.
+    ballistic:t.ballistic||0,
     x, y, vx:0, vy:0, dead:false, queued:false, ph:rand(0,TAU),
   };
   enemies.push(e);
@@ -2029,6 +2090,12 @@ const PLANET_RARITY=0.35;
 // the rate you gained it, so a panic flip is not a pause, it is a setback. `RING_GRACE` (0.8s) already
 // forgives a hard dodge, so this only bites when membership is genuinely lost.
 const PLANET_FUSE=7.0, PLANET_COOL=2.0;
+// THE HARRIER IS LATE AND UNCOMMON, and for a reason particular to it rather than by habit. It is the one
+// body that does not resolve — it is captured and then STAYS, orbiting, for as long as its momentum lasts,
+// so its cost to you is measured in occupancy rather than in a moment. Several at once is not a harder
+// version of the same event, it is a permanently busier ring. Same multiplicative form as the three rarity
+// knobs above, so the act climb written into the table survives being made rare.
+const HARRIER_RARITY=0.4;
 function doSpawns(dt){
   const cap=Math.min(330, 40 + elapsed*1.0 + act*10);         // later Acts hold a denser arena
   const interval=Math.max(0.16, lerp(1.7,0.30,intensity) - act*0.012);
@@ -2050,10 +2117,16 @@ function doSpawns(dt){
       // positioning-demanding species (Chargers, Bombers, Neutrals, and now the Planet) climb.
       // "Stronger" means the swarm asks harder questions of your Flip, never just more meat.
       const a=act;
+      // ⚠️ THE HARRIER IS IN THE LATE BAND ONLY, and that is a harness property as much as a design one.
+      // `.oracle.js` runs its survival pilots for 2400 frames — 40 seconds — so they never leave the
+      // `t<45` table. Anything added at t>=45 is INVISIBLE to the fingerprint suite, which means the
+      // suite keeps proving what it was proving. Add a species to an early band and every fingerprint
+      // moves, and you lose the one instrument that could have told you whether you broke something else.
       table=[['drift',Math.max(8,30-a*3)],['fast',20],['heavy',12+a],
              ['charger',8+a],['bomber',(7+a)*BOMB_RARITY],
              ['neutral',(3+Math.floor(a/2))*NEUTRAL_RARITY],
-             ['planet',(2+Math.floor(a/2))*PLANET_RARITY]];
+             ['planet',(2+Math.floor(a/2))*PLANET_RARITY],
+             ['harrier',(3+Math.floor(a/2))*HARRIER_RARITY]];
     }
     // during a boss fight, keep a mild lean toward the OPPOSITE of the anomaly's colour for ammo,
     // but the reliable kill is the flip-chip (below) — so colour stays varied
@@ -3167,8 +3240,21 @@ function stepEnemyForces(dt){
     // Charger bug documented at the top of this loop. Gating `inField`/`inGrace` instead means a Dot that
     // WAS ringed and is now thrown falls into that else on the very next frame and is cleared properly.
     const thrown = e.flung>0;
-    const inField = ringing && !thrown && d<P.fieldR;
-    const inGrace = ringing && !thrown && !inField && e.ring && e.ringGrace>0 && d<P.fieldR*RING_GRACE_R;
+    // ⚠️ `capR` EXTENDS THE LEASH, NOT THE ORBIT. It multiplies the radius at which a body is CAPTURED and
+    // RETAINED, and deliberately never touches `orbR` below — a ballistic body is pulled toward the same
+    // radius as everything else, it simply has the momentum to swing well past it and come back. Widening
+    // `orbR` instead would move where its orbit sits; widening capture keeps the orbit where the ring
+    // already is and stops the boundary crossing from strobing `e.ring`. Bit-identical at 1.
+    const capR = P.fieldR*(e.ballistic?ARC_CAPR:1);
+    // ⚠️ CATCH AT THE FIELD, KEEP ON THE LONGER LEASH — and getting this backwards was worth measuring.
+    // The wide radius exists for RETENTION, so that an eccentric orbit swinging past the rim does not
+    // strobe `e.ring`. Using it for initial CAPTURE too means the body is caught at 361 and injected with
+    // the circular speed for 361, which sets an orbit scaled to that radius: measured apogees of 360 and
+    // eccentricity 5.2, i.e. a body that spends most of its life out by the arena edge. Catching at the
+    // Field and only then extending the leash keeps the orbit the size of the thing that caught it.
+    const holdR = (e.ballistic && e.ring) ? capR : P.fieldR;
+    const inField = ringing && !thrown && d<holdR;
+    const inGrace = ringing && !thrown && !inField && e.ring && e.ringGrace>0 && d<capR*RING_GRACE_R;
     if(inField) e.ringGrace=RING_GRACE; else if(e.ringGrace>0) e.ringGrace-=dt;
     if(inField || inGrace){
       const rm=P.ringMul||1;
@@ -3205,6 +3291,24 @@ function stepEnemyForces(dt){
       //   Nothing here was retuned when it moved: `orbR` fell from 175.1 to 136.8 purely because it is a
       // fraction OF `fieldR`, the shell came in from 214.1 to 183.1, and the spin rose 17% for free.
       // That is the v/r trade above running in the direction that pays.
+      // ⚠️ A BALLISTIC BODY TAKES NEITHER THE SPRING NOR THE SPIN. Both are switched off together because
+      // they are the two halves of one mechanism — the spring pins a radius and the spin drives around it,
+      // and between them they MANUFACTURE a circle. Leaving either one on would defeat the orbit: the
+      // spring alone makes an annular well (a wobbling circle), and the spin alone accumulates under the
+      // near-zero bleed until the speed clamp catches it, which is a circle at constant speed. What is
+      // left is `seek`, a plain force toward the centre, plus whatever momentum the body arrived with —
+      // and a central force plus momentum is the definition of an orbit. See the ARC_* note at ETYPE.
+      // THE CATCH. Fires once, on the frame membership begins — `e.ring` is still the PREVIOUS frame's
+      // value here, because it is not assigned until the bottom of this block. The body's radial velocity
+      // is discarded and replaced with a purely tangential one, keeping whichever way round it was already
+      // going (the sign of its velocity projected onto the tangent) so the catch never reverses a body
+      // mid-flight. If it arrived dead radial, the sign is arbitrary and either answer is correct.
+      if(e.ballistic && !e.ring){
+        const vt=Math.sqrt(e.seek*P.seekMult*d)*ARC_INJ;
+        const sgn=((-dy)*e.vx + dx*e.vy)>=0 ? 1 : -1;
+        e.vx=-dy/d*vt*sgn; e.vy=dx/d*vt*sgn;
+      }
+      if(!e.ballistic){
       const orbR=P.fieldR*(P.eddy?0.72:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
       ax+=(dx/d)*toRing*err*0.03*rm; ay+=(dy/d)*toRing*err*0.03*rm;   // spring onto the ring radius
       // Ring whirl is `spin/(1-bleed)` where the `0.80` bleed below (ordinary matter gets 0.86) is what
@@ -3219,6 +3323,7 @@ function stepEnemyForces(dt){
       // revolutions per half gauge. If you change one of these two numbers, change both.
       const spin=(P.eddy?3.6:1.2)*rm*(store.reduceMotion?0.7:1);
       ax+=-dy/d*spin; ay+=dx/d*spin;
+      }
       e.ring=1;
     } else if(e.ring) e.ring=0;
     // THE PLANET'S DWELL. ⚠️ NOTHING ELSE IN THE GAME MEASURES HOW LONG A DOT HAS BEEN IN THE RING, and it
@@ -3247,7 +3352,13 @@ function stepEnemyForces(dt){
     // visible: at the ordinary 0.86 the excess is gone in ~7 frames (and ~3px), at 0.985 it takes ~66, so
     // the deceleration happens across the arena instead of inside the spawn margin. Ordered after `flung`
     // only because a Dot cannot be both; the value is the same either way.
-    const fr=(e.flung>0||e.entry>0)?0.985:(e.ring?0.80:0.86); e.vx*=fr; e.vy*=fr;
+    // ⚠️ AND THE BALLISTIC BLEED IS THE WHOLE SPECIES. 0.80 is a 1/e decay in ~4.5 frames — the reason the
+    // deleted Orbiter spiralled rather than orbited was that there was no momentum left to orbit WITH, and
+    // no choice of spring or spin constant can fix a dissipation term. 0.999 keeps it. This is the one
+    // place the file's own "TUNE THE SPIN, NOT THE BLEED" warning is deliberately overruled — and the
+    // warning still holds for the value it was written about: the shared 0.80 is untouched, and the grip
+    // it provides is exactly what this species is giving up in exchange for the orbit.
+    const fr=(e.flung>0||e.entry>0)?0.985:(e.ring?(e.ballistic?ARC_FR:0.80):0.86); e.vx*=fr; e.vy*=fr;
     // speed clamp — OPPOSITE (attracted) inward pace is held at 1.25 (never sped up: "don't suck in another
     // colour"). Everything else — rings, neutrals, wandering matter — is livelier via DOTSPD.
     // Ringed matter gets its own headroom (RING_CAP vs 1.9). At 1.9 a Drifter caps at 7.9 px/frame, which
@@ -3264,7 +3375,12 @@ function stepEnemyForces(dt){
     // enough pace that a player dodging at speed does not outrun their own ammunition — that is the real
     // shape of "you have to move slow to keep a ring" — but it is not a ring yet and must not inherit a
     // ceiling tuned for one. Giving closing matter ring-grade speed makes gathering feel like a vacuum.
-    const closing=(ringing && d>=P.fieldR && d<P.fieldR*LIKE_GRAV_R);
+    // `closing` is "gathered but not yet captured", so it has to start where capture ENDS — otherwise a
+    // ballistic body swinging between fieldR and its own wider leash would be counted as both at once and
+    // take the closing speed cap while already ringed. Bit-identical for everything else, where capR IS
+    // fieldR. (LIKE_GRAV above is left on fieldR on purpose: core gravity is the pull that gathers loose
+    // matter toward the Field, and a wider capture radius does not move where the Field is.)
+    const closing=(ringing && d>=capR && d<P.fieldR*LIKE_GRAV_R);
     const sp=Math.hypot(e.vx,e.vy), mx=e.maxsp*(attracted?1.25:(e.ring?RING_CAP:(closing?2.9:1.9))*DOTSPD);
     // (The `flung` decrement stood here, paired with this clamp as an if/else so a thrown Dot skipped the
     //  ceiling. It has moved to the top of the loop — see the note there — because two paths `continue`
@@ -3619,7 +3735,7 @@ function processKills(){
 // ⚠️ `boss` BELONGS IN HERE. The Anomaly's body damages you through the Dot-contact path like everything
 // else, so a missing key printed the raw type on the death screen — "Lost to boss (red)" — the same class
 // of internal-identifier leak that put `phase` behind DEV two lines below the receipt.
-const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',bomber:'Bomber',charger:'Charger',neutral:'Neutral',planet:'Planet',boss:'Anomaly'};
+const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',bomber:'Bomber',charger:'Charger',neutral:'Neutral',planet:'Planet',harrier:'Harrier',boss:'Anomaly'};
 let lastDmg=null; // {src, act, phase} — death receipt
 function breakStreak(src){
   lastDmg={src, act, phase:wavePhase};
@@ -4498,6 +4614,27 @@ function drawEnemies(){
         if(k===0) ctx.moveTo(bxp,byp); else ctx.lineTo(bxp,byp);
       }
       ctx.closePath(); ctx.fill();
+    } else if(e.type==='harrier'){
+      // THE HARRIER IS A BINARY STRUNG ALONG ITS HEADING — the Splitter's retired twin-lobe, deliberately
+      // reused, and deliberately turned through 90 degrees of meaning.
+      //   The release note for that outline is also its warning: a new species wearing a retired one's
+      // shape inherits every expectation the old one taught, and what the Splitter taught was "pop this
+      // and you get MORE of them". So the reuse has to BREAK that read, and the axis is what does it. The
+      // Splitter's seam TURNED on its own clock (`ph + elapsed*0.55`) with the lobes straining apart on a
+      // 3.4Hz breath — a body visibly working itself in two. This one's axis is pinned to its DIRECTION
+      // OF TRAVEL and does not breathe: two masses strung along a line, which reads as a body built for a
+      // path rather than a body about to divide. Same outline, opposite statement.
+      //   It also puts identity and behaviour in the same mark, which is what this file asks of every
+      // silhouette: the thing you recognise it by is the thing it is doing.
+      //   ⚠️ Lobe radius 0.72 at offset 0.30 keeps the drawn extent at ~1.02r — the Splitter's own numbers,
+      // kept because law 4 is unconditional: `e.r` is both the hull and the collider, so an outline that
+      // ran long down the heading would claim lethal space that does not collide, and it would claim it in
+      // a direction that ROTATES. That is why the ellipse is not allowed to be the hull shape.
+      const hv=Math.hypot(e.vx,e.vy);
+      const ha=hv>0.35?Math.atan2(e.vy,e.vx):e.ph;   // parked bodies keep their last sensible axis
+      const hc=Math.cos(ha), hs=Math.sin(ha), hoff=e.r*0.30;
+      ctx.beginPath(); ctx.arc(e.x-hc*hoff, e.y-hs*hoff, e.r*0.72,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x+hc*hoff, e.y+hs*hoff, e.r*0.72,0,TAU); ctx.fill();
     } else if(e.type==='planet'){
       // THE PLANET IS A BODY COMING APART — a whole core with five PLATES around it, and the gaps between
       // the plates WIDEN as it charges. That widening is the entire charge readout: no bar, no ring, no
@@ -4578,7 +4715,10 @@ function drawEnemies(){
     //               flatten the bottom of that range.
     //   (The Orbiter and the Mini were here too. The Orbiter's hole WAS its centre, and the Mini's dot was
     //    ~1.2 CSS px on a phone — an absence that carried more than the mark would have.)
-    const noCore = (e.type==='charger' && e.spent) || (e.type==='bomber') || (e.type==='planet');
+    //   · Harrier  — TWO nuclei, one per lobe, drawn in its own branch below. The pair is the mark; a
+    //               single dot between them would sit in the gap and read as one body with a smudge.
+    const noCore = (e.type==='charger' && e.spent) || (e.type==='bomber') || (e.type==='planet')
+                || (e.type==='harrier');
     ctx.fillStyle='rgba(255,255,255,0.85)';
     if(!noCore){
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(e.type==='neutral'?0.24:0.34),0,TAU); ctx.fill();
@@ -4593,6 +4733,28 @@ function drawEnemies(){
       ctx.moveTo(e.x+Math.cos(na)*e.r, e.y+Math.sin(na)*e.r);
       ctx.lineTo(e.x-Math.cos(na)*e.r, e.y-Math.sin(na)*e.r);
       ctx.stroke();
+    } else if(e.type==='harrier'){
+      // TWO NUCLEI ON THE HEADING, and a WAKE — and the wake is where the mechanic actually lives.
+      //   Law 5 puts identity in the silhouette because a silhouette is spatial and survives a 300-body
+      // screen. A PATH is temporal: reading one would cost 100+ consecutive frames of attention on a
+      // single body, which nobody spends. So the hull says "this is a Harrier" and the trail says "and it
+      // is going THAT way, fast" — the Dart's exact division of labour, and the same exemption to
+      // "nothing outside the hull" that the Dart and the Charger's dash streak already rely on: a trail
+      // drawn backward along ground already covered promises nothing about the space in front.
+      //   It is drawn LONGER than the Dart's (2.2 -> 3.4) because this body's speed is the point and it
+      // moves faster than anything else on the field once it is in orbit — and the length is velocity-
+      // scaled, so it states the speed rather than decorating it.
+      const hv2=Math.hypot(e.vx,e.vy);
+      const ha2=hv2>0.35?Math.atan2(e.vy,e.vx):e.ph;
+      const hc2=Math.cos(ha2), hs2=Math.sin(ha2), ho2=e.r*0.30;
+      if(hv2>1.2){
+        ctx.strokeStyle=hexA(c,0.38); ctx.lineWidth=e.r*0.8; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x-e.vx*3.4, e.y-e.vy*3.4); ctx.stroke();
+        ctx.lineCap='butt';
+      }
+      ctx.fillStyle='rgba(255,255,255,0.85)';
+      ctx.beginPath(); ctx.arc(e.x-hc2*ho2, e.y-hs2*ho2, e.r*0.26,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x+hc2*ho2, e.y+hs2*ho2, e.r*0.26,0,TAU); ctx.fill();
     } else if(e.type==='planet'){
       // THE CORE GOES WHITE-HOT AS IT CHARGES — the second, redundant channel, for the same reason the
       // Bomber gets a blink on top of its spikes: at a distance, or under a crowd, the plate gaps are a
@@ -6076,6 +6238,11 @@ window.__orbital=window.__polaris=window.__flux={
   // meaningless without it, and the obvious wrong baseline (`seek/0.14`) is off by 14% — a harness that
   // computes its own would measure the intermediate the integrator never sees.
   ENTRY_K, ENTRY_HOLD, cruiseSpeed, EDGE_CLEAR,
+  // The Harrier's orbit is the one mechanic in the game a screenshot cannot check: its shape lives in
+  // radius-over-time, and the two obvious metrics both lie. Max/min radius over a LIFETIME measures the
+  // spiral decay, not the ellipse (it reported 8.4 where the per-orbit figure is 2.5); and eyeballing a
+  // still frame shows a body, not a path. Exposed so the orbit can be sampled per revolution.
+  ARC_GRIP, ARC_FR, ARC_CAPR, ARC_INJ,
   get combo(){return combo;}, get odOn(){return odOn;}, OD_DRAIN, OD_MIN,
   get timeScale(){return timeScale;}, get lances2(){return lances;}, get lastDmg(){return lastDmg;},
   breakStreak,

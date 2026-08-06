@@ -83,6 +83,11 @@
     // The Planet earns a longer tag than anything else here, and it is the one card that has to say what
     // the PAYOFF is. Every other Dot is a thing you avoid or annihilate on sight; this is the only body
     // you are meant to keep alive and carry, and none of that is guessable from watching it.
+    // The Harrier's tag names the ORBIT, because the orbit is the only thing about it that matters and it
+    // is the one property a card cannot show — a still image has no time axis. The hull teaches
+    // recognition; the words have to carry the behaviour.
+    {kind:'dot',type:'harrier',name:'Harrier', col:'red',    r:13,
+     tag:'Too fast to turn tightly. Your field cannot pull it in — it catches it into a long orbit instead, and it circles you until it runs out of speed.'},
     {kind:'dot',type:'planet', name:'Planet',  col:'cyan',   r:23,
      tag:'Hold it in your rings and it starts to break apart. Keep it there long enough and it takes every Dot of the other colour with it. Flip, and you throw it away.'},
   ];
@@ -179,6 +184,25 @@
       // no core here — the lime fuse in the MARK section below is the Bomber's centre, exactly as in the
       // game (where `noCore` skips the generic white dot for this kind). Drawing one here too would put a
       // white disc under the fuse and the lime would be the thing you notice second.
+    } else if(s.type==='harrier'){ // twin lobes strung along the heading, plus a wake — as in the game
+      // ⚠️ THE CARD ORBITS IT. Every other Dot card animates a body in place, which is right for every
+      // other Dot — but this one's identity IS its path, and a body drawn stationary would be teaching a
+      // binary blob. So the card flies the real thing: an ellipse, at the game's own ~2.5 axis ratio, with
+      // the hull pointed along its own velocity exactly as `drawEnemies` points it. The reader sees the
+      // mechanic rather than a still of the body that performs it.
+      const th=t*0.9, A=26, B=A/2.5;                 // 2.5:1, the measured per-orbit eccentricity
+      const px2=x+Math.cos(th)*A, py2=y+Math.sin(th)*B;
+      const vx2=-Math.sin(th)*A, vy2=Math.cos(th)*B;  // d/dth of the path IS the heading
+      const hv=Math.hypot(vx2,vy2)||1, hc=vx2/hv, hs=vy2/hv, ho=r*0.30;
+      ctx.strokeStyle=hexA(c,0.30); ctx.lineWidth=r*0.7; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(px2,py2); ctx.lineTo(px2-hc*r*1.7, py2-hs*r*1.7); ctx.stroke();
+      ctx.lineCap='butt';
+      ctx.fillStyle=c;
+      ctx.beginPath(); ctx.arc(px2-hc*ho, py2-hs*ho, r*0.72,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(px2+hc*ho, py2+hs*ho, r*0.72,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.85)';
+      ctx.beginPath(); ctx.arc(px2-hc*ho, py2-hs*ho, r*0.26,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(px2+hc*ho, py2+hs*ho, r*0.26,0,TAU); ctx.fill();
     } else if(s.type==='planet'){  // five plates around a whole core, turning — as in the game
       // ⚠️ A FIXED MID-CHARGE, NOT A CYCLE. This card used to sweep `f` from 0 to 1 so the reader "saw the
       // whole range", and that was the wrong job: a Bestiary card exists to teach ONE image you can then

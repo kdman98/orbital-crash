@@ -102,6 +102,16 @@ paragraph goes in MECHANICS and this line points at it.
   (`e.spent`, `e.cool`)
 - **Neutral** — wears both poles on a turning seam; the one Dot the colour law does not reach.
   (`neutral`)
+- **Harrier** — the only Dot that **orbits** you rather than arriving at you. Captured like anything else,
+  but inside your rings it keeps its momentum and loses the whirl, so it flies an ellipse and spirals in.
+  Twin lobes strung along its heading, plus a wake. (`harrier`, `ballistic`, `ARC_*`)
+- **Ballistic** — the flag that switches a Dot from *held* to *orbiting*: no ring spring, no ring spin,
+  almost no bleed, a longer retention leash, and a tangential kick on the frame it is caught. Only the
+  Harrier carries it, and every term defaults to off. (`e.ballistic`)
+- **The catch** — the tangential velocity injected once, on the frame a ballistic body is captured. A
+  discrete event rather than a force, because a force would accumulate under the near-zero bleed. It is
+  what gives the body angular momentum: `seek` points at the Star, so an uninjected arrival falls straight
+  down the middle instead of entering an orbit. (`ARC_INJ`)
 - **Swarmer** — a Dot the Sentinel sheds while orbiting. Matter, not a shot, so the colour law owns it.
   (`seedT`)
 - **Same-charge shove** — like-charge overlaps resolved **positionally**, split by mass. Positions only,

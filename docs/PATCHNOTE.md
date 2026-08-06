@@ -14,6 +14,64 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-06
 
+### THE HARRIER — the first Dot that orbits you `4bad67a`+
+Author, from the original to-do list: *"fast velocity, slow turn → making a ellipse ring when chasing or
+being pulled."* It was never built, because it was filed under the three species that got deleted instead —
+and the Orbiter, which it was aimed at, was the one deleted for exactly this reason.
+
+**The Orbiter's tombstone said what was missing and it was right about the physics:** *"with friction at
+0.86 and the speed clamp… it produced a damped inward spiral, not an orbit."* The blocker is dissipation —
+the ring's 0.80 bleed is a 1/e decay in **4.5 frames**, so there is no momentum for an ellipse to be made
+of. So the Harrier keeps ring capture (it is your ammunition like anything else) and switches off the three
+terms that manufacture a circle:
+
+- **no spring** — the ring spring pulls toward a *radius* from both sides, which is an annular well: it
+  makes a wobbling circle, never an ellipse. Removing it leaves `seek`, a force toward the *centre*, and a
+  central force plus momentum is an orbit.
+- **no spin** — the tangential shove is a drive, not a force. Under the near-zero bleed it accumulates to
+  `spin/(1-fr)` and slams into the speed clamp, and a body pinned at its clamp travels a circle at constant
+  speed. The whirl and the ellipse are mutually exclusive.
+- **almost no bleed** — 0.999. This is the one place the file's own *"TUNE THE SPIN, NOT THE BLEED"*
+  warning is deliberately overruled, and the shared 0.80 is untouched.
+
+⚠️ **The piece that was missing from the first build, and it failed loudly.** `seek` points straight at
+you, so a body that has been steering toward the Star all the way in arrives with almost **no angular
+momentum** — it does not enter an orbit, it falls down the middle. Measured over 12 natural edge arrivals:
+every one captured and held 28s with zero drops, and eccentricity ranged **6.2 to 29**, with perigees of
+13–58px *inside* the 28px contact envelope. A comet on a plunging line, with its shape set by arrival luck.
+
+**Capture is now an event, not just a flag** — a tangential velocity injected once, on the frame the Field
+catches the body. Discrete, so unlike a force it cannot accumulate. That makes the orbit a property of the
+mechanic rather than of the approach, and it is consistent from every edge:
+
+| | apogee | perigee | eccentricity | period |
+|---|---|---|---|---|
+| orbit 1 | 182 | 74 | **2.52** | 1.68s |
+| orbit 3 | 155 | 59 | 2.79 | 1.60s |
+| orbit 10 | 106 | 39 | 2.91 | 1.32s |
+
+A genuine ellipse that **holds its shape while the whole orbit spirals in**, over ~18 revolutions. Zero
+ring flickers, and the speed clamp never binds once.
+
+⚠️ **Two measurement traps caught on the way, both mine.** Max/min radius over a *lifetime* reports 8.4
+where the per-orbit figure is 2.5 — it measures the spiral decay, not the ellipse. And catching the body at
+the extended *retention* leash rather than at the Field sets an orbit scaled to 361px: apogees of 360 and a
+body living out by the arena edge. Catch at the Field, keep on the longer leash.
+
+**Silhouette: the Splitter's retired twin-lobe, turned through 90° of meaning.** Its release note is also
+its warning — a new species wearing a retired one's outline inherits what the old one taught, and the
+Splitter taught *"pop this and you get MORE of them"*. The Splitter's seam turned on its own clock with the
+lobes straining apart; the Harrier's axis is pinned to its **direction of travel** and does not breathe.
+Same outline, opposite statement — and identity and behaviour end up in the same mark.
+
+⚠️ **The hull is not the ellipse, deliberately.** Law 4 is unconditional — `e.r` is both hull and collider —
+so an outline running long down the heading would claim lethal space that does not collide, in a direction
+that *rotates*. The path is expressed by a **wake** instead, the Dart's own division of labour.
+
+The roster is **eight**. ⚠️ Three places state that count and at one point all three disagreed at once —
+six, seven, and "nine" over a seven-row table. All corrected, with a note at each: grep the word, not the
+number.
+
 ### Every tilt failure now names the way out `5ceac84`
 **These strings are read by someone holding a game that is not responding.** On a tilt device touch does
 not steer at all, so a message that said *"allow motion access"* left a player whose OS had already

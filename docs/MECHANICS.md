@@ -130,9 +130,14 @@ identification**, and the core carries it at no cost to the outline.
 identified as different bodies, the state is wearing the identity's channel.
 
 *Ceiling:* nine species is the edge of what a shape vocabulary carries at 40+ Dots, and a tenth should
-reuse a silhouette and differ by behaviour. **The roster is seven**, so there is room — the ceiling is a
-limit that has not been reached rather than one being pressed against. It was nine until `6324914` cut
-three and added one.
+reuse a silhouette and differ by behaviour. **The roster is eight**, so there is one slot left. It was
+nine until `6324914` cut three and added one, and the Harrier took it back to eight.
+
+⚠️ *And the count itself is the least reliable line in this file.* Three separate places have stated the
+roster size — this one, the Matter table below, and the `ETYPE` comment in `index.html` — and at one point
+**all three disagreed simultaneously** (six / seven / nine, with a seven-row table under the "nine"). A
+count is the easiest thing to leave behind because nothing reads it and nothing can fail on it. When a
+species is added or cut, grep the *word*, not the number.
 
 ### 6. The three pattern rules
 A shape that breaks any one of these is decorative, not a pattern.
@@ -588,7 +593,7 @@ problem whenever someone decides to act on either.
 **Matter** (a **Dot**) is any regular, non-boss enemy. Each carries a charge, so opposite-charge
 Dots are your threat *and* your ammunition.
 
-**Nine species**, each with its own silhouette (law 5):
+**Eight species**, each with its own silhouette (law 5):
 
 | | |
 |---|---|
@@ -599,6 +604,7 @@ Dots are your threat *and* your ammunition.
 | **Planet** | the biggest and slowest thing in the sky, and the only Dot you **charge**. Hold it in your ring and `burn` accumulates; let it go and it drains at `PLANET_COOL`, which costs you more than the hold earned. Carry it to `PLANET_FUSE` and it erases **everything of the opposite colour, arena-wide** |
 | **Charger** | the only Dot your magnetism does not own; arrowhead, solid armed and hollow spent |
 | **Neutral** | wears both poles on a turning seam; the one Dot the colour law does not reach |
+| **Harrier** | the only Dot that **orbits** you instead of arriving at you. Caught by the Field like anything else, but inside it keeps its momentum and loses the whirl, so it flies an ellipse — apogee ~180, perigee ~75, ~1.6s a revolution — spiralling in over ~18 turns. Twin lobes strung along its heading, plus a wake |
 
 ### The Bomber's detonation
 Colour-blind, sized just past the ring orbit radius, and priced so trash dies and a
