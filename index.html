@@ -1317,6 +1317,36 @@ function spawnEnemy(type,color,x,y){
 // purpose and cannot come from off-screen without ceasing to be what they are. That is a telegraph
 // problem, not a spawn-position one.
 const EDGE_CLEAR=46;
+// A Dot's steady chase speed, and the ONLY honest baseline for "how fast is this arriving". `stepEnemyForces`
+// adds the accel and multiplies by friction in the same frame, so the velocity the integrator actually sees
+// converges to `a*fr/(1-fr)`, not `a/(1-fr)`. With the ordinary bleed of 0.86 that is 6.1429 * seek —
+// Drifter 1.351, Dart 2.580, Planet 0.799. Quote this, never `seek/0.14`.
+const CRUISE_K=0.86/(1-0.86);
+const cruiseSpeed=e=>e.seek*((P&&P.seekMult)||1)*CRUISE_K;
+// ⚠️ 2.6 IS THE LARGEST UNIFORM MULTIPLE THAT NEEDS NO CLAMP BYPASS, which is why it is not a round
+// number. The binding ceiling is `maxsp*1.25` — the "don't suck in another colour" clamp that applies to
+// any non-Neutral arriving OPPOSITE your pole, and arrivals are coin-flip coloured, so that is the case
+// to size against. (A Neutral can never be `attracted`, so it takes `1.9*DOTSPD` instead and is never
+// the constraint — 73% of its own ceiling here.) Measured against every species at act 1:
+//     planet 98%   heavy 96%   bomber 87%   fast 84%   drift 83%   neutral 73%   charger 60%
+// so the tightest is the Planet and **the largest K that trims nobody is 2.661**. Two things stop that
+// 98% being fragile: `aSpd` scales `maxsp` with Epoch but leaves `seek` alone, so the headroom only ever
+// GROWS after act 1; and exceeding it is not a cliff — the clamp simply trims the entry, which costs
+// uniformity across the roster rather than breaking anything. Keeping the clamp switched on is the point:
+// every invariant it enforces survives entry untouched, with no bypass to reason about.
+const ENTRY_K=2.6;
+// One second. Crossing the margin plus decaying back to within 10% of cruise sums to ~57 frames for every
+// species — the 0.985 entry bleed dominates, so the total is near species-invariant — and 1.0s covers that
+// with no tail left over. FLING_HOLD is 0.8 and VOLLEY_HOLD 1.75, so this sits inside the established band
+// but is deliberately its OWN constant: the three windows mean different things and must move separately.
+const ENTRY_HOLD=1.0;
+// ⚠️ THE CHARGER OPTS OUT, AND NOT BY CHOICE — say so rather than leave it as a silent inconsistency.
+// It takes the launch velocity like everything else, but `stepCharger` runs on its own `continue` path
+// above the shared friction line, so it never sees the 0.985 window; its approach bleed is 0.9, which
+// burns the excess in ~10 frames and ~30px, inside its own 59px margin. So the Charger's change-up stays
+// invisible exactly as every species' used to be. That happens to suit the one Dot whose identity is
+// "travels on a line of its own and the Field does not own it" — but it is a consequence of the stepper
+// split, not a decision, and if the Charger is ever wanted in the change-up its stepper must carry it.
 function spawnAtEdge(type,color){
   const m=EDGE_CLEAR+((ETYPE[type]&&ETYPE[type].r)||12); let x,y;
   const side=irand(0,3);
@@ -1325,16 +1355,33 @@ function spawnAtEdge(type,color){
   else if(side===2){x=rand(-m,W+m);y=H+m;}
   else{x=-m;y=rand(-m,H+m);}
   const e=spawnEnemy(type,color,x,y);
-  // ENTER MOVING. Dots accelerate under seek from rest, so without this the clearance above would be
-  // crossed as a slow crawl — pure added grace, worth +50% median HP-at-40s on its own. Handing each
-  // Dot the inward velocity it would have built over that distance keeps the arrival clock where it
-  // was, and matter flies in rather than drifting in.
-  // Straight in along the EDGE NORMAL, not toward the centre and not at you. Aiming at the centre
-  // funnels every side into one point, so opposite colours delete each other before reaching you
-  // (measured: live Dots fell 41 → 36.5). Aiming at the player makes every Dot a homing shot from
-  // birth, and seek already does the tracking. The normal carries it across its own margin and leaves
-  // the spread intact.
-  if(e){ const sp=e.maxsp*0.55;
+  // ENTER MOVING, and now enter FAST — the change-up. Author: "빠르게 날아와서 점점 느려지는 Change-up?"
+  //
+  // Straight in along the EDGE NORMAL, not toward the centre and not at you. Aiming at the centre funnels
+  // every side into one point, so opposite colours delete each other before reaching you (measured: live
+  // Dots fell 41 → 36.5). Aiming at the player makes every Dot a homing shot from birth, and seek already
+  // does the tracking. The normal carries it across its own margin and leaves the spread intact. That
+  // half is unchanged and the reasoning still holds.
+  //
+  // ⚠️ THE OLD LAUNCH WAS INVISIBLE BY TWO ORDERS OF MAGNITUDE, and the arithmetic is worth keeping so
+  // nobody "restores" it. It was `maxsp*0.55`, against a cruise speed of `seek*fr/(1-fr)` = 6.1429*seek
+  // (note `fr`: the accel is applied and THEN multiplied by friction in the same frame, so the fixed
+  // point is a*fr/(1-fr), not a/(1-fr) — the latter is an intermediate nothing integrates). That is
+  // 1.384x cruise for a Drifter. But excess velocity decays at 0.86 per frame, so the TOTAL extra
+  // displacement it ever buys is `(launch-cruise)*fr/(1-fr)` = **3.19px for a Drifter, 5.77 for a Dart,
+  // 0.84 for a Planet** — against a spawn margin of `EDGE_CLEAR + r` = 57-69px. The entire gesture
+  // finished ~43px outside the viewport. Nobody had ever seen it.
+  //   And it was NOT proportional: `maxsp*0.55` against a cruise set by `seek` gives ratios from 0.851
+  // (Neutral) to 1.384 (Drifter) — so for the Neutral the "launch" was a BRAKE, 15% below its own cruise.
+  //   ⚠️ The comment here used to justify the 0.55 with "+50% median HP-at-40s". That figure is real but
+  // it was attached to the wrong cause: `7192d2d`, which introduced this line, measured 42.0 → 61.9 and
+  // says in its own message "The clearance itself is what costs the pressure; entry speed barely moves
+  // it." The number belongs to `EDGE_CLEAR`, not to the launch. Do not spend it on this line again.
+  //
+  // So the launch is now a multiple of the species' OWN CRUISE, which makes the change-up proportional
+  // across the roster instead of accidental, and it is held open by `entry` (see stepEnemyForces).
+  if(e){ const sp=cruiseSpeed(e)*ENTRY_K;
+         e.entry=ENTRY_HOLD;
          if(side===0) e.vy=sp; else if(side===1) e.vx=-sp;
          else if(side===2) e.vy=-sp; else e.vx=sp; }
 }
@@ -2944,6 +2991,24 @@ function stepEnemyForces(dt){
   const attractors=[[P.x,P.y,P.fieldR,P.fieldK,1]];
   for(const e of enemies){
     if(e.dead)continue;
+    // ⚠️ DRAIN `flung` BEFORE ANY EARLY EXIT, because two paths below `continue` past the rest of this
+    // loop and the decrement used to live at the very bottom of it. Anything that leaves early kept the
+    // flag forever:
+    //   · An ARMED CHARGER is fling-eligible — the hungry flip skips only the boss, ring members,
+    //     Neutrals and your own colour — so a flip sets `flung` on it and nothing ever took it off. Five
+    //     seconds later `CHG_COOL` expires, the Charger goes spent, falls into this loop for the first
+    //     time, and cashes the WHOLE stale 0.8s window: seek zeroed and 0.985 friction, coasting out of
+    //     your guard at the exact moment the comment above promises the Field has taken ownership of it.
+    //   · A FORMATION Dot has the same shape — nothing checks `hold` before flinging one.
+    // A timer that is decremented after a `continue` is not a timer, it is a leak with a plausible name.
+    // ⚠️ This moves the drain one frame earlier than the clamp branch that used to own it, so a Dot in
+    // its final flung frame is now clamped on that frame rather than the next. That is the whole
+    // behavioural delta, and it is deliberate: correctness of the window beats a frame of its length.
+    if(e.flung>0){ e.flung-=dt; if(e.flung<=0) e.vdmg=0; }
+    // The entry window drains on the same terms, and for the same reason — a formation Dot can be spawned
+    // at an edge too. It also ENDS EARLY once the Dot is inside the Field: at that point the arrival is
+    // over by definition, and leaving seek suppressed while a body sits in your ring would be a hole.
+    if(e.entry>0){ e.entry-=dt; if(P && Math.hypot(P.x-e.x,P.y-e.y)<P.fieldR) e.entry=0; }
     // A SPENT CHARGER RE-ARMS. While the cooldown runs it falls through to the ordinary force loop, so
     // the Field owns it like anything else: it can be reeled into your ring, ground against an Anomaly,
     // or simply annihilated — and killing it there is what ends it permanently. `ring` is cleared on
@@ -3018,8 +3083,21 @@ function stepEnemyForces(dt){
     let ax=0,ay=0;
     // base seek toward core (keeps pressure)
     let dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
-    ax+=dx/d*e.seek*P.seekMult;
-    ay+=dy/d*e.seek*P.seekMult;
+    // ⚠️ THE ENTRY WINDOW SUPPRESSES SEEK AT ITS SOURCE, AND MUST NOT BE `flung`. Reusing the fling flag
+    // was the obvious build and it is wrong: `flung` zeroes the whole ACCUMULATOR twenty lines down, so a
+    // body under it coasts toward ZERO rather than toward its cruise speed. Fed the entry launch that
+    // gives a Planet a 61px coast against its own 69px margin — it would decelerate to a dead stop
+    // OFF SCREEN and only start moving when the flag expired. A stall, then a lurch. A Brute would take
+    // 2.7s to cross its margin. That is a worse arrival than the invisible one it replaces, and for the
+    // two slowest species it is a difficulty regression in the direction this file was tuned away from.
+    //   Suppressing only SEEK leaves the polarity field, ring capture and the spin fully live during
+    // entry — which matters more than it looks: the Star is clamped to within 15px of the wall, so a Dot
+    // spawning 57px outside an edge can be inside `fieldR` on its very first frame. Being gathered on
+    // arrival is the intended verb, not an edge case, and zeroing the accumulator would have deleted it.
+    if(!(e.entry>0)){
+      ax+=dx/d*e.seek*P.seekMult;
+      ay+=dy/d*e.seek*P.seekMult;
+    }
     // (THE ORBITER'S TANGENTIAL PUSH STOOD HERE: `ax+=-dy/d*0.34; ay+=dx/d*0.34`, added on top of a 0.30
     //  inward seek. It was the only per-kind steering branch among the ordinary Dots and it never did
     //  what its name claimed — with friction at 0.86 and the speed clamp at maxsp*1.9*DOTSPD it produced
@@ -3072,8 +3150,25 @@ function stepEnemyForces(dt){
     // corner-to-corner flick peaks at 135 px/frame and leaves the whole ring hundreds of px behind on
     // the wrong side — only 36% survived without this. A Dot now KEEPS membership for RING_GRACE while
     // it chases you back, with the spring still pulling it home.
-    const inField = ringing && d<P.fieldR;
-    const inGrace = ringing && !inField && e.ring && e.ringGrace>0 && d<P.fieldR*RING_GRACE_R;
+    // ⚠️ A THROWN DOT IS NOT A RING MEMBER, and the flung test has to be HERE, in the predicates, rather
+    // than twenty lines down where it wipes the accelerations. `e.ring=1` was assigned inside the block
+    // below and `if(e.flung>0){ ax=0; ay=0; }` came after it, so a thrown Dot crossing the Field got the
+    // full membership flag with every scrap of ring physics discarded on the same frame — flying dead
+    // straight at 7-18 px/frame, wearing a badge saying it was in orbit.
+    //   THAT IS A LAW 2 VIOLATION AND THE BANNER FOUR LINES ABOVE THE DAMAGE TERNARY ALREADY NAMES IT:
+    // "Drifting, being flung past it, and being heavy are things that merely happen." The grind check
+    // reads a bare `X.ring`, so the false member chipped the Anomaly; the flip discharge turns every
+    // `e.ring` into volley ammunition, so it also became a full-damage shot nobody gathered. The fling's
+    // own note says it "carries no damage window" — this was the hole in that claim.
+    //   REACHABLE BY A NORMAL DOUBLE FLIP, not a corner case: FLING_HOLD is 0.8s and `flipCd` is 0.28,
+    // so flipping back leaves every still-thrown Dot like-charge again with half a window to run.
+    //   ⚠️ GATE THE PREDICATES, DO NOT SKIP THE BLOCK. Skipping it would also skip the `else if(e.ring)
+    // e.ring=0` clear below, leaving the flag set with nothing to clear it — which is verbatim the spent
+    // Charger bug documented at the top of this loop. Gating `inField`/`inGrace` instead means a Dot that
+    // WAS ringed and is now thrown falls into that else on the very next frame and is cleared properly.
+    const thrown = e.flung>0;
+    const inField = ringing && !thrown && d<P.fieldR;
+    const inGrace = ringing && !thrown && !inField && e.ring && e.ringGrace>0 && d<P.fieldR*RING_GRACE_R;
     if(inField) e.ringGrace=RING_GRACE; else if(e.ringGrace>0) e.ringGrace-=dt;
     if(inField || inGrace){
       const rm=P.ringMul||1;
@@ -3148,7 +3243,11 @@ function stepEnemyForces(dt){
     if(e.flung>0){ ax=0; ay=0; }   // thrown means THROWN: dead straight, no seek, no field, no curve
     e.vx+=ax; e.vy+=ay;
     // friction — FIRED ring matter keeps its speed (streaks out); ring-captured bleeds fast (settles); rest normal
-    const fr=e.flung>0?0.985:(e.ring?0.80:0.86); e.vx*=fr; e.vy*=fr;
+    // ENTRY shares the fling's 0.985 and nothing else. That constant is the whole reason the change-up is
+    // visible: at the ordinary 0.86 the excess is gone in ~7 frames (and ~3px), at 0.985 it takes ~66, so
+    // the deceleration happens across the arena instead of inside the spawn margin. Ordered after `flung`
+    // only because a Dot cannot be both; the value is the same either way.
+    const fr=(e.flung>0||e.entry>0)?0.985:(e.ring?0.80:0.86); e.vx*=fr; e.vy*=fr;
     // speed clamp — OPPOSITE (attracted) inward pace is held at 1.25 (never sped up: "don't suck in another
     // colour"). Everything else — rings, neutrals, wandering matter — is livelier via DOTSPD.
     // Ringed matter gets its own headroom (RING_CAP vs 1.9). At 1.9 a Drifter caps at 7.9 px/frame, which
@@ -3167,8 +3266,11 @@ function stepEnemyForces(dt){
     // ceiling tuned for one. Giving closing matter ring-grade speed makes gathering feel like a vacuum.
     const closing=(ringing && d>=P.fieldR && d<P.fieldR*LIKE_GRAV_R);
     const sp=Math.hypot(e.vx,e.vy), mx=e.maxsp*(attracted?1.25:(e.ring?RING_CAP:(closing?2.9:1.9))*DOTSPD);
-    if(e.flung>0){ e.flung-=dt; }               // freshly FIRED ring matter keeps its shot speed briefly
-    else if(sp>mx){ e.vx=e.vx/sp*mx; e.vy=e.vy/sp*mx; }
+    // (The `flung` decrement stood here, paired with this clamp as an if/else so a thrown Dot skipped the
+    //  ceiling. It has moved to the top of the loop — see the note there — because two paths `continue`
+    //  past this line and leaked the flag. The mutual exclusion it provided is preserved by the guard
+    //  below; only the ordering changed, by one frame.)
+    if(!(e.flung>0) && sp>mx){ e.vx=e.vx/sp*mx; e.vy=e.vy/sp*mx; }
     e.x+=e.vx; e.y+=e.vy;
   }
   // keep the Anomaly clear of the top HUD strip once its entrance dive is done — its integrity bar
@@ -5970,6 +6072,10 @@ window.__orbital=window.__polaris=window.__flux={
   // now (the wake at the two fling sites), and a direction is not something a screenshot can be raced
   // for — the sparks are gone in 0.3-0.7s. Exposed so the cone can be asserted rather than eyeballed.
   get parts(){return parts;}, get texts(){return texts;},
+  // The entry window and its baseline. `cruiseSpeed` is exposed because "is this arriving fast" is
+  // meaningless without it, and the obvious wrong baseline (`seek/0.14`) is off by 14% — a harness that
+  // computes its own would measure the intermediate the integrator never sees.
+  ENTRY_K, ENTRY_HOLD, cruiseSpeed, EDGE_CLEAR,
   get combo(){return combo;}, get odOn(){return odOn;}, OD_DRAIN, OD_MIN,
   get timeScale(){return timeScale;}, get lances2(){return lances;}, get lastDmg(){return lastDmg;},
   breakStreak,

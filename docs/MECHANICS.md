@@ -394,6 +394,19 @@ CoreMotion bridge; see the trap on that below, which is what it cost to learn. `
 resulting delay in milliseconds, which is the number to put in front of a human — nobody can feel a
 coefficient.
 
+**When tilt does not work, the game is unplayable rather than degraded — so every failure names the exit.**
+Touch does not steer on a tilt device at all, by design and not by accident (a silent fallback is how the
+first tilt bug hid for a whole build: the game stayed playable, so nothing looked broken). The cost of
+that choice is that a refused sensor leaves a player with **no** control, and `tiltFault()` is the only
+thing standing between them and a dead game. So each of its four messages ends by naming the Settings
+switch that hands finger steering back — *not* by naming the cause alone, which the player usually cannot
+change. `tiltEvents` is tested **before** the permission verdict, deliberately: in the WebView the promise
+can reject while the native grant stands, so **delivery is the more reliable witness than permission.**
+
+⚠️ **None of these strings may say "app".** Tilt is selected by `pointer: coarse`, not by Capacitor, so a
+phone browser takes the same path — and the web build ships first. Advice to reopen the app is advice a
+web player cannot act on.
+
 **None of this reaches mouse play.** The lift is applied only inside the `isTouch(e)` branch — pointer
 input takes an early return with the raw coordinates — which is also what made the port measurable:
 the on-device drag landing within half a point of `TOUCH_LIFT`'s prediction could not have happened

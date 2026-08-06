@@ -14,7 +14,18 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-06
 
-### The Planet's charge was wearing its silhouette
+### Every tilt failure now names the way out `5ceac84`
+**These strings are read by someone holding a game that is not responding.** On a tilt device touch does
+not steer at all, so a message that said *"allow motion access"* left a player whose OS had already
+refused with nowhere to go — while the Settings switch that hands finger steering straight back went
+unmentioned. Every failure now names it: *no sensor*, *access denied*, *sensor did not start*, *still
+waiting* — each one ends by pointing at the switch.
+
+**They also stopped saying "app".** Tilt is chosen by `pointer: coarse`, not by Capacitor, so a phone
+**browser** takes this path too — and the web build is the one shipping first. Telling a web player to
+reopen the app is advice they cannot act on.
+
+### The Planet's charge was wearing its silhouette `4bd5bd0`
 Author: *"i find planet dot somewhat hard to identify, and its image is unstable by time."* Two complaints
 with one cause, and it is a law-level mistake rather than a tuning one: **the charge state had been made
 the silhouette, which leaves the species without one.**
