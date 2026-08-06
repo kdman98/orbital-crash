@@ -604,7 +604,7 @@ Dots are your threat *and* your ammunition.
 | **Planet** | the biggest and slowest thing in the sky, and the only Dot you **charge**. Hold it in your ring and `burn` accumulates; let it go and it drains at `PLANET_COOL`, which costs you more than the hold earned. Carry it to `PLANET_FUSE` and it erases **everything of the opposite colour, arena-wide** |
 | **Charger** | the only Dot your magnetism does not own; arrowhead, solid armed and hollow spent |
 | **Neutral** | wears both poles on a turning seam; the one Dot the colour law does not reach |
-| **Harrier** | the only Dot that **orbits** you instead of arriving at you. Caught by the Field like anything else, but inside it keeps its momentum and loses the whirl, so it flies an ellipse — apogee ~180, perigee ~75, ~1.6s a revolution — spiralling in over ~18 turns. Twin lobes strung along its heading, plus a wake |
+| **Harrier** | the only Dot that **orbits** you instead of arriving at you. Second only to the Dart in free flight (cruise 2.089 against 2.580). Caught by the Field like anything else, but inside it keeps its momentum and loses the whirl, so it flies an ellipse — apogee ~180, perigee ~75, ~1.2s a revolution — halving its apogee over 19 turns. Twin lobes strung along its heading, plus a wake |
 
 ### The Bomber's detonation
 Colour-blind, sized just past the ring orbit radius, and priced so trash dies and a

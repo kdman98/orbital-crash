@@ -102,9 +102,10 @@ paragraph goes in MECHANICS and this line points at it.
   (`e.spent`, `e.cool`)
 - **Neutral** — wears both poles on a turning seam; the one Dot the colour law does not reach.
   (`neutral`)
-- **Harrier** — the only Dot that **orbits** you rather than arriving at you. Captured like anything else,
-  but inside your rings it keeps its momentum and loses the whirl, so it flies an ellipse and spirals in.
-  Twin lobes strung along its heading, plus a wake. (`harrier`, `ballistic`, `ARC_*`)
+- **Harrier** — the only Dot that **orbits** you rather than arriving at you, and the second-fastest thing
+  in the sky after a Dart. Captured like anything else, but inside your rings it keeps its momentum and
+  loses the whirl, so it flies an ellipse and spirals in. Twin lobes strung along its heading, plus a wake.
+  (`harrier`, `ballistic`, `ARC_*`)
 - **Ballistic** — the flag that switches a Dot from *held* to *orbiting*: no ring spring, no ring spin,
   almost no bleed, a longer retention leash, and a tangential kick on the frame it is caught. Only the
   Harrier carries it, and every term defaults to off. (`e.ballistic`)
@@ -112,6 +113,14 @@ paragraph goes in MECHANICS and this line points at it.
   discrete event rather than a force, because a force would accumulate under the near-zero bleed. It is
   what gives the body angular momentum: `seek` points at the Star, so an uninjected arrival falls straight
   down the middle instead of entering an orbit. (`ARC_INJ`)
+- **Cruise** — the speed a Dot actually travels at, `seek * 6.1429`. Not `maxsp`, which is only a ceiling
+  and which no ordinary Dot ever reaches in free flight: the two are independent, and reading the table's
+  `maxsp` as pace is what left the Harrier shipping sixth-fastest of eight while its row read second.
+  (`cruiseSpeed`, `CRUISE_K`)
+- **Reversal excursion** — how far a cruising Dot carries on the wrong way once you get behind it, and the
+  honest measure of "slow turn". It is **1-3px over 3 frames for every species**, Dart to Planet, because
+  turning is bound by the shared 0.86 friction rather than by `seek`. No free-flight number makes a Dot
+  turn slowly; only a ballistic body's near-zero bleed can. (`ARC_FR`)
 - **Swarmer** — a Dot the Sentinel sheds while orbiting. Matter, not a shot, so the colour law owns it.
   (`seedT`)
 - **Same-charge shove** — like-charge overlaps resolved **positionally**, split by mass. Positions only,

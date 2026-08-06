@@ -1303,15 +1303,39 @@ const ETYPE={
   // turn → making a ellipse ring when chasing or being pulled."
   //   `ballistic` is the whole species and it is a flag rather than a number because it switches a MODE,
   // not a magnitude: inside your rings it keeps its momentum and loses the whirl. See ARC_* below.
-  //     maxsp 5.0 — second only to the Dart. This is the "fast velocity" half, and it exists mostly to
-  //                 keep the ring clamp far away: a ringed body is normally PINNED at `maxsp*RING_CAP*
-  //                 DOTSPD`, and a pinned speed is a CIRCLE. The ellipse needs the cap to never bind.
-  //     seek 0.16 — the "slow turn" half. On a heading-less body, weak steering IS a slow turn — and once
-  //                 captured this is the only force left acting, so it doubles as the orbit's gravity.
+  //     maxsp 5.0 — second only to the Dart, and ⚠️ IT IS A CEILING, NOT A PACE. No ordinary Dot ever
+  //                 reaches its own `maxsp` in free flight; the speed it actually travels at is
+  //                 `seek*6.1429` and nothing else. This number exists to keep the RING clamp far away:
+  //                 a ringed body is normally PINNED at `maxsp*RING_CAP*DOTSPD`, and a pinned speed is a
+  //                 CIRCLE. The ellipse needs the cap to never bind. Reading it as "how fast the Harrier
+  //                 is" is exactly the mistake the seek line below records.
+  //     seek 0.34 — THE ONLY TERM THAT SETS FREE-FLIGHT SPEED. It shipped at 0.16, which cruises at 0.983
+  //                 px/frame: SIXTH of eight, slower than a Bomber, barely above a Brute — on the species
+  //                 whose own table row reads second-fastest in the game. Author: "harrier should be
+  //                 faster than this, when not caught in ring." 0.34 measures 2.089 against the Dart's
+  //                 2.580, and halves the crossing of a 720px approach from 8.07s to 4.05s.
+  //                 ⚠️ THE LINE THIS REPLACES CALLED 0.16 "the slow turn half". That was false at every
+  //                 value, not just this one: turning here is FRICTION-bound, not seek-bound. Measured
+  //                 reversal excursion — how far a cruising Dot carries on the wrong way once you get
+  //                 behind it — is 1-3px over 3 frames for EVERY species from Dart to Planet, because
+  //                 0.86 is a ~3-frame time constant and all eight share it. The slow turn is real but it
+  //                 lives INSIDE the ring, where the bleed is ARC_FR and momentum finally outlasts
+  //                 steering. Out here `seek` buys speed and nothing else.
+  //                 ⚠️ AND IT DOES NOT MOVE THE ORBIT, which is why it was safe to raise. For a constant
+  //                 central accel `a` the turning points solve `½k²r0³/r² + r = r0(½k²+1)` — `a` cancels,
+  //                 so the ellipse is set by ARC_INJ and the capture radius alone. Measured across
+  //                 0.16/0.30/0.34/0.38: eccentricity 2.43 flat, apogee 176-181, perigee 72-75, zero ring
+  //                 flickers, clamp never binding. What moves is the PERIOD, 1.67s to 1.18s — the same
+  //                 orbit decaying over the same ~20s, showing 19 revolutions instead of 14. Raising
+  //                 `seek` buys revolutions, not lifetime.
+  //                 ⚠️ AND 0.39 IS THE CEILING. `spawnAtEdge` launches at `cruise*ENTRY_K` against the
+  //                 `maxsp*1.25` opposite-charge clamp = 6.25. At 0.34 that is 87%, the Bomber's figure;
+  //                 at 0.39 it is 100% and this species takes over from the Planet as the one that binds
+  //                 ENTRY_K. Anything past 0.39 gets its entry silently trimmed.
   //     r 13      — ⚠️ AND IT MUST STAY UNDER 27. `stepAnnihilation` buckets on `cell=64` with a +/-1
   //                 neighbourhood, so the widest pair it can see is 64; against the Anomaly's r37 that
   //                 caps any new species at 27 before boss contact starts being missed entirely.
-  harrier:{r:13, hp:1, mass:0.9,  maxsp:5.0, seek:0.16, dmg:12, ballistic:1},
+  harrier:{r:13, hp:1, mass:0.9,  maxsp:5.0, seek:0.34, dmg:12, ballistic:1},
 };
 // ⚠️ THE ORBIT IS WHAT THE RING DOES *NOT* DO TO THIS ONE. Three of the four terms that hold ordinary
 // matter in your rings are switched off for a ballistic body, and the fourth — plain `seek` — is left as
@@ -1389,8 +1413,10 @@ const cruiseSpeed=e=>e.seek*((P&&P.seekMult)||1)*CRUISE_K;
 // any non-Neutral arriving OPPOSITE your pole, and arrivals are coin-flip coloured, so that is the case
 // to size against. (A Neutral can never be `attracted`, so it takes `1.9*DOTSPD` instead and is never
 // the constraint — 73% of its own ceiling here.) Measured against every species at act 1:
-//     planet 98%   heavy 96%   bomber 87%   fast 84%   drift 83%   neutral 73%   charger 60%
-// so the tightest is the Planet and **the largest K that trims nobody is 2.661**. Two things stop that
+//     planet 98%   heavy 96%   bomber 87%   harrier 87%   fast 84%   drift 83%   neutral 73%   charger 60%
+// so the tightest is the Planet and **the largest K that trims nobody is 2.661**. (The Harrier joined this
+// table late and it is the one row that can MOVE: it is the only species whose `seek` has been retuned for
+// pace rather than for the swarm, and it climbs a point per 0.004. Its own ETYPE note carries the ceiling.) Two things stop that
 // 98% being fragile: `aSpd` scales `maxsp` with Epoch but leaves `seek` alone, so the headroom only ever
 // GROWS after act 1; and exceeding it is not a cliff — the clamp simply trims the entry, which costs
 // uniformity across the roster rather than breaking anything. Keeping the clamp switched on is the point:
@@ -4744,6 +4770,14 @@ function drawEnemies(){
       //   It is drawn LONGER than the Dart's (2.2 -> 3.4) because this body's speed is the point and it
       // moves faster than anything else on the field once it is in orbit — and the length is velocity-
       // scaled, so it states the speed rather than decorating it.
+      //   ⚠️ THE 1.2 GATE USED TO SWITCH THE WHOLE TELL OFF IN FREE FLIGHT and that was invisible from
+      // here. At the shipped `seek` of 0.16 the Harrier cruised at 0.983 — UNDER the gate — so the wake
+      // appeared for the one second of the entry window, vanished for the entire approach, and came back
+      // only on capture. The species read "fast" exactly when it was already yours. At 0.34 it cruises
+      // 2.089 and the trail is continuous from the edge of the screen, which is most of what raising the
+      // number bought. Left at 1.2 on purpose: it is what keeps a PARKED body (a Harrier held in a
+      // stalled ring, or one the Anomaly has shoved to a stop) from wearing a speed streak it has not
+      // earned. The gate is a truth check, not a species switch — see the seek note at ETYPE.
       const hv2=Math.hypot(e.vx,e.vy);
       const ha2=hv2>0.35?Math.atan2(e.vy,e.vx):e.ph;
       const hc2=Math.cos(ha2), hs2=Math.sin(ha2), ho2=e.r*0.30;

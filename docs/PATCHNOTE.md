@@ -14,6 +14,53 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-06
 
+### The Harrier was the sixth-fastest Dot in the game
+Author: *"harrier should be faster than this, when not caught in ring."* Correct, and by a wide margin.
+`seek` 0.16 → **0.34**, which is cruise **0.983 → 2.089 px/frame**.
+
+Measured, every species, position-pinned so only the velocity integrates:
+
+| | Dart | **Harrier** | Charger | Drifter | Neutral | Bomber | Brute | Planet |
+|---|---|---|---|---|---|---|---|---|
+| **was** | 2.580 | *0.983* | 1.530 | 1.351 | 1.229 | 1.044 | 0.921 | 0.799 |
+| **now** | 2.580 | **2.089** | 1.530 | 1.351 | 1.229 | 1.044 | 0.921 | 0.799 |
+
+It was sixth of eight — slower than a Bomber, barely above a Brute — on the species whose own stat row
+reads second-fastest in the game. **The confusion is `maxsp` vs cruise:** `maxsp 5.0` is a *ceiling* no
+ordinary Dot ever reaches, and the Harrier's is high for an unrelated reason (to keep the ring clamp away
+from the ellipse, which needs the cap never to bind). The pace is `seek * 6.1429` and nothing else.
+
+**The tell was switched off too, and that was invisible from the drawing code.** The velocity-scaled wake
+is gated at `hv > 1.2` so a parked body cannot wear a speed streak — and 0.983 is *under* the gate. So the
+Harrier drew its trail for the one second of the entry window, lost it for the entire approach, and got it
+back only on capture. It read "fast" exactly when it was already yours. At 2.089 the trail is continuous
+from the edge of the screen.
+
+⚠️ **The comment being replaced claimed 0.16 was "the slow turn half", and that was false at any value.**
+Turning here is *friction*-bound, not `seek`-bound. Reversal excursion — how far a cruising Dot carries on
+the wrong way once you get behind it — measures **1-3px over 3 frames for every species, Dart to Planet**,
+because 0.86 is a ~3-frame time constant and all eight share it. The slow turn is real, but it lives inside
+the ring where the bleed is `ARC_FR`. No free-flight number can buy it.
+
+**And it does not move the orbit, which is why it was safe.** For a constant central accel `a` the turning
+points solve `½k²r0³/r² + r = r0(½k²+1)` — `a` cancels, so the ellipse is set by `ARC_INJ` and the capture
+radius alone. Measured across 0.16 / 0.30 / 0.34 / 0.38, 60s each:
+
+| seek | ecc (per revolution) | apogee | perigee | period | ring flickers | clamped frames |
+|---|---|---|---|---|---|---|
+| 0.16 | 2.37–2.45 | 176 | 72 | 1.67s | 0 | 0 |
+| 0.30 | 2.40–2.43 | 180 | 74 | 1.25s | 0 | 0 |
+| **0.34** | **2.33–2.43** | **179** | **74** | **1.18s** | **0** | **0** |
+| 0.38 | 2.35–2.43 | 181 | 75 | 1.12s | 0 | 0 |
+
+Only the **period** moves. The orbit decays on a per-frame bleed, so it still halves its apogee in ~20
+seconds either way — it just shows you **19 revolutions instead of 14** on the way down. Raising `seek`
+buys revolutions, not lifetime.
+
+**Ceiling 0.39.** `spawnAtEdge` launches at `cruise * ENTRY_K` against the `maxsp*1.25` opposite-charge
+clamp of 6.25. 0.34 sits at 87% — the Bomber's figure — and 0.39 sits at 100%, where the Harrier would take
+over from the Planet (98%) as the species that binds `ENTRY_K`.
+
 ### THE HARRIER — the first Dot that orbits you `4bad67a`+
 Author, from the original to-do list: *"fast velocity, slow turn → making a ellipse ring when chasing or
 being pulled."* It was never built, because it was filed under the three species that got deleted instead —
