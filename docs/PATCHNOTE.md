@@ -12,9 +12,277 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-07
+
+### The Bestiary follows the language `cbae402`
+`bestiary.html` is a separate document sharing no code with the game, so it carries **its own table and
+its own reader**, and the language travels **in the URL** — an iframe cannot reliably reach the opener's
+`localStorage` under storage partitioning, and a `postMessage` handshake would race the first paint of
+nineteen canvases.
+
+⚠️ **The frame is cached on purpose, and that turned into a language trap.** Reloading it restarts every
+animation on the page, so `openBestiary` tested `if(!f.getAttribute('src'))` — which would have served
+whichever language it was first opened in for the rest of the session. It compares the src now, verified
+in both directions with the frame already loaded.
+
+⚠️ **`bare` tested `spec.tag`, and every tag had moved into the table.** Left alone it would have read
+`undefined` on every card and stacked the Anomaly like a Pattern: wrong layout, no error, nothing in the
+console.
+
+IDs are namespaced by kind because `drift` is both a Dot type and a Pattern key — 드리프터 for the
+creature, 표류 for the shape. That is a distinction the English does not make while showing both on one
+screen. 19 cards, 19 canvases, zero overflow at 375px and at desktop.
+
+### The game speaks Korean, and five things worked only because it spoke English `70f4431` `9b7608e` `0fe12c5`
+The layer is `L`, `T(key,vars)`, `applyLang()`, `data-t` on the markup, a Settings row, and auto-detect
+from `navigator.language` **on first visit only**. `70f4431` shipped it with `L.ko` empty, so every lookup
+fell through to English and the commit is provably a no-op on screen; the copy landed after it.
+
+**The translation was the small half.** Five things in this file worked only because the copy was English,
+and every one of them fails silently:
+
+1. **Sentences built by `+`.** English survives `'Lost to '+name+' · Epoch '+n` because it is SVO with no
+   case marking. Korean puts the epoch first, gives the killer 에게, and infixes the numeral (제3기). A
+   frame with a hole in it is one language's frame. Templates now take every variable a language might
+   want — `{r}` roman **and** `{n}` arabic — and each uses what it needs.
+   **This is what retired `tutVerb()`** (below, `31816ec`): it slotted *"Click"* / *"Tap"* into a shared
+   sentence, and in Korean the verb inflects into the clause after it (클릭해서 / 탭해서) — there is no
+   seam to slot a noun into. `tutDev()` returns the **case** now, and the three device sentences are
+   written rather than assembled.
+2. **`readS()` counted whitespace tokens**, and it sets every tutorial step's dwell time. A Korean 어절
+   carries roughly an English clause, so the same instruction word-counts a third shorter — which is
+   exactly the complaint `9beb77b` existed to answer. `ko` is measured in syllables instead.
+3. **Records stored the display name.** `die()` wrote `lastDmg.src` straight into the save, so every row
+   was frozen as *"Brute (cyan)"* in the language it was played in. A damage source is a key pair now —
+   `{t,c}` for a Dot, `{m}` for a missile. Rows written by the old build hold a string and render as-is:
+   nothing to migrate, nothing erased.
+4. **`ctx.font` carries its own stack and cannot inherit.** Three literals said
+   `-apple-system,system-ui,sans-serif`, which resolves no Hangul on Windows or Android — canvas text
+   would have picked a different fallback from every other string on screen. One `CANVAS_FONT`, three
+   users. **No webfont anywhere**: *no build step, no dependencies, no network* is what makes `file://`,
+   the service worker and the Capacitor shell all work.
+5. **`openRecords` had a local `const T=store.totals`**, which shadows the translator. Renamed, along with
+   the twin in `die()` where block scope saves it by a hair.
+
+**The copy is re-authored, not translated.** Carrying the English sentence for sentence is what makes
+translated Korean sound translated — 당신의 for every *your*, 의 chains where Korean compounds,
+~할 수 있습니다 where 하면 된다 does the job. Register splits the way the English already does:
+instructions and settings speak to the player (하세요체), rules and lore state facts (한다체). The Codex's
+649 words got their own pass, with the long declaratives **split where the thought splits** rather than
+carried across at length — *"Touching it kills it, but it hurts on the way past, so let the rings do that
+job instead"* becomes three sentences. Structure is identical to the English by construction: same eight
+sections, same paragraph counts, same `<b>` counts, asserted rather than eyeballed.
+
+⚠️ **Two things in this stylesheet were built for Latin, and only one is harmless.** Tracking is the
+harmful one: 48 rules carry `letter-spacing` up to `.28em`, which reads as small-caps styling because
+Latin capitals are narrow and want the air. A Hangul syllable is already a full square block, so the same
+value does not read as styling — it reads as 축 전 기. Every label class is pulled to roughly a third
+under `html[lang="ko"]` (`#actlab` 3.08px → 1.1px, `.barlabel` 2.16 → 0.72). `text-transform:uppercase`
+is the harmless one and is a no-op on Hangul. **`word-break:keep-all` is the single highest-value line** —
+Korean's default breaks between any two syllables, so a wrapped sentence splits words down the middle.
+
+The Korean tutorial rate was **derived, not assumed**: swept 0.13–0.18 s/char against the English total
+across all eleven lines, and 0.16 lands at +1.9%. Measured at 1280×800, 375×812 and the 740×420
+short-screen branch in both languages, with visibility asserted before every comparison — zero page
+overflow anywhere, and the 165px door cells hold Korean on **one** line where English needs two on a
+phone. Oracle unchanged with the copy in: len 1654, FNV `9f659ef7`.
+
+### The colourblind option is real, and the diagnosis its name suggests is wrong `7b1cacc`
+Author: *"add option for red-green colorblind."* That points at the red/cyan law, and **the law is fine.**
+Cyan sits on the blue axis, which is exactly what protan and deutan vision keep: red/cyan measures CIE76
+dE **46** after a Brettel/Viénot simulation. The Neutral looked far worse on paper — `COL.neutral`
+collapses into cyan at dE 5 — and is also fine, because that body is drawn half red and half cyan across a
+turning seam and never wears that colour on the field.
+
+**The real fault is contrast with the background, and only simulating a rendered frame showed it.** Under
+deuteranopia `#ff3f6c` desaturates to a dull olive at dE 44 against the `#060814` field. In a real frame —
+glow and bloom included, which no palette table captures — the cyan ring reads bright white and the red
+bodies sink into the dark. They do not merely resemble each other; **the colour that kills you stops being
+easy to see.**
+
+| | vs cyan | vs background |
+|---|---|---|
+| red `#ff3f6c` | 46 | 44 |
+| **orange `#ff7a2f`** | **76** | **79** |
+
+Gold moves to violet `#9b6bff` because orange lands dE 20 from gold — inside the unsafe band and exactly
+where it must not be, since the Gilded Bounty is a ring drawn *on* a Dot on a 6s timer and finding it is
+the whole task. Violet scores 102 against orange. **Lime is deliberately not reassigned**: it scored best
+of any bounty-ring candidate (35), which is why gold moved instead — the Bomber's fuse already owns lime,
+and a bounty ring and a live blast fuse must never be the same green. Warm yellow beat orange on
+background contrast (96) and was **rejected** at dE 3 from gold: it would have made the Bounty invisible
+to fix a problem the Bounty did not have.
+
+⚠️ **Three hardcoded reds surfaced only because the palette moved.** The HP bar faded orange into *pink*
+(`#ff8aa6`, a tint of the old red), and the bossbar glow, its label shadow and the title's red dot all
+carried `rgba(255,63,108,…)`. A hex cannot be interpolated into `rgba()`, so `--red` now has two derived
+forms — `--red2` and `--redRGB` — and `applyPalette` sets all three.
+
+### The primary button's glow was a drop shadow wearing a glow's colour `2cb6c80`
+Author: *"Enter the field background glow seems a little misfit, slightly bottom."* The offset is why:
+`0 12px 32px` is a 32px blur pushed **12px down**, which is a drop shadow's geometry. A light source does
+not sit below the thing it lights, so the button read as hovering above its own halo rather than emitting
+one — and directly under a wordmark ringed by two centred ellipses, that mismatch is exactly what shows.
+Centring it at `0 0` was the other fix and was **not** taken: the gradient fill carries the button on its
+own, and a halo under a title that has two glows of its own is one too many on the screen. The inset
+hairline stays — that is an edge, not a light.
+
+### The menu's five-line paragraph becomes six steps you play `4db9f8e` `9beb77b` `31816ec`
+Author: *"instead of tedious description under title, what about a tutorial? give simple dots and explain
+annihilation, overdrive, and throw all kind of enemies at tutorial finish."* Steer, gather, annihilate,
+flip, Overdrive, then every species at once. Each step's `done` test reads state the game already keeps —
+travel, ringed bodies, kills, flips, seconds of Overdrive — so **no step can be satisfied by waiting, and
+none can be failed either.**
+
+**Steps 1–5 take no damage; the finale does.** Teaching the flip while a Dart kills you teaches nothing,
+and a finale that cannot hurt you does not communicate that any of this is dangerous. `tutSafe()` is the
+whole rule and both damage paths call it — *not* a pinned `P.iframe`, which would have made the star blink
+for the entire tutorial, because the hurt flash keys off exactly that value. Per the author it ends after
+the finale whether or not you survive, and **dying does not reach the death screen at all**: that screen
+counts up a score, prints a receipt and offers Reforge, none of which mean anything here.
+
+The finale spawns its own roster because it has to — the tutorial parks the wave clock at `phaseT=1e9`
+(the Lab's trick), so nothing arrives unless a step asks. It cycles all eight **by name in roster order**
+rather than drawing at random, which guarantees all eight appear; a random draw over 25s leaves one or two
+out about a third of the time.
+
+**A step that ends the instant its test passes cannot be read.** Author: *"tutorial might skip too fast."*
+One symptom, two faults. The advance was `if(!S.done()) return;` with the next sentence on the very next
+line, so a player already dragging satisfied step 1 in under a second and the instruction was replaced
+before it had been read — the tutorial did not teach, it scrolled. And passing a step was
+indistinguishable from the text changing on its own. There is a readable floor before a step may complete,
+and completion now holds the step and swaps the instruction for **what it taught**, with the counters
+visible on their own line so a changing number never reflows the words above it.
+
+⚠️ **Both durations are derived from the sentence, and measuring is what proved a constant could not
+work.** With a flat 2.5s floor every teaching step held for *exactly* 2.5s — the floor, not the task, was
+setting the pace — and it gave a 7-word line the same time as a 14-word one. `readS()` is 0.32 s/word,
+~190wpm: slow for prose, right for a line read once while something is moving. Per step,
+instruction / beat: 2.23/2.25, 3.85/2.57, 3.22/2.25, 4.82/2.88, 4.48/2.57. **It also means editing the
+copy cannot silently outrun the pacing.**
+
+⚠️ **The auto-start must never fire under test, and that failure would have been quiet rather than loud.**
+`.oracle.js` and `.harness/record.html` drive `startRun()` themselves; a tutorial launching at boot would
+drop a scripted pilot into a mode with the wave clock parked and damage off, and every tape and every
+fingerprint would measure that instead — no error, just the wrong game. `window.__H` is the gate, and it
+works because of *when* it exists: `preload.js` is injected ahead of the inline script. A first version
+also tested `window.__oracle`, which does not exist and never has — `.oracle.js` is pasted *after* load —
+and was removed rather than left in looking like cover.
+
+`31816ec` replaced all eleven lines with the author's own copy, verbatim but for four mechanical edits
+(one grammar error, three British spellings). ⚠️ **Only the bracketed verbs may vary, and they must**:
+steps 1, 4 and 5 were written as *"Move the mouse"*, *"Click"* and *"Hold shift"*, all three describing a
+desktop — the exact fault the deleted menu paragraph carried for months. `tutVerb()` substitutes those
+three phrases and nothing else. **The end card no longer grades you**: it carried a sentence per ending, so
+the last thing the tutorial did was mark your work. Author: *"no other comments, go simple."*
+
+⚠️ **Removing `.tag` broke the menu in a way nothing warns about, and only measuring found it.** That
+paragraph sat between the lockup and the primary button with 14px above and 24px below, so deleting it
+left *Enter the field* at 0px from the logo's box and **28px inside the outer title ring** — which is
+860px wide, hangs well below the letters it circles, and is absolutely positioned, so it contributes no
+layout height and no overlap is detectable from the flow. `.titlewrap` carries the clearance explicitly
+now, measured against `.tring`'s bottom edge rather than the logo's. `.tag`'s three rules are deleted
+rather than kept for "something else that wants body text" — a rule with no user is a rule nobody can tell
+is wrong.
+
+### RECORDS: the run data was already being computed at death and thrown away `1271fe3`
+Author: *"make RECORDS somewhere, save there high-score, recent runs."* A single best score was this
+game's entire memory, which made every run either a record or nothing at all. **Nothing new is measured** —
+every field in a row already existed at `die()` and was discarded a line later: score, elapsed, act,
+peakCombo, `lastDmg.src`. `runs` is the last 10 newest-first; `totals` is the flat lifetime tally.
+
+⚠️ **No date column, and it is the obvious next one.** It would have to come from `new Date()`, and
+`.oracle.js` has to reproduce byte-for-byte — a wall clock in the save is not something to have to reason
+about later. Insertion order is the only thing the screen reads anyway.
+
+The write sits under **exactly** the guard that protects the best score, sharing the condition rather than
+restating it: Boss Rush pays `200*act` per purge from an endless supply and the Lab spawns on demand, so
+either would fill the list with runs that are not comparable. One condition, two consumers — a fourth mode
+makes them wrong together or right together, never half. Measured: 13 consecutive deaths recorded 13 times
+and capped at 10; both practice modes recorded 0 and left `best` untouched.
+
+Wipe is **press-twice, not `window.confirm`** — that dialog is blocked in the Capacitor WebView and reads
+as a browser error over a fullscreen canvas. It disarms itself after 3s so a stray tap cannot leave a live
+destructive button under whatever gets pressed next.
+
+⚠️ **The `.refs` row needed real measurement and the arithmetic decided it, not taste.** Four labels total
+305.7px against 331px usable on a 375px phone — 8.4px per gap — and at 320px they do not fit on one row at
+*any* gap. Left to flex-wrap they broke 3-then-1, which reads as a layout that ran out of room. Under
+420px they are a 2×2 grid instead: the same four links wrapping on purpose.
+
+### ORBITAL doubles and CRASH halves — but the tracking is in `em`, so it doubled too `0fdfdd8`
+Author: *"adjust title. ORBITAL twice bigger, CRASH half a size."* The sizes are the literal brief —
+23 → 46 and 158 → 79 at the desktop cap — which takes the pair from a 6.9× ratio to **1.7**. It stops
+being a kicker over a headline and starts being two words of one name.
+
+Two things had to move with them, and neither is taste. `letter-spacing` was `.62em`, and `em` scales with
+the type: ORBITAL measured 159px at 375px wide, so the doubled version would have run to 318px against
+331px of usable width — surviving a 375px phone by 13px and overflowing anything narrower. `.24em` is also
+what makes the lockup work, putting the two words at 284px and 273px so they stack as one block.
+`text-indent` tracks it, or the trailing space after the L throws the centring by half the tracking.
+
+⚠️ **The `max-height:520px` branch must not take the same 2×/0.5×, and applying it there first is what
+proved it.** At 844×390 it put ORBITAL at 22px and CRASH at 17px — the headline word rendering smaller
+than its own kicker — because that branch had *already* shrunk CRASH once, for height. It holds the base
+1.72 ratio and scales both words together now.
+
+### Sound becomes a level, and mute stays a switch beside it `706673e`
+Author: *"make sound can be set 0%~100%."* **Level and mute are two flags, not one number with zero doing
+double duty.** The tempting version folds mute into `vol === 0` and deletes a flag — and it would have
+broken every measuring tool in this repo silently, because `.oracle.js`, `.harness/record.html` and every
+rig write `store:{mute:true}` or set `orbitalcrash_mute` directly. It is also the better model for a
+player: mute is a thing you do for a moment and undo, a level is a thing you set once. Collapsed, the M
+key has to invent a volume to come back to, and it cannot know which one you wanted.
+
+`gainNow()` is now the single place the output level is computed and everything asks it. Before there were
+two `store.mute?0:0.9` literals sitting a long way apart — survivable for a boolean, and not survivable
+the moment a slider can land anywhere between them. `MASTER_GAIN` 0.9 stays the **ceiling** rather than the
+setting: the compressor downstream was tuned against it.
+
+⚠️ **`paintSettings` never writes `.value` while the slider has focus.** It repaints on a 400ms poll, and
+assigning `value` mid-drag snaps the handle back under the finger — a control that fights you, only on
+slow drags. The blip fires on `change`, not `input` (≈20 cues per drag is useless as a reference) while
+the level itself follows on `input`, because a volume you cannot hear until you let go is the one thing a
+volume control must not ask of you.
+
+### Tilt is chosen by delivery now, and the off switch goes with the guess `73dc075`
+Author: *"remove tilt enable/disable option from settings. my native app should be able to tilt still."*
+⚠️ **Deleting only the row would have made the web build worse**, through a coupling neither half of it
+admitted to: `tiltWanted()` had no stored default and fell back to `pointer: coarse`,
+`touchSteers = !tiltWanted()`, and strict tilt-only means a tilt device does not steer by touch **at all**.
+Compose those three and every phone *browser* boots tilt-steered before a single reading has arrived — and
+if none ever does (an iOS Safari player who dismisses the motion prompt, an insecure context) the star
+cannot be moved. That is why all four strings in `tiltFault()` ended *"Turn Tilt off in Settings"*: the
+switch was load-bearing.
+
+**So the selector moved instead, to the rule `onTilt` already applied one level down — delivery is the
+verdict, not a promise and not a media query.** `tiltDevice` is false until `window.__nativeTilt` hands
+over a reading and nothing else can set it. Web and desktop steer by pointer from boot; the iOS shell is
+on tilt from its first bridge callback. **A scheme chosen by a guess about the device needs an escape
+hatch; one chosen by proof of a working sensor does not.** Measured on the mobile preset: a drag moves the
+star 216.9px where HEAD moved it 0, and `__nativeTilt(4,4)` flips the same build to tilt.
+
+⚠️ This retires the tilt rows in *"A settings screen, and tilt gets an off switch"* (`5a75dbd`) and *"Every
+tilt failure now names the way out"* (`5ceac84`) below — **the switch and all four `tiltFault()` strings
+are gone**, and `#tiltDiag` now reports off `tiltLastT` the one failure still possible, the feed stopping.
+Three deliberate deletions, each with its reason in the file: `orbitalcrash_tilt` is no longer *read* (a
+stored `'1'` from a browser would strand a player with no switch left); the web `deviceorientation` path
+is gone rather than merely unused (on Android Chrome `requestPermission` does not exist, so arming just
+worked — which under a no-switch build hands an Android web player tilt with nothing to press); and
+`tiltFault()` is deleted rather than reworded, because it cannot fire.
+
+Touch steers again, so the touch legend returns (`#touchCtl`) while the keyboard one stays hidden on
+coarse pointers — it still advertises a mouse. Its steer line is written from `touchSteers`, not from the
+media query, or the native app would tell a tilt player to drag. Two stale facts fixed while sweeping:
+**the bridge is 60Hz, not the 30Hz both `index.html` and MECHANICS claimed** (Swift went 30→60 to halve
+reading staleness against a 16ms step), and README's *"tilt does not work under live reload"* predates the
+CoreMotion bridge — nothing about tilt goes through the page origin now, so it does.
+
+---
+
 ## 2026-08-06
 
-### The Harrier was the sixth-fastest Dot in the game
+### The Harrier was the sixth-fastest Dot in the game `4801983`
 Author: *"harrier should be faster than this, when not caught in ring."* Correct, and by a wide margin.
 `seek` 0.16 → **0.34**, which is cruise **0.983 → 2.089 px/frame**.
 
