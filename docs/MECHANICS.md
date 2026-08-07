@@ -1655,20 +1655,28 @@ the Codex while Records was headed *"What you have done"*.
 | **Records** | what have I done? — the run table, the lifetime tally **and the achievements** |
 | **Settings** | how does it reach my eyes and ears? |
 
-⚠️ **The Codex trims by PARAGRAPH, never by section, and the sections are why.** *The charge law* and
-*Capacitor and Overdrive* both look redundant once the tutorial teaches the rings and the Overdrive hold —
-and cutting either whole deletes what six steps cannot reach: that nothing carries between runs, that
-Overdrive drains while held and can be spent part-way, that it cannot touch an Anomaly, that you have no
-hold over the opposite colour. **A section here is a mixture of taught and untaught, not a unit.** The
-test for any candidate paragraph is whether a tutorial step *demonstrates* it, not whether its heading
-sounds like something the tutorial covered.
+⚠️ **RETRACTED: "a fact about absence can never be demonstrated."** This section carried that rule, both
+sessions endorsed it, and the author broke it in one line. **Absence is demonstrable by CONTRAST**, and
+the tutorial already supplies the contrast: step 5 has you hold Overdrive and watch the Capacitor drain,
+then release — that *is* "it drains while held and can be spent part-way." Steps 2 and 3 put same-colour
+and opposite-colour on screen back to back, so you watch one come to you and the other chase you — that
+*is* "you have no hold over the opposite colour." Two of the four paragraphs the rule was invented to
+protect were being taught by the tutorial the whole time.
 
-**And one class of paragraph can never fail that test, which makes it decidable rather than a judgement
-call: a fact about ABSENCE.** The tutorial teaches by doing, so it can only cover what a player can
-perform. Nothing anyone *does* can show that nothing carries between runs, or that Overdrive will not
-touch an Anomaly, or that no button does the volley for you. Those live in the Codex permanently, however
-much the tutorial grows. (Credit to orbital main for the formulation — it is sharper than the version
-this section shipped with, which asked the editor to judge overlap paragraph by paragraph.)
+⚠️ **And one of the four was false.** *"It will not touch an Anomaly. Nothing you press will."* — the
+volley is set in `flip()`, and `flip()` is called from tap and from keydown. **Pressing the flip button is
+one of the three erosion channels.** The defensible claim is the one the Anomaly section already makes,
+*"there is no button anywhere that does it **for you**"*; the Overdrive section's version asserted
+something the code contradicts. All four paragraphs are now gone.
+
+**What survives is only this: a section here is a mixture of taught and untaught, so check the paragraph
+and not the heading.** That is a judgement, it does not reduce to a test, and the attempt to make it
+reduce to one is what produced a rule that protected a false sentence.
+
+⚠️ **The failure worth keeping is the method, not the rule.** Both sessions verified the *staging* of
+these edits, the *key parity*, the *overflow*, and the `dir` comment — and neither checked the truth of
+the four sentences being argued for. **Scrutiny went to what was doubted and not to what was being
+defended**, and a defended claim is exactly where nobody looks twice.
 
 ---
 
