@@ -285,8 +285,42 @@
     text-transform:uppercase;background:rgba(255,255,255,.07);color:var(--dim);
     box-shadow:0 0 0 1px rgba(255,255,255,.14) inset;transition:background .12s ease,color .12s ease;}
   .sw.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;box-shadow:none;}
-  .setnote{width:min(100%,470px);text-align:left;color:var(--dim);font-size:11px;line-height:1.65;
-    margin-top:16px;opacity:.85;}
+  /* The live level, sitting with the row's NAME rather than under the slider. A number that floats
+     beside the handle has to be chased with your eye while you drag; one anchored to the label does not
+     move, and the thing you are reading while dragging is a value, not a position. */
+  .setrow .snv{color:var(--cyan);font-weight:800;font-size:12px;letter-spacing:.08em;margin-left:8px;}
+  .setrow.off .snv{color:var(--dim);}
+  /* THE ONLY range input in the file, so both vendor thumbs are written from nothing. -webkit-appearance
+     must be cleared on the INPUT as well as the thumb or the track keeps its platform chrome and the
+     background below never shows.
+       36px of touch target on a 4px track: the track is what you read, the padding is what you hit.
+     Apple's minimum is 44 and this sits inside a row that is itself pressable slack, so 36 holds. */
+  .rng{-webkit-appearance:none;appearance:none;display:block;width:100%;height:36px;margin:9px 0 1px;
+    background:transparent;pointer-events:auto;cursor:pointer;}
+  /* THE TRACK IS FILLED TO THE LEFT OF THE HANDLE, which webkit does not do for you and Firefox does.
+     Without it the control reads as a dot on a line: the level is legible only from the number beside
+     the label, so a glance tells you nothing and the slider is decoration around a readout.
+       --p is written by paintSettings; the hard colour stop at that percentage is the fill. Firefox
+     ignores it and uses ::-moz-range-progress, which it draws natively. */
+  .rng{--p:100%;}
+  .rng::-webkit-slider-runnable-track{height:4px;border-radius:2px;
+    background:linear-gradient(90deg,var(--cyan) 0 var(--p),rgba(255,255,255,.14) var(--p) 100%);}
+  .rng::-moz-range-track{height:4px;border-radius:2px;background:rgba(255,255,255,.14);}
+  .rng::-moz-range-progress{height:4px;border-radius:2px;background:var(--cyan);}
+  .setrow.off .rng::-webkit-slider-runnable-track{
+    background:linear-gradient(90deg,rgba(255,255,255,.3) 0 var(--p),rgba(255,255,255,.14) var(--p) 100%);}
+  .setrow.off .rng::-moz-range-progress{background:rgba(255,255,255,.3);}
+  /* margin-top is -(thumb-16)/2 + track/2 = -6px: the webkit thumb is positioned from the TRACK's top
+     edge, not centred on it, so without this it rides high by exactly half its own height. */
+  .rng::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;
+    border-radius:50%;margin-top:-6px;background:linear-gradient(180deg,#aef2ff,var(--cyan));
+    box-shadow:0 2px 8px rgba(56,224,255,.45);}
+  .rng::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;
+    background:linear-gradient(180deg,#aef2ff,var(--cyan));box-shadow:0 2px 8px rgba(56,224,255,.45);}
+  /* Muted is a STATE OF THE ROW, not a disabled control: the slider still works and still sets the level
+     you will hear when you unmute, so it dims rather than greys out. Dragging it up clears the mute. */
+  .setrow.off .rng::-webkit-slider-thumb{background:rgba(255,255,255,.3);box-shadow:none;}
+  .setrow.off .rng::-moz-range-thumb{background:rgba(255,255,255,.3);box-shadow:none;}
 
   #codexBody{width:min(720px,94vw);max-height:74vh;overflow-y:auto;text-align:left;padding:4px 14px 30px 4px;}
   .cxs{margin:0 0 18px;}
@@ -508,16 +542,20 @@
     <button class="sw" id="swMotion">Off</button>
   </div>
 
+  <!-- SOUND IS A LEVEL, AND THE SWITCH BESIDE IT IS STILL A SWITCH. The row keeps both because they are
+       not the same verb: the level is set once, mute is done for a moment and undone. Collapsing them
+       would mean the M key has to guess a volume to come back to.
+         The readout is not decoration. A slider with no number is a slider you cannot set to the same
+       place twice, and this one is read at arm's length on a phone. -->
   <div class="setrow" style="border-bottom:0;">
     <div class="st">
-      <div class="sn">Sound</div>
+      <div class="sn">Sound <span class="snv" id="volReadout">100%</span></div>
       <div class="sd">The ambient bed and every cue on top of it.</div>
+      <input type="range" id="volRange" class="rng" min="0" max="100" step="5" value="100"
+             aria-label="Sound level">
     </div>
     <button class="sw" id="swSound">Off</button>
   </div>
-
-  <div class="setnote">Everything here is remembered on this device. Nothing is carried between runs —
-    no unlocks, no currency, nothing to grind for.</div>
 </div>
 
 <!-- PAUSE -->
@@ -695,6 +733,14 @@ const store={
   best:num('orbitalcrash_best2',0),
   achv:new Set(list('orbitalcrash_achv')),                  // completed achievement ids (flavor only now)
   mute:LS.getItem('orbitalcrash_mute')==='1',
+  // LEVEL AND MUTE ARE TWO FLAGS ON PURPOSE, not one number with 0 doing double duty.
+  //   `mute` has to keep meaning exactly what it has always meant: `.oracle.js`, `.harness/record.html`
+  // and every measurement rig in this repo silence the game with `store:{mute:true}` or by writing
+  // `orbitalcrash_mute`, and a headless loop that fires the whole sound bank at once is the reason they
+  // do. Folding mute into `vol===0` would have quietly broken all of them.
+  //   It is also the better model for a player. Mute is a thing you do for a moment and undo; a level is
+  // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
+  vol:clamp(num('orbitalcrash_vol',1),0,1),
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
 };
 function save(){
@@ -702,6 +748,7 @@ function save(){
     LS.setItem('orbitalcrash_best2',store.best);
     LS.setItem('orbitalcrash_achv',JSON.stringify([...store.achv]));
     LS.setItem('orbitalcrash_mute',store.mute?'1':'0');
+    LS.setItem('orbitalcrash_vol',store.vol);
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
   }catch(e){}                                               // losing the save beats crashing mid-run
 }
@@ -5722,6 +5769,16 @@ function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=on?'On':'Off'; };
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
+  // ⚠️ NEVER WRITE .value WHILE THE SLIDER IS THE ACTIVE ELEMENT. This repaints on a 400ms poll, and
+  // assigning `value` mid-drag snaps the handle back under the finger to whatever the last committed
+  // number was — the control fights you, and only on slow drags, which is the hardest kind of bug to
+  // reproduce on purpose.
+  const r=el('volRange'), pct=Math.round(store.vol*100);
+  if(document.activeElement!==r) r.value=pct;
+  el('volReadout').textContent=pct+'%';
+  r.style.setProperty('--p',pct+'%');   // webkit's track fill; see the .rng rules
+  // The row reads the same silence two ways round: muted at any level, or dragged to zero.
+  r.closest('.setrow').classList.toggle('off', gainNow()<=0);
 }
 function openSettings(){
   paintSettings();
@@ -5734,6 +5791,14 @@ el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without e
 el('settingsClose').onclick=closeSettings;
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
+// `input`, not `change`: the level has to follow the finger, or you are setting a volume you cannot hear
+// until you let go — which is the one thing a volume control must not ask of you.
+//   audioInit() first, because on a fresh page the graph does not exist yet and this may well be the
+// first gesture of the session. Without it the whole drag is silent and the control looks broken.
+el('volRange').addEventListener('input',e=>{ audioInit(); setVolume(+e.target.value/100); paintSettings(); });
+// One blip on release, not on every input event — a cue per step would be a burst of ~20 during a drag,
+// which is both unpleasant and useless as a level reference. Skipped at zero, where it is a lie.
+el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSettings(); }});
 
 // =====================================================================
@@ -6027,10 +6092,26 @@ window.addEventListener('keyup',e=>{ const k=e.key.toLowerCase(); keys[k]=false;
 // draining either. Same failure, one more consequence.
 window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; endOverdrive(); });
 
-// mute
-function toggleMute(){ store.mute=!store.mute; save(); el('muteBtn').textContent=store.mute?'♪̸':'♪'; if(master)master.gain.value=store.mute?0:0.9; }
+// ---- VOLUME ----
+// ONE PLACE COMPUTES THE OUTPUT LEVEL, and everything that wants to know asks it. Before there was a
+// level there were two literals (`store.mute?0:0.9`) in two files-worth of distance from each other,
+// which is survivable for a boolean and is not survivable once a slider can land anywhere between them.
+//   MASTER_GAIN is the ceiling, not the setting: 100% on the slider means this, and the compressor
+// downstream was tuned against it. Raising it to "make 100% louder" would re-tune the whole mix.
+const MASTER_GAIN=0.9;
+const gainNow=()=>(store.mute||store.vol<=0)?0:MASTER_GAIN*store.vol;
+function applyVolume(){ if(master) master.gain.value=gainNow(); }
+function setVolume(v){
+  store.vol=clamp(v,0,1);
+  // Dragging up off zero is an unmute. Anything else would give the slider a dead region whose cause is
+  // invisible — the row would be at 60% and silent, with the reason two buttons away in the HUD.
+  if(store.vol>0) store.mute=false;
+  save(); applyVolume(); paintMuteBtn();
+}
+function paintMuteBtn(){ el('muteBtn').textContent=(store.mute||store.vol<=0)?'♪̸':'♪'; }
+function toggleMute(){ store.mute=!store.mute; save(); paintMuteBtn(); applyVolume(); }
 el('muteBtn').onclick=toggleMute;
-el('muteBtn').textContent=store.mute?'♪̸':'♪';
+paintMuteBtn();
 // Reduced Motion: near-kills shake, flashes and hitstop for comfort
 function updateMotionBtn(){ const b=el('motionBtn'); b.textContent=store.reduceMotion?'✺̸':'✺'; b.classList.toggle('on',store.reduceMotion); }
 function toggleMotion(){ store.reduceMotion=!store.reduceMotion; save(); updateMotionBtn(); }
@@ -6045,7 +6126,7 @@ function audioInit(){
   if(AC){ if(AC.state==='suspended') AC.resume(); return; } // heal a context left suspended (e.g. quit from pause)
   try{
     AC=new (window.AudioContext||window.webkitAudioContext)();
-    master=AC.createGain(); master.gain.value=store.mute?0:0.9;
+    master=AC.createGain(); master.gain.value=gainNow();
     // THE MIX HAD NO LIMITER. Every voice summed straight into `master` and out, and a late-game fight
     // runs ~4 concurrent voices (5.6 kills/s + 6.2 Motes/s + flips) over a constant ambient bed — so
     // peaks cleared 1.0 and the destination hard-clipped. Clipping does not just sound bad, it
@@ -6082,13 +6163,17 @@ function buildAmbient(){
 function updateAmbient(inten,dt){
   if(!ambReady || !AC || AC.state!=='running')return; // don't schedule notes while suspended (pause / hidden tab)
   const now=AC.currentTime;
-  ambGain.gain.setTargetAtTime(store.mute?0:lerp(0.02,0.06,inten), now, 0.5);
+  // The bed is scaled by the level as well as gated by it. It already passes through `master`, so this
+  // is a SECOND application of the same number — deliberate: the ambient is the one voice that is always
+  // on, and it wants to recede faster than the cues as the slider comes down, or a low setting leaves a
+  // drone with the game's transients pushed under it.
+  ambGain.gain.setTargetAtTime(gainNow()<=0?0:lerp(0.02,0.06,inten)*store.vol, now, 0.5);
   ambFilter.frequency.setTargetAtTime(lerp(300,1500,inten), now, 0.7);
   ambNoteT-=dt;
   if(ambNoteT<=0){ ambNoteT=lerp(2.6,0.6,inten)*rand(0.7,1.4); ambPluck(inten); }
 }
 function ambPluck(inten){
-  if(!AC||store.mute)return;
+  if(!AC||gainNow()<=0)return;   // scheduling a note into a gain of 0 is work nobody hears
   const roots=[146.83,130.81,164.81,110];               // one root per act, cycling
   const root=roots[(act-1)%roots.length];
   const scale=[0,2,4,7,9];                                // major pentatonic
