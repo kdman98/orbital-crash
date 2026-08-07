@@ -394,23 +394,42 @@ there*, so `stepTilt` adds velocity to the star directly rather than naming a ta
 chase to follow — feeding a rate through that chase would weld tilt's speed to the chase coefficient,
 and retuning the mouse would change tilt for reasons nobody would think to look for. The low-pass on the
 reading is `TILT.tau`, in **seconds**, integrated against the real gap between samples. It has to be time
-and not a per-sample fraction, because the sensor arrives at 60Hz over the web feed and 30Hz over the
-CoreMotion bridge; see the trap on that below, which is what it cost to learn. `tilt().lagMs` reports the
-resulting delay in milliseconds, which is the number to put in front of a human — nobody can feel a
-coefficient.
+and not a per-sample fraction, because the bridge's rate is a tuning knob and has already moved once
+(30Hz → 60Hz, to halve how stale a reading is against a 16ms step); see the trap on that below, which is
+what it cost to learn the smoothing must not depend on it. `tilt().lagMs`
+reports the resulting delay in milliseconds, which is the number to put in front of a human — nobody can
+feel a coefficient.
 
-**When tilt does not work, the game is unplayable rather than degraded — so every failure names the exit.**
-Touch does not steer on a tilt device at all, by design and not by accident (a silent fallback is how the
-first tilt bug hid for a whole build: the game stayed playable, so nothing looked broken). The cost of
-that choice is that a refused sensor leaves a player with **no** control, and `tiltFault()` is the only
-thing standing between them and a dead game. So each of its four messages ends by naming the Settings
-switch that hands finger steering back — *not* by naming the cause alone, which the player usually cannot
-change. `tiltEvents` is tested **before** the permission verdict, deliberately: in the WebView the promise
-can reject while the native grant stands, so **delivery is the more reliable witness than permission.**
+**Tilt is native-only, and delivery is the only thing that selects it.** `tiltDevice` is false everywhere
+until `window.__nativeTilt` hands over a reading, and nothing else can set it. Web and desktop steer by
+pointer from boot; the iOS shell is on tilt from its first bridge callback, ~33ms in.
 
-⚠️ **None of these strings may say "app".** Tilt is selected by `pointer: coarse`, not by Capacitor, so a
-phone browser takes the same path — and the web build ships first. Advice to reopen the app is advice a
-web player cannot act on.
+⚠️ **The old default and the Settings switch were one mechanism, and they had to be removed together.**
+Tilt used to be selected by `matchMedia('(pointer: coarse)')`, which combines with the strict-tilt-only
+rule above into a phone **browser** that boots tilt-steered before any reading has arrived — and if none
+ever does (an iOS Safari player who dismisses the motion prompt, an insecure context), the star cannot be
+moved at all. The Settings switch was the sole escape, which is why every string in the deleted
+`tiltFault()` ended *"Turn Tilt off in Settings to steer by touch"*. Removing the switch without moving
+the default would have stranded exactly those players. **A control scheme selected by a guess about the
+device needs an escape hatch; one selected by proof of a working sensor does not.**
+
+⚠️ `orbitalcrash_tilt` **is deliberately not read.** Anyone who ever switched tilt on in a phone browser
+still has `'1'` in localStorage, and honouring it now would strand them with no switch left. The key is
+inert, not migrated. There is a regression test for this: plant the key, reload, confirm a drag still
+steers — a fresh profile cannot show you that one.
+
+⚠️ **There is no `requestPermission` call anywhere in the file, and adding one back needs a switch.** The
+web sensor path was measured and abandoned: on Android Chrome `requestPermission` does not exist, so
+arming attached the listener and readings simply flowed — which under a no-switch build hands an Android
+web player a tilt-steered game with nothing to press. Inside the Capacitor WebView the promise rejects
+outright even though Capacitor's `WKUIDelegate` answers the real permission with `.grant`; the JS
+permission API and the native sensor gate are two different doors, and the JS one is nailed shut.
+
+**The one failure left is the feed stopping.** The four permission faults are unreachable — `tiltDevice`
+is set *by* a delivered reading, so any device reading that branch has already heard from the sensor at
+least once. What remains is CoreMotion going quiet mid-run (an app resumed from background before
+`MotionBridgeViewController` restarts updates), which is a question about time: `#tiltDiag` reports it
+off `tiltLastT` past `TILT_STALE_MS`.
 
 **None of this reaches mouse play.** The lift is applied only inside the `isTouch(e)` branch — pointer
 input takes an early return with the raw coordinates — which is also what made the port measurable:

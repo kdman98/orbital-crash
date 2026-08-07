@@ -80,9 +80,10 @@ npm run serve:lan   # terminal 1 — serves the SOURCE tree, so no build step at
 npm run ios:live    # terminal 2 — installs a shell that points at this Mac
 ```
 
-⚠️ **Tilt does not work under live reload.** iOS only grants `DeviceOrientationEvent.requestPermission`
-in a secure context, and `http://192.168.x.x` is not one — the call never resolves and the game silently
-stays on touch. Nothing is broken; it is the wrong loop for that one feature.
+Tilt works under live reload, and the older warning here that it does not was left over from before the
+CoreMotion bridge. Nothing about tilt goes through the page's origin any more: `MotionBridgeViewController`
+is native, and `bridge.eval` reaches `window.__nativeTilt` whatever the app is pointed at. The insecure
+context only ever blocked `DeviceOrientationEvent.requestPermission`, and there is no such call left.
 
 ⚠️ Never ship a build made this way. `--live-reload` points the app at a laptop that will not be on the
 player's network, and the result is a blank screen. It writes no config, so a plain `npm run ios` undoes
@@ -98,8 +99,23 @@ __orbital.TILT.speed = 17   // live, next frame
 __orbital.tiltCalibrate()   // re-zero to however you are holding it
 ```
 
-`raw` moving while `vec` stays 0 means the dead zone is too wide or permission never landed. `vec`
-moving the wrong way means a sign error in `tiltMap` for that screen angle.
+`raw` moving while `vec` stays 0 means the dead zone is too wide. `vec` moving the wrong way means a sign
+error in `tiltMap` for that screen angle. `tilt().device` false on a real phone means the native bridge
+never called — that is a Swift-side problem, not a JS one, and nothing in the game can turn tilt on
+without it.
+
+**Tilt has no Settings switch, and testing it off-device needs the bridge.** It is selected by delivery
+alone: `window.__nativeTilt(beta, gamma)` is the only thing that sets `tiltDevice`, so calling it once in
+any browser console puts that build in exactly the state the iOS shell runs in. Feed it a neutral pair
+twice to calibrate, then lean:
+
+```js
+__nativeTilt(4,4); __nativeTilt(4,4)   // this angle is now "level"
+__nativeTilt(4,34)                     // 30 degrees right; __orbital.tilt().vec.x should climb toward 1
+```
+
+⚠️ The smoothing is a **time** constant, so a tight loop of these moves nothing — `k = 1-exp(-gap/tau)`
+and `gap` is ~0. Space the calls in real time, or freeze `performance.now` and advance it by hand.
 
 **First run is slow once, not always.** Xcode copies a full symbol set for each new iOS version under
 `~/Library/Developer/Xcode/iOS DeviceSupport/` — "Preparing iPhone for development", several minutes,

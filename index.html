@@ -280,12 +280,6 @@
   .setrow .st{flex:1 1 auto;min-width:0;}
   .setrow .sn{color:var(--ink);font-size:15px;font-weight:700;letter-spacing:.02em;}
   .setrow .sd{color:var(--dim);font-size:11.5px;line-height:1.5;margin-top:3px;}
-  /* The live tilt fault, in the one place a player can act on it. Gold rather than red: it is a
-     "here is why nothing is happening", not a crash. */
-  .setrow .sf{color:var(--gold);font-size:11.5px;line-height:1.5;margin-top:4px;}
-  /* The healthy case needs saying too. `tiltFault()` returns null once readings arrive, so without this
-     a working phone shows an empty space — which reads the same as "nothing has happened yet". */
-  .setrow .sf.ok{color:var(--cyan);}
   .sw{flex:0 0 auto;pointer-events:auto;cursor:pointer;border:none;font-family:inherit;width:64px;
     padding:8px 0;border-radius:100px;font-size:11px;font-weight:800;letter-spacing:.1em;
     text-transform:uppercase;background:rgba(255,255,255,.07);color:var(--dim);
@@ -360,8 +354,25 @@
   /* #controls is the same lie one screen further in: it sits in the corner of a LIVE RUN telling a
      touchscreen player to use a mouse, Shift and right-click, and now that tilt is the only steering
      even "MOUSE STEER STAR" is wrong about the one thing it most needs to be right about. It goes with
-     the menu legend. #modeKeys lives inside it and is keyboard-only by nature, so it goes too. */
+     the menu legend. #modeKeys lives inside it and is keyboard-only by nature, so it goes too.
+       A TOUCH DEVICE NOW GETS ITS OWN LEGEND BACK — see #touchCtl. Hiding the keyboard one was right
+     and leaving nothing in its place stopped being right the moment touch steered again. Two legends
+     rather than one rewritten in JS, because #controls carries #modeKeys and the Lab writes into it. */
   @media (pointer:coarse){ .hint,#controls{display:none;} }
+  /* Same corner, same type, same opacity as #controls — it IS #controls for a device with fingers, and
+     anything that made it look like a different kind of object would be saying something untrue.
+     Hidden at every fine pointer; the media query below is the only thing that reveals it, and the
+     STEERING line inside it is written from `touchSteers` because that one line differs between a web
+     phone (drag) and the native app (lean). */
+  /* bottom:56px, NOT 16px like #controls. The bars in #bottom sit at 765-792 on a 812px phone and this
+     legend is 53px tall, so at 16px it printed straight across Core Integrity and Capacitor. */
+  #touchCtl{position:absolute;left:16px;bottom:56px;display:none;flex-direction:column;gap:7px;opacity:.72;
+    pointer-events:none;z-index:4;transition:opacity .5s ease;}
+  #touchCtl.gone{opacity:0;}
+  #touchCtl .cr{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--dim);}
+  #touchCtl .cr b{color:var(--ink);font-weight:800;letter-spacing:.1em;}
+  @media (pointer:coarse){ #touchCtl{display:flex;} }
   .hidden{display:none!important;}
 
   /* Tilt state. Amber rather than red: a fault here is "this control is not available", not damage.
@@ -399,6 +410,17 @@
     <!-- Mode keys (Boss Rush / Pattern Lab). Empty and hidden on a normal run — these hints used to
          live in the Epoch slot at the top of the screen, which is a NAME slot, not a keymap. -->
     <div class="cr hidden" id="modeKeys"></div>
+  </div>
+  <!-- THE TOUCH LEGEND. The keyboard one above is hidden on coarse pointers because it advertises a
+       mouse, Shift and right-click to a device with none of them; for a while nothing replaced it,
+       which was defensible only while tilt was the sole touch control and there was nothing to say.
+       Touch steers again on every phone browser, so there is.
+         The first line is filled by paintTouchCtl() rather than written here: a web phone drags, the
+       native app leans, and those are the same screen with a different verb. -->
+  <div id="touchCtl">
+    <div class="cr" id="tcSteer"></div>
+    <div class="cr"><b>Tap</b> Reverse poles</div>
+    <div class="cr"><b>Second finger</b> Hold: Overdrive</div>
   </div>
   <div id="achv"></div>
   <!-- TILT STATE. Lives in the HUD rather than the menu because it has to be readable while a run is
@@ -468,27 +490,15 @@
   <div id="codexBody"></div>
 </div>
 
-<!-- SETTINGS. Reachable from the menu AND from the pause panel, deliberately: the setting most likely
-     to need changing is tilt, the moment you most need to change it is when tilt is not working, and
-     that moment is always mid-run. A settings screen you can only reach by abandoning the run is not
-     a fallback.
-       Rebuilt on open rather than bound once, so the switches show the live state and the tilt row can
-     carry `tiltFault()` — the actual reason no motion data is arriving, in the one place a player can
-     do something about it. -->
+<!-- SETTINGS. Reachable from the menu AND from the pause panel: comfort and volume are both things you
+     discover you want DURING a run, and a settings screen you can only reach by abandoning the run is
+     not much of a fallback.
+       Repainted on open rather than bound once, so the switches show live state — the mute key works
+     while this panel is open, and a row that disagreed with it would be a row nobody could trust. -->
 <div class="overlay hidden" id="settings" style="z-index:20;background:rgba(4,6,15,.97);">
   <button class="btn sm ghost" id="settingsClose" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
   <div class="final" style="letter-spacing:.3em;margin-top:8px;">Settings</div>
   <h2 style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 16px;">How it plays</h2>
-
-  <div class="setrow">
-    <div class="st">
-      <div class="sn">Tilt steering</div>
-      <div class="sd">Lean the phone to fly. Switch it off and your finger steers instead, dragging just
-        below the star so your thumb is not covering it.</div>
-      <div class="sf hidden" id="setTiltFault"></div>
-    </div>
-    <button class="sw" id="swTilt">Off</button>
-  </div>
 
   <div class="setrow">
     <div class="st">
@@ -5265,23 +5275,40 @@ function updateHUD(){
     bb.querySelector('.bl').style.color = boss.hunt>0 ? COL.red : ''; }
   else bb.classList.add('hidden');
   updateTiltDiag();
+  // THE TOUCH LEGEND IS A REMINDER, NOT A HUD ELEMENT, and the difference is 53px of a 812px phone.
+  // Left permanently on it sat straight through the Core Integrity and Capacitor bars — the keyboard
+  // legend it replaces never collided with them because it was hidden on exactly the devices where
+  // #bottom is that low. Raising it clear of the bars costs the lower-left corner of the playfield for
+  // the whole run, to say three things a player needs once. So it opens every run and leaves after
+  // TOUCH_CTL_S, which is also what makes it survivable that it overlaps nothing important: by the time
+  // the field is busy enough to care, it is gone.
+  el('touchCtl').classList.toggle('gone', !(elapsed<=TOUCH_CTL_S));
 }
+const TOUCH_CTL_S=6;
 
 // A FAULT IS ALWAYS SHOWN; A HEALTHY READOUT ONLY ON THE MENU. During a run a working tilt needs no
-// narration and the band is better empty, but a BROKEN one has to speak everywhere, because with touch
-// steering gone the player is holding a device that does nothing and has no console to ask why.
+// narration and the band is better empty, but a BROKEN one has to speak everywhere, because on a tilt
+// device touch does not steer and the player is holding something that does nothing.
 // On the menu the live vector is shown instead, so the sign convention can be checked by hand —
 // tilt right, watch x go positive — which is the one thing about tilt that cannot be tested off-device.
+//
+// ⚠️ THE ONE FAILURE LEFT IS THE FEED STOPPING, and it is the only one this panel can still report.
+// The four permission faults it used to name are unreachable now: `tiltDevice` is set BY a delivered
+// reading, so on any device that reads this branch the sensor has already spoken at least once. What
+// remains is CoreMotion going quiet mid-run — an app resumed from background before
+// `MotionBridgeViewController` restarts updates, say — which shows up as a gap in time and nothing else.
+// STALE_MS is 120 native frames at the bridge's 60Hz: long enough that a scheduling hiccup cannot trip
+// it, short enough that a player notices the message before they finish wondering.
+const TILT_STALE_MS=2000;
 function updateTiltDiag(){
   const d=el('tiltDiag'); if(!d) return;
-  const fault=tiltFault();
-  if(fault){ d.textContent=fault; d.classList.remove('ok','hidden'); return; }
-  // ⚠️ `!touchSteers`, NOT just `tiltOn`. Since the CoreMotion bridge landed, `tiltOn` means "the sensor
-  // is delivering", not "tilt is the control": the native feed re-sets it on every callback, 30 times a
-  // second, so tiltSet(false) cannot hold it down. Reading tiltOn alone made the menu report TILT ✓ with
-  // a live vector while tilt was switched OFF and the player was steering with a finger. Harmless to
-  // play, but it is a readout whose entire job is to be believed. Steering itself was never at risk —
-  // stepTilt has gated on touchSteers since 59efac0, measured: 0 units of tilt drive after the switch.
+  if(tiltDevice && tiltLastT && performance.now()-tiltLastT>TILT_STALE_MS){
+    d.textContent='Motion data stopped.'; d.classList.remove('ok','hidden'); return;
+  }
+  // `!touchSteers` rather than `tiltOn`, and the distinction still matters: `tiltOn` means "a reading
+  // arrived", `touchSteers` means "this device answers to the pointer". They are derived from the same
+  // event now, but reading the one the ENGINE branches on is what stops this panel ever describing a
+  // state the game is not in.
   if(state==='menu' && tiltOn && !touchSteers){
     d.textContent='TILT ✓  x '+tiltVec.x.toFixed(2)+'   y '+tiltVec.y.toFixed(2)+'   ('+tiltEvents+' events)';
     d.classList.add('ok'); d.classList.remove('hidden'); return;
@@ -5680,50 +5707,31 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.co
 // ---- SETTINGS ----
 // NOTHING HERE OWNS STATE. Every switch reads the same source the rest of the game reads and writes
 // through the same setter, so these rows and the HUD buttons cannot drift apart — `toggleMute` and
-// `toggleMotion` already repaint their own buttons, and `tiltSet` already re-derives `touchSteers`.
+// `toggleMotion` already repaint their own buttons.
 //   ⚠️ THE SOUND SWITCH IS THE INVERSE OF WHAT IT STORES. The flag is `store.mute`, a negative, and the
 // row is "Sound" — so ON means `store.mute === false`. Wiring it straight through is the obvious way to
 // ship a switch that reads backwards.
+//   TILT NO LONGER HAS A ROW, and that is a decision rather than a tidy-up: see the TILT block. The
+// switch and the coarse-pointer default were one mechanism, and removing half of it would have left
+// every phone browser tilt-steered with nothing to press.
 //   The Escape handler sits with the two above it and uses stopImmediatePropagation for the reason given
 // there — except that for THIS overlay the bug is not latent. It opens from the pause panel, so a plain
 // stopPropagation would close the panel and then resume the run on the way past.
 let setPoll=0;
 function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=on?'On':'Off'; };
-  // ⚠️ `!touchSteers`, NOT `tiltOn` and NOT `tiltWanted()`. Since the CoreMotion bridge, `tiltOn` means
-  // "the sensor is delivering" and the native feed re-sets it 30 times a second, so it stays true through
-  // a switch-off — `774d741` fixed the menu readout for exactly that. `tiltWanted()` is the stored
-  // INTENT and is one missed `refreshTouchSteer()` away from disagreeing with the engine. `touchSteers`
-  // is what `stepTilt` and `pointermove` actually branch on, so it is the only one of the three that
-  // cannot show a state the game is not in. A settings row must report the engine, not the preference.
-  sw('swTilt', !touchSteers);
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
-  // Three states, and the healthy one has to speak. `tiltFault()` returns null once readings arrive, so
-  // a silent row would mean both "working" and "nothing tried yet" on a phone that cannot tell you which.
-  const f=tiltFault(), fe=el('setTiltFault'), live=!touchSteers && tiltEvents>0;
-  fe.textContent = f || (live ? 'Motion is live.' : '');
-  fe.classList.toggle('ok', !f && live);
-  fe.classList.toggle('hidden', !f && !live);
 }
 function openSettings(){
   paintSettings();
   el('settings').classList.remove('hidden');
-  // The fault line resolves whenever iOS answers the motion prompt, which is not when we asked. A panel
-  // painted once would keep showing "tap anywhere to allow" after the tap that already fixed it — and
-  // pressing these switches IS such a tap, since arming listens at document capture.
   clearInterval(setPoll); setPoll=setInterval(paintSettings,400);
 }
 function closeSettings(){ el('settings').classList.add('hidden'); clearInterval(setPoll); setPoll=0; }
 el('settingsBtn').onclick=openSettings;
 el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without ending the run
 el('settingsClose').onclick=closeSettings;
-// `tiltSet(touchSteers)` reads oddly and is right: if the finger is steering, the switch turns tilt ON.
-// Toggling against `!tiltWanted()` instead would act on the stored intent while the label above shows the
-// engine, so a single disagreement between them would make one press appear to do nothing.
-//   These three run only on a press, never at load — `touchSteers`, `tiltEvents` and `tiltWanted` are all
-// declared further down the file and would be in the temporal dead zone if this block ever ran at boot.
-el('swTilt').onclick  =()=>{ tiltSet(touchSteers); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSettings(); }});
@@ -5756,10 +5764,14 @@ const TOUCH_LIFT=55;   // CSS px
 // to be on", but never. Falling back to touch when tilt dies was rejected on purpose: that is precisely
 // how the first tilt bug hid. The game stayed playable, so nothing looked broken, and tilt was simply
 // dead for an entire build. Now the core does not move and #tiltDiag names the reason.
-//   Cached, not recomputed per event: tiltWanted() reads localStorage, and pointermove fires 60+ times
-// a second. Seeded `true` because tiltWanted() is a `const` defined further down and touching it here
-// would be a temporal-dead-zone ReferenceError — the exact class of bug `node --check` does not catch.
-// refreshTouchSteer() sets the real value as soon as the tilt block has loaded.
+//   ⚠️ THAT RULE IS ONLY SAFE BECAUSE OF WHAT NOW SETS IT. It used to combine with a coarse-pointer
+// default, so every phone BROWSER was tilt-only before a single reading had arrived — and if none ever
+// did, the star could not be moved. Only the native bridge flips this now (see the TILT block), so a
+// device is tilt-only exactly when a sensor has already proven it is feeding us.
+//   Cached rather than recomputed per event, because pointermove fires 60+ times a second. Seeded
+// `true` and corrected by refreshTouchSteer() once the tilt block has loaded: `tiltDevice` is declared
+// further down and reading it here would be a temporal-dead-zone ReferenceError — the exact class of
+// bug `node --check` does not catch.
 let touchSteers=true;
 let touchId=null, tapX=0, tapY=0, tapT=0, tapMoved=false;
 let odTouchId=null;   // the finger currently HOLDING Overdrive, so its release can be told from any other
@@ -5844,13 +5856,12 @@ const TILT={
 let tiltOn=false, tiltReady=false, tiltRef=null;
 const tiltVec={x:0,y:0};                 // smoothed, dead-zoned, clamped to [-1,1] per axis
 const tiltRaw={beta:0,gamma:0,angle:0};  // last untouched reading, for the seam and for tuning on device
-// THREE COUNTERS, BECAUSE "TILT DOESN'T WORK" HAS FOUR DIFFERENT CAUSES AND THEY LOOK IDENTICAL FROM
-// the outside: never asked, asked and refused, granted but silent, or delivering fine while the maths
-// is wrong. The first build shipped tilt that failed with no way to tell which — these exist so the
-// panel below can name the one that actually happened, on the phone, without a Mac attached.
-let tiltTries=0;                         // gestures that have asked for motion access
-let tiltEvents=0;                        // deviceorientation events actually delivered
-let tiltVerdict='not-asked';             // not-asked | no-api | granted | denied | threw | auto
+// TWO WITNESSES, DOWN FROM THREE. The old set answered "which of four permission failures happened",
+// and there is no permission left to fail: the web sensor path is gone and the native bridge either
+// calls in or does not. What can still go wrong on a device is the feed STOPPING after it started, and
+// that is a question about time, not about verdicts — `tiltLastT` below answers it.
+let tiltEvents=0;                        // readings actually delivered; 0 means the bridge never called
+let tiltVerdict='none';                  // none | native — kept for the debug seam, not for logic
 
 // Neutral is wherever you were holding it when the run began — nobody plays with the phone flat, and the
 // comfortable angle differs per person and per posture (desk vs sofa vs bed). Clearing the reference makes
@@ -5917,107 +5928,79 @@ function stepTilt(dt){
   P.x+=tiltVec.x*sp; P.y+=tiltVec.y*sp;                        // stepPlayer clamps to the arena right after
 }
 
-// iOS 13+ will not deliver a single orientation event until requestPermission() resolves, and it only
-// resolves from inside a real user gesture — so this is called from pointerdown, NOT at load. It also
-// needs a secure context: capacitor://localhost inside the app qualifies, https qualifies, and a plain
-// http://192.168.x.x page served to a phone for testing DOES NOT. That is the whole reason the on-device
-// test below wants either Xcode or a tunnel.
-// ⚠️ WE LISTEN NO MATTER WHAT THE PERMISSION CALL SAYS, and `tiltOn` is set by the first event that
-// actually ARRIVES rather than by the promise resolving. Measured in the Capacitor WebView: the panel
-// reported `threw` — requestPermission() exists and its promise REJECTS. But the JS permission API and
-// the native sensor gate are two different doors: Capacitor's WKUIDelegate already answers the real one
-// with decisionHandler(.grant) (WebViewDelegationHandler.swift). Treating a rejected promise as "no
-// tilt" threw away a sensor that may well be feeding us.
-//   So the promise now only supplies a DIAGNOSIS, and delivery is the verdict. Attaching costs nothing
-// when nothing comes — tiltFault() then says "granted, but no sensor data is arriving", which is the
-// truth either way and far more useful than a permission string.
-function tiltEnable(){
-  if(tiltReady) return;
-  tiltTries++;
-  const D=window.DeviceOrientationEvent;
-  if(!D){ tiltReady=true; tiltVerdict='no-api'; return; }
-  window.addEventListener('deviceorientation',onTilt);
-  tiltReady=true; tiltCalibrate();
-  if(typeof D.requestPermission==='function'){
-    D.requestPermission()
-      .then(r=>{ tiltVerdict = r==='granted' ? 'granted' : 'denied'; })
-      .catch(()=>{ tiltVerdict='threw'; });                    // recorded, NOT acted on — see above
-  } else tiltVerdict='auto';                                   // Android, and any WebView that just delivers
-}
+// TOMBSTONE — WHY THERE IS NO `requestPermission` CALL ANYWHERE IN THIS FILE.
+// The web sensor was tried properly and measured on a real phone, and it does not work on the stack
+// this game ships on. iOS 13+ delivers nothing until `DeviceOrientationEvent.requestPermission()`
+// resolves from inside a user gesture, and it needs a secure context — `capacitor://localhost` and
+// https qualify, a plain `http://192.168.x.x` served to a phone for testing does not. Inside the
+// Capacitor WebView the promise REJECTS outright even though Capacitor's WKUIDelegate answers the real
+// permission with `.grant` (WebViewDelegationHandler.swift): the JS permission API and the native
+// sensor gate are two different doors, and the JS one is nailed shut.
+//   That is why the bridge below is native, and why the last of the web path went with the Settings
+// switch: the only browser it still worked in was Android Chrome, where it auto-armed with no way for
+// the player to refuse. Do not add it back without a switch to escape it.
+//
+// TILT IS A NATIVE-ONLY CONTROL NOW, AND DELIVERY IS THE ONLY THING THAT TURNS IT ON.
+//
+// It used to be a stored preference defaulting to `matchMedia('(pointer: coarse)')`, with a Settings
+// switch to escape it. That pairing was load-bearing in a way neither half admitted: STRICT TILT-ONLY
+// (see the input block) means a device on tilt does not steer by touch AT ALL, so every phone BROWSER
+// booted into a state where the star could not be moved unless a `deviceorientation` event actually
+// arrived — and on iOS Safari it arrives only if the player accepts a permission prompt. Miss the
+// prompt and the game is inert; the Settings switch was the sole way out, which is why every string in
+// the old `tiltFault()` ended "Turn Tilt off in Settings to steer by touch".
+//   The switch is gone, so that default cannot stay. Rather than replace one guess about the device
+// with another, the rule is now the same one `onTilt` already applies one level down — DELIVERY is the
+// verdict, not a promise and not a media query. `tiltDevice` is false everywhere until the native
+// CoreMotion bridge below hands over a reading, and nothing else can set it. Web and desktop steer by
+// pointer from boot; the iOS shell is on tilt from its first callback, ~33ms in.
+//   ⚠️ `orbitalcrash_tilt` IS DELIBERATELY NOT READ. Anyone who ever switched tilt ON in a phone
+// browser has '1' sitting in localStorage, and honouring it now would strand exactly the players this
+// change exists to rescue — with no switch left to undo it. The key is inert, not migrated.
+//   ⚠️ THE WEB `deviceorientation` PATH IS GONE ON PURPOSE, not by omission. On Android Chrome
+// `requestPermission` does not exist, so the old arming call attached the listener and readings simply
+// flowed — which after this change would hand an Android web player a tilt-steered game with nothing to
+// press. On iOS the web sensor was already measured to be a dead end inside the Capacitor WebView. So
+// there is one feed, it is native, and `onTilt` can no longer be reached twice.
+let tiltDevice=false;
 
-// Off by default on anything with a real pointer: a laptop with a lid sensor would otherwise start
-// drifting the core the moment someone leans. Stored so a player who turns it off stays off.
-const tiltWanted=()=>{
-  try{ const v=localStorage.getItem('orbitalcrash_tilt'); if(v!==null) return v==='1'; }catch(_){}
-  return matchMedia('(pointer: coarse)').matches;
-};
-// NATIVE FEED. On iOS the web sensor is a dead end — measured on a real phone: requestPermission()
-// rejects, and attaching the listener anyway still delivers nothing, even though Capacitor's
-// WKUIDelegate answers the permission with .grant. So the iOS shell reads CoreMotion natively and calls
-// this (ios/App/App/MotionBridgeViewController.swift, ~30Hz).
+// NATIVE FEED. The iOS shell reads CoreMotion and calls this (ios/App/App/MotionBridgeViewController.swift,
+// 60Hz — it went 30 -> 60 to halve the staleness of a reading against a 16ms step), because WebKit will
+// not deliver the web sensor in that WebView.
 //   It hands over the SOURCE of two numbers and nothing else: the calibration, dead zone, orientation
 // remap, low-pass and speed curve all stay here, where they were already verified. onTilt cannot tell
 // the difference, and neither can anything downstream — which is why this is a bridge rather than a
 // second implementation of tilt.
-//   The takeover is explicit and happens once. A tap can arm the web listener before the first native
-// callback lands, and if both fed onTilt every reading would be applied twice — the dead zone and the
-// low-pass would still look sane, so it would present as tilt being mysteriously twitchy rather than as
-// an obvious fault. Removing the web listener and setting `tiltReady` makes that unrepresentable:
-// tiltEnable() early-returns from then on, and only one feed can ever reach onTilt.
+//   The takeover happens once and is also the moment this device becomes a tilt device. Calibrating
+// here matters: it re-zeros to however the phone is being held on the first reading.
 window.__nativeTilt=(beta,gamma)=>{
-  if(tiltVerdict!=='native'){
-    window.removeEventListener('deviceorientation',onTilt);
-    tiltReady=true; tiltVerdict='native'; tiltCalibrate();   // re-zero: this is a new sensor's frame
+  if(!tiltDevice){
+    tiltDevice=true; tiltReady=true; tiltVerdict='native';
+    tiltCalibrate();                                        // re-zero: this is a new sensor's frame
+    refreshTouchSteer();                                    // and the finger stops steering from here
   }
   onTilt({beta,gamma});
 };
 
 // Whether touch may steer is the exact inverse of whether this device is on tilt, and it is cached in
-// the input block above (pointermove cannot afford a localStorage read per event). Everything that can
-// change tiltWanted() has to call this, or the two disagree and the core answers to nothing.
-function refreshTouchSteer(){ touchSteers=!tiltWanted(); }
+// the input block above (pointermove cannot afford this test per event, and it fires 60+ times a second).
+// `window.__nativeTilt` is the only thing that can change the answer, and it calls this.
+function refreshTouchSteer(){ touchSteers=!tiltDevice; paintTouchCtl(); }
+
+// The one line of the touch legend that is not the same on both kinds of touch device. Repainted from
+// refreshTouchSteer rather than written once at boot, because a native shell starts as a touch device
+// and BECOMES a tilt device ~33ms later, when the bridge makes its first call — a legend written at
+// load would spend the whole session telling an iOS player to drag.
+//   TOUCH_LIFT is worth a word. The star tracks 55px ABOVE the finger on purpose, and a player who does
+// not know that reads the offset as the controls being loose rather than as the thing that stops their
+// own thumb hiding the one object they have to watch.
+function paintTouchCtl(){
+  const s=el('tcSteer'); if(!s) return;
+  s.innerHTML = touchSteers
+    ? '<b>Drag</b> Steer &mdash; star rides above your finger'
+    : '<b>Lean</b> Steer star';
+}
 refreshTouchSteer();
-
-function tiltSet(on){
-  try{ localStorage.setItem('orbitalcrash_tilt', on?'1':'0'); }catch(_){}
-  if(on){ tiltEnable(); if(tiltReady) tiltOn=true; tiltCalibrate(); }
-  else { tiltOn=false; tiltVec.x=tiltVec.y=0; }
-  refreshTouchSteer();
-}
-
-// ARMED BY THE FIRST GESTURE ANYWHERE, NOT JUST ON THE CANVAS. iOS grants motion access only from
-// inside a real user gesture, and the first gesture of a session is "Enter the field" — an HTML
-// <button> in the overlay, which never reaches the canvas handler. Arming from the canvas alone meant
-// the request waited for the first in-game tap, and now that touch no longer steers there may not be
-// one. Capture phase on the document sees every press before any target handler runs.
-// tiltEnable() is idempotent (`if(tiltReady) return`), so firing on every press costs nothing.
-addEventListener('pointerdown',()=>{ if(tiltWanted()) tiltEnable(); },{capture:true});
-
-// WHY TILT CAN FAIL, NAMED RATHER THAN GUESSED. Returns null when tilt is working or not wanted, and
-// otherwise the one sentence that says which of the four failures happened. Touch no longer steers on
-// these devices, so a mute failure here is an unplayable game — this is what stops that being a
-// mystery. It is deliberately NOT gated behind DEV: the player who needs it most cannot open a console.
-function tiltFault(){
-  if(!tiltWanted()) return null;                        // not on tilt: nothing to report
-  if(tiltEvents)    return null;                        // DATA IS ARRIVING — tilt works, whatever the
-                                                        // permission promise happened to say. This test
-                                                        // comes first on purpose: in the Capacitor
-                                                        // WebView the promise rejects while the native
-                                                        // grant stands, so the promise is the less
-                                                        // reliable witness of the two.
-  // EVERY FAILURE NAMES THE WAY OUT. Touch does not steer on these devices, so each of these strings is
-  // being read by someone holding a game that does not respond — and the Settings switch that gives them
-  // finger steering back is the only thing that helps. Saying only "allow motion access" leaves a player
-  // whose OS has already refused with nowhere to go.
-  //   None of them says "app" either. `tiltWanted()` keys on `pointer: coarse`, so a phone BROWSER lands
-  // here too, and the web build is the one that ships first — telling a web player to reopen the app is
-  // advice they cannot follow.
-  if(!tiltTries)    return 'Tap anywhere to allow motion access.';
-  if(tiltVerdict==='no-api') return 'No motion sensor here. Turn Tilt off in Settings to steer by touch.';
-  if(tiltVerdict==='denied') return 'Motion access denied. Allow it, or turn Tilt off in Settings to steer by touch.';
-  if(tiltVerdict==='threw')  return 'The motion sensor did not start. Turn Tilt off in Settings to steer by touch.';
-  return 'Waiting for motion data. Turn Tilt off in Settings to steer by touch instead.';
-}
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
 // press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
 canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); });
@@ -6264,13 +6247,15 @@ window.__orbital=window.__polaris=window.__flux={
   // permission that never landed; vec moving the wrong way is a sign error in tiltMap for THIS angle.
   tilt(){ return {on:tiltOn, ready:tiltReady, ref:tiltRef, raw:{...tiltRaw},
                   vec:{x:+tiltVec.x.toFixed(3), y:+tiltVec.y.toFixed(3)},
-                  tries:tiltTries, events:tiltEvents, verdict:tiltVerdict,
+                  events:tiltEvents, verdict:tiltVerdict, device:tiltDevice,
                   // What the smoothing actually costs you, in ms, rather than as a coefficient to
                   // reason about. 63% is the honest "it responded" figure; 95% is "it has arrived".
                   lagMs:{to63:Math.round(TILT.tau*1000), to95:Math.round(TILT.tau*3000)},
-                  wanted:tiltWanted(), touchSteers, fault:tiltFault(),
+                  touchSteers, staleMs:tiltLastT?Math.round(performance.now()-tiltLastT):null,
                   maxUnitsPerFrame:TILT.speed*(P?P.moveMult:1), TILT:{...TILT}}; },
-  TILT, tiltSet, tiltCalibrate, stepTilt, tiltFault, refreshTouchSteer,
+  // `__nativeTilt` is the only way to reach a tilt-steered state now, so it is also the only way to TEST
+  // one off-device: call it once and this build behaves exactly as the iOS shell does.
+  TILT, tiltCalibrate, stepTilt, refreshTouchSteer,
   get touchSteers(){return touchSteers;},
   // ⚠️ overdrive() is PRESS, not toggle. A harness that calls it twice ignites once and never releases;
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
