@@ -253,7 +253,14 @@
      else that wants body text", because a rule with no user is a rule nobody can tell is wrong. */
   .btn{pointer-events:auto;cursor:pointer;border:none;border-radius:100px;padding:16px 46px;font-size:18px;font-weight:800;
     letter-spacing:.05em;color:#08101e;background:linear-gradient(180deg,#aef2ff,var(--cyan));
-    box-shadow:0 12px 32px rgba(56,224,255,.4),0 0 0 1px rgba(255,255,255,.2) inset;transition:transform .12s ease;}
+    /* THE CYAN GLOW IS GONE, and the offset is why. It was `0 12px 32px` — a 32px blur pushed 12px DOWN,
+       which is a drop shadow's geometry, not a glow's. A light source does not sit below the thing it
+       lights, so it read as the button hovering slightly above its own halo rather than emitting one,
+       and against the title's own centred rings that mismatch is exactly what showed. Centring it at
+       `0 0` was the other option and was not taken: the gradient fill already carries the button, and a
+       halo under a wordmark that has two of its own is one glow too many on the screen.
+       The inset hairline stays — that is an edge, not a light. */
+    box-shadow:0 0 0 1px rgba(255,255,255,.2) inset;transition:transform .12s ease;}
   .btn:active{transform:translateY(2px) scale(.98);}
   .btn.sm{padding:12px 30px;font-size:15px;}
   .btn.ghost{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:0 0 0 1px rgba(255,255,255,.16) inset;}
@@ -262,7 +269,7 @@
      thing on the screen instead of the fourth, which is what a ghost pill under a glowing button gets
      you. margin-top is on the class, since it only ever sits under the primary. */
   .btn.tut{margin-top:13px;background:rgba(56,224,255,.1);color:var(--cyan);
-    box-shadow:0 0 0 1.5px rgba(56,224,255,.55) inset,0 6px 22px rgba(56,224,255,.14);}
+    box-shadow:0 0 0 1.5px rgba(56,224,255,.55) inset;}   /* its glow went with the primary's, same reason */
   .btn.tut:hover{background:rgba(56,224,255,.18);color:#d8f7ff;}
 
   /* MENU SIDE DOORS. Two of these start a run and two open a page over the menu, and until now all
@@ -635,7 +642,7 @@
      tutorial did was grade you. Author: "no other comments, go simple." A question needs no verdict
      attached, and the two buttons under it are the only answer it wants. -->
 <div class="overlay hidden" id="tutDone">
-  <h2 style="font-size:clamp(26px,5.4vw,44px);font-weight:900;margin:0 0 26px;max-width:14em;line-height:1.25;">Are you ready to dive into the Milky Way?</h2>
+  <h2 style="font-size:clamp(26px,5.4vw,44px);font-weight:900;margin:0 0 26px;max-width:14em;line-height:1.25;">Time to play a main game!</h2>
   <button class="btn" id="tutPlayBtn">Enter the field</button>
   <button class="btn sm ghost" id="tutMenuBtn" style="margin-top:12px;">Menu</button>
 </div>
