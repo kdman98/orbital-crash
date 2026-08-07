@@ -4182,7 +4182,12 @@ function stepEnemyForces(dt){
           // deep inside the ring untouched and a WIDER Field only looked wider. A floor makes the Field
           // grab the instant a Dot crosses its edge, and the ramp still gives the strong near-core grip.
           const tf=0.16+0.84*t*t;
-          const dir=(e.color===P.polarity)?-1:1; // same repel, opposite attract
+          // ⚠️ `dir` HAS ONE LIVE VALUE HERE. This read "same repel, opposite attract", which describes
+          // the sign convention and not this loop: the +1 half is killed two lines down and never reaches
+          // the force term. Nothing in this branch attracts anything. Left alone, the one-liner reads as
+          // proof that opposite matter IS pulled in — which is the exact belief that would make someone
+          // "fix" LIKE_GRAV, the only thing that legitimately pulls, and vacuum the hostile side in.
+          const dir=(e.color===P.polarity)?-1:1;
           if(dir<0 && ringing) continue; // like-charge isn't plain-repelled — it's ring-captured below
           if(dir>0) continue;            // OPPOSITE matter has NO inward magnetic pull — the star never vacuums another charge in; it only drifts toward you under its own gentle chase (seek) and annihilates against your rings/core
           const f=A[3]*tf/e.mass;        // only repel reaches here (non-ringing like-charge)
