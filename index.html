@@ -192,7 +192,14 @@
                     alternating right / left.
      The old logo was a white→cyan→violet gradient, which left red — half the game — off the
      title screen entirely. Positions come from the main frame loop; see titleOrbit(). */
-  .titlewrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;}
+  /* ⚠️ THIS MARGIN IS DOING A JOB THE DELETED PARAGRAPH USED TO DO BY ACCIDENT. `.tag` sat between the
+     lockup and the primary button with 14px above and 24px below, so removing it left the button
+     touching the wordmark — measured at 0px from the logo's box, and 28px INSIDE the outer title ring,
+     which is 860px wide and hangs well below the text it circles. The ring is the thing to clear, not
+     the letters: it is absolutely positioned and contributes nothing to layout height, so nothing warns
+     you. Anyone re-tuning this must measure against `.tring`'s bottom edge, not the logo's. */
+  .titlewrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
+    margin-bottom:58px;}
   .logo{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
     margin:0;font-weight:900;line-height:.84;}
   /* THE TWO WORDS ARE NOW CLOSE TO THE SAME SIZE, and that is the whole brief: ORBITAL doubled, CRASH
@@ -241,17 +248,22 @@
   .tshock.go{animation:tShock 1.15s cubic-bezier(.1,.75,.2,1) forwards;}
   @keyframes tShock{0%{opacity:0;transform:scale(.2)}12%{opacity:1}
     100%{opacity:0;transform:scale(5) scaleY(.42);border-width:1px}}
-  /* 26em is the budget the tag has to live in: every beat must hold ONE line at this measure, or it
-     spills a single word onto a line of its own. The longest beat currently sets 370px against the
-     416px cap — that headroom is the edit budget for anyone rewriting the copy. */
-  .tag{margin:14px 0 24px;color:var(--dim);font-size:clamp(13px,3.6vw,16px);max-width:26em;line-height:1.6;}
-  .tag b.r{color:var(--red);} .tag b.c{color:var(--cyan);} .tag b{color:var(--ink);font-weight:700;}
+  /* `.tag` lived here and is gone with the menu paragraph it styled — 26em of reading measure, and a
+     documented edit budget for copy that no longer exists. Deleted rather than left for "something
+     else that wants body text", because a rule with no user is a rule nobody can tell is wrong. */
   .btn{pointer-events:auto;cursor:pointer;border:none;border-radius:100px;padding:16px 46px;font-size:18px;font-weight:800;
     letter-spacing:.05em;color:#08101e;background:linear-gradient(180deg,#aef2ff,var(--cyan));
     box-shadow:0 12px 32px rgba(56,224,255,.4),0 0 0 1px rgba(255,255,255,.2) inset;transition:transform .12s ease;}
   .btn:active{transform:translateY(2px) scale(.98);}
   .btn.sm{padding:12px 30px;font-size:15px;}
   .btn.ghost{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:0 0 0 1px rgba(255,255,255,.16) inset;}
+  /* THE TUTORIAL DOOR. Outlined in the same cyan as the primary rather than filled with it: two solid
+     cyan pills stacked would be two primary actions, and there is only one. This reads as the second
+     thing on the screen instead of the fourth, which is what a ghost pill under a glowing button gets
+     you. margin-top is on the class, since it only ever sits under the primary. */
+  .btn.tut{margin-top:13px;background:rgba(56,224,255,.1);color:var(--cyan);
+    box-shadow:0 0 0 1.5px rgba(56,224,255,.55) inset,0 6px 22px rgba(56,224,255,.14);}
+  .btn.tut:hover{background:rgba(56,224,255,.18);color:#d8f7ff;}
 
   /* MENU SIDE DOORS. Two of these start a run and two open a page over the menu, and until now all
      four were the same ghost pill in one column, told apart by an 8px-vs-12px margin. The shape says
@@ -259,7 +271,7 @@
      No @media anywhere — this file has none — so the pair is sized off the container, not the
      viewport: min(100%,384px) is already inside the overlay's 22px padding, which min(46vw,…) is not,
      and that is the difference between fitting a 375px phone and overrunning it by a hair.
-       EDIT BUDGET, same idea as .tag's: each cell gives its second line 165px, and the longest one
+       EDIT BUDGET: each cell gives its second line 165px, and the longest one
      currently sets 150px. Under that and both cells hold one line on a desktop and wrap to a matched
      two on a phone; over it and one cell wraps while its neighbour does not, which is the one way
      this pair can look broken. Measure, do not count characters — 368px left only 7px of slack. */
@@ -419,12 +431,10 @@
        same 1.72 proportion, so the ratio survives anywhere the clamp is live. */
     .logo .l1{font-size:clamp(18px,3.4vh,26px);}
     .logo .l2{font-size:clamp(31px,5.85vh,45px);}
-    /* max-width goes UP, not down. 26em is a reading-length cap that assumes height is cheap and width
-       is scarce; landscape reverses both. At 26em the longest beat ("Then let the other colour crash
-       into what you gathered.") wrapped and orphaned "gathered." onto a line of its own — the exact
-       fault the markup comment above already calls out for the Lab's caption. Widening lets each of the
-       five <br>-separated beats hold one visual line, which reads better AND is shorter. */
-    .tag{margin:5px 0 8px;font-size:clamp(10px,2.5vh,12px);line-height:1.22;max-width:46em;}
+    /* The menu paragraph this branch used to reflow is gone; what needs the height back now is the
+       tutorial door, which is a button and buys it by shrinking rather than by rewrapping. */
+    .titlewrap{margin-bottom:20px;}   /* the rings shrink with the type here, so the clearance can too */
+    .btn.tut{margin-top:8px;padding:9px 24px;font-size:14px;}
     .doors{margin-top:7px;}
     .door{padding:8px 10px 9px;}
     .door .dd{line-height:1.35;margin-top:3px;}
@@ -565,15 +575,15 @@
     <div class="tfx"><i class="tburst"></i><i class="tshock"></i></div>
     <h1 class="logo"><span class="l1">ORBITAL</span><span class="l2">CRASH</span></h1>
   </div>
-  <!-- THE FIVE-LINE DESCRIPTION IS GONE, AND IT IS NOT REPLACED BY SHORTER PROSE. Author: "instead of
-       tedious description under title, what about a tutorial?" — so the paragraph that told you the law
-       in five beats is now six steps you play, one button down. What is left here is one line: the one
-       thing that is genuinely not inferable from playing, and the only reason the rest makes sense.
-         It also fixes a bug the paragraph carried: it said "Click to flip" to every phone that ever
-       opened this page. The tutorial reads the actual control (see tutVerb). -->
-  <p class="tag">Opposite colours annihilate. Everything else follows from that.</p>
+  <!-- NO PROSE UNDER THE TITLE AT ALL. It was five lines, then one, and now none: the six steps one
+       button down do that job, and a sentence competing with them is the menu teaching the game twice —
+       which is the thing this whole screen has been edited toward not doing. It also carried a bug for
+       a long time, telling every phone that ever opened this page to "Click to flip".
+         The two buttons are the entire menu now. `.btn.tut` is louder than the ghost pill it replaces
+       because on a public link the tutorial is the more useful of the two doors for most arrivals, and
+       a first-time player should not have to notice a faint outline to find it. -->
   <button class="btn" id="startBtn">Enter the field</button>
-  <button class="btn sm ghost" id="tutBtn" style="margin-top:11px;">How to play</button>
+  <button class="btn sm tut" id="tutBtn">How to play</button>
   <!-- No glyph prefixes and no em-dash explainers. Four ghost buttons each carrying a different
        decorative mark read as a menu assembled by something that had never seen a menu.
          They then sat as four IDENTICAL ghost pills in one column, which was the same mistake with the
@@ -617,13 +627,15 @@
   <div id="codexBody"></div>
 </div>
 
-<!-- TUTORIAL END CARD. One card for both endings, because they ARE one ending — the finale is over. Only
-     the sentence differs. Deliberately NOT the death screen: that one counts up a score, prints a
-     receipt and offers Reforge, none of which mean anything for a tutorial. -->
+<!-- TUTORIAL END CARD. One card for both endings, because they ARE one ending — the finale is over.
+     Deliberately NOT the death screen: that one counts up a score, prints a receipt and offers Reforge,
+     none of which mean anything here.
+       ⚠️ ONE LINE, AND IT DOES NOT BRANCH ON WHETHER YOU SURVIVED. It used to carry a separate sentence
+     for each ("You lasted the whole thing" / "That is what it costs"), which meant the last thing the
+     tutorial did was grade you. Author: "no other comments, go simple." A question needs no verdict
+     attached, and the two buttons under it are the only answer it wants. -->
 <div class="overlay hidden" id="tutDone">
-  <div class="final" style="letter-spacing:.3em;">That is the whole game</div>
-  <h2 style="font-size:clamp(30px,7vw,54px);font-weight:900;margin:6px 0 12px;">Ready</h2>
-  <p class="tag" id="tutDoneLine" style="max-width:30em;"></p>
+  <h2 style="font-size:clamp(26px,5.4vw,44px);font-weight:900;margin:0 0 26px;max-width:14em;line-height:1.25;">Are you ready to dive into the Milky Way?</h2>
   <button class="btn" id="tutPlayBtn">Enter the field</button>
   <button class="btn sm ghost" id="tutMenuBtn" style="margin-top:12px;">Menu</button>
 </div>
@@ -2565,31 +2577,35 @@ const tutVerb=()=>{
 // sentence, and this is the only moment in the game where the lesson and the thing it describes are one
 // second apart. KEPT SHORT ON PURPOSE, because the beat is timed off it: an `ok` as long as its own
 // instruction turns an acknowledgement into a second thing to read, and doubles the step.
+//   ⚠️ THE COPY IS THE AUTHOR'S, AND ONLY THE BRACKETED VERBS MAY VARY. Steps 1, 4 and 5 were written
+// as "Move the mouse", "Click" and "Hold shift" — all three describe a desktop, and a phone told to move
+// a mouse is the exact fault the old menu paragraph had. `tutVerb()` substitutes those three phrases and
+// nothing else, so the sentence a player reads is theirs on every device.
 const TUT_STEPS=[
-  { say:()=>`${tutVerb().move} to steer your star.`,
+  { say:()=>tutVerb().move,
     setup:()=>{},
     done:()=>tutTravel>400,
-    ok:'That is all the steering there is.' },
-  { say:()=>'This is your colour. Steer into it — it gathers into rings.',
+    ok:"That's how you move." },
+  { say:()=>'Look at your current colour, and get close to the same-coloured dots!',
     setup:()=>{ for(let i=0;i<7;i++) tutDrop(P.polarity); },
     note:()=>`${Math.min(tutRingN(),4)} / 4 gathered`,
     done:()=>tutRingN()>=4,
-    ok:'Those rings are your weapon. Nothing else is.' },
-  { say:()=>'The other colour dies on those rings. Sweep it up.',
+    ok:"Now that's your sword and shield! Don't move too quick, you may lose it." },
+  { say:()=>'Make your ring contact with another colour.',
     setup:()=>{ for(let i=0;i<6;i++) tutDrop(P.polarity==='red'?'cyan':'red'); },
-    note:()=>`${Math.min(tutKills,5)} / 5 annihilated`,
+    note:()=>`${Math.min(tutKills,5)} / 5 cleared`,
     done:()=>tutKills>=5,
-    ok:'That is annihilation. Everything else arranges it.' },
-  { say:()=>`${tutVerb().act} to reverse your poles — what you gathered turns hostile, and is flung clear.`,
+    ok:'This is how you clear them out.' },
+  { say:()=>`${tutVerb().act} to flip your colour.`,
     setup:()=>{ for(let i=0;i<5;i++) tutDrop(P.polarity); },
     done:()=>tutFlips>=1,
-    ok:'Hold a colour longer and the flip throws harder.' },
-  { say:()=>`${tutVerb().hold} for Overdrive. Your rings swing wide and sweep a much bigger circle.`,
+    ok:'Time to focus — your enemies are now allies!' },
+  { say:()=>`${tutVerb().hold} for Overdrive, a faster and wider sweep with your ring.`,
     setup:()=>{ P.charge=1; for(let i=0;i<8;i++) tutDrop(Math.random()<0.5?'red':'cyan'); },
     note:()=>odOn?'burning':'the Capacitor is full',
     done:()=>tutOdT>=0.5,
-    ok:'Let go early and you keep the rest.' },
-  { say:()=>'Now everything at once. This part can kill you — that is the game.',
+    ok:'Good work!' },
+  { say:()=>"Let's experience a complex situation for a while, and end our tutorial!",
     setup:()=>{ intensityTarget=0.9; tutRoster=0; tutNextT=0; },
     note:()=>`${Math.max(0,Math.ceil(TUT_FINALE_S-tutT))}s`,
     done:()=>tutT>=TUT_FINALE_S },
@@ -2664,7 +2680,7 @@ function stepTutorial(dt){
   if(tutT<readS(S.say())) return;
   if(!S.done()) return;
   // The finale has nowhere to advance to, and no beat: its acknowledgement is the end card.
-  if(tutStep>=TUT_STEPS.length-1){ tutFinish(true); return; }
+  if(tutStep>=TUT_STEPS.length-1){ tutFinish(); return; }
   tutBeat=readS(S.ok||'Done'); tutPaintOk();
   flash=0.22; flashCol=COL.cyan; sfx.level();
 }
@@ -2676,15 +2692,13 @@ function tutAdvance(){
   tutPrev=null;
   tutPaint();
 }
-// One exit for both endings, because they are the same ending: the finale is over. `survived` only
-// changes the sentence on the card.
-function tutFinish(survived){
+// One exit for both endings, because they are the same ending: the finale is over. It took a `survived`
+// flag to pick between two closing sentences; the card asks one question now and does not grade you, so
+// there is nothing left for the flag to choose and both call sites simply stop.
+function tutFinish(){
   tutMode=false; state='menu';
   el('tutBar').classList.add('hidden');
   el('menu').classList.add('hidden'); el('dead').classList.add('hidden');
-  el('tutDoneLine').textContent = survived
-    ? 'You lasted the whole thing. The real field does not stop at twenty-five seconds.'
-    : 'That is what it costs. Nothing carries over — the next run starts exactly where this one did.';
   el('tutDone').classList.remove('hidden');
   markTutSeen();
 }
@@ -4616,7 +4630,7 @@ function die(){
   // DYING IN THE TUTORIAL IS AN ENDING, NOT A DEATH SCREEN. It routes before `state='dead'` so none of
   // the ceremony below runs — no score till, no receipt, no Reforge button offering to replay a
   // tutorial. Author: it ends either way, so surviving and dying meet at the same card.
-  if(tutMode){ endOverdrive(); killQ.length=0; tutFinish(false); return; }
+  if(tutMode){ endOverdrive(); killQ.length=0; tutFinish(); return; }
   state='dead';
   killQ.length=0;  // cancel any queued kills
   endOverdrive();  // stop the drain AND bank the ride into the log — a dead star does not burn Capacitor,
