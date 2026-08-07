@@ -1734,6 +1734,28 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 
 Things that have cost real time, in this codebase specifically.
 
+⚠️ **Checking where a claim came from is not checking whether it is true, and it feels identical.**
+Two sessions spent four exchanges defending four sentences in the Codex. Both sessions verified: that
+each sentence occurred exactly once in the tree, that the commit which deleted its backup really said
+what it was quoted as saying, that the key tables agreed, that the fingerprint matched. Every one of
+those is a question about **provenance** — where the claim lives, who wrote it, what else rests on it.
+Not one of them asked whether the sentence was **correct**. It was not: *"It will not touch an Anomaly.
+Nothing you press will"* is contradicted by `flip()`, which sets `vdmg=1` on every ringed Dot when a
+boss is live, from a keypress.
+
+The tell is that scrutiny had gone to what was **doubted** and not to what was being **defended** —
+and a defended claim is exactly where nobody looks twice, because the other party is agreeing. Before
+reporting a verification, name which kind it was. "I confirmed the sentence appears once" and "I
+confirmed the sentence is true" are different sentences, and only one of them was ever said.
+
+⚠️ **A dead dev server still serves pages, and `navigate` still reports success.** When the server on
+8777 died, the browser rendered the page from cache: `preview_start` and `navigate` both returned OK, so
+a verification run reported **every removed string as still present with the word count unchanged** —
+indistinguishable from an edit that never applied. Nothing in-page can catch this, because the page is
+genuine, just old. **A cache-buster query does not help when the origin is gone.** `lsof -iTCP:8777
+-sTCP:LISTEN` returning empty, or `curl` returning a zero-length body, is what settles it. Treat
+navigation success as evidence of a *response*, never of a *server*.
+
 ⚠️ **`git add index.html` takes every hunk in the file, including the other session's.** Two sessions
 share this checkout and `index.html` is one 7,000-line file, so an in-progress edit belonging to someone
 else gets swept into your commit whenever they happen to be mid-pass. It has happened three times. Once
