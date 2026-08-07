@@ -1887,7 +1887,17 @@ re-sorted. **A rank is a claim about every other row**, so it carries a dependen
 from does not, and a right number will happily produce a wrong rank.
 
 > **A rank, a superlative or an ordinal is never inherited from the measurement it was computed over.**
-> It is a separate claim over a table: name the basis, list every state, re-sort, then read the rank off.
+> It is a separate claim over a table: name the basis, list every state, re-sort, read the rank off —
+> **and the row you are ranking must appear in the list you printed.** If a reader cannot find it there,
+> the ladder is not a check. It is a decoration.
+
+**That last clause exists because the rule failed to protect its own output.** The ladder first published
+to stop rank errors *did not contain the value being ranked* — nine rows, and the sentence beneath ranked
+a tenth against them. Right ordinal, wrong denominator, and a reader counting the list could not locate
+the row the claim was about, which was the one thing the ladder was added to make possible. Everything
+upstream of that clause is a judgement about completeness, and completeness is precisely what each of
+these failures got wrong; **the clause is the only part a reader who was not there can mechanically
+verify.**
 
 This is where the basis rule and the timing rule turn out to be one thing seen from two sides — **a rank
 is exactly where a basis mismatch stops being a formula and becomes a number.** The Charger proves it by
@@ -1902,6 +1912,12 @@ correct data. So the ladder lives in the code as a list rather than in anyone's 
 re-derived the numbers and re-sorted a table with the armed Charger **missing** — the same omission the
 fifth instance was about, made while verifying the correction to it. Re-deriving is not re-sorting, and
 a ladder is only a check if it is complete.
+
+⚠️ *And the sentence "the doc list matches the code comment exactly" was written after comparing **one
+line**.* The two lists differed by a row at the time. The ladder itself was sound, having been derived
+independently — but the **verification claim** was false, and a verification claim is a claim. It is the
+cheapest of all of these to avoid and the easiest to write, because at the moment you make it you are
+describing work you intended to do.
 
 **The third was found by running the trap against the table the trap was written for**, which is the part
 worth keeping. "Recompute a neighbouring row from source" caught the second. "Is this row the same *kind*
