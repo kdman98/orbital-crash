@@ -35,6 +35,19 @@ Any static file server works, and `file://` works too.
 Numbers live in `index.html` and nowhere else. MECHANICS names constants rather than restating their
 values, so there is only ever one place to change a tuning.
 
+**Strings live in `L`, and nowhere else.** The game is English and Korean; `T('key')` is the only way to
+reach a user-facing string, and **nothing may build one with `+`** — see `docs/MECHANICS.md ## Language`
+for why that is a rule rather than a preference. To test a language without changing your browser:
+
+```js
+__orbital.store.lang='ko'; __orbital.applyLang()
+```
+
+⚠️ Setting `store.lang` alone changes what the next lookup returns and repaints nothing, which looks
+exactly like a working switch until you check the screen. There is **no webfont** and there must not be:
+"no build step, no dependencies, no network" is what makes `file://`, the service worker and the iOS
+shell all work.
+
 `legacy/` holds the documents these replaced — the old GLOSSARY and the ROADMAP ledger.
 They are superseded, not maintained: **nothing in `legacy/` is guaranteed to still be true.** Read
 them only to recover a detail a commit body does not carry.

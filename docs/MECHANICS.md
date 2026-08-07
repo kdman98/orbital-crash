@@ -1580,9 +1580,104 @@ cosmetic bug must not be able to reach the frame guard and halt a game that is o
 
 ---
 
+## Language
+
+English and Korean, switchable. **Every user-facing string in the game lives in `L`**, and nothing
+outside it may build one by concatenation — that is a hard rule, not a style preference, and the reason
+is in the Traps below.
+
+`store.lang` is `'en' | 'ko'`, key `orbitalcrash_lang`. Absent, the browser decides **once**:
+`navigator.language` matching `^ko(-|$)`. A stored choice is never second-guessed, because a Korean
+speaker who deliberately chose English on a ko-KR machine cannot tell a re-detect from a broken switch.
+The guard is a regex and not `startsWith('ko')` — `kok` is Konkani.
+
+`T(key, vars)` looks up `L[store.lang][key]`, falls back to `L.en`, then to the key itself, and
+substitutes `{named}` slots. Templates are handed **every** variable a language might want — the epoch
+line gets `{r}` roman *and* `{n}` arabic — and each language's template uses what it needs.
+
+`applyLang()` walks `data-t` (textContent), `data-th` (innerHTML — the lines carrying `<kbd>`),
+`data-tt` (title) and `data-ta` (aria-label), sets `documentElement.lang`, and repaints everything the
+JS builds. It must repaint **live**, not at the next screen: Settings opens from the pause panel, so
+there is a run behind it with an Epoch label and an Anomaly tip on screen, and `updateHUD` only runs
+from `frameBody` while state is `play`/`ready`.
+
+Two things are deliberate rather than tidy:
+
+- **Prose blocks are one key each.** The Codex body and the Records empty state are single strings with
+  a `{achRows}` placeholder, not one key per sentence. Shredding 649 words of authored prose into thirty
+  numbered keys makes it unwritable in English and untranslatable in Korean, because neither can be read
+  in order any more.
+- **드리프터 and 표류 split a name the English shares.** `Drifter` the Dot and `Drift` the Epoch are the
+  same word in English and appear together — "EPOCH I · DRIFT" runs while Drifters are in the field.
+  The Korean transliterates the creature and translates the Epoch. Do not tidy it into 표류체.
+
+`bestiary.html` shares no code and carries its own table, reading `?lang=` from its own URL. The parent
+appends it; an iframe cannot reliably reach the opener's `localStorage` under storage partitioning.
+
+**Typography is scoped to `html[lang="ko"]` and English is untouched.** Two things in the stylesheet are
+built for Latin. Tracking is the harmful one — `letter-spacing` up to `.28em` is the small-caps label
+look, which works because Latin capitals are narrow; a Hangul syllable is already a square block, so the
+same value reads as 축 전 기 rather than as styling. `text-transform:uppercase` is the harmless one and
+is left alone, being a no-op on Hangul. `word-break:keep-all` is the highest-value line in the block:
+Korean's default breaks between any two syllables, so wrapped prose splits words down the middle.
+
+**No webfont, ever.** "No build step, no runtime dependencies, no network" is what makes `file://`, the
+service worker and the Capacitor shell all work. Korean ships on the system stack.
+
+---
+
 ## Traps
 
 Things that have cost real time, in this codebase specifically.
+
+⚠️ **A user-facing string built by `+` is an English-only string, and it fails silently.** English is SVO
+with no case marking, so `'Lost to '+name+' · Epoch '+n` reads fine; Korean puts the epoch first, gives
+the killer 에게/에, and infixes the numeral (제3기). A frame with a hole in it can only ever be one
+language's frame. The same fault hid in the tutorial, where `tutVerb()` slotted "Click"/"Tap" into a
+shared sentence — in Korean the verb inflects into the clause that follows it (클릭해서/탭해서) and there
+is no seam to put a noun in. `tutDev()` returns the *case* now, and the three device sentences are
+written per language rather than assembled. **The colour word is the clearest instance:** English
+appends it ("Brute (cyan)"), Korean puts it in front (시안 거구), from identical data.
+
+⚠️ **`readS()` measures a different unit per language, and word-counting Korean would silently undo the
+fix it exists for.** It sets every tutorial step's dwell time. A Korean 어절 carries roughly an English
+clause, so the same instruction word-counts about a third shorter — which is exactly the "steps pass too
+fast" complaint that produced the function. Korean is measured in syllables. **Derive the constant, do
+not guess it:** sweep it against the English total across every tutorial line and match within ~15%.
+
+⚠️ **A damage source is a key pair, not a name, and this is a save-format rule.** `die()` writes
+`lastDmg.src` straight into `store.runs`. While it carried a rendered name, every record was frozen in
+the language it was played in — switch and the Records table stays half-English for ever, with nothing
+to migrate from. `{t,c}` for a Dot, `{m}` for a missile, rendered by `srcName()` at display time. A bare
+string is a row from before this changed and renders as-is; do not "fix" that branch away.
+
+⚠️ **`ctx.font` carries its own font stack and cannot inherit.** Three literals said
+`-apple-system,system-ui,sans-serif`, which resolves no Hangul on Windows or Android — canvas text would
+have picked a different fallback from every other string on screen. `CANVAS_FONT` is the one constant.
+
+⚠️ **`const T = store.totals` shadows the translator.** It was in `openRecords` and in `die()`. Block
+scope saves the second one by a hair, because the death receipt calls `T()` fourteen lines below it —
+a name that is only safe because of where its braces happen to be.
+
+⚠️ **The English in the markup is a duplicate of `L.en` and they must not drift.** The duplication is
+deliberate: it keeps the HTML readable as a page and it is what shows if the script dies before
+`applyLang()`. One console line proves they agree — with lang pinned to `en`, every `[data-t]` node's
+`textContent` must equal `L.en[key]`.
+
+⚠️ **The Bestiary frame is cached on purpose and will serve the first language it saw.** Reloading it
+restarts nineteen canvas animations, so `openBestiary` keeps it — but it used to test
+`if(!f.getAttribute('src'))`, which meant the language never changed after the first open. It compares
+the src now. Its `bare` layout flag had the twin fault: it tested `spec.tag` after every tag moved into
+the table, which is `undefined` on every card and stacks the Anomaly like a Pattern. Wrong layout, no
+error.
+
+⚠️ **Three ways to measure text and get a number that means nothing.** `scrollWidth` **clamps to
+`clientWidth` on a centred button**, so it reports zero overflow however far the text runs past the
+edge — `Range.getClientRects()` is the tool that sees the actual laid-out run. A hidden element measures
+0 and zeros compare equal, so **assert visibility before every comparison**. And the Browser pane's
+viewport can be **0×0**, which makes `94vw` resolve to nothing and every paragraph "overflow" its
+collapsed container: one pass here reported 67.5px of overflow that did not exist. Assert
+`innerWidth !== 0` before believing anything.
 
 ⚠️ **The first-visit tutorial must never auto-start under a harness, and the failure would be silent.**
 `.oracle.js` and `.harness/record.html` drive `startRun()` themselves; a tutorial launching at boot drops
