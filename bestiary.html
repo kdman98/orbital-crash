@@ -78,7 +78,7 @@
   // postMessage handshake would race the first paint.
   //   IDs are namespaced by kind. `drift` is BOTH a Dot type (the Drifter) and a Pattern key (The
   // Drift), which collides on a flat key and is exactly the collision index.html keeps deliberately —
-  // 드리프터 for the creature, 표류 for the shape.
+  // 떠돌이 for the creature, 표류 for the shape.
   const LANG=(()=>{ const p=new URLSearchParams(location.search).get('lang');
                     return p==='ko' ? 'ko' : 'en'; })();
   document.documentElement.lang=LANG;

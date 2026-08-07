@@ -1084,6 +1084,7 @@ const L={ en:{
   'fx.bounty':'BOUNTY +{n}',
   'fx.poked':'Charger Poked!',
   'fx.achv':'Achievement · {name}',
+  'log.sec':'s',
   'fx.achvAny':'recorded',
 
   // ---- menu ----
@@ -1227,8 +1228,9 @@ const L={ en:{
   'fx.ready':'준비',  'fx.skip':'탭하면 건너뜁니다',
   'fx.purged':'변이체 소멸  +{n}',
   'fx.bounty':'현상금 +{n}',
-  'fx.poked':'돌격체 명중!',
+  'fx.poked':'쐐기 명중!',
   'fx.achv':'업적 · {name}',
+  'log.sec':'초',
   'fx.achvAny':'기록됨',
 
   // ---- menu ----
@@ -1261,7 +1263,7 @@ const L={ en:{
   // ⚠️ THE COLOUR MOVES IN FRONT OF THE NOUN, and this is the clearest case in the file for why a
   // template had to be per-language rather than a frame with a slot. English appends it — "Brute
   // (cyan)" — because English modifiers can trail; Korean puts every modifier before what it modifies,
-  // so the same data reads 시안 거구. Nothing about the {t,c} pair changes. Only the sentence does.
+  // so the same data reads 청록색 덩치. Nothing about the {t,c} pair changes. Only the sentence does.
   'dead.kicker':'코어 소실',  'dead.best':'신기록!',  'dead.again':'재시도',
   'dead.time':'생존 시간',  'dead.combo':'최고 콤보',
   'dead.cause':'{src}에 당함 · 제{n}기',
@@ -6427,11 +6429,11 @@ function fillChips(wrap,arr,done,fmt){
 function showRunLogs(pfx,live){
   const n=odCount+(live?1:0), t=odTotal+(live?odT:0);
   el(pfx+'OdLogLab').classList.toggle('hidden', n===0);
-  el(pfx+'OdLogSum').textContent = n ? '×'+n+' · '+t.toFixed(1)+'s' : '';
-  fillChips(el(pfx+'OdLog'), n?odLog:[], odCount, v=>`<span class="n">${v.toFixed(1)}s</span>`);
+  el(pfx+'OdLogSum').textContent = n ? '×'+n+' · '+t.toFixed(1)+T('log.sec') : '';
+  fillChips(el(pfx+'OdLog'), n?odLog:[], odCount, v=>`<span class="n">${v.toFixed(1)}${T('log.sec')}</span>`);
   // No bolt on the live chip. `.bchip.key` already gives it a gold border and the word "left" already
   // separates it from the finished rides, so the glyph was the third thing saying one thing.
-  if(live) el(pfx+'OdLog').prepend(chip(`<span class="n">${(P.charge/OD_DRAIN).toFixed(1)}s</span>${T('log.left')}`,'bchip key'));
+  if(live) el(pfx+'OdLog').prepend(chip(`<span class="n">${(P.charge/OD_DRAIN).toFixed(1)}${T('log.sec')}</span>${T('log.left')}`,'bchip key'));
   el(pfx+'AnomLogLab').classList.toggle('hidden', anomLog.length===0);
   el(pfx+'AnomLogSum').textContent = anomLog.length ? '×'+anomLog.length : '';
   // Roman numerals because the Epoch label and the death cause already number the run this way.
@@ -6687,6 +6689,11 @@ function applyLang(){
   if(!el('settings').classList.contains('hidden')) paintSettings();
   if(!el('records' ).classList.contains('hidden')) openRecords();
   if(!el('bestiary').classList.contains('hidden')) openBestiary();   // re-points the frame at the new ?lang=
+  // ⚠️ NOT REPAINTED: the pause/death run-log CHIPS. Their labels are data-t and follow, but the chip
+  // text is built by showRunLogs() and keeps whatever language it was rendered in — visible as "2.2초"
+  // under an English label. Unreachable today because the language selector lives on the MENU and you
+  // cannot be paused and on the menu at once. It becomes reachable the moment a language control goes
+  // back into Settings, which opens from pause.
   // Not during a beat: tutPaint() writes the INSTRUCTION, and the beat is showing the acknowledgement.
   // Repainting through it would replace "That's how you move." with the step you have just finished.
   if(tutMode && tutBeat<=0){ tutBarCache=''; tutPaint(); }
