@@ -14,6 +14,55 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-07
 
+### The Codex is deleted, and the two comments that leaned on it now say so `c7da498`
+Author: *"remove codex."* Gone entirely — the overlay, the menu link, `openCodex` / `closeCodex`, the
+Escape handler, the seam export, `#codexBody` and the `.cxs` rules with their two Korean overrides, and
+the `codex.*` keys in both tables. **157 keys per language**, down from 161, `L.en` and `L.ko` still equal
+with nothing missing either side.
+
+**Nothing needed rehoming**, and the argument that it did was retired first — see the two entries below.
+Two of the four "irreplaceable" facts are taught by contrast in the tutorial, one was contradicted by
+`flip()`, and the last was a true claim about progression whose literal surface Records had already made
+conspicuous.
+
+⚠️ **Two comments justified a rule by citing the Codex as a second source, which is exactly how `706673e`
+spent the Settings footnote.** Both read *"the Codex and the Bestiary both state"*, about a reversal being
+the only thing that pops a Neutral. **The Bestiary is the last copy in the game now**, in both languages,
+and both sites say so in as many words — because the next person to trim that card will go looking for the
+other copy the comment promised them. This is the `706673e` failure caught *before* it landed rather than
+two months later: a redundancy cited as a reason is a claim about a file you are not editing.
+
+**The 2×2 `.refs` grid went with the fourth link.** It existed because four labels could not share a phone
+row (`1271fe3` measured 305.7px against 331px usable), and at three links it did the precise thing it was
+written to prevent — 2 then 1, which reads as a layout that ran out of room. Re-measured after the cut
+rather than trusted: one row needs **278.5px of 331px in English, 114.5px in Korean**. The comment says to
+restore it if a fourth link ever arrives.
+
+**The sweep went after the reasoning, not only the references** — the achievements-live-here note, the
+prose-block rule (the 649-word body is what forced it; the rule outlives it), GLOSSARY's *"recorded in the
+Codex"*, MECHANICS' `steer into` rule (which had quoted *"Your own colour is drawn to you"* as its worked
+example — deleted copy now, so the rule states the mechanism directly), and the one-question-per-surface
+table, which settles its Codex row by having removed the surface.
+
+### The HUD streak reads `{n}콤보` `e603dae`
+Author: *"무피격 n콤보 → 콤보."* 콤보 already carries the unbroken sense in a Korean game HUD, so 무피격 was
+naming a condition the word implies — and the same counter is 콤보 everywhere else in the Korean build
+(`rc.combo`, `rc.hCombo`, `dead.combo`), so the HUD was the one place wearing a prefix.
+
+⚠️ **English is deliberately unchanged and this is a divergence, not an oversight.** `'{n} no-hit streak'`
+still names the condition; the Korean no longer does. By `a2fb7a2`'s own rule that is a **content**
+difference rather than a register one, and content differences get aligned — but the author asked for the
+Korean specifically, so the English is left as written rather than guessed at, the way `02c183f` flagged
+its six cards. One key if it should follow.
+
+⚠️ **Staged with the filtered-copy recipe**, because `index.html` held another session's uncommitted Codex
+removal at the time (30 insertions, 127 deletions, `codex.body` already gone). `git add index.html` would
+have shipped a half-finished removal under this message. Staged diff asserted at `1 1` with zero `codex`
+matches; the unstaged 30/127 survived intact. **The strip script fails closed** — non-zero unless it finds
+exactly one occurrence, since a replacement matching nothing stages HEAD verbatim and looks like success.
+⚠️ **The recipe is not a lock**: the tree is briefly the filtered copy, so a concurrent write in that
+window is clobbered by the restore.
+
 ### The four "irreplaceable" Codex facts go, and one of them was false `e7444d0`
 Author: *"three of them you know from tutorial, and 3 — that is false anyway? remove them."* Both halves
 land, and the second is a defect rather than a wording preference.
