@@ -1776,6 +1776,38 @@ number had already been printed by the pre-commit `--stat`.
 that happens to be balanced hides inside yours. It catches the case that has actually bitten us, and
 that is all it claims.
 
+**When you must commit out of a tree someone else is mid-edit in**, build the staged content instead of
+staging the file: back the tree up, write HEAD-plus-your-own-change to disk, `git add` that, restore the
+backup, and `cmp` against it. It worked the first time it was used under pressure and saved ~130 lines
+of an unfinished Codex removal. Two limits, both real:
+
+- ⚠️ **The strip script must fail closed.** Exit non-zero unless it finds *exactly* the occurrences it
+  expects. A replacement that silently matches nothing stages HEAD verbatim — a commit that looks
+  completely normal and contains none of your work.
+- ⚠️ **It is not a lock.** The tree is briefly the filtered copy, so a concurrent write in that window is
+  lost to the restore. `cmp` after restoring is the only thing that tells you nothing was; the recipe
+  narrows the race and cannot close it.
+
+⚠️ **A check can make the provenance-for-truth substitution too, and one written the day after that trap
+was recorded did.** A PATCHNOTE coverage sweep asked *"did this commit touch `index.html`"* and reported
+four commits as missing entries. All four were comment-only: the file was touched, the game was not. The
+convention is about substance, and the sweep tested provenance — the exact swap two paragraphs up, by
+someone who had just written it down. **Knowing a failure by name is no defence against it.**
+
+The detector has to compare **code**, so strip comments from both blobs rather than filtering diff lines:
+
+```bash
+codeonly(){ git show "$1:index.html" | sed -E 's#[[:space:]]*//.*$##' | sed -E 's/[[:space:]]+$//' | grep -v '^$'; }
+diff -q <(codeonly "$h~1") <(codeonly "$h") >/dev/null && echo COMMENT-ONLY || echo SUBSTANTIVE
+```
+
+⚠️ **The obvious version of this is wrong and was proposed first**: filtering the diff for lines that are
+not whole-line comments still reports a code line that changed *only by losing its trailing comment* —
+which is exactly what `ae754fd` is, and `ae754fd` was one of the four the check was meant to excuse.
+Dropping the emptied lines matters too, or every stripped comment leaves a blank behind and the files
+differ by line count. Verified against all seven commits in that range. The `//`-in-a-string hazard is
+nil in this file — its one `http://` is itself inside a comment — but the technique is not general.
+
 ⚠️ **A user-facing string built by `+` is an English-only string, and it fails silently.** English is SVO
 with no case marking, so `'Lost to '+name+' · Epoch '+n` reads fine; Korean puts the epoch first, gives
 the killer 에게/에, and infixes the numeral (제3기). A frame with a hole in it can only ever be one
