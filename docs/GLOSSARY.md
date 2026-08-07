@@ -259,7 +259,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Score** — **addition, with no multiplier anywhere.** A kill, a Mote and a graze each pay a flat
   amount, wherever they happen. (`onKill`, `KILL_SCORE`, `MOTE_SCORE`, `GRAZE_SCORE`)
 - **Ring shell** — the radius your Rings orbit at. Overdrive nearly doubles it. (`P.eddy`, `P.ringMul`)
-- **Achievement** — an in-run feat recorded in the Codex. Flavour only; unlocks nothing.
+- **Achievement** — an in-run feat listed in **Records**. Flavour only; unlocks nothing.
   (`ACHV`, `store.achv`)
 
 ## Feel
@@ -286,8 +286,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   bit-exact fingerprint trace. (`.oracle.js`)
 - **Debug seam** — the exported handle the harness drives the game through. (`window.__orbital`)
 - **Tape** — a recorded play session, replayable frame by frame. (`tapes/`, `.harness/record.html`)
-- **Codex** — the in-game rules screen. **Bestiary** — the in-game species and pattern cards
-  (`bestiary.html`), also a standalone page.
+- **Bestiary** — the in-game species and pattern cards (`bestiary.html`), also a standalone page.
+- **Records** — the screen holding your best score, the lifetime tally, the last `RUNS_KEPT` runs and
+  the achievements. Headed *"What you have done"*, which is the question it owns. (`openRecords`)
 
 ---
 
@@ -302,6 +303,11 @@ Overdrive's ring behaviour, and a few of these survive in comments explaining th
 **🛡 Aegis**, **✺ Nova** → removed with the roster; nothing blocks a hit any more · **Pickup pill** →
 there is one text channel now, the achievement toast · **cache** → was the orb an Anomaly dropped on
 purge; a purge now pays score, an Integrity heal and a Capacitor chunk.
+
+**Removed with the Codex** (`c7da498`): **Codex** → there is no rules screen; the tutorial teaches by
+playing, the Bestiary holds the species, and Records holds the achievements it used to list. The four
+facts it was argued to be the last home of are gone too — two the tutorial demonstrates, one contradicted
+`flip()`, and one Records had already made untrue.
 
 **Older:** **Eddy** → Overdrive's ring behaviour · **body** (meaning an enemy) → Dot ·
 **Flare** → missile · **World** → Star · **Purge** (of matter) → Fling; *purge* now means destroying an

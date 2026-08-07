@@ -21,7 +21,6 @@
        for the rgba() glows. Both are set by applyPalette() alongside --red; a hex here cannot be
        interpolated into rgba(), which is the whole reason the triplet exists. */
     --red2:#ff8aa6; --redRGB:255,63,108;
-    --panel:rgba(12,18,36,.78);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
@@ -430,7 +429,6 @@
   .deadstats .ds{display:flex;flex-direction:column;gap:5px;}
   .deadstats .ds .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);}
   .deadstats .ds .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
-  .deadstats .ds .v.gold{color:var(--gold);}
   .newbest{color:var(--gold);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:14px;margin-top:6px;
     animation:cbp 1s ease-in-out infinite;}
   .hint{margin-top:20px;color:var(--dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase;line-height:1.9;}
