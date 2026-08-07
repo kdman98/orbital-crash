@@ -37,7 +37,6 @@
   .wide.bare .info{flex:0 0 auto;width:100%;text-align:center;}
   .wide.bare .nm{font-size:17px;}
   .wide .tag{text-align:left;min-height:0;margin-top:6px;font-size:12.5px;color:#c3ccdb;}
-  .foot{text-align:center;font-size:11px;color:#5f6b82;margin-top:22px;letter-spacing:.04em;}
   .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--violet);
     font-weight:800;text-align:center;margin:18px 0 2px;}
   .card.anom{border-color:rgba(155,107,255,.28);}
@@ -59,7 +58,6 @@
     </header>
     <p class="legend">Every Dot is <b style="color:#ff3f6c">red</b> or <b style="color:#38e0ff">cyan</b>. The <b>opposite</b> colour comes for you and dies the moment it touches you, so it is your danger and your ammunition at the same time. Your <b>own</b> colour is safe, and gathers into your rings. <b style="color:#c7b8ff">Neutral</b> has no charge either way. The colours here are only examples; anything can turn up as either.</p>
     <div class="grid" id="fbGrid"></div>
-    <p class="foot">Everything on this page is drawn by the game's own code. This is what you will meet out there.</p>
   </div>
 <script>
 (function(){
@@ -87,16 +85,15 @@
   const TXT={ en:{
     'page.title':'ORBITAL CRASH · Bestiary',  'page.sub':'Bestiary',
     'page.legend':'Every Dot is <b style="color:#ff3f6c">red</b> or <b style="color:#38e0ff">cyan</b>. The <b>opposite</b> colour comes for you and dies the moment it touches you, so it is your danger and your ammunition at the same time. Your <b>own</b> colour is safe, and gathers into your rings. <b style="color:#c7b8ff">Neutral</b> has no charge either way. The colours here are only examples; anything can turn up as either.',
-    'page.foot':"Everything on this page is drawn by the game's own code. This is what you will meet out there.",
     'sec.patterns':'Patterns',  'sec.anomaly':'The Anomaly',  'sec.kinds':'Anomaly kinds',
     'core.nm':'The Star',
     'core.tg':'You. Steer with the mouse, click to flip your colour. That is the whole toolkit.',
     'dot.drift.nm':'Drifter',
-    'dot.drift.tg':'The plain one. Comes straight at you, in no particular hurry. Learn the colours on these.',
+    'dot.drift.tg':'The plain one. Comes straight at you, in no particular hurry.',
     'dot.fast.nm':'Dart',
-    'dot.fast.tg':'Small, quick, and trailing a wake. Nothing else in the sky moves like that.',
+    'dot.fast.tg':'Small and quick.',
     'dot.heavy.nm':'Brute',
-    'dot.heavy.tg':'Big, slow, tough. It can take hard hits and survive.',
+    'dot.heavy.tg':'Big, slow, and the one Dot that walks out of a Bomber blast.',
     'dot.bomber.nm':'Bomber',
     'dot.bomber.tg':'A normal Dot, but it explodes when it dies. Harmless to you, deadly to every Dot around you. Use it well, or take care.',
     'dot.charger.nm':'Charger',
@@ -114,7 +111,7 @@
     // The Planet earns a longer tag than anything else here, and it is the one card that has to say what
     // the PAYOFF is. Every other Dot is a thing you avoid or annihilate on sight; this is the only body
     // you are meant to keep alive and carry, and none of that is guessable from watching it.
-    'dot.planet.nm':'Planet',
+    'dot.planet.nm':'Unstable Planet',
     'dot.planet.tg':'Hold it in your rings and it starts to break apart. Keep it there long enough and it takes every Dot of the other colour with it. Flip, and you throw it away.',
     'boss.nm':'The Anomaly',
     'boss.tg':'The boss of the Epoch, and it will not leave. Gather your colour into your rings, then flip to throw them at it. Nothing else touches it.',
@@ -128,35 +125,34 @@
     'form.cross.nm':'The Cross', 'form.comet.nm':'The Comet', 'form.drift.nm':'The Drift',
   }, ko:{
     'page.title':'ORBITAL CRASH · 도감',  'page.sub':'도감',
-    'page.legend':'모든 입자는 <b style="color:#ff3f6c">빨간색</b> 아니면 <b style="color:#38e0ff">청록색</b>이다. <b>반대</b> 색은 나를 향해 오고, 닿는 순간 죽는다. 위험이자 탄약이라는 뜻이다. <b>같은</b> 색은 안전하고, 모여서 링이 된다. <b style="color:#c7b8ff">무극</b>은 어느 쪽 전하도 없다. 여기 색은 예시일 뿐이고, 무엇이든 둘 중 어느 쪽으로도 나타난다.',
-    'page.foot':'이 페이지의 모든 것은 게임의 코드가 직접 그렸다. 바깥에서 만나게 될 그대로다.',
+    'page.legend':'모든 입자는 <b style="color:#ff3f6c">빨간색</b> 아니면 <b style="color:#38e0ff">청록색</b>입니다. <b>반대</b> 색은 나를 향해 오고, 닿는 순간 사라집니다. 위험이자 탄약이라는 뜻이에요. <b>같은</b> 색은 안전하고, 모여서 링이 됩니다. <b style="color:#c7b8ff">중립 입자</b>는 어느 쪽 전하도 없습니다. 여기 색은 예시일 뿐이고, 무엇이든 둘 중 어느 쪽으로도 나타납니다.',
     'sec.patterns':'패턴',  'sec.anomaly':'변이체',  'sec.kinds':'변이체 종류',
     'core.nm':'별',
-    'core.tg':'나 자신. 마우스로 조종하고, 클릭으로 색을 뒤집는다. 도구는 이게 전부다.',
+    'core.tg':'나 자신입니다. 마우스로 조종하고, 클릭으로 색을 뒤집습니다. 도구는 이게 전부예요.',
     'dot.drift.nm':'떠돌이',
-    'dot.drift.tg':'평범한 놈. 서두르지 않고 곧장 다가온다. 색은 이걸로 익히면 된다.',
+    'dot.drift.tg':'평범한 입자. 서두르지 않고 곧장 다가옵니다.',
     'dot.fast.nm':'화살',
-    'dot.fast.tg':'작고 빠르고 흔적을 끌고 온다. 하늘에서 저렇게 움직이는 건 이것뿐이다.',
+    'dot.fast.tg':'작고 빨라요!',
     'dot.heavy.nm':'덩치',
-    'dot.heavy.tg':'크고 느리고 단단하다. 세게 맞아도 버틴다.',
+    'dot.heavy.tg':'크고, 느리고, 가끔 광역 공격을 버팁니다.',
     'dot.bomber.nm':'폭탄',
-    'dot.bomber.tg':'평범한 입자지만 죽을 때 터진다. 나한테는 무해하고, 주변 입자에는 치명적이다. 잘 쓰거나, 조심하거나.',
+    'dot.bomber.tg':'폭탄 입자. 평범하지만 소멸할 때 주변 입자들과 함께 사라집니다. 데미지를 주진 않습니다.',
     'dot.charger.nm':'쐐기',
-    'dot.charger.tg':'선을 긋고 그 선을 따라 돌진한다. 궤도를 틀 수 없는 유일한 입자다. 비켜라.',
-    'dot.neutral.nm':'무극',
-    'dot.neutral.tg':'두 색을 동시에 두른다. 내 색이 무엇이든 안전해지지 않는다. 닿지 마라. 그래도 플립이면 터진다.',
+    'dot.charger.tg':'궤도에 영향받지 않는 돌진을 한 뒤 평범하게 움직입니다.',
+    'dot.neutral.nm':'중립 입자',
+    'dot.neutral.tg':'아무런 궤도에 영향받지 않지만 근처에서 색을 바꾸면 터집니다.',
     'dot.harrier.nm':'위성',
-    'dot.harrier.tg':'화살 다음으로 빠르고, 너무 빨라서 좁게 돌지 못한다. 필드가 끌어당기지 못하고 긴 궤도로 붙잡을 뿐이다. 속도가 다할 때까지 주위를 돈다.',
-    'dot.planet.nm':'행성',
-    'dot.planet.tg':'링 안에 붙들고 있으면 부서지기 시작한다. 충분히 오래 두면 반대 색 입자를 전부 데리고 간다. 플립하면 던져버리게 된다.',
+    'dot.harrier.tg':'화살 다음으로 빠르고, 너무 빨라서 좁게 돌지 못합니다. 필드가 끌어당기지 못하고 긴 궤도로 붙잡을 뿐이라, 속도가 다할 때까지 주위를 돕니다.',
+    'dot.planet.nm':'불안정한 행성',
+    'dot.planet.tg':'궤도 안에 충분히 오래 두면 반대 색 입자를 소멸시키는 파동을 일으킵니다!',
     'boss.nm':'변이체',
-    'boss.tg':'그 시기의 보스이고, 떠나지 않는다. 같은 색을 링에 모은 다음 플립으로 던져라. 그 밖에는 아무것도 통하지 않는다.',
+    'boss.tg':'대장 그 자체입니다. 소멸하는 대신 피해를 입으니, 피해를 누적시키세요!',
     'anom.emitter.nm':'방출체',
-    'anom.emitter.tg':'뒤에서 쏜다. 탄막을 가로질러라. 일직선으로 물러나지 마라.',
+    'anom.emitter.tg':'뒤에서 쏩니다. 탄막을 가로질러 가세요. 일직선으로 물러나면 안 됩니다.',
     'anom.sentinel.nm':'감시자',
-    'anom.sentinel.tg':'주위를 돌면서 추적탄을 보낸다. 나보다 잘 돌지만 속도는 못 따라온다. 그러니 달려라.',
+    'anom.sentinel.tg':'움직임과 탄환으로 지속적인 압박을 가합니다!',
     'anom.pulsar.nm':'맥동체',
-    'anom.pulsar.tg':'길이 하나뿐인 벽을 세운다. 그 틈을 찾아 미리 서 있어라.',
+    'anom.pulsar.tg':'틈이 딱 하나 있는 탄막 벽을 두릅니다. 벽이 서기 전에 그 자리를 잡으세요!',
     'form.wall.nm':'장벽',   'form.noose.nm':'올가미', 'form.pulse.nm':'파동',
     'form.cross.nm':'십자',  'form.comet.nm':'혜성',   'form.drift.nm':'표류',
   } };
@@ -166,7 +162,6 @@
   document.title=T('page.title');
   document.querySelector('.sub').textContent=T('page.sub');
   document.querySelector('.legend').innerHTML=T('page.legend');
-  document.querySelector('.foot').textContent=T('page.foot');
 
   // COPY RULE FOR THIS PAGE: a card is for someone who has not played yet. Say what the thing does and
   // what to do about it, in about the length of a spoken sentence. No stats, no numbers, no tuning
