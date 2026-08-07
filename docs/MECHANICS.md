@@ -1584,6 +1584,29 @@ cosmetic bug must not be able to reach the frame guard and halt a game that is o
 
 Things that have cost real time, in this codebase specifically.
 
+⚠️ **The first-visit tutorial must never auto-start under a harness, and the failure would be silent.**
+`.oracle.js` and `.harness/record.html` drive `startRun()` themselves; a tutorial launching at boot drops
+a scripted pilot into a mode with the wave clock parked at `phaseT=1e9` and damage off, so every
+fingerprint and every tape measures *that* instead. Nothing throws — it simply measures the wrong game.
+`window.__H` is the gate that works, and it works because of **when** it exists: `preload.js` is injected
+ahead of the inline script, so the harness has announced itself before the boot line runs. A gate on
+anything `.oracle.js` defines **cannot** work — it is pasted after load — which is why the oracle sets
+`orbitalcrash_tut` itself instead. `?tut=0` is the manual escape.
+
+**`store.mute` is API, not an internal flag.** Every rig in this repo silences the game with
+`store:{mute:true}` or by writing `orbitalcrash_mute`. When the level slider arrived, folding mute into
+`vol === 0` was the tempting simplification and would have broken all of them without an error anywhere.
+`gainNow()` is where the two combine, and it is the only place that computes output level.
+
+**A record and a best are one condition with two consumers.** Boss Rush pays `200*act` per purge from an
+endless supply and the Lab spawns on demand, so both are barred from `store.best` *and* `store.runs` by
+the same test. Add a fourth mode and they are wrong together or right together — never half.
+
+**A hidden element measures 0, and 0 compares equal.** Checking whether the four `.refs` links wrapped
+returned a confident "1 row, 4 per row" — every rect was zero, because the menu was behind the death
+overlay at the time. There is no error attached to this: it is a plain false PASS. Assert the container
+is visible before believing any geometry read off it.
+
 **A rig state the game cannot reach produces numbers that look exactly like findings.** Two of these
 landed on the same day from opposite directions. The value now in `CHARGE_DMG` was rejected for one-shotting an 11 HP
 Pulsar — a fight requiring `act=1`, which the variant gate has forbidden since the first commit; at the
