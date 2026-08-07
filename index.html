@@ -1178,22 +1178,20 @@ const L={ en:{
        Boss Rush and Pattern Lab are practice and never record, which is the same rule that keeps them
        from setting your best.`,
   'rc.wipe':'Erase records',  'rc.wipeArm':'Press again to erase',
+  'rc.achv':'Achievements',   'rc.secret':'a secret feat',  'rc.secretTag':'secret',
 
   // ---- codex ----
   'codex.kicker':'Codex',  'codex.h2':'How it works',
-  'codex.secret':'a secret feat',  'codex.secretTag':'secret',
   'codex.body':`
   <div class="cxs"><h3>The charge law</h3>
-    <p>Every Dot out there is <b>red</b> or <b>cyan</b>, and so are you.</p>
-    <p>Your own colour is drawn to you and settles into <b>rings</b> that orbit your star. Those rings are the weapon. Anything of the opposite colour they sweep through dies.</p>
+    <p>Every Dot out there is <b>red</b> or <b>cyan</b>, and so are you. Your own colour is drawn to you and settles into <b>rings</b> that orbit your star. Those rings are the weapon: anything of the opposite colour they sweep through dies.</p>
     <p>The opposite colour comes after you under its own steam, and you have no hold over it at all. You cannot reel it in and you cannot push it away. Touching it kills it, but it hurts on the way past, so let the rings do that job instead.</p></div>
   <div class="cxs"><h3>Score</h3>
     <p>Everything you kill is worth the same, however and wherever you killed it. No multiplier to nurse, no combo arithmetic to keep in your head. Kills leave <b>motes</b> behind, and your own colour hoovers those up by itself, so sweeping your own wreckage on the way past is quietly worth doing.</p>
     <p>Now and again a <b class="gold">gold-ringed Dot</b> drifts in. Pop it before the ring runs out and it pays properly.</p></div>
   <div class="cxs"><h3>Capacitor and Overdrive</h3>
     <p>Nothing here levels up. There are no upgrades, and nothing carries from one run to the next. The <b>Capacitor</b> is the only thing you bank, and <b>Overdrive</b> is the only thing it buys.</p>
-    <p>Hold <b>Shift</b>, or the right mouse button. Your rings swing out wide and whirl fast, sweeping a much bigger circle than usual, and you move quicker along with them.</p>
-    <p>It drains the whole time you hold it, so let go early and you keep what is left. You do not have to wait for a full meter either. The <b class="gold">button</b> turns up the moment you can afford to light it.</p>
+    <p>Hold <b>Shift</b>, or the right mouse button, and your rings swing out wide and whirl fast with you moving quicker along with them. It drains the whole time you hold it, so let go early and you keep what is left. You do not have to wait for a full meter either — the <b class="gold">button</b> turns up the moment you can afford to light it.</p>
     <p>It will not touch an Anomaly. Nothing you press will.</p></div>
   <div class="cxs"><h3>Streak</h3>
     <p>Kill without being hit and the count climbs. Each rank pays into the Capacitor: <b style="color:var(--cyan)">AWAKENING</b>, <b class="gold">MAGNETIC</b>, <b class="vio">UNSTOPPABLE</b>, <b>TRANSCENDENT</b>.</p>
@@ -1209,7 +1207,6 @@ const L={ en:{
     <p>There are only three ways to hurt it. The volley. Carrying a loaded ring into it. And standing so that a <b>Charger</b> draws its dash straight through it. Every one of those is something you aimed or something you carried, and there is no button anywhere that does it for you.</p>
     <p>It will not wander off, either. No timer, no escape. One of you leaves.</p>
     <p>They all hunt, too. Sooner or later it breaks station and walks at your core, slowly and loudly enough that you can see it coming. It lands one hit and backs off.</p></div>
-  <div class="cxs"><h3>Achievements</h3>{achRows}</div>
   <div class="cxs"><h3>Everything else</h3><p>Every species, the three kinds of Anomaly, and the shapes that come for you in waves, all drawn by the game's own code. They are in the <b>Bestiary</b>, one button over.</p></div>`,
 
   // ---- names: Dots, Epochs, wave shapes, Anomalies, achievements ----
@@ -1354,25 +1351,23 @@ const L={ en:{
   'rc.empty':`아직 아무것도 없습니다. 한 판 끝내면 이 목록 맨 위에 올라옵니다.<br>
        보스 러시와 패턴 실험실은 연습이라 기록되지 않습니다. 최고 점수도 세울 수 없는 것과 같은 규칙입니다.`,
   'rc.wipe':'기록 지우기',  'rc.wipeArm':'한 번 더 누르면 지워집니다',
+  'rc.achv':'업적',         'rc.secret':'숨은 업적',  'rc.secretTag':'숨김',
 
   // ---- codex ----
   'codex.kicker':'규칙',  'codex.h2':'이 게임의 원리',
-  'codex.secret':'숨은 업적',  'codex.secretTag':'숨김',
   // 한다체 throughout, and the sentences are SHORTER than the English rather than the same length.
   // English builds long declaratives out of subordinate clauses; Korean carrying those wholesale is the
   // single loudest tell of a machine translation, so the long ones are broken where the thought breaks.
   'codex.body':`
   <div class="cxs"><h3>전하 법칙</h3>
-    <p>저 바깥의 입자는 전부 <b>빨간색</b> 아니면 <b>청록색</b>이고, 나도 마찬가지다.</p>
-    <p>같은 색은 끌려와서 별 주위를 도는 <b>링</b>이 된다. 그 링이 무기다. 링이 훑고 지나간 반대 색은 죽는다.</p>
+    <p>저 바깥의 입자는 전부 <b>빨간색</b> 아니면 <b>청록색</b>이고, 나도 마찬가지다. 같은 색은 끌려와서 별 주위를 도는 <b>링</b>이 된다. 그 링이 무기이고, 링이 훑고 지나간 반대 색은 죽는다.</p>
     <p>반대 색은 제 힘으로 다가온다. 이쪽에서 어떻게 해볼 수단이 없다. 끌어당길 수도, 밀어낼 수도 없다. 닿으면 죽지만 지나가면서 아프다. 그 일은 링에 맡겨라.</p></div>
   <div class="cxs"><h3>점수</h3>
     <p>무엇을 어떻게 어디서 잡든 점수는 같다. 관리할 배율도, 머릿속으로 굴릴 콤보 계산도 없다. 잡은 자리에는 <b>파편</b>이 남고, 같은 색은 그걸 알아서 빨아들인다. 지나가는 길에 제가 만든 잔해를 쓸어담는 건 조용히 이득이다.</p>
     <p>가끔 <b class="gold">금색 링을 두른 입자</b>가 흘러든다. 링이 사라지기 전에 터뜨리면 값을 제대로 쳐준다.</p></div>
   <div class="cxs"><h3>축전기와 오버드라이브</h3>
     <p>여기서는 아무것도 성장하지 않는다. 업그레이드도 없고, 한 판에서 다음 판으로 넘어가는 것도 없다. 쌓이는 건 <b>축전기</b> 하나뿐이고, 그걸로 살 수 있는 것도 <b>오버드라이브</b> 하나뿐이다.</p>
-    <p><b>Shift</b>나 마우스 오른쪽 버튼을 누르고 있으면 된다. 링이 크게 벌어지고 빠르게 돈다. 평소보다 훨씬 넓은 원을 쓸고, 나도 함께 빨라진다.</p>
-    <p>누르고 있는 내내 닳는다. 일찍 손을 떼면 남은 만큼 그대로 간직한다. 게이지가 가득 찰 때까지 기다릴 필요도 없다. 불을 붙일 만큼만 모이면 <b class="gold">버튼</b>이 나타난다.</p>
+    <p><b>Shift</b>나 마우스 오른쪽 버튼을 누르고 있으면 된다. 링이 크게 벌어져 빠르게 돌고, 나도 함께 빨라진다. 누르고 있는 내내 닳으니 일찍 손을 떼면 남은 만큼 그대로 간직한다. 게이지가 가득 찰 때까지 기다릴 필요도 없다. 불을 붙일 만큼만 모이면 <b class="gold">버튼</b>이 나타난다.</p>
     <p>변이체에는 통하지 않는다. 눌러서 되는 건 아무것도 없다.</p></div>
   <div class="cxs"><h3>무피격 콤보</h3>
     <p>맞지 않고 잡으면 수가 올라간다. 단계마다 축전기가 채워진다. <b style="color:var(--cyan)">각성</b>, <b class="gold">자력</b>, <b class="vio">무적</b>, <b>초월</b>.</p>
@@ -1388,7 +1383,6 @@ const L={ en:{
     <p>상처를 입힐 방법은 셋뿐이다. 일제사격. 링을 두른 채로 들이받기. 그리고 <b>쐐기</b>의 돌진선이 변이체를 관통하도록 서 있기. 셋 다 내가 겨눴거나 내가 들고 간 것이고, 대신 해주는 버튼은 어디에도 없다.</p>
     <p>달아나지도 않는다. 제한 시간도, 탈출도 없다. 둘 중 하나만 남는다.</p>
     <p>전부 사냥도 한다. 언젠가는 자리를 떠나 코어를 향해 걸어온다. 오는 게 보일 만큼 느리고 요란하게. 한 대 치고 물러난다.</p></div>
-  <div class="cxs"><h3>업적</h3>{achRows}</div>
   <div class="cxs"><h3>나머지 전부</h3><p>모든 종, 세 종류의 변이체, 웨이브로 몰려오는 형태들. 전부 이 게임의 코드가 직접 그린 것이다. <b>도감</b>에 있다. 버튼 하나 옆이다.</p></div>`,
 
   // ---- names ----
@@ -6649,16 +6643,18 @@ function closeBestiary(){ el('bestiary').classList.add('hidden'); }
 // bounty multiplier, the streak ranks — and a player meeting the game for the first time cannot use any
 // of them. `docs/MECHANICS.md` is the spec and is kept current; this screen is the welcome. If you find
 // yourself wanting to add a number back, the honest question is whether the SENTENCE is failing.
-//   THE ONLY GLYPHS LEFT IN HERE ARE THE ACHIEVEMENT TICKS, and they survive because they carry state:
-// filled means earned, hollow means not. Every other marker on this screen was decoration standing in
-// for structure — eight different shapes across six sections, with no rule saying which meant what.
+//   THERE ARE NO GLYPHS ON THIS SCREEN AT ALL NOW. Every marker it ever carried was decoration standing
+// in for structure — eight different shapes across six sections, with no rule saying which meant what —
+// and the achievement ticks were the one exception, because they carry state. They still do, in Records,
+// which already asked the same question this section was answering. See `openRecords`.
+//   ⚠️ IT ALSO NO LONGER TEACHES WHAT THE TUTORIAL TEACHES BY PLAYING. Steps 2, 3 and 5 demonstrate the
+// rings, the annihilation and the Overdrive hold, so the paragraphs restating them are gone. What is
+// deliberately KEPT is everything six steps cannot reach: that nothing carries between runs, that
+// Overdrive drains while held and can be spent part-way, that it cannot touch an Anomaly, that you have
+// no hold over the opposite colour, and the whole of Score, Streak and the Anomaly. Trimming by SECTION
+// rather than by paragraph would have deleted all of those — the sections are mixed, not redundant.
 function openCodex(){
-  const achRows=ACHV.map(a=>{
-    const got=store.achv.has(a.id);
-    if(a.hid && !got) return `<div class="cxa"><span class="st">○</span><span><b>???</b> · ${T('codex.secret')}</span></div>`;
-    return `<div class="cxa${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${T('achv.'+a.id+'.nm')}</b> · ${T('achv.'+a.id+'.ds')}${a.hid?` <span class="rw">· ${T('codex.secretTag')}</span>`:''}</span></div>`;
-  }).join('');
-  el('codexBody').innerHTML=T('codex.body',{achRows});
+  el('codexBody').innerHTML=T('codex.body');
   el('codex').classList.remove('hidden');
 }
 function closeCodex(){ el('codex').classList.add('hidden'); }
@@ -6672,6 +6668,20 @@ function closeCodex(){ el('codex').classList.add('hidden'); }
 const fmtN=n=>Math.round(n).toLocaleString();
 function openRecords(){
   const R=store.runs, Tt=store.totals;   // NOT `T` — that is the translator, and shadowing it here renders identifiers
+  // ACHIEVEMENTS LIVE HERE, NOT IN THE CODEX. This panel's own heading is "what you have done" and the
+  // achievements were a second answer to that question one menu entry away — two entries for one
+  // question, which is the fault the .refs/.doors grouping exists to prevent. The Codex is what the
+  // tutorial cannot show you; a list of feats is not that.
+  //   ⚠️ THE TICK IS THE ONLY GLYPH LEFT ANYWHERE IN THE UI, and it earns that because it carries state:
+  // ✓ earned, ○ not. `.got` colours it lime — a tick that looked identical either way would be decoration.
+  //   ⚠️ `rc.wipe` DOES NOT CLEAR THESE. onWipe resets runs/totals/best and never touches `store.achv`,
+  // which is deliberate — a feat is not a record — but it means the erase button on this screen does not
+  // erase everything on this screen. If that ever needs to change, change onWipe, not this comment.
+  const achRows=ACHV.map(a=>{
+    const got=store.achv.has(a.id);
+    if(a.hid && !got) return `<div class="acv"><span class="st">○</span><span><b>???</b> · ${T('rc.secret')}</span></div>`;
+    return `<div class="acv${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${T('achv.'+a.id+'.nm')}</b> · ${T('achv.'+a.id+'.ds')}${a.hid?` <span class="rw">· ${T('rc.secretTag')}</span>`:''}</span></div>`;
+  }).join('');
   const rows = R.map(r=>{
     // `best` is the STANDING best, so at most one row can wear the mark, and only while it survives in
     // the last ten. A row that ties it is not marked: two golds would say the record was set twice.
@@ -6698,6 +6708,7 @@ function openRecords(){
       <div class="rcTot"><div class="ds"><div class="k">${T('rc.highest')}</div>
         <div class="v" style="color:var(--gold)">${fmtN(store.best)}</div></div></div>`
     + (tot?`<div class="rcH">${T('rc.lifetime')}</div>${tot}`:'')
+    + `<div class="rcH">${T('rc.achv')}</div><div class="acvL">${achRows}</div>`
     + `<div class="rcH">${T('rc.last',{n:RUNS_KEPT})}</div>${table}`
     + `<button class="rcWipe" id="wipeBtn">${T('rc.wipe')}</button>`;
   wipeArmed=0; el('wipeBtn').onclick=onWipe;
