@@ -302,7 +302,6 @@
   .door:hover{background:rgba(255,255,255,.1);}
   .door:active{transform:translateY(2px) scale(.98);}
   .door .dn{display:block;color:var(--ink);font-size:15px;font-weight:800;letter-spacing:.04em;}
-  .door .dd{display:block;color:var(--dim);font-size:11px;line-height:1.5;margin-top:5px;}
   /* Sits under the boxes and above a gap, so there is now exactly one group it can be read against.
      Hung between the two pairs, it could have been captioning either. */
   .doornote{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;}
@@ -340,11 +339,6 @@
     text-transform:uppercase;background:rgba(255,255,255,.07);color:var(--dim);
     box-shadow:0 0 0 1px rgba(255,255,255,.14) inset;transition:background .12s ease,color .12s ease;}
   .sw.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;box-shadow:none;}
-  /* The language pill carries a WORD, not On/Off. Measured on this machine's UI font at 11px/800/.1em:
-     "ENGLISH" is 55.6px and "한국어" 30.5px, so both DO clear the standard 64px pill — by 4.2px a side
-     for the English one, which is tight enough to clip on a platform whose UI font runs wider (Segoe UI
-     and Roboto are not measurable from here). 80px is that headroom and nothing more. */
-  .sw.wide{width:80px;letter-spacing:.06em;}
   /* The live level, sitting with the row's NAME rather than under the slider. A number that floats
      beside the handle has to be chased with your eye while you drag; one anchored to the label does not
      move, and the thing you are reading while dragging is a value, not a position. */
@@ -473,7 +467,6 @@
     .btn.tut{margin-top:8px;padding:9px 24px;font-size:14px;}
     .doors{margin-top:7px;}
     .door{padding:8px 10px 9px;}
-    .door .dd{line-height:1.35;margin-top:3px;}
     .doornote{margin-top:4px;}
     .refs{margin-top:8px;}
     /* .btn keeps its size. It is the primary action and 44px is Apple's minimum touch target;
@@ -587,7 +580,6 @@
   html[lang="ko"] .rcWipe{letter-spacing:.04em;}
   html[lang="ko"] .cxs p,
   html[lang="ko"] .setrow .sd,
-  html[lang="ko"] .door .dd,
   html[lang="ko"] .rcEmpty,
   html[lang="ko"] #tutBar,
   html[lang="ko"] .cxa{word-break:keep-all;}
@@ -697,8 +689,8 @@
        wrap, orphaning a lone "5" — the exact keys live in the HUD legend the moment you are inside,
        so the menu only has to say that this room answers to the keyboard. -->
   <div class="doors">
-    <button class="door" id="arenaBtn"><span class="dn" data-t="menu.rush">Boss Rush</span><span class="dd" data-t="menu.rushD">Every Anomaly, back to back</span></button>
-    <button class="door" id="labBtn"><span class="dn" data-t="menu.lab">Pattern Lab</span><span class="dd" data-t="menu.labD">Every wave shape, on a key</span></button>
+    <button class="door" id="arenaBtn"><span class="dn" data-t="menu.rush">Boss Rush</span></button>
+    <button class="door" id="labBtn"><span class="dn" data-t="menu.lab">Pattern Lab</span></button>
   </div>
   <!-- A real rule that the UI never stated anywhere: both practice modes are score-sandboxed. -->
   <div class="doornote" data-t="menu.note">Practice only · neither can set your best</div>
@@ -759,19 +751,6 @@
   <button class="btn sm ghost" id="settingsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
   <div class="final" data-t="set.kicker" style="letter-spacing:.3em;margin-top:8px;">Settings</div>
   <h2 data-t="set.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 16px;">How it plays</h2>
-
-  <!-- ⚠️ THE ONE ROW IN THE GAME THAT IS NEVER MONOLINGUAL, in either table. Whichever language you are
-       stranded in, this is the row that gets you out of it, and a Korean speaker who cannot read the
-       word "Language" has no other way back. It is first for the same reason.
-         The pill shows the CURRENT language rather than the one you would switch to. A button labelled
-       with the thing it is not is a coin-flip every time you read it. -->
-  <div class="setrow">
-    <div class="st">
-      <div class="sn" data-t="set.lang">언어 / Language</div>
-      <div class="sd" data-t="set.langD">Menu, tutorial and Codex. Your choice is remembered; the browser only picks the first one.</div>
-    </div>
-    <button class="sw wide on" id="swLang">English</button>
-  </div>
 
   <div class="setrow">
     <div class="st">
@@ -1092,7 +1071,6 @@ const L={ en:{
 
   // ---- shared ----
   'ui.close':'✕ Close',  'ui.menu':'Menu',  'sw.on':'On',  'sw.off':'Off',
-  'lang.en':'English',   'lang.ko':'한국어',
 
   // ---- HUD ----
   'hud.score':'Score',  'hud.best':'Best',  'hud.time':'Time',
@@ -1127,20 +1105,14 @@ const L={ en:{
   // ---- menu ----
   'menu.start':'Enter the field',
   'menu.tut':'How to play',
-  'menu.rush':'Boss Rush',      'menu.rushD':'Every Anomaly, back to back',
-  'menu.lab':'Pattern Lab',     'menu.labD':'Every wave shape, on a key',
+  'menu.rush':'Boss Rush',  'menu.lab':'Pattern Lab',
   'menu.note':'Practice only · neither can set your best',
   'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.codex':'Codex',  'ref.settings':'Settings',
   'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
   'bestiary.frame':'ORBITAL CRASH Bestiary',
 
   // ---- settings ----
-  'set.kicker':'Settings',  'set.h2':'How it plays',
-  // THE ONE ROW THAT IS NEVER MONOLINGUAL, in either table. Whichever language you are stranded in,
-  // this is the row that gets you out of it, and a Korean speaker who cannot read "Language" has no
-  // other way back.
-  'set.lang':'언어 / Language',
-  'set.langD':'Menu, tutorial and Codex. Your choice is remembered; the browser only picks the first one.',
+  'set.kicker':'Settings',  'set.h2':'Screen and sound',
   'set.cb':'Colourblind palette',
   'set.cbD':'For red-green colourblindness. Turns the red pole orange, so it stands off the dark field as well as cyan does, and moves the Gilded Bounty ring to violet.',
   'set.motion':'Reduced motion',
@@ -1187,7 +1159,7 @@ const L={ en:{
   'tut.5.touch':'Hold a second finger for Overdrive, a faster and wider sweep with your ring.',
   'tut.5.tilt':'Hold a second finger for Overdrive, a faster and wider sweep with your ring.',
   'tut.5.noteOn':'burning',
-  'tut.5.noteOff':'the Capacitor is full',
+  'tut.5.noteOff':"I'll fully charge the Overdrive!",
   'tut.5.ok':'Good work!',
   'tut.6':"Let's experience a complex situation for a while, and end our tutorial!",
   'tut.6.note':'{n}s',
@@ -1246,10 +1218,12 @@ const L={ en:{
   'act.0':'Drift',  'act.1':'Ember',  'act.2':'Bloom',  'act.3':'Tide',
   'lab.wall':'Wall',  'lab.noose':'Noose',  'lab.pulse':'Pulse',
   'lab.cross':'Cross','lab.comet':'Comet',  'lab.drift':'Drift',
-  'anom.emitter.tip' :'EMITTER · CROSS ITS BURSTS · VOLLEY YOUR RINGS',
-  'anom.emitter.tip3':'EMITTER · CROSS ITS BURSTS · DODGE THE DASH',
-  'anom.sentinel.tip':'SENTINEL · CHASE IT · RUN DOWN ITS TRAIL',
-  'anom.pulsar.tip'  :'PULSAR · BE IN THE SEAM · LEAVE THE MINES',
+  // ⚠️ NAME · THREAT · ANSWER, one term each. These sit on the Anomaly's integrity bar and are read
+  // mid-fight with something shooting at you; a sentence there is a sentence nobody finishes.
+  'anom.emitter.tip' :'EMITTER · BARRAGE · CROSS IT',
+  'anom.emitter.tip3':'EMITTER · DASH · DODGE',
+  'anom.sentinel.tip':'SENTINEL · SEEKERS · CHASE',
+  'anom.pulsar.tip'  :'PULSAR · WALL · THE SEAM',
   'achv.firstBoss.nm':'Purge an Anomaly',  'achv.firstBoss.ds':'Defeat an Anomaly',
   'achv.combo60.nm' :'Chain Reactor',      'achv.combo60.ds' :'Land a 60-chain',
   'achv.act3.nm'    :'Deep Field',         'achv.act3.ds'    :'Reach Epoch III',
@@ -1271,55 +1245,54 @@ const L={ en:{
   'hud.score':'점수',  'hud.best':'최고',  'hud.time':'시간',
   'hud.hp':'코어 상태',  'hud.chg':'축전기',
   'hud.od':'오버드라이브',  'hud.odKey':'Shift 유지',
-  'hud.anomaly':'변칙체',
-  'hud.streak':'무피격 {n}연쇄',
+  'hud.anomaly':'변이체',
+  'hud.streak':'무피격 {n}콤보',
   'hud.epoch':'제{n}기 · {name}',
   'hud.lab':'패턴 실험실',  'hud.rush':'보스 러시',
-  'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> 변칙체 교체',
-  'hud.bossHunt':'코어로 온다 · 피해라',
+  'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> 변이체 교체',
+  // The HUNT. Every Anomaly eventually breaks station and walks at your core for 6-8s, and this line
+  // displaces its standing tip for exactly that window. Author's phrasing — the narrator speaking for
+  // the thing, which is the voice the tutorial acknowledgements already use.
+  'hud.bossHunt':'직접 부딪힐 생각이에요!',
   // Space/Shift/Esc/P/M stay Latin because they are printed on the key. "Mouse" is not a key, it is a
   // device, and Korean writes 마우스.
   'ctl.steer':'<kbd>마우스</kbd> 별 조종',
-  'ctl.flip':'<kbd>Space</kbd><kbd>클릭</kbd> 극 반전',
+  'ctl.flip':'<kbd>Space</kbd><kbd>클릭</kbd> 색 반전',
   'ctl.od':'<kbd>Shift</kbd><kbd>우클릭</kbd> 유지: 오버드라이브',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> 일시정지 &nbsp;·&nbsp; <kbd>M</kbd> 음소거',
-  'tc.drag':'<b>드래그</b> 조종 &mdash; 별은 손끝보다 위에 뜹니다',
+  // TOUCH_LIFT = 55px. The star is drawn well ABOVE the finger so a thumb does not cover the one
+  // object you have to watch, and a player who is not told reads that offset as loose controls.
+  'tc.drag':'<b>드래그</b> 조종 &mdash; 손가락에 가리지 않게 별이 살짝 위에 붙어요',
   'tc.lean':'<b>기울이기</b> 별 조종',
-  'tc.tap':'<b>탭</b> 극 반전',
+  'tc.tap':'<b>탭</b> 색 반전',
   'tc.second':'<b>두 번째 손가락</b> 유지: 오버드라이브',
-  'btn.motion':'모션 줄이기: 흔들림과 섬광을 약하게',
+  'btn.motion':'흔들리거나 번쩍거리는 효과를 줄입니다.',
   'tilt.stale':'모션 데이터가 끊겼습니다.',
   'tilt.ok':'TILT ✓  x {x}   y {y}   ({n}회)',
 
   // ---- canvas text ----
   'fx.ready':'준비',  'fx.skip':'탭하면 건너뜁니다',
-  'fx.purged':'변칙체 소멸  +{n}',
+  'fx.purged':'변이체 소멸  +{n}',
   'fx.bounty':'현상금 +{n}',
   'fx.poked':'돌격체 명중!',
   'fx.achv':'업적 · {name}',
   'fx.achvAny':'기록됨',
 
   // ---- menu ----
-  'menu.start':'필드로 진입',
+  'menu.start':'게임 시작',
   'menu.tut':'튜토리얼',
-  'menu.rush':'보스 러시',      'menu.rushD':'모든 변칙체를 연달아',
-  'menu.lab':'패턴 실험실',      'menu.labD':'모든 웨이브 형태를 키 하나로',
-  'menu.note':'연습 전용 · 최고 기록에 남지 않는다',
+  'menu.rush':'보스 러시',  'menu.lab':'패턴 실험실',
+  'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
   'ref.records':'기록',  'ref.bestiary':'도감',  'ref.codex':'규칙',  'ref.settings':'설정',
-  'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 극 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
+  'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
   'bestiary.frame':'ORBITAL CRASH 도감',
 
   // ---- settings ----
-  // ⚠️ NOT 플레이 환경, and not for tone reasons — nothing in this panel changes how the game PLAYS.
-  // Language, colour, shake, volume: all four rows are how the game reaches your eyes and ears. The
-  // English "How it plays" gets away with it as a loose headline; the Korean was inheriting a claim.
-  // It also has to sit in a set with 이 게임의 원리 and 지금까지의 전적 — descriptive phrases, not
-  // category labels, which is what 환경 reads as.
-  'set.kicker':'설정',  'set.h2':'보이고 들리는 방식',
-  'set.lang':'언어 / Language',
-  'set.langD':'메뉴와 튜토리얼, 규칙 화면에 적용됩니다. 한 번 고르면 기억하고, 브라우저는 처음 한 번만 정합니다.',
-  'set.cb':'색각 이상 팔레트',
-  'set.cbD':'적록색약을 위한 설정입니다. 빨강 극을 주황으로 바꿔 어두운 필드에서 시안만큼 잘 보이게 하고, 황금 현상금 링은 보라로 옮깁니다.',
+  // NOT 플레이 환경, and the reason is not tone: nothing in this panel changes how the game PLAYS.
+  // Colour, shake, volume — three rows, all of them how the game reaches your eyes and ears.
+  'set.kicker':'설정',  'set.h2':'화면과 소리',
+  'set.cb':'색맹 보정',
+  'set.cbD':'적록색약을 위한 설정입니다. 빨간색 극을 주황색으로 바꿔 어두운 필드에서 청록색만큼 잘 보이게 하고, 황금색 링은 보라색으로 바뀝니다.',
   'set.motion':'모션 줄이기',
   'set.motionD':'가까운 곳에서 뭔가 터질 때 흔들림과 섬광을 줄입니다.',
   'set.sound':'소리',
@@ -1329,41 +1302,41 @@ const L={ en:{
   // ---- pause ----
   'pause.kicker':'일시정지',  'pause.resume':'계속하기',  'pause.quit':'메뉴로 나가기',
   'pause.hint':'<kbd>P</kbd> 또는 <kbd>Esc</kbd>로 계속',
-  'log.od':'오버드라이브 · ',  'log.anom':'변칙체 · ',  'log.left':' 남음',
+  'log.od':'오버드라이브 · ',  'log.anom':'변이체 · ',  'log.left':' 남음',
 
   // ---- death ----
   // ⚠️ THE COLOUR MOVES IN FRONT OF THE NOUN, and this is the clearest case in the file for why a
   // template had to be per-language rather than a frame with a slot. English appends it — "Brute
   // (cyan)" — because English modifiers can trail; Korean puts every modifier before what it modifies,
   // so the same data reads 시안 거구. Nothing about the {t,c} pair changes. Only the sentence does.
-  'dead.kicker':'코어 소실',  'dead.best':'신기록!',  'dead.again':'다시 벼리기',
-  'dead.time':'생존 시간',  'dead.combo':'최고 연쇄',
+  'dead.kicker':'코어 소실',  'dead.best':'신기록!',  'dead.again':'재시도',
+  'dead.time':'생존 시간',  'dead.combo':'최고 콤보',
   'dead.cause':'{src}에 당함 · 제{n}기',
   'dead.causeDev':'{src}에 당함 · 제{n}기 · phase {p}',
   'dead.src':'{col} {name}',  'dead.srcN':'{name}',
 
   // ---- tutorial ----
-  'tut.doneH':'이제 본 게임을 할 시간!',
-  'tut.play':'필드로 진입',
+  'tut.doneH':'이제 본 게임을 해볼까요?',
+  'tut.play':'게임 시작',
   'tut.1.desktop':'마우스를 움직여 보세요',
   'tut.1.touch':'드래그해 보세요',
   'tut.1.tilt':'폰을 기울여 보세요',
-  'tut.1.ok':'이렇게 움직입니다.',
+  'tut.1.ok':'그렇게 움직이시면 돼요!',
   'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
   'tut.2.note':'{n} / 4 수집',
-  'tut.2.ok':'이게 칼이자 방패예요! 너무 빨리 움직이면 놓칩니다.',
+  'tut.2.ok':'수집된 입자는 공방일체의 도구입니다! 너무 빨리 움직이면 놓칠 수 있으니 주의하세요.',
   'tut.3':'링을 다른 색에 닿게 하세요.',
   'tut.3.note':'{n} / 5 제거',
-  'tut.3.ok':'이렇게 치웁니다.',
+  'tut.3.ok':'이렇게 입자들을 제거할 수 있어요.',
   'tut.4.desktop':'클릭해서 색을 뒤집으세요.',
   'tut.4.touch':'탭해서 색을 뒤집으세요.',
   'tut.4.tilt':'탭해서 색을 뒤집으세요.',
-  'tut.4.ok':'집중하세요 — 방금까지 적이던 것이 이제 아군입니다!',
-  'tut.5.desktop':'Shift를 누르고 있으면 오버드라이브. 링이 더 빠르고 넓게 쓸어냅니다.',
-  'tut.5.touch':'두 번째 손가락을 대고 있으면 오버드라이브. 링이 더 빠르고 넓게 쓸어냅니다.',
-  'tut.5.tilt':'두 번째 손가락을 대고 있으면 오버드라이브. 링이 더 빠르고 넓게 쓸어냅니다.',
+  'tut.4.ok':'집중하세요, 적과 아군은 이제 반대 색상이니까요!',
+  'tut.5.desktop':'Shift를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
+  'tut.5.touch':'두 번째 손가락을 대고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
+  'tut.5.tilt':'두 번째 손가락을 대고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
   'tut.5.noteOn':'연소 중',
-  'tut.5.noteOff':'축전기 가득',
+  'tut.5.noteOff':'오버드라이브를 최대로 충전해둘게요!',
   'tut.5.ok':'잘했어요!',
   'tut.6':'잠깐 복잡한 상황을 겪어 보고, 튜토리얼을 마칩니다!',
   'tut.6.note':'{n}초',
@@ -1371,11 +1344,11 @@ const L={ en:{
   // ---- records ----
   'rc.kicker':'기록',  'rc.h2':'지금까지의 전적',
   'rc.best':'최고',  'rc.highest':'최고 점수',  'rc.lifetime':'누적',
-  'rc.runs':'판수',  'rc.timeIn':'필드에 있던 시간',  'rc.combo':'최고 연쇄',  'rc.anom':'만난 변칙체',
+  'rc.runs':'판수',  'rc.timeIn':'필드에 있던 시간',  'rc.combo':'최고 콤보',  'rc.anom':'만난 변이체 수',
   'rc.last':'최근 {n}판',
-  'rc.hScore':'점수',  'rc.hLost':'사인',  'rc.hTime':'시간',  'rc.hEpoch':'기',  'rc.hCombo':'연쇄',
+  'rc.hScore':'점수',  'rc.hLost':'사인',  'rc.hTime':'시간',  'rc.hEpoch':'기',  'rc.hCombo':'콤보',
   'rc.empty':`아직 아무것도 없습니다. 한 판 끝내면 이 목록 맨 위에 올라옵니다.<br>
-       보스 러시와 패턴 실험실은 연습이라 기록되지 않습니다. 최고 점수를 세울 수 없는 것과 같은 규칙입니다.`,
+       보스 러시와 패턴 실험실은 연습이라 기록되지 않습니다. 최고 점수도 세울 수 없는 것과 같은 규칙입니다.`,
   'rc.wipe':'기록 지우기',  'rc.wipeArm':'한 번 더 누르면 지워집니다',
 
   // ---- codex ----
@@ -1386,7 +1359,7 @@ const L={ en:{
   // single loudest tell of a machine translation, so the long ones are broken where the thought breaks.
   'codex.body':`
   <div class="cxs"><h3>전하 법칙</h3>
-    <p>저 바깥의 입자는 전부 <b>빨강</b> 아니면 <b>시안</b>이고, 나도 마찬가지다.</p>
+    <p>저 바깥의 입자는 전부 <b>빨간색</b> 아니면 <b>청록색</b>이고, 나도 마찬가지다.</p>
     <p>같은 색은 끌려와서 별 주위를 도는 <b>링</b>이 된다. 그 링이 무기다. 링이 훑고 지나간 반대 색은 죽는다.</p>
     <p>반대 색은 제 힘으로 다가온다. 이쪽에서 어떻게 해볼 수단이 없다. 끌어당길 수도, 밀어낼 수도 없다. 닿으면 죽지만 지나가면서 아프다. 그 일은 링에 맡겨라.</p></div>
   <div class="cxs"><h3>점수</h3>
@@ -1396,46 +1369,53 @@ const L={ en:{
     <p>여기서는 아무것도 성장하지 않는다. 업그레이드도 없고, 한 판에서 다음 판으로 넘어가는 것도 없다. 쌓이는 건 <b>축전기</b> 하나뿐이고, 그걸로 살 수 있는 것도 <b>오버드라이브</b> 하나뿐이다.</p>
     <p><b>Shift</b>나 마우스 오른쪽 버튼을 누르고 있으면 된다. 링이 크게 벌어지고 빠르게 돈다. 평소보다 훨씬 넓은 원을 쓸고, 나도 함께 빨라진다.</p>
     <p>누르고 있는 내내 닳는다. 일찍 손을 떼면 남은 만큼 그대로 간직한다. 게이지가 가득 찰 때까지 기다릴 필요도 없다. 불을 붙일 만큼만 모이면 <b class="gold">버튼</b>이 나타난다.</p>
-    <p>변칙체에는 통하지 않는다. 눌러서 되는 건 아무것도 없다.</p></div>
-  <div class="cxs"><h3>무피격 연쇄</h3>
+    <p>변이체에는 통하지 않는다. 눌러서 되는 건 아무것도 없다.</p></div>
+  <div class="cxs"><h3>무피격 콤보</h3>
     <p>맞지 않고 잡으면 수가 올라간다. 단계마다 축전기가 채워진다. <b style="color:var(--cyan)">각성</b>, <b class="gold">자력</b>, <b class="vio">무적</b>, <b>초월</b>.</p>
-    <p>제대로 한 대 맞으면 거기서 끝이고, 이 게임에는 대신 막아주는 것이 없다. 길게 쌓은 연쇄가 끊길 때는 그냥 사라지지 않는다. 나가면서 충전으로 터진다.</p></div>
+    <p>제대로 한 대 맞으면 거기서 끝이고, 이 게임에는 대신 막아주는 것이 없다. 길게 쌓은 콤보가 끊길 때는 그냥 사라지지 않는다. 나가면서 충전으로 터진다.</p></div>
   <div class="cxs"><h3>플립</h3>
     <p>한 색을 쥐고 있으면 별 주위로 게이지가 찬다. 이걸 어떻게 쓰느냐가 이 게임 실력의 대부분이다.</p>
     <p><b>짧게 누르면</b> 색만 바뀐다. 그뿐이다. 자리를 옮기거나, 하늘의 어느 쪽이 안전한지를 바꿀 때 쓴다.</p>
     <p><b>다 찰 때까지 기다렸다</b> 누르면 플립이 <b>밀어낸다</b>. 방금 반대 색이 된 것들이 산 채로 바깥으로 날아간다. 아무것도 죽지 않는데, 그게 핵심이다. 플립은 코앞의 내 링을 적으로 만들고, 밀어내기는 그것들이 물기 전에 떼어내는 수단이다. 많이 모아뒀을수록 멀리 날아간다.</p>
-    <p>필드에 변칙체가 있으면 그 밀어내기가 변칙체를 겨눈 <b>일제사격</b>이 된다.</p></div>
-  <div class="cxs"><h3>변칙체</h3>
-    <p>변칙체는 위의 모든 규칙 바깥에 있다. 플립으로 밀리지 않고, 쏘는 것은 앞을 막은 입자를 그대로 통과한다. <b>엄폐물은 없다.</b> 피해라. 색을 맞춰도 여기서는 살아남지 못한다.</p>
+    <p>필드에 변이체가 있으면 그 밀어내기가 변이체를 겨눈 <b>일제사격</b>이 된다.</p></div>
+  <div class="cxs"><h3>변이체</h3>
+    <p>변이체는 위의 모든 규칙 바깥에 있다. 플립으로 밀리지 않고, 쏘는 것은 앞을 막은 입자를 그대로 통과한다. <b>엄폐물은 없다.</b> 피해라. 색을 맞춰도 여기서는 살아남지 못한다.</p>
     <p>루프는 이렇다. 날아오는 것을 피하고, 같은 색을 모으고, 반대 색에서 떨어지고, 플립으로 쏜다.</p>
-    <p>상처를 입힐 방법은 셋뿐이다. 일제사격. 링을 두른 채로 들이받기. 그리고 <b>돌격체</b>의 돌진선이 변칙체를 관통하도록 서 있기. 셋 다 내가 겨눴거나 내가 들고 간 것이고, 대신 해주는 버튼은 어디에도 없다.</p>
+    <p>상처를 입힐 방법은 셋뿐이다. 일제사격. 링을 두른 채로 들이받기. 그리고 <b>쐐기</b>의 돌진선이 변이체를 관통하도록 서 있기. 셋 다 내가 겨눴거나 내가 들고 간 것이고, 대신 해주는 버튼은 어디에도 없다.</p>
     <p>달아나지도 않는다. 제한 시간도, 탈출도 없다. 둘 중 하나만 남는다.</p>
     <p>전부 사냥도 한다. 언젠가는 자리를 떠나 코어를 향해 걸어온다. 오는 게 보일 만큼 느리고 요란하게. 한 대 치고 물러난다.</p></div>
   <div class="cxs"><h3>업적</h3>{achRows}</div>
-  <div class="cxs"><h3>나머지 전부</h3><p>모든 종, 세 종류의 변칙체, 웨이브로 몰려오는 형태들. 전부 이 게임의 코드가 직접 그린 것이다. <b>도감</b>에 있다. 버튼 하나 옆이다.</p></div>`,
+  <div class="cxs"><h3>나머지 전부</h3><p>모든 종, 세 종류의 변이체, 웨이브로 몰려오는 형태들. 전부 이 게임의 코드가 직접 그린 것이다. <b>도감</b>에 있다. 버튼 하나 옆이다.</p></div>`,
 
   // ---- names ----
-  // ⚠️ 드리프터 STAYS TRANSLITERATED while the Drift epoch is 표류, and that is deliberate. English calls
-  // both "Drift" and they share the screen — "EPOCH I · DRIFT" runs while Drifters are in the field.
-  // Splitting them removes a collision the English has. Do not tidy it into 표류체.
-  'col.red':'빨강',  'col.cyan':'시안',
-  'dot.drift':'드리프터',  'dot.fast':'다트',      'dot.heavy':'거구',    'dot.bomber':'폭격체',
-  'dot.charger':'돌격체',  'dot.neutral':'중성체',  'dot.planet':'행성',   'dot.harrier':'추격체',
-  'dot.boss':'변칙체',
-  'msl.volley':'변칙체 일제사격',  'msl.seeker':'변칙체 추적탄',  'msl.ring':'변칙체 고리',
-  'msl.mine':'변칙체 지뢰',        'msl.spear':'변칙체 창',       'msl.other':'변칙체 발사체',
+  // ⚠️ NO -체 SUFFIX PILE. Four of the eight ended in -체 (폭격체·돌격체·중성체·추격체), which is the
+  // stiffest way to name a creature in Korean and made the roster read as one part of speech repeated.
+  // These are concrete nouns instead, each naming the thing's one property, the way the English does.
+  //   떠돌이 and the 표류 epoch stay apart on purpose: English calls both "Drift" and shows them
+  // together — "EPOCH I · DRIFT" runs while Drifters are in the field.
+  //   행성 / 위성 is a pair the English does not have. The Harrier is too fast to turn, so your field
+  // cannot pull it in — it catches it into a long orbit and it circles you until it runs out of speed.
+  // A satellite is what it becomes, and it names the one property a still image cannot show.
+  //   빨간색, not 빨강색: 빨강 and 빨간색 are the standard forms and 빨강색 is not one of them.
+  'col.red':'빨간색',  'col.cyan':'청록색',
+  'dot.drift':'떠돌이',  'dot.fast':'화살',    'dot.heavy':'덩치',   'dot.bomber':'폭탄',
+  'dot.charger':'쐐기',  'dot.neutral':'무극',  'dot.planet':'행성',  'dot.harrier':'위성',
+  'dot.boss':'변이체',
+  'msl.volley':'변이체 일제사격',  'msl.seeker':'변이체 추적탄',  'msl.ring':'변이체 고리',
+  'msl.mine':'변이체 지뢰',        'msl.spear':'변이체 창',       'msl.other':'변이체 발사체',
   'act.0':'표류',  'act.1':'잔불',  'act.2':'개화',  'act.3':'밀물',
   'lab.wall':'장벽',  'lab.noose':'올가미',  'lab.pulse':'파동',
   'lab.cross':'십자',  'lab.comet':'혜성',    'lab.drift':'표류',
-  'anom.emitter.tip' :'방출체 · 탄막 사이를 지나가라 · 링을 쏴라',
-  'anom.emitter.tip3':'방출체 · 탄막 사이를 지나가라 · 돌진을 피하라',
-  'anom.sentinel.tip':'감시자 · 쫓아가라 · 자취를 훑어라',
-  'anom.pulsar.tip'  :'맥동체 · 틈에 서라 · 지뢰는 두고 가라',
-  'achv.firstBoss.nm':'변칙체 소멸',  'achv.firstBoss.ds':'변칙체를 쓰러뜨린다',
-  'achv.combo60.nm' :'연쇄 반응',     'achv.combo60.ds' :'60연쇄를 달성한다',
+  // 이름 · 위협 · 대응, 한 단어씩. Read mid-fight with something shooting at you.
+  'anom.emitter.tip' :'방출체 · 탄막 · 횡단',
+  'anom.emitter.tip3':'방출체 · 돌진 · 회피',
+  'anom.sentinel.tip':'감시자 · 추적탄 · 추격',
+  'anom.pulsar.tip'  :'맥동체 · 탄막벽 · 틈새',
+  'achv.firstBoss.nm':'변이체 소멸',  'achv.firstBoss.ds':'변이체를 쓰러뜨린다',
+  'achv.combo60.nm' :'연쇄 반응',     'achv.combo60.ds' :'60콤보를 달성한다',
   'achv.act3.nm'    :'심층',          'achv.act3.ds'    :'제3기에 도달한다',
   'achv.redline.nm' :'레드라인',      'achv.redline.ds' :'가득 찬 축전기를 오버드라이브 한 번에 다 태운다',
-  'achv.lancegild.nm':'클레이 사격',  'achv.lancegild.ds':'황금 현상금을 변칙체에 쏴 맞힌다',
+  'achv.lancegild.nm':'클레이 사격',  'achv.lancegild.ds':'황금 현상금을 변이체에 쏴 맞힌다',
 } };
 
 // Falls back to English before falling back to the key itself, so a half-translated table renders a
@@ -3112,11 +3092,16 @@ function labFire(i){
 // about a THIRD less time for the same instruction — "지금 내 색을 확인하고, 같은 색 입자에 가까이
 // 가세요!" is 8 tokens against the English 12. That is precisely the complaint this function exists to
 // answer, so Korean is measured in syllables instead. 0.16s/char is ~375음절/분.
+//   ⚠️ AND THE CEILING IS PER-LANGUAGE TOO, for the same reason the rate is. It exists to stop one long
+// line stalling the tutorial, not to cap how long a line may be — and the author's Korean runs longer
+// than the English it replaced. At 5.2s the two longest lines were capped hard enough to read ~14%
+// faster per syllable than every other step, which is the flat-floor fault of 9beb77b wearing a hat.
+// 6.0s uncaps one of them and still bounds the other.
 const TUT_FINALE_S=25, TUT_WPS=0.32, TUT_KCPS=0.16;
 const readS=t=>{
-  const s=String(t).trim();
-  return clamp(store.lang==='ko' ? s.replace(/\s+/g,'').length*TUT_KCPS
-                                 : s.split(/\s+/).length*TUT_WPS, 1.3, 5.2);
+  const s=String(t).trim(), ko=store.lang==='ko';
+  return clamp(ko ? s.replace(/\s+/g,'').length*TUT_KCPS
+                  : s.split(/\s+/).length*TUT_WPS, 1.3, ko?6.0:5.2);
 };
 let tutStep=0, tutT=0, tutKills=0, tutFlips=0, tutTravel=0, tutOdT=0, tutPrev=null, tutSpawned=false;
 let tutBeat=0, tutBarCache='';
@@ -6157,7 +6142,7 @@ function drawLances(){
 }
 // ⚠️ CANVAS CARRIES ITS OWN FONT STACK and it is not the CSS one — `ctx.font` cannot inherit. It was
 // three separate literals that all said `-apple-system,system-ui,sans-serif`, which resolves no Hangul
-// on Windows or Android, so "변칙체 소멸" would have picked a different fallback from every other
+// on Windows or Android, so "변이체 소멸" would have picked a different fallback from every other
 // string on screen. One constant, three users.
 const CANVAS_FONT='-apple-system,system-ui,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
 function drawTexts(){
@@ -6777,7 +6762,6 @@ function applyLang(){
   document.querySelectorAll('[data-ta]').forEach(n=>{ n.setAttribute('aria-label',T(n.dataset.ta)); });
   // Painted here and not only in paintSettings, which runs on OPEN: the markup ships "English", so a
   // Korean player who never opened this panel had a pill sitting on the wrong word until they did.
-  el('swLang').textContent=T('lang.'+store.lang);
   // The menu selector shows BOTH labels always; only which one is lit changes.
   for(const b of el('langSel').children) b.classList.toggle('on', b.dataset.lang===store.lang);
   paintTouchCtl();
@@ -6794,7 +6778,6 @@ function applyLang(){
 let setPoll=0;
 function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=T(on?'sw.on':'sw.off'); };
-  el('swLang').textContent=T('lang.'+store.lang);   // a value, not a state — see the row's markup note
   sw('swCb', store.cb);
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
@@ -6820,11 +6803,12 @@ el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without e
 el('settingsClose').onclick=closeSettings;
 // Repaints on the spot rather than at the next run: this panel opens from the pause screen, so the
 // field it is judged against is usually sitting right behind it.
-// Two entry points, one setter. The menu selector is the discoverable one; the Settings row stays
-// because the panel also opens from PAUSE, and that is the only route to it mid-run.
+// ONE entry point. The Settings row was removed on the author's call: language is a first-screen
+// decision, and a second control for it inside a panel you reach by reading is the thing the menu
+// selector exists to replace. Mid-run there is no language switch, which is correct — nobody changes
+// language during a run, and the pause panel is not where you would look for it.
 function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
 el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
-el('swLang').onclick  =()=>setLang(store.lang==='ko'?'en':'ko');
 el('swCb').onclick    =()=>{ store.cb=!store.cb; save(); applyPalette(); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
