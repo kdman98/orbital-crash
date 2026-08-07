@@ -37,6 +37,20 @@ the four sentences being argued *for* were true. `LIKE_GRAV` had been traced thr
 hour earlier by the same session that then quoted *"nothing you press will"* without opening `flip()`.
 **Scrutiny went to what was doubted, not to what was being defended.**
 
+⚠️ **And the fourth — "nothing carries from one run to the next" — should not be restored either**, which
+retires the *"removing the Codex is a four-fact deletion"* framing entirely. `store.best`, `store.achv`,
+`store.runs` and `store.totals` all persist, and **Records has a section headed `Lifetime` / `누적`** that
+tallies runs, time in the field, best combo and Anomalies met. A player reading that sentence is one
+button from a screen listing exactly what carries.
+
+Precisely: the sentence is **true about what it claims** — its own paragraph opens *"Nothing here levels
+up. There are no upgrades"*, and no *capability* carries; achievements unlock nothing and there is no meta
+economy. It is the **literal** reading that fails. ⚠️ **And that reading was already loose before Records
+existed** — `orbitalcrash_best2` is present in `1271fe3`'s parent, so the best score always carried.
+`1271fe3` did not falsify the sentence; it gave the loose reading a screen with a heading on it. The order
+still matters, because `706673e` had deleted the Settings footnote *because the Codex carried the fact*,
+ten minutes and two commits before Records shipped.
+
 English 649 → 636 → **559** words; Korean 1655 → **1457** characters. *Capacitor and Overdrive* drops to
 two paragraphs in both languages.
 
