@@ -1563,20 +1563,79 @@ its lower arc cut into the body copy, reading as a strikethrough. The exponent i
 what makes the doomed pair *hang* apart and then fall in, instead of sliding together evenly. That is the
 attraction read; it is not a lerp.
 
-**The copy is five one-line beats and nothing else.** The menu must not teach what the Codex teaches —
-scoring, Motes, rings as armour and powerup orbs are all stated in full one button down. What belongs here
-is only what a player cannot infer.
+**There is no copy under the title, and the rules that governed it did not all die with it.** It was five
+one-line beats, then one, then none — `.tag` was deleted outright once the tutorial took over the
+teaching. Two of its three rules were about that paragraph. **Two are about the game, and they bind every
+surface that describes it** — tutorial steps, Codex, Bestiary, both languages:
 
-- **The word `opposite` in the last beat is load-bearing.** Without it that line forbids the thing the
-  second line requires: same-colour matter is harmless and steering into it is the *only* way to build
-  rings.
 - **`steer into`, never `pull`.** The star exerts no pull on another charge, ever. Copy saying matter comes
   to you teaches the most expensive misconception in the game.
-- **Every beat must hold one line at `.tag`'s measure.** Go over and the beat spills a single word onto a
-  line of its own, which looks like a mistake.
+- **Never write a line that forbids steering into same-colour matter.** The deleted beat carried the word
+  `opposite` for exactly this reason: without it, that line forbade the thing the next line required.
+  Same-colour matter is harmless and steering into it is the *only* way to build rings. The tutorial's
+  step 2 is where this now has to hold.
+
+The third rule — *every beat must hold one line at `.tag`'s measure* — went with `.tag`, along with its
+three CSS rules, rather than being kept for "something else that wants body text." **A rule with no user
+is a rule nobody can tell is wrong.**
+
+⚠️ **Deleting a block between the lockup and the primary button is not a layout no-op, and nothing warns
+you.** `.tag` sat there with 14px above and 24px below; removing it left `Enter the field` at 0px from the
+logo's box and **28px inside the outer title ring**. That ring is 860px wide, hangs well below the letters
+it circles, and is **absolutely positioned — so it contributes no layout height, and no overlap is
+detectable from the flow.** `.titlewrap` carries the clearance explicitly now. **Measure against `.tring`'s
+bottom edge, never the logo's box.**
 
 A fault inside `titleOrbit` is caught at the call site and latches it off, leaving a still wordmark — a
 cosmetic bug must not be able to reach the frame guard and halt a game that is otherwise fine.
+
+---
+
+## The tutorial
+
+Six steps — steer, gather, annihilate, flip, Overdrive, then every species at once — and it is the game's
+primary teaching surface now that the menu paragraph is gone. **Every step's `done` test reads state the
+game already keeps** (travel, ringed bodies, kills, flips, seconds of Overdrive), which is what makes it
+impossible to satisfy a step by waiting and impossible to fail one.
+
+**`tutSafe()` is the entire damage rule and both damage paths call it.** Steps 1–5 take none, the finale
+does: teaching the flip while a Dart kills you teaches nothing, and a finale that cannot hurt you does not
+communicate that any of this is dangerous. ⚠️ **Never express this as a pinned `P.iframe`** — the hurt
+flash keys off that value, so it would make the star blink for the whole tutorial. Both endings route to
+one card and **dying does not reach the death screen**, which counts a score, prints a receipt and offers
+Reforge, none of which mean anything here.
+
+The finale spawns its own roster because it must: the tutorial parks the wave clock at `phaseT=1e9` (the
+Lab's trick), so nothing arrives unless a step asks. It cycles all eight **by name in roster order** rather
+than at random — a random draw over 25s leaves one or two species out about a third of the time.
+
+⚠️ **Step dwell time is derived from the sentence, and a constant cannot do this job.** A flat 2.5s floor
+held every teaching step at *exactly* 2.5s — the floor, not the task, setting the pace — and gave a 7-word
+line the same time as a 14-word one. `readS()` is **0.32 s/word in English, 0.16 s/char in Korean**, the
+Korean rate swept against the English total across all eleven lines and landing at +1.9%. **This means
+editing tutorial copy cannot silently outrun the pacing**, and it is why a step must never end the instant
+its test passes: a player already dragging satisfies step 1 in under a second, and the instruction gets
+replaced before it has been read. Completion holds the step and swaps the instruction for what it *taught*.
+⚠️ **`ok` lines must stay short, because the beat is timed off them** — one as long as its own instruction
+turns an acknowledgement into a second thing to read and doubles the step.
+
+⚠️ **`tutPrev` must be nulled on advance.** The beat runs for over a second with the star still moving, so
+otherwise the first travel sample of the new step spans the whole beat and credits a step that has not
+started.
+
+⚠️ **The auto-start must never fire under test, and this failure is silent.** `.oracle.js` and
+`.harness/record.html` drive `startRun()` themselves; a tutorial launching at boot would drop a scripted
+pilot into a mode with the wave clock parked and damage off, and every tape and every fingerprint would
+measure that instead — no error, just the wrong game. **`window.__H` is the gate, and it works because of
+*when* it exists**: `preload.js` is injected ahead of the inline script. `window.__oracle` does **not**
+work and never did — `.oracle.js` is pasted *after* load, so nothing it defines is visible at boot. A gate
+that cannot fire is worse than no gate, because it looks like cover.
+
+**The copy is the author's.** Only the bracketed device verbs vary, and they must: steps 1, 4 and 5 were
+written as *"Move the mouse"*, *"Click"* and *"Hold shift"*, all three describing a desktop — the exact
+fault the deleted menu paragraph carried for months. See **Language** below for why `tutDev()` returns a
+*case* rather than a phrase to slot in. **The end card does not grade you**: it carried a sentence per
+ending, which made marking your work the last thing the tutorial did.
 
 ---
 
