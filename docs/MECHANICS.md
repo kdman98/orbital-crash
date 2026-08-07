@@ -1671,6 +1671,11 @@ the src now. Its `bare` layout flag had the twin fault: it tested `spec.tag` aft
 the table, which is `undefined` on every card and stacks the Anomaly like a Pattern. Wrong layout, no
 error.
 
+⚠️ **The HUD's corner buttons are dead under any overlay, and they look fine.** `#hud` is z-index 5 and
+`.overlay` is 10, so ♪ / ✺ / ❚❚ *render* through the menu while a click lands on the overlay instead.
+That corner reads as the game's "set it from anywhere" cluster and is not one — anything the menu needs
+goes **inside** `#menu`. Hit-test with `elementFromPoint` against the button; a screenshot cannot show it.
+
 ⚠️ **Three ways to measure text and get a number that means nothing.** `scrollWidth` **clamps to
 `clientWidth` on a centred button**, so it reports zero overflow however far the text runs past the
 edge — `Range.getClientRects()` is the tool that sees the actual laid-out run. A hidden element measures
