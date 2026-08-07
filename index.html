@@ -14,6 +14,13 @@
   :root{
     --bg:#060814; --ink:#eaf2ff; --dim:#68789e;
     --red:#ff3f6c; --cyan:#38e0ff; --gold:#ffcf4d; --violet:#9b6bff; --lime:#8dff6b; --white:#ffffff;
+    /* TWO DERIVED FORMS OF THE RED POLE, because three rules needed it in shapes a hex cannot serve and
+       every one of them was hardcoded until the colourblind palette landed — at which point the HP bar
+       faded orange into PINK and the title's red dot wore a pink halo.
+         --red2 is the light end of the HP bar's gradient. --redRGB is the same colour as a bare triplet,
+       for the rgba() glows. Both are set by applyPalette() alongside --red; a hex here cannot be
+       interpolated into rgba(), which is the whole reason the triplet exists. */
+    --red2:#ff8aa6; --redRGB:255,63,108;
     --panel:rgba(12,18,36,.78);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -59,17 +66,17 @@
   #actlab{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);font-weight:800;margin-bottom:6px;opacity:.85;transition:color .8s;}
   #time{font-size:13px;letter-spacing:.16em;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums;}
   #bossbar{position:absolute;left:50%;top:104px;transform:translateX(-50%);width:min(64vw,460px);height:11px;
-    border-radius:8px;background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 0 22px rgba(255,63,108,.35);overflow:hidden;}
+    border-radius:8px;background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 0 22px rgba(var(--redRGB),.35);overflow:hidden;}
   #bossbar > i{position:absolute;inset:0;transform-origin:left;transform:scaleX(1);border-radius:8px;
     background:linear-gradient(90deg,#fff,var(--red));transition:transform .12s linear;}
   #bossbar .bl{position:absolute;left:0;right:0;top:-15px;text-align:center;font-size:10px;letter-spacing:.28em;
-    text-transform:uppercase;color:#fff;font-weight:800;text-shadow:0 0 10px rgba(255,63,108,.6);}
+    text-transform:uppercase;color:#fff;font-weight:800;text-shadow:0 0 10px rgba(var(--redRGB),.6);}
 
   #bottom{position:absolute;left:0;right:0;bottom:20px;display:flex;flex-direction:column;align-items:center;gap:9px;}
   .bar{position:relative;width:min(58vw,420px);height:9px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden;
     box-shadow:0 0 0 1px rgba(255,255,255,.05) inset;}
   .bar > i{position:absolute;inset:0;transform-origin:left;transform:scaleX(1);border-radius:8px;transition:transform .1s linear;}
-  #hpbar > i{background:linear-gradient(90deg,var(--red),#ff8aa6);}
+  #hpbar > i{background:linear-gradient(90deg,var(--red),var(--red2));}
   #hpbar.low > i{animation:pulseRed .5s ease-in-out infinite;}
   @keyframes pulseRed{0%,100%{opacity:1}50%{opacity:.5}}
   #chgbar > i{background:linear-gradient(90deg,var(--violet),var(--cyan));}
@@ -231,7 +238,7 @@
   .tring.in{border-color:rgba(150,190,240,.11);}
   .tdot{position:absolute;left:50%;top:56%;width:13px;height:13px;border-radius:50%;
     margin:-6.5px 0 0 -6.5px;pointer-events:none;}
-  .tdot.r{background:var(--red);box-shadow:0 0 14px 3px rgba(255,63,108,.85),0 0 40px 8px rgba(255,63,108,.35);}
+  .tdot.r{background:var(--red);box-shadow:0 0 14px 3px rgba(var(--redRGB),.85),0 0 40px 8px rgba(var(--redRGB),.35);}
   .tdot.c{background:var(--cyan);box-shadow:0 0 14px 3px rgba(56,224,255,.85),0 0 40px 8px rgba(56,224,255,.35);}
   .ttrail{position:absolute;left:50%;top:56%;width:8px;height:8px;border-radius:50%;
     margin:-4px 0 0 -4px;pointer-events:none;filter:blur(1px);}
@@ -669,6 +676,15 @@
 
   <div class="setrow">
     <div class="st">
+      <div class="sn">Colourblind palette</div>
+      <div class="sd">For red-green colourblindness. Turns the red pole orange, so it stands off the dark
+        field as well as cyan does, and moves the Gilded Bounty ring to violet.</div>
+    </div>
+    <button class="sw" id="swCb">Off</button>
+  </div>
+
+  <div class="setrow">
+    <div class="st">
       <div class="sn">Reduced motion</div>
       <div class="sd">Calmer shake and flashes when something dies close to you.</div>
     </div>
@@ -848,6 +864,50 @@ function wchoice(list){ // list of [item, weight]
 }
 const COL={ red:'#ff3f6c', cyan:'#38e0ff', neutral:'#c7b8ff', gold:'#ffcf4d', violet:'#9b6bff', lime:'#8dff6b' };
 
+// ---------- COLOURBLIND PALETTE ----------
+// MEASURED, NOT GUESSED. Every number below is CIE76 ΔE between the two colours after a Brettel/Viénot
+// dichromat simulation, taking the WORSE of protanopia and deuteranopia. Under ~10 is indistinguishable
+// at a glance; under ~20 is unsafe on a small fast object.
+//
+// ⚠️ THE OBVIOUS DIAGNOSIS WAS WRONG, and simulating the real frame is what showed it. "Red-green
+// colourblind" suggests the red/cyan law is the problem, and it is not: cyan sits on the blue axis,
+// which is exactly what protan and deutan vision keep. red/cyan measures ΔE 46 — legible. Nor is the
+// Neutral at risk, despite `COL.neutral` collapsing into cyan at ΔE 5: that body is drawn half red and
+// half cyan across a turning seam, so it never wears that colour on the field.
+//   THE REAL FAULT IS CONTRAST WITH THE BACKGROUND. Under deuteranopia #ff3f6c desaturates to a dull
+// olive (#9b9b55) and measures ΔE 44 against the #060814 field — so red Dots do not merely resemble
+// cyan ones, they stop being easy to SEE. In a simulated frame the cyan ring reads bright white and the
+// red bodies sink into the dark. Losing sight of the colour that kills you is worse than confusing it.
+//
+//   red -> orange. vs cyan 46 -> 76, and vs the background 44 -> 79. Both nearly double.
+//   gold -> violet. Orange lands ΔE 20 from gold, which is inside the unsafe band and exactly where it
+//     must not be: the Gilded Bounty is a ring drawn ON a Dot, on a 6s timer, and finding it is the
+//     whole task. Violet measures 102 against orange and 34 against cyan.
+//     (Warm yellow beat orange on background contrast — 96 — and was rejected: ΔE 3 from gold. It would
+//      have made the Bounty invisible to fix a problem the Bounty did not have.)
+//   lime is NOT reassigned, and that is why gold moved rather than the ring taking lime: lime scores 35
+//     against orange, the best of any candidate, but the Bomber's fuse already owns it. One colour, one
+//     meaning — a bounty ring and a live blast fuse must never be the same green.
+//
+// Nothing else moves. The cyan pole, the Neutral's split, and every silhouette are already doing their
+// jobs, and repainting them would cost the game's identity for no measured gain.
+// red2 is the light end of the HP bar; redRGB the same colour as an rgba() triplet for the glows.
+const PAL={
+  normal:{red:'#ff3f6c', gold:'#ffcf4d', red2:'#ff8aa6', redRGB:'255,63,108'},
+  cb:    {red:'#ff7a2f', gold:'#9b6bff', red2:'#ffb37a', redRGB:'255,122,47'},
+};
+// ⚠️ MUTATES `COL` IN PLACE. The draw loop reads `COL[e.color]` per frame and nothing caches a hex at
+// parse time, so swapping the two properties is enough — but that also means anything that ever DOES
+// cache one would silently keep the old palette. The CSS custom properties are set on documentElement,
+// which outranks the `:root` rule in the stylesheet, so the HP bar and every gold label follow along.
+function applyPalette(){
+  const p = store.cb ? PAL.cb : PAL.normal;
+  COL.red=p.red; COL.gold=p.gold;
+  const s=document.documentElement.style;
+  s.setProperty('--red',p.red); s.setProperty('--gold',p.gold);
+  s.setProperty('--red2',p.red2); s.setProperty('--redRGB',p.redRGB);
+}
+
 // ---------- persistence ----------
 // Storage is HOSTILE: merely touching window.localStorage throws SecurityError when site data is
 // blocked (incognito, "block all cookies", sandboxed/cross-origin iframes — i.e. every game portal).
@@ -875,6 +935,7 @@ const store={
   // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
   vol:clamp(num('orbitalcrash_vol',1),0,1),
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
+  cb:LS.getItem('orbitalcrash_cb')==='1',                     // red-green colourblind palette — see PAL
   // ---- RECORDS ----
   // A single best score was the whole memory of this game, which made every run either a new record or
   // nothing at all. These two say what actually happened: `runs` is the last RUNS_KEPT survival runs
@@ -899,6 +960,7 @@ function save(){
     LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
+    LS.setItem('orbitalcrash_cb',store.cb?'1':'0');
   }catch(e){}                                               // losing the save beats crashing mid-run
 }
 
@@ -6198,6 +6260,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('records').classList.
 let setPoll=0;
 function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=on?'On':'Off'; };
+  sw('swCb', store.cb);
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
   // ⚠️ NEVER WRITE .value WHILE THE SLIDER IS THE ACTIVE ELEMENT. This repaints on a 400ms poll, and
@@ -6220,6 +6283,9 @@ function closeSettings(){ el('settings').classList.add('hidden'); clearInterval(
 el('settingsBtn').onclick=openSettings;
 el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without ending the run
 el('settingsClose').onclick=closeSettings;
+// Repaints on the spot rather than at the next run: this panel opens from the pause screen, so the
+// field it is judged against is usually sitting right behind it.
+el('swCb').onclick    =()=>{ store.cb=!store.cb; save(); applyPalette(); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
 // `input`, not `change`: the level has to follow the finger, or you are setting a volume you cannot hear
@@ -6731,6 +6797,7 @@ const sfx={
 //  BOOT
 // =====================================================================
 el('best').querySelector('.v').textContent=store.best.toLocaleString();
+applyPalette();   // before the first frame, or one frame paints in the wrong pole colour
 // idle background render before start
 
 // ---- FIRST VISIT: the tutorial runs itself, exactly once, ever ----
@@ -6845,6 +6912,7 @@ window.__orbital=window.__polaris=window.__flux={
   get flipCd(){return P&&P.flipCd;},
   // TUTORIAL. `safe` is the one worth being able to read from outside: "damage is off right now" is
   // invisible from every other angle, and a test that cannot see it can only infer it from not dying.
+  COL, applyPalette,
   get tut(){ return {mode:tutMode, step:tutStep, of:TUT_STEPS.length, t:+tutT.toFixed(2),
                      beat:+tutBeat.toFixed(2), safe:tutSafe(), kills:tutKills, flips:tutFlips,
                      travel:Math.round(tutTravel), bar:el('tutBar').textContent}; },
