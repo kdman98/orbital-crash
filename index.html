@@ -1322,16 +1322,25 @@ const ETYPE={
   //                 identical to four decimals across all seven species that share the bleed, because
   //                 the system is LINEAR in `seek`: friction fixes the shape of the turn and `seek`
   //                 scales it. So `seek` sets turn radius in direct proportion, and 0.16 put the species
-  //                 briefed "slow turn" in the TIGHTEST QUARTER of the field. The whole ladder, because
-  //                 two claims about its rank have already been written wrong from the same numbers:
-  //                     Planet 1.25 · Charger-spent 1.35 · Brute 1.44 · HARRIER-at-0.16 1.54 ·
-  //                     Bomber 1.63 · Neutral 1.92 · Drifter 2.12 · Charger-armed 3.72 · Dart 4.04
-  //                 Fourth-tightest of nine, not "tightest bar the Planet" — the Brute and a spent
-  //                 Charger sit in between, and a spent Charger IS a real cruising regime: `spent` drops
-  //                 it out of stepCharger into this loop for CHG_COOL, which its own note calls the
-  //                 majority of its life. 0.34 measures 3.27px: second-widest of the SEVEN on the shared
-  //                 basis, third of all nine states, because the armed Charger's 3.72 sits above it on a
-  //                 basis of its own. Quote the basis with the rank or the rank is not checkable.
+  //                 briefed "slow turn" in the TIGHTEST QUARTER of the field. EVERY measured state, in
+  //                 order, because THREE rank claims have now been written wrong off these same correct
+  //                 numbers — each one an ordinal read from a ladder that was missing a row:
+  //                     Planet 1.25 · Charger-spent 1.35 · Brute 1.44 · HARRIER-was 1.54 · Bomber 1.63
+  //                     Neutral 1.92 · Drifter 2.12 · HARRIER-now 3.27 · Charger-armed 3.72* · Dart 4.04
+  //                     (* the only row NOT on the 1.5653 basis — stepCharger's own 0.17/0.9, ratio 2.4341)
+  //                 Ten rows, nine of them on the shared basis. Read off it rather than recalling:
+  //                 0.16 was FOURTH-TIGHTEST OF TEN (not "tightest bar the Planet" — Brute and a spent
+  //                 Charger sit between), 0.34 is THIRD-WIDEST OF TEN and second of the nine on the
+  //                 shared basis (not "second behind the Dart" — the armed Charger is between).
+  //                 ⚠️ A SPENT CHARGER IS A REAL CRUISING REGIME and leaving it out is what produced two
+  //                 of the three: `spent` drops the Dot out of stepCharger into THIS loop for CHG_COOL,
+  //                 which its own note calls the majority of its life. Measuring it by forcing
+  //                 `cst='rest'` instead reads 0 — that Dot is still inside stepCharger bleeding at 0.84
+  //                 to a standstill, and mistaking it for cruise deletes the row all over again.
+  //                 ⚠️ THE RULE THE THREE HAVE IN COMMON: a rank is not inherited from the measurement it
+  //                 was computed over. It is a separate claim about every OTHER row — name the basis,
+  //                 list every state, re-sort, then read it off. Re-deriving the numbers is not
+  //                 re-sorting, and all three survived a re-derivation.
   //                 Either way the raise pays BOTH halves of the brief at once instead of trading one
   //                 for the other.
   //                 ⚠️ AND THE ARMED CHARGER IS NOT ON THIS BASIS — it `continue`s into `stepCharger`,
