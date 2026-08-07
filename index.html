@@ -412,8 +412,12 @@
   .cxs h3{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);margin:0 0 7px;}
   .cxs p{font-size:13px;line-height:1.65;color:#c3ccdb;margin:0 0 6px;}
   .cxs b{color:#fff;} .cxs .gold{color:var(--gold);} .cxs .vio{color:var(--violet);}
-  .cxa{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.7;color:#c3ccdb;}
-  .cxa .st{width:18px;flex:0 0 auto;} .cxa.got .st{color:var(--lime);} .cxa .rw{color:var(--dim);font-size:11.5px;}
+  /* ACHIEVEMENT ROWS. `.cxa` once, when these lived in the Codex — the name said `cx` and the rows are
+     in Records now, so it would have been a class claiming the wrong panel. `.acvL` carries the block's
+     bottom margin so the group clears the next `.rcH` the way `.rcTot` does. */
+  .acvL{margin:0 0 20px;}
+  .acv{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.7;color:#c3ccdb;}
+  .acv .st{width:18px;flex:0 0 auto;} .acv.got .st{color:var(--lime);} .acv .rw{color:var(--dim);font-size:11.5px;}
   /* The run's event logs — Overdrive rides and Anomaly fights — on both the pause and death panels.
      Four rows can stack here, so the bottom margin is tight on purpose: at 22px the death panel pushed
      Reforge off a short phone screen. Wrapping is what keeps a 12-chip row honest at 375px. */
@@ -582,7 +586,7 @@
   html[lang="ko"] .setrow .sd,
   html[lang="ko"] .rcEmpty,
   html[lang="ko"] #tutBar,
-  html[lang="ko"] .cxa{word-break:keep-all;}
+  html[lang="ko"] .acv{word-break:keep-all;}
   html[lang="ko"] .cxs p,
   html[lang="ko"] .setrow .sd{line-height:1.68;}
   /* The live counter, on its own line so a changing number never reflows the sentence above it —
@@ -1081,16 +1085,16 @@ const L={ en:{
   'hud.epoch':'EPOCH {r} · {name}',
   'hud.lab':'PATTERN LAB',  'hud.rush':'BOSS RUSH',
   'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> Change Anomaly',
-  'hud.bossHunt':'IT IS COMING FOR THE CORE · MOVE',
+  'hud.bossHunt':'IT IS GOING TO RAM YOU!',
   'ctl.steer':'<kbd>Mouse</kbd> Steer star',
   'ctl.flip':'<kbd>Space</kbd><kbd>Click</kbd> Reverse poles',
   'ctl.od':'<kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute',
-  'tc.drag':'<b>Drag</b> Steer &mdash; star rides above your finger',
+  'tc.drag':'<b>Drag</b> Steer &mdash; the star sits above your finger so it is never hidden',
   'tc.lean':'<b>Lean</b> Steer star',
   'tc.tap':'<b>Tap</b> Reverse poles',
   'tc.second':'<b>Second finger</b> Hold: Overdrive',
-  'btn.motion':'Reduced motion: calmer shake and flashes',
+  'btn.motion':'Reduces the shaking and flashing effects.',
   'tilt.stale':'Motion data stopped.',
   'tilt.ok':'TILT ✓  x {x}   y {y}   ({n} events)',
 
@@ -1113,7 +1117,7 @@ const L={ en:{
 
   // ---- settings ----
   'set.kicker':'Settings',  'set.h2':'Screen and sound',
-  'set.cb':'Colourblind palette',
+  'set.cb':'Colourblind correction',
   'set.cbD':'For red-green colourblindness. Turns the red pole orange, so it stands off the dark field as well as cyan does, and moves the Gilded Bounty ring to violet.',
   'set.motion':'Reduced motion',
   'set.motionD':'Calmer shake and flashes when something dies close to you.',
@@ -1139,25 +1143,25 @@ const L={ en:{
   // Korean the verb inflects into the clause that follows it (클릭해서 / 탭해서), so there is no seam to
   // slot a noun into. One key per device per language, and the sentence a player reads is written, not
   // assembled. Steps 2, 3 and 6 name no control and need no branch.
-  'tut.doneH':'Time to play a main game!',
+  'tut.doneH':'Shall we play the real game now?',
   'tut.play':'Enter the field',
   'tut.1.desktop':'Move the mouse',
   'tut.1.touch':'Drag',
   'tut.1.tilt':'Lean the phone',
-  'tut.1.ok':"That's how you move.",
+  'tut.1.ok':"That's how you move!",
   'tut.2':'Look at your current colour, and get close to the same-coloured dots!',
   'tut.2.note':'{n} / 4 gathered',
-  'tut.2.ok':"Now that's your sword and shield! Don't move too quick, you may lose it.",
+  'tut.2.ok':'Gathered Dots are sword and shield at once! Move too quickly and you may lose them, so take care.',
   'tut.3':'Make your ring contact with another colour.',
   'tut.3.note':'{n} / 5 cleared',
-  'tut.3.ok':'This is how you clear them out.',
+  'tut.3.ok':'That is how you clear Dots out.',
   'tut.4.desktop':'Click to flip your colour.',
   'tut.4.touch':'Tap to flip your colour.',
   'tut.4.tilt':'Tap to flip your colour.',
-  'tut.4.ok':'Time to focus — your enemies are now allies!',
-  'tut.5.desktop':'Hold Shift for Overdrive, a faster and wider sweep with your ring.',
-  'tut.5.touch':'Hold a second finger for Overdrive, a faster and wider sweep with your ring.',
-  'tut.5.tilt':'Hold a second finger for Overdrive, a faster and wider sweep with your ring.',
+  'tut.4.ok':'Focus — friend and foe have just swapped colours!',
+  'tut.5.desktop':'Hold Shift to enter Overdrive and sweep Dots in a wider, faster circle.',
+  'tut.5.touch':'Hold a second finger to enter Overdrive and sweep Dots in a wider, faster circle.',
+  'tut.5.tilt':'Hold a second finger to enter Overdrive and sweep Dots in a wider, faster circle.',
   'tut.5.noteOn':'burning',
   'tut.5.noteOff':"I'll fully charge the Overdrive!",
   'tut.5.ok':'Good work!',
