@@ -15,6 +15,11 @@
   const btn = document.getElementById('muteBtn');
   if (!g.store.mute && btn) btn.click();
 
+  // The first-visit tutorial auto-starts at boot, and this file is pasted AFTER boot — so index.html
+  // cannot gate it on anything we define. Set the flag here so a fresh profile does not run one
+  // underneath the suite. Harmless when already set, which is the usual case.
+  try { localStorage.setItem('orbitalcrash_tut', '1'); } catch (_) {}
+
   Object.defineProperty(window, 'innerWidth',  { value: 1280, configurable: true });
   Object.defineProperty(window, 'innerHeight', { value: 800,  configurable: true });
   window.dispatchEvent(new Event('resize'));

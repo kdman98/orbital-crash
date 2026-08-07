@@ -478,6 +478,24 @@
     color:var(--gold);background:rgba(8,12,26,.72);border:1px solid rgba(255,207,77,.28);
     border-radius:9px;padding:5px 11px;}
   #tiltDiag.ok{color:var(--dim);border-color:rgba(255,255,255,.12);}
+
+  /* THE TUTORIAL INSTRUCTION. Sized to be read at a glance mid-play, not to be studied: one sentence,
+     high contrast, and wide enough that none of the six wraps to three lines at 375px.
+       top:58px clears the Epoch/timer block (14-48) without reaching the middle of the field.
+     pointer-events stays off — it sits over live play and must never eat a tap. */
+  #tutBar{position:absolute;left:50%;top:58px;transform:translateX(-50%);z-index:6;pointer-events:none;
+    width:max-content;max-width:min(88vw,540px);text-align:center;font-size:13px;line-height:1.5;
+    color:var(--ink);background:rgba(8,12,26,.82);border:1px solid rgba(56,224,255,.3);
+    border-radius:11px;padding:9px 15px;}
+  /* On a wide screen the bar is centred in a viewport far wider than its 540px cap, so it never reaches
+     the Score/Best block in the top-left. On a phone 88vw IS most of the screen and it printed straight
+     across "BEST 5,165". Below the stat block instead — #best ends at ~100px — rather than narrower,
+     because a 200px-wide instruction wraps to four lines and stops being glanceable. */
+  @media (max-width:560px){ #tutBar{top:112px;} }
+  /* The step counter earns its place: six steps with no progress shown is a tutorial of unknown length,
+     which is the main reason people quit one. */
+  #tutBar .n{display:inline-block;margin-right:9px;color:var(--cyan);font-weight:800;font-size:11px;
+    letter-spacing:.12em;}
 </style>
 </head>
 <body>
@@ -516,6 +534,11 @@
     <div class="cr"><b>Tap</b> Reverse poles</div>
     <div class="cr"><b>Second finger</b> Hold: Overdrive</div>
   </div>
+  <!-- THE TUTORIAL'S ONE INSTRUCTION, in the HUD rather than in an overlay, because every step is
+       something you do WHILE reading it. An overlay would mean read-then-dismiss-then-try, which is the
+       shape that makes tutorials feel like paperwork. Top-centre, under the Epoch slot: the one band no
+       thumb covers in either orientation. -->
+  <div id="tutBar" class="hidden"></div>
   <div id="achv"></div>
   <!-- TILT STATE. Lives in the HUD rather than the menu because it has to be readable while a run is
        going wrong, not only before one starts. Two jobs: name the failure when tilt is dead (the game
@@ -534,16 +557,15 @@
     <div class="tfx"><i class="tburst"></i><i class="tshock"></i></div>
     <h1 class="logo"><span class="l1">ORBITAL</span><span class="l2">CRASH</span></h1>
   </div>
-  <!-- Five beats, one per line, and nothing else. Everything cut from here — scoring, Motes, rings as
-       armour, Overdrive, the Capacitor — is stated in full one button down under ❖ Codex, so the
-       menu no longer teaches the game twice. What survives is only what a player cannot infer: the
-       law, the fact that nothing comes to them, and the one input that is not steering. -->
-  <p class="tag">You are a wandering star, <b class="r">red</b> or <b class="c">cyan</b>.<br>
-    <b>Steer into</b> your own colour and it gathers into a ring.<br>
-    <b>Click</b> to flip.<br>
-    Then let the other colour crash into what you gathered.<br>
-    Never let it crash into <b>you</b>.</p>
+  <!-- THE FIVE-LINE DESCRIPTION IS GONE, AND IT IS NOT REPLACED BY SHORTER PROSE. Author: "instead of
+       tedious description under title, what about a tutorial?" — so the paragraph that told you the law
+       in five beats is now six steps you play, one button down. What is left here is one line: the one
+       thing that is genuinely not inferable from playing, and the only reason the rest makes sense.
+         It also fixes a bug the paragraph carried: it said "Click to flip" to every phone that ever
+       opened this page. The tutorial reads the actual control (see tutVerb). -->
+  <p class="tag">Opposite colours annihilate. Everything else follows from that.</p>
   <button class="btn" id="startBtn">Enter the field</button>
+  <button class="btn sm ghost" id="tutBtn" style="margin-top:11px;">How to play</button>
   <!-- No glyph prefixes and no em-dash explainers. Four ghost buttons each carrying a different
        decorative mark read as a menu assembled by something that had never seen a menu.
          They then sat as four IDENTICAL ghost pills in one column, which was the same mistake with the
@@ -585,6 +607,17 @@
   <div class="final" style="letter-spacing:.3em;margin-top:8px;">Codex</div>
   <h2 style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">How it works</h2>
   <div id="codexBody"></div>
+</div>
+
+<!-- TUTORIAL END CARD. One card for both endings, because they ARE one ending — the finale is over. Only
+     the sentence differs. Deliberately NOT the death screen: that one counts up a score, prints a
+     receipt and offers Reforge, none of which mean anything for a tutorial. -->
+<div class="overlay hidden" id="tutDone">
+  <div class="final" style="letter-spacing:.3em;">That is the whole game</div>
+  <h2 style="font-size:clamp(30px,7vw,54px);font-weight:900;margin:6px 0 12px;">Ready</h2>
+  <p class="tag" id="tutDoneLine" style="max-width:30em;"></p>
+  <button class="btn" id="tutPlayBtn">Enter the field</button>
+  <button class="btn sm ghost" id="tutMenuBtn" style="margin-top:12px;">Menu</button>
 </div>
 
 <!-- RECORDS. Built on open, same as the Codex, because it is a view of `store` and `store` changes every
@@ -2465,6 +2498,117 @@ function labFire(i){
   f();
   flash=0.3; flashCol=COL.violet; if(typeof sfx!=='undefined') sfx.lance();
 }
+// ---- TUTORIAL: the five-line description that used to sit under the title, made playable ----
+// Author: "instead of tedious description under title, what about a tutorial? give simple dots and
+// explain annihilation, overdrive, and throw all kind of enemies at tutorial finish."
+//
+// SIX STEPS, EACH ONE A SENTENCE AND A THING THAT MUST HAPPEN. Every `done` test reads state the game
+// already keeps — no step can be satisfied by waiting, and none of them can be failed either, which is
+// what lets steps 1-5 run with damage off without the tutorial becoming a place you get stuck.
+//   It rides on beginLabRun's trick: `phaseT=1e9` parks the wave clock so the Epoch machinery never
+// fires, and nothing arrives on the field except what a step asks for by name.
+//
+// ⚠️ STEPS 1-5 TAKE NO DAMAGE, THE FINALE DOES. Teaching someone the flip while a Dart is killing them
+// teaches nothing, and a finale that cannot hurt you does not communicate that any of this is dangerous.
+// `tutSafe()` is the whole of that rule and both damage paths call it.
+//   Per the author, the finale ENDS THE TUTORIAL WHETHER OR NOT YOU SURVIVE IT: dying and lasting the
+// full TUT_FINALE_S both land on the same card. It is not a test, it is the last thing it shows you.
+const TUT_FINALE_S=25;
+let tutStep=0, tutT=0, tutKills=0, tutFlips=0, tutTravel=0, tutOdT=0, tutPrev=null, tutSpawned=false;
+
+// True only while a TEACHING step is live. The finale is deliberately outside it, and so is every state
+// that is not the tutorial at all.
+function tutSafe(){ return tutMode && tutStep<TUT_STEPS.length-1; }
+
+// Copy differs by how you actually steer, which is three cases and not two: a desktop pointer, a finger,
+// and the native app's tilt. `touchSteers` is false on tilt and true on a web phone, so the coarse test
+// has to come first and then split. Never a bare "click" — that was the menu's own bug on touch.
+const tutVerb=()=>{
+  const coarse=matchMedia('(pointer: coarse)').matches;
+  if(!coarse) return {move:'Move the mouse', act:'Click', hold:'Hold Shift'};
+  return {move: touchSteers?'Drag':'Lean the phone', act:'Tap', hold:'Hold a second finger'};
+};
+const TUT_STEPS=[
+  { say:()=>`${tutVerb().move} to steer your star.`,
+    setup:()=>{},
+    done:()=>tutTravel>400 },
+  { say:()=>'This is your colour. Steer into it — it gathers into rings.',
+    setup:()=>{ for(let i=0;i<7;i++) tutDrop(P.polarity); },
+    done:()=>tutRingN()>=4 },
+  { say:()=>'The other colour dies on those rings. Sweep it up.',
+    setup:()=>{ for(let i=0;i<6;i++) tutDrop(P.polarity==='red'?'cyan':'red'); },
+    done:()=>tutKills>=5 },
+  { say:()=>`${tutVerb().act} to reverse your poles — what you gathered turns hostile, and is flung clear.`,
+    setup:()=>{ for(let i=0;i<5;i++) tutDrop(P.polarity); },
+    done:()=>tutFlips>=1 },
+  { say:()=>`${tutVerb().hold} for Overdrive. Your rings swing wide and sweep a much bigger circle.`,
+    setup:()=>{ P.charge=1; for(let i=0;i<8;i++) tutDrop(Math.random()<0.5?'red':'cyan'); },
+    done:()=>tutOdT>=0.5 },
+  { say:()=>'Now everything at once. This part can kill you — that is the game.',
+    setup:()=>{ intensityTarget=0.9; tutRoster=0; tutNextT=0; },
+    done:()=>tutT>=TUT_FINALE_S },
+];
+// EVERY SPECIES, IN ORDER, BY NAME. The wave clock is parked at phaseT=1e9 so nothing arrives on its
+// own — which is the point of the teaching steps and means the finale has to do its own spawning.
+//   Ordered rather than random, and it is the roster's own difficulty order: a player who has met six
+// Dots in their life should meet the Drifter before the Dart. Cycling the list also guarantees all eight
+// actually appear, where a random draw over 25s would leave one or two out perhaps a third of the time.
+const TUT_ROSTER=['drift','bomber','heavy','neutral','charger','planet','harrier','fast'];
+let tutRoster=0, tutNextT=0;
+const TUT_SPAWN_GAP=1.15;
+// A Dot placed at a readable distance in a random bearing — far enough that you watch it come to you,
+// near enough that a teaching step does not become a waiting step.
+function tutDrop(col){
+  const a=rand(0,TAU), d=rand(230,330);
+  spawnEnemy('drift', col, clamp(P.x+Math.cos(a)*d,40,W-40), clamp(P.y+Math.sin(a)*d,40,H-40));
+}
+function tutRingN(){ let n=0; for(const e of enemies) if(e.ring && !e.dead && !e.queued) n++; return n; }
+function beginTutRun(){
+  act=1; wavePhase='calm'; phaseT=1e9; boss=null; bossTime=0; intensityTarget=0.2;
+  tutStep=0; tutT=0; tutKills=0; tutFlips=0; tutTravel=0; tutOdT=0; tutPrev=null; tutSpawned=false;
+  el('tutBar').classList.remove('hidden');
+  tutPaint();
+}
+function tutPaint(){ el('tutBar').innerHTML=
+  `<span class="n">${tutStep+1}/${TUT_STEPS.length}</span>${TUT_STEPS[tutStep].say()}`; }
+function stepTutorial(dt){
+  if(!tutMode || state!=='play') return;
+  const S=TUT_STEPS[tutStep];
+  // The setup runs on the first FRAME of a step rather than at the moment it is entered, so P and the
+  // field are already whatever the previous step left behind.
+  if(!tutSpawned){ tutSpawned=true; S.setup(); }
+  tutT+=dt;
+  if(tutPrev) tutTravel+=Math.hypot(P.x-tutPrev.x,P.y-tutPrev.y);
+  tutPrev={x:P.x,y:P.y};
+  if(odOn) tutOdT+=dt;
+  // The finale feeds itself, one species at a time, because nothing else will: see TUT_ROSTER.
+  if(tutStep===TUT_STEPS.length-1){
+    tutNextT-=dt;
+    if(tutNextT<=0){
+      tutNextT=TUT_SPAWN_GAP;
+      spawnAtEdge(TUT_ROSTER[tutRoster%TUT_ROSTER.length]);
+      tutRoster++;
+    }
+  }
+  // The last step is the finale and it has nowhere to advance to — it ends the tutorial instead.
+  if(!S.done()) return;
+  if(tutStep>=TUT_STEPS.length-1){ tutFinish(true); return; }
+  tutStep++; tutT=0; tutSpawned=false; tutKills=0; tutFlips=0; tutTravel=0; tutOdT=0;
+  flash=0.22; flashCol=COL.cyan; sfx.level();
+  tutPaint();
+}
+// One exit for both endings, because they are the same ending: the finale is over. `survived` only
+// changes the sentence on the card.
+function tutFinish(survived){
+  tutMode=false; state='menu';
+  el('tutBar').classList.add('hidden');
+  el('menu').classList.add('hidden'); el('dead').classList.add('hidden');
+  el('tutDoneLine').textContent = survived
+    ? 'You lasted the whole thing. The real field does not stop at twenty-five seconds.'
+    : 'That is what it costs. Nothing carries over — the next run starts exactly where this one did.';
+  el('tutDone').classList.remove('hidden');
+  markTutSeen();
+}
 function testNext(){ testIdx=(testIdx+1)%TEST_ORDER.length; boss=null; lances.length=0; bossTime=0; spawnBoss(TEST_ORDER[testIdx]); }
 function testPick(i){                          // 1-3 → jump to a specific kind
   if(!testMode || state!=='play') return;
@@ -2827,6 +2971,7 @@ const MSLNAME={volley:'Anomaly Volley', seeker:'Anomaly Seeker', ring:'Anomaly R
 function coreHit(dmg,src){
   if(!P || state!=='play') return false;
   if(P.iframe>0) return false;
+  if(tutSafe()) return false;   // teaching steps take no damage — see stepTutorial
   const d=dmg*P.armor;
   P.hp-=d; P.iframe=IFRAME; P.hurtT=0;
   if(boss && anomLog.length) anomLog[anomLog.length-1]+=d;   // this fight's tab — mines and missiles land here
@@ -3191,6 +3336,7 @@ function step(){
 
   stepTilt(dt);       // adds velocity straight to P; stepPlayer's clamp and P.dx bookkeeping then cover it
   stepPlayer(dt);
+  stepTutorial(dt);   // inert unless tutMode; reads P after the move, which is what the travel test wants
 
   stepEnemyForces(dt);
 
@@ -3819,8 +3965,10 @@ function stepPlayerContact(){
       // same-colour enemies are repelled allies — they pass through the core harmlessly (no UI cue).
       if(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity) continue;
       // opposite colour was attracted — this is the risk.
-      if(P.iframe<=0){
+      if(P.iframe<=0 && !tutSafe()){
         // (No shield branch — see coreHit. Nothing in the game can turn a hit aside now.)
+        //   `tutSafe()` rather than a big iframe: pinning P.iframe would make the star blink for the
+        // whole of the tutorial, because the hurt flash keys off exactly that value.
         const dmg=e.dmg*P.armor;
         P.hp-=dmg; P.iframe=IFRAME; P.hurtT=0;
         if(boss && anomLog.length) anomLog[anomLog.length-1]+=dmg;  // this fight's tab — the Anomaly's own 30-damage body lands here, and so does every Dot that punishes you while you are busy with it
@@ -3992,6 +4140,7 @@ function onKill(e){
   // Anomaly's point-blank fire.
   const gain=Math.round(KILL_SCORE*P.scoreMult);
   score+=gain;
+  tutKills++;   // the tutorial's "you have annihilated five things" test — score cannot serve, since Motes and grazes pay into it too
   // Flux Motes: annihilations shed collectible loot carrying the Dot's colour.
   const moteCap=40, moteLife=()=>rand(4,8);
   if(e.color!=='neutral' && motes.length<moteCap){
@@ -4197,6 +4346,7 @@ function flip(){
   const hc=clamp(P.holdT/P.holdMax,0,1);  // polarity mastery: how long you held before flipping
   P.polarity = P.polarity==='cyan'?'red':'cyan';
   P.flipCd=0.28; P.holdT=0;         // holding a polarity ends on flip
+  tutFlips++;                       // the tutorial's flip step; inert outside it
   flash=0.05+hc*0.13; flashCol=COL[P.polarity]; // flipping is constant — a full-screen wash every flip was the #1 dizziness source; feedback lives in the ring + core colour now
   sfx.flip(hc);
   // THE HUNGRY FLIP — the one answer to a closing sky. Hold a pole to LOAD your rings, then reverse:
@@ -4384,6 +4534,10 @@ let chargeReady=false;   // has the OVERDRIVE READY chime already fired for this
 let deathRevealT=0, deadCountT=0;
 function die(){
   if(state==='dead')return; // guard against double-entry
+  // DYING IN THE TUTORIAL IS AN ENDING, NOT A DEATH SCREEN. It routes before `state='dead'` so none of
+  // the ceremony below runs — no score till, no receipt, no Reforge button offering to replay a
+  // tutorial. Author: it ends either way, so surviving and dying meet at the same card.
+  if(tutMode){ endOverdrive(); killQ.length=0; tutFinish(false); return; }
   state='dead';
   killQ.length=0;  // cancel any queued kills
   endOverdrive();  // stop the drain AND bank the ride into the log — a dead star does not burn Capacitor,
@@ -5693,7 +5847,12 @@ function showRunLogs(pfx,live){
 function startRun(mode){
   audioInit();
   labMode = (mode==='lab');
-  testMode = !!mode && !labMode; lastWasTest=testMode;
+  tutMode = (mode==='tut');
+  // ⚠️ testMode is "some mode that is not survival and not the Lab", so a third string would have fallen
+  // into it silently and run the tutorial as Boss Rush. Both exclusions, explicitly.
+  testMode = !!mode && !labMode && !tutMode; lastWasTest=testMode;
+  el('tutBar').classList.add('hidden'); el('tutDone').classList.add('hidden');
+  markTutSeen();   // ANY run counts as having met the game, or quitting the tutorial re-arms it forever
   enemies=[];parts=[];texts=[];killQ=[];
   // ⚠️ A warn holds a PENDING SPAWN, so leaving one alive across a reset would drop a body into the next
   // run out of nowhere — the exact thing the mark exists to prevent, wearing its own sign.
@@ -5720,7 +5879,7 @@ function startRun(mode){
   el('bestiary').classList.add('hidden'); el('codex').classList.add('hidden'); el('records').classList.add('hidden'); // a run must never start hidden under an info overlay
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
   state='play'; lastT=performance.now(); acc=0;
-  if(labMode) beginLabRun(); else if(testMode) beginTestRun(); else beginRun();
+  if(labMode) beginLabRun(); else if(tutMode) beginTutRun(); else if(testMode) beginTestRun(); else beginRun();
 }
 function toMenu(){
   state='menu';
@@ -5747,6 +5906,9 @@ function resumeGame(){
 function togglePause(){ if(state==='play')pauseGame(); else if(state==='paused')resumeGame(); }
 
 el('startBtn').onclick=()=>startRun(false);
+el('tutBtn').onclick=()=>startRun('tut');              // ✦ How to play — the six steps
+el('tutPlayBtn').onclick=()=>{ el('tutDone').classList.add('hidden'); startRun(false); };
+el('tutMenuBtn').onclick=()=>{ el('tutDone').classList.add('hidden'); toMenu(); };
 el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anomalies back to back
 el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-6 to fire a shape
 el('againBtn').onclick=()=>{ startRun(lastWasTest); }; // Reforge = instant retry, in the same mode you were in
@@ -6471,6 +6633,29 @@ const sfx={
 el('best').querySelector('.v').textContent=store.best.toLocaleString();
 // idle background render before start
 
+// ---- FIRST VISIT: the tutorial runs itself, exactly once, ever ----
+// A public web link gets opened by people with no idea what this is, and a menu button is something you
+// have to decide to press. The flag is set the moment ANY run starts — including a survival run by
+// someone who quit the tutorial — so abandoning it cannot re-arm it on the next reload.
+function tutSeen(){ try{ return LS.getItem('orbitalcrash_tut')==='1'; }catch(_){ return true; } }
+function markTutSeen(){ try{ LS.setItem('orbitalcrash_tut','1'); }catch(_){} }
+// ⚠️ NEVER UNDER TEST, and this is the part worth being careful about. The harnesses drive startRun()
+// themselves and fingerprint what comes out; a tutorial launching itself at boot would drop a scripted
+// pilot into a mode with the wave clock parked and damage OFF, and every tape and every fingerprint
+// would be measuring that instead. It would not error — it would quietly measure the wrong game.
+//   `window.__H` is the real gate and it works because of WHEN it exists: .harness/preload.js is
+// injected ahead of this script (boot.js rewrites index.html into an iframe precisely to get in first),
+// so by the time this line runs the harness has already announced itself. `?tut=0` is the manual escape
+// for anyone debugging the menu on a fresh profile.
+//   ⚠️ `.oracle.js` CANNOT BE GATED FROM HERE and do not add a check that pretends otherwise. It is
+// pasted into the console AFTER load, so nothing it defines exists yet at this line. It is safe for two
+// separate reasons instead: markTutSeen() fires on the boot run, so a profile can only ever see this
+// once; and the oracle calls start() per seed, which resets tutMode to false before it fingerprints
+// anything. It also sets the flag itself now, so a fresh profile is covered too.
+const tutSuppressed = !!window.__H || /[?&]tut=0/.test(location.search)
+  || location.pathname.indexOf('/.harness/')>=0;
+if(!tutSeen() && !tutSuppressed) startRun('tut');
+
 // --- test seam: drive the fixed-step sim deterministically (rAF-independent) ---
 window.__orbital=window.__polaris=window.__flux={
   start:startRun,
@@ -6558,6 +6743,10 @@ window.__orbital=window.__polaris=window.__flux={
   get act(){return act;}, set act(v){act=v;},
   openCodex, queueKill,
   get flipCd(){return P&&P.flipCd;},
+  // TUTORIAL. `safe` is the one worth being able to read from outside: "damage is off right now" is
+  // invisible from every other angle, and a test that cannot see it can only infer it from not dying.
+  get tut(){ return {mode:tutMode, step:tutStep, of:TUT_STEPS.length, t:+tutT.toFixed(2),
+                     safe:tutSafe(), kills:tutKills, flips:tutFlips, travel:Math.round(tutTravel)}; },
 };
 
 // =====================================================================
