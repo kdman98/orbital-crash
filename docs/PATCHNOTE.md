@@ -14,6 +14,38 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-07
 
+### The four "irreplaceable" Codex facts go, and one of them was false `e7444d0`
+Author: *"three of them you know from tutorial, and 3 — that is false anyway? remove them."* Both halves
+land, and the second is a defect rather than a wording preference.
+
+⚠️ **"It will not touch an Anomaly. Nothing you press will." is false.** `flip()` sets `vdmg=1` on every
+ringed Dot when a boss is on the field, and `flip()` is called from tap, from the tap-vs-drag branch and
+from keydown. **Pressing the flip button is one of the three erosion channels** — which the Codex states
+itself two sections down. The defensible version is the Anomaly section's own, *"there is no button
+anywhere that does it **for you**"*, which is a claim about automation.
+
+⚠️ **RETRACTED — "a fact about absence can never be demonstrated"** (`6753f28`, endorsed by both sessions).
+**Absence is demonstrable by contrast, and the tutorial already supplies it.** Step 5 has you hold
+Overdrive and watch the Capacitor drain, then release — that *is* "drains while held, can be spent
+part-way". Steps 2 and 3 put same-colour and opposite-colour on screen back to back, so you watch one come
+to you and the other chase you — that *is* "you have no hold over the opposite colour". Two of the four
+were being taught the whole time the rule said they could not be.
+
+**The method failure is the part worth keeping.** This pass verified staging parity, key parity, text
+overflow, the oracle fingerprint and a misleading comment in the force loop — and nobody checked whether
+the four sentences being argued *for* were true. `LIKE_GRAV` had been traced through `stepEnemyForces` an
+hour earlier by the same session that then quoted *"nothing you press will"* without opening `flip()`.
+**Scrutiny went to what was doubted, not to what was being defended.**
+
+English 649 → 636 → **559** words; Korean 1655 → **1457** characters. *Capacitor and Overdrive* drops to
+two paragraphs in both languages.
+
+⚠️ **The first verification run was a stale build and looked like a failed edit.** The server on 8777 had
+died; `navigate` still reported success, the page rendered from cache, and every removed string came back
+*present* with the word count unchanged at 636. `curl` returning an empty body is what settled it. Asserting
+the removed strings absent from the **served** HTML — before taking any measurement — is the check that
+makes the numbers mean anything.
+
 ### Achievements move to Records, and the Codex trims by paragraph `80f59b8`
 Author: *"move achievements into records and trim the codex."* Records is headed **"What you have done"**
 and the achievement list was a second answer to that question one menu entry away — two entries for one
