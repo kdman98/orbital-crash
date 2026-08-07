@@ -1805,8 +1805,19 @@ diff -q <(codeonly "$h~1") <(codeonly "$h") >/dev/null && echo COMMENT-ONLY || e
 not whole-line comments still reports a code line that changed *only by losing its trailing comment* —
 which is exactly what `ae754fd` is, and `ae754fd` was one of the four the check was meant to excuse.
 Dropping the emptied lines matters too, or every stripped comment leaves a blank behind and the files
-differ by line count. Verified against all seven commits in that range. The `//`-in-a-string hazard is
-nil in this file — its one `http://` is itself inside a comment — but the technique is not general.
+differ by line count.
+
+⚠️ **And agreeing with you on seven known commits is not evidence it works.** The dangerous direction is
+a false COMMENT-ONLY, because that is the one that silently drops an entry — and every commit whose
+answer you already know tests the safe direction. **Feed it something known dirty.** Two synthetic edits
+settled it: a constant (`RING_GRIND_DMG` 1 → 2) and a player-facing string (`'rc.achv'` → `'Feats'`),
+both correctly reported SUBSTANTIVE. That is this file's own rule about sweeps turned on the sweep — *if
+it tells you a thing is clean, prove it can tell you when it is not* — and it is the only evidence that
+separates a working detector from one that happens to share your intuition.
+
+The `//`-in-a-string hazard is nil **in this file**: all four `://` occurrences (line 30, 6937, 6938,
+7375) sit inside comments, none in code. The technique is not general, and that count is a property of
+this file rather than of the method.
 
 ⚠️ **A user-facing string built by `+` is an English-only string, and it fails silently.** English is SVO
 with no case marking, so `'Lost to '+name+' · Epoch '+n` reads fine; Korean puts the epoch first, gives
