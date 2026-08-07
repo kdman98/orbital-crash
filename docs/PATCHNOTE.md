@@ -14,6 +14,104 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-07
 
+### Achievements move to Records, and the Codex trims by paragraph `80f59b8`
+Author: *"move achievements into records and trim the codex."* Records is headed **"What you have done"**
+and the achievement list was a second answer to that question one menu entry away — two entries for one
+question, which is the fault the `.doors`/`.refs` grouping exists to prevent. The rows were already
+detachable (`{achRows}` was a template variable), so the builder moved to `openRecords` whole. `.cxa`
+becomes `.acv` and `codex.secret*` becomes `rc.secret*`, because both names claimed the wrong panel.
+
+⚠️ **The trim is by paragraph, not by section, and the section-level version was my recommendation.** I
+had argued to the author that the tutorial made *The charge law* and *Capacitor and Overdrive* redundant.
+Read at HEAD that is false: **the sections are mixed, not redundant.** Cutting them whole would have
+deleted four things six tutorial steps never reach — that nothing carries between runs, that Overdrive
+drains while held and can be spent part-way, that it cannot touch an Anomaly, and that you have no hold
+over the opposite colour at all. What went instead is exactly what steps 2, 3 and 5 *demonstrate*: the
+charge law 3 paragraphs → 2, Overdrive 4 → 3. In English 649 → 636 words, small on purpose — the page's
+real reduction is the five achievement rows leaving. A bigger prose cut means removing things the tutorial
+does **not** cover, which is a different decision.
+
+⚠️ **`rc.wipe` does not clear `store.achv`.** `onWipe` resets runs, totals and best and never touched the
+feats — right, since a feat is not a record — but the list now sits on the same screen as that button.
+
+Key arithmetic: **160 → 161 per language**, being +3 new `rc.*` and −2 retired `codex.*`, with `L.en` and
+`L.ko` at 161 each and zero missing either way. Verified in both languages at 1000×1000 and 375×812: zero
+text overflow, no horizontal page scroll, no console errors, and the rows compute `display:flex` — which
+is the check that proves `.acv` binds rather than being a class with no rule behind it.
+
+⚠️ **The first overflow reading was fiction**, and `0fe12c5`'s guard is what caught it: 112.85px of
+"overflow" against an 18px-wide container, because the Browser pane's viewport had collapsed to 0×0 and
+`94vw` resolved to nothing. Asserting `innerWidth` non-zero *before* measuring is not optional here.
+
+### English follows the Korean, because the Korean is the one that was authored `a2fb7a2`
+The author rewrote the copy in Korean and the English stayed as it was, so the two languages **stated
+different things on fourteen strings**. English is the stale half, so it moved: all six flagged Bestiary
+cards plus the Pulsar and the Brute, and in the game the Anomaly's hunt line, the touch legend, the
+colourblind row and five tutorial lines.
+
+**Register differences were kept, content differences were not** — *"Enter the field"* against 게임 시작,
+*"Reforge"* against 재시도, *"How to play"* against 튜토리얼 are each language's own voice for one meaning,
+and flattening the English into a literal echo would lose the voice without fixing anything.
+
+The Brute's card **loses a sharper claim on purpose**: the English had said *"the one Dot that walks out of
+a Bomber blast"*, which is true and measurable (`BOMB_DMG` 2 against heavy's hp 3), but the author's
+reference reads 가끔 광역 공격을 버팁니다 and the English now matches that. The code still says it survives
+every blast, not sometimes.
+
+Side effect worth recording: the English tutorial lines got longer, so **the Korean/English pacing gap
+closed on its own** — +16.8% back to +12.7%, inside the ±15% band it had left. Each language now has
+exactly one line at its ceiling.
+
+### The Bestiary copy pass, and the Brute's card names the blast it survives `02c183f`
+Author revisions across every card, and the register moves with them: the Bestiary goes from 한다체 to
+합니다체. The author rewrote eight tags; leaving the other four in the old register beside them would have
+put **two voices in adjacent cards of one grid**.
+
+**Two renames travel into the game, not just the card** — 무극 → 중립 입자, and 행성 → 불안정한 행성 /
+Unstable Planet. A Dot named one thing on the death receipt and another in the Bestiary is a card a player
+cannot connect to the run that sent them looking for it. Measured at 375px: the Records *사인* column holds
+청록색 불안정한 행성 on one line with 97.6px to spare in a 194px cell.
+
+⚠️ **EN and KO now diverge on six cards** — the author gave Korean only for bomber, charger, neutral,
+planet, boss and sentinel. The English on those is left as written rather than guessed at. (`a2fb7a2`
+above is the pass that closed this.)
+
+### The author's copy pass: 변이체, 콤보, 청록색, and eight Dot names that read as Korean `466efcd`
+Four terminology sweeps, running through the Codex prose and the Bestiary as well as the tables:
+변칙체 → **변이체**, 연쇄 → **콤보**, 시안 → **청록색**, 빨강 → **빨간색** (not 빨강색 — 빨강 and 빨간색
+are the standard forms and 빨강색 is not one of them). 연쇄 반응 keeps 연쇄, because that name *is* the
+chain-reaction pun; only the term moves.
+
+**Four of the eight Dot names ended in -체** — 폭격체·돌격체·중성체·추격체 — which is the stiffest way to
+name a creature in Korean and made the roster read as one part of speech repeated eight times. Concrete
+nouns instead, each naming the thing's one property the way the English does: 떠돌이, 화살, 덩치, 폭탄,
+쐐기, 무극, 위성. 행성 / 위성 is a pair the English does not have and earns its place — the Harrier is too
+fast to turn, so your field cannot pull it in; it catches it into a long orbit and it circles you until it
+runs out of speed. **A satellite is what it becomes, and it names the one property a still image cannot
+show.**
+
+⚠️ **The read-time ceiling is now per-language, and that is a consequence rather than a tidy-up.** The new
+copy is longer, and at the old 5.2s cap the two longest lines read ~14% faster per syllable than every
+other step — the flat-floor fault of `9beb77b` wearing a hat. 6.0s for Korean uncaps `tut.2.ok` and still
+bounds `tut.5`.
+
+### The language switch moves to the menu, where you can find it without reading `c148c26`
+**A player who cannot read the menu cannot be asked to work out which of four ghost links says
+"Settings".** That is the one control whose discoverability must not depend on reading the language it
+exists to get you out of. It shows **both** languages rather than the current one: a single pill reading
+*"English"* tells a Korean speaker nothing about what pressing it does, while two labels each in their own
+script need no reading at all. Neither string goes through `T()`.
+
+⚠️ **The obvious home was the HUD's corner cluster beside ♪ and ✺, and it is a trap.** Those buttons
+*render* under the menu and are dead to a click — the overlay is z-index 10 over the HUD's 5 — so in a
+screenshot they look perfectly available. Caught by hit-testing `elementFromPoint` against the button,
+not by looking.
+
+The Settings row stays, because the panel also opens from **pause**, which is the only route to a language
+change mid-run. Two entry points, one setter. 플레이 환경 also becomes 보이고 들리는 방식: nothing in that
+panel changes how the game *plays* — language, colour, shake and volume are all how it reaches your eyes
+and ears, and the Korean was inheriting a claim the loose English headline got away with.
+
 ### The Bestiary follows the language `cbae402`
 `bestiary.html` is a separate document sharing no code with the game, so it carries **its own table and
 its own reader**, and the language travels **in the URL** — an iframe cannot reliably reach the opener's
@@ -31,7 +129,8 @@ console.
 
 IDs are namespaced by kind because `drift` is both a Dot type and a Pattern key — 드리프터 for the
 creature, 표류 for the shape. That is a distinction the English does not make while showing both on one
-screen. 19 cards, 19 canvases, zero overflow at 375px and at desktop.
+screen. (The creature is **떠돌이** from `466efcd` above; the split is the durable part, the transliteration
+was not.) 19 cards, 19 canvases, zero overflow at 375px and at desktop.
 
 ### The game speaks Korean, and five things worked only because it spoke English `70f4431` `9b7608e` `0fe12c5`
 The layer is `L`, `T(key,vars)`, `applyLang()`, `data-t` on the markup, a Settings row, and auto-detect

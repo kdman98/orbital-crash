@@ -1568,8 +1568,12 @@ one-line beats, then one, then none — `.tag` was deleted outright once the tut
 teaching. Two of its three rules were about that paragraph. **Two are about the game, and they bind every
 surface that describes it** — tutorial steps, Codex, Bestiary, both languages:
 
-- **`steer into`, never `pull`.** The star exerts no pull on another charge, ever. Copy saying matter comes
-  to you teaches the most expensive misconception in the game.
+- **`steer into`, never `pull`.** The star exerts no pull on the **opposite** charge, ever. Copy saying
+  the matter that kills you comes to you teaches the most expensive misconception in the game.
+  ⚠️ **Read this against the Field section above, not alone.** It said *"no pull on another charge"*,
+  which invites the opposite reading of the Codex's *"Your own colour is drawn to you"* — and that line
+  is **correct**: like-charge leans in under core gravity (`LIKE_GRAV`), opposite-charge gets none, ever.
+  A rule compressed to a slogan can end up forbidding the shipped copy it was written to protect.
 - **Never write a line that forbids steering into same-colour matter.** The deleted beat carried the word
   `opposite` for exactly this reason: without it, that line forbade the thing the next line required.
   Same-colour matter is harmless and steering into it is the *only* way to build rings. The tutorial's
@@ -1637,6 +1641,28 @@ fault the deleted menu paragraph carried for months. See **Language** below for 
 *case* rather than a phrase to slot in. **The end card does not grade you**: it carried a sentence per
 ending, which made marking your work the last thing the tutorial did.
 
+### One question per surface
+
+Each screen owns a question, and a second screen answering the same one is the defect — it was four
+identical ghost pills before the `.doors`/`.refs` grouping, and it was the achievement list sitting in
+the Codex while Records was headed *"What you have done"*.
+
+| Surface | The question it owns |
+|---|---|
+| **Tutorial** | how do I do this? — shown by playing, never by prose |
+| **Codex** | what could the six steps not show me? |
+| **Bestiary** | what is that thing? |
+| **Records** | what have I done? — the run table, the lifetime tally **and the achievements** |
+| **Settings** | how does it reach my eyes and ears? |
+
+⚠️ **The Codex trims by PARAGRAPH, never by section, and the sections are why.** *The charge law* and
+*Capacitor and Overdrive* both look redundant once the tutorial teaches the rings and the Overdrive hold —
+and cutting either whole deletes what six steps cannot reach: that nothing carries between runs, that
+Overdrive drains while held and can be spent part-way, that it cannot touch an Anomaly, that you have no
+hold over the opposite colour. **A section here is a mixture of taught and untaught, not a unit.** The
+test for any candidate paragraph is whether a tutorial step *demonstrates* it, not whether its heading
+sounds like something the tutorial covered.
+
 ---
 
 ## Language
@@ -1666,9 +1692,13 @@ Two things are deliberate rather than tidy:
   a `{achRows}` placeholder, not one key per sentence. Shredding 649 words of authored prose into thirty
   numbered keys makes it unwritable in English and untranslatable in Korean, because neither can be read
   in order any more.
-- **드리프터 and 표류 split a name the English shares.** `Drifter` the Dot and `Drift` the Epoch are the
+- **떠돌이 and 표류 split a name the English shares.** `Drifter` the Dot and `Drift` the Epoch are the
   same word in English and appear together — "EPOCH I · DRIFT" runs while Drifters are in the field.
-  The Korean transliterates the creature and translates the Epoch. Do not tidy it into 표류체.
+  Korean gives the creature and the era two different words. Do not tidy them back into one.
+  ⚠️ **The rule is the split, not the method, and the method has already changed once.** This read
+  *"transliterates the creature and translates the Epoch"* against 드리프터 until `466efcd` renamed the
+  roster off its -체 endings; 떠돌이 is a native word, so that sentence described a technique the file no
+  longer uses. A rule stated as its implementation goes stale the first time the implementation moves.
 
 `bestiary.html` shares no code and carries its own table, reading `?lang=` from its own URL. The parent
 appends it; an iframe cannot reliably reach the opener's `localStorage` under storage partitioning.
@@ -1696,7 +1726,7 @@ language's frame. The same fault hid in the tutorial, where `tutVerb()` slotted 
 shared sentence — in Korean the verb inflects into the clause that follows it (클릭해서/탭해서) and there
 is no seam to put a noun in. `tutDev()` returns the *case* now, and the three device sentences are
 written per language rather than assembled. **The colour word is the clearest instance:** English
-appends it ("Brute (cyan)"), Korean puts it in front (시안 거구), from identical data.
+appends it ("Brute (cyan)"), Korean puts it in front (청록색 덩치), from identical data.
 
 ⚠️ **`readS()` measures a different unit per language, and word-counting Korean would silently undo the
 fix it exists for.** It sets every tutorial step's dwell time. A Korean 어절 carries roughly an English
