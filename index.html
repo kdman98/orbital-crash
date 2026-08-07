@@ -25,7 +25,13 @@
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Arial,sans-serif;
+    /* Korean rides the SYSTEM stack and nothing else. A webfont would buy consistent metrics and cost
+       the property the whole project rests on — "no build step, no runtime dependencies, no network" is
+       what makes file://, the service worker and the Capacitor shell all work. -apple-system already
+       resolves Hangul on Apple platforms; the three names after it are the Windows, Android and
+       fallback answers, because "Segoe UI" has no Hangul at all and would fall back per-glyph. */
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Arial,
+                "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
     -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;}
   #game{position:fixed;inset:0;display:block;width:100%;height:100%;cursor:crosshair;}
 
@@ -323,6 +329,11 @@
     text-transform:uppercase;background:rgba(255,255,255,.07);color:var(--dim);
     box-shadow:0 0 0 1px rgba(255,255,255,.14) inset;transition:background .12s ease,color .12s ease;}
   .sw.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;box-shadow:none;}
+  /* The language pill carries a WORD, not On/Off. Measured on this machine's UI font at 11px/800/.1em:
+     "ENGLISH" is 55.6px and "한국어" 30.5px, so both DO clear the standard 64px pill — by 4.2px a side
+     for the English one, which is tight enough to clip on a platform whose UI font runs wider (Segoe UI
+     and Roboto are not measurable from here). 80px is that headroom and nothing more. */
+  .sw.wide{width:80px;letter-spacing:.06em;}
   /* The live level, sitting with the row's NAME rather than under the slider. A number that floats
      beside the handle has to be chased with your eye while you drag; one anchored to the label does not
      move, and the thing you are reading while dragging is a value, not a position. */
@@ -535,22 +546,22 @@
 
 <!-- HUD -->
 <div id="hud">
-  <div class="stat" id="score"><div class="k">Score</div><div class="v">0</div></div>
-  <div class="stat" id="best"><div class="k">Best</div><div class="v">0</div></div>
+  <div class="stat" id="score"><div class="k" data-t="hud.score">Score</div><div class="v">0</div></div>
+  <div class="stat" id="best"><div class="k" data-t="hud.best">Best</div><div class="v">0</div></div>
   <div id="combo"></div>
   <div id="center"><div id="actlab">EPOCH I · DRIFT</div><div id="time">0:00</div></div>
-  <div id="bossbar" class="hidden"><span class="bl">Anomaly</span><i></i></div>
+  <div id="bossbar" class="hidden"><span class="bl" data-t="hud.anomaly">Anomaly</span><i></i></div>
 
   <div id="bottom">
-    <div class="bar" id="hpbar"><div class="barlabel">Core Integrity</div><i></i></div>
-    <div class="bar" id="chgbar"><div class="barlabel">Capacitor</div><i></i></div>
-    <button id="collapseBtn">Overdrive <span id="cbKey">Hold Shift</span></button>
+    <div class="bar" id="hpbar"><div class="barlabel" data-t="hud.hp">Core Integrity</div><i></i></div>
+    <div class="bar" id="chgbar"><div class="barlabel" data-t="hud.chg">Capacitor</div><i></i></div>
+    <button id="collapseBtn"><span data-t="hud.od">Overdrive</span> <span id="cbKey" data-t="hud.odKey">Hold Shift</span></button>
   </div>
   <div id="controls">
-    <div class="cr"><kbd>Mouse</kbd> Steer star</div>
-    <div class="cr"><kbd>Space</kbd><kbd>Click</kbd> Reverse poles</div>
-    <div class="cr"><kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive</div>
-    <div class="cr"><kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute</div>
+    <div class="cr" data-th="ctl.steer"><kbd>Mouse</kbd> Steer star</div>
+    <div class="cr" data-th="ctl.flip"><kbd>Space</kbd><kbd>Click</kbd> Reverse poles</div>
+    <div class="cr" data-th="ctl.od"><kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive</div>
+    <div class="cr" data-th="ctl.pause"><kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute</div>
     <!-- Mode keys (Boss Rush / Pattern Lab). Empty and hidden on a normal run — these hints used to
          live in the Epoch slot at the top of the screen, which is a NAME slot, not a keymap. -->
     <div class="cr hidden" id="modeKeys"></div>
@@ -563,8 +574,8 @@
        native app leans, and those are the same screen with a different verb. -->
   <div id="touchCtl">
     <div class="cr" id="tcSteer"></div>
-    <div class="cr"><b>Tap</b> Reverse poles</div>
-    <div class="cr"><b>Second finger</b> Hold: Overdrive</div>
+    <div class="cr" data-th="tc.tap"><b>Tap</b> Reverse poles</div>
+    <div class="cr" data-th="tc.second"><b>Second finger</b> Hold: Overdrive</div>
   </div>
   <!-- THE TUTORIAL'S ONE INSTRUCTION, in the HUD rather than in an overlay, because every step is
        something you do WHILE reading it. An overlay would mean read-then-dismiss-then-try, which is the
@@ -578,7 +589,7 @@
        tilt can be aimed by hand on a device with no console attached. -->
   <div id="tiltDiag" class="hidden"></div>
   <button id="pauseBtn">❚❚</button>
-  <button id="motionBtn" title="Reduced motion: calmer shake and flashes">✺</button>
+  <button id="motionBtn" data-tt="btn.motion" title="Reduced motion: calmer shake and flashes">✺</button>
   <button id="muteBtn">♪</button>
 </div>
 
@@ -596,8 +607,8 @@
          The two buttons are the entire menu now. `.btn.tut` is louder than the ghost pill it replaces
        because on a public link the tutorial is the more useful of the two doors for most arrivals, and
        a first-time player should not have to notice a faint outline to find it. -->
-  <button class="btn" id="startBtn">Enter the field</button>
-  <button class="btn sm tut" id="tutBtn">How to play</button>
+  <button class="btn" id="startBtn" data-t="menu.start">Enter the field</button>
+  <button class="btn sm tut" id="tutBtn" data-t="menu.tut">How to play</button>
   <!-- No glyph prefixes and no em-dash explainers. Four ghost buttons each carrying a different
        decorative mark read as a menu assembled by something that had never seen a menu.
          They then sat as four IDENTICAL ghost pills in one column, which was the same mistake with the
@@ -611,33 +622,33 @@
        wrap, orphaning a lone "5" — the exact keys live in the HUD legend the moment you are inside,
        so the menu only has to say that this room answers to the keyboard. -->
   <div class="doors">
-    <button class="door" id="arenaBtn"><span class="dn">Boss Rush</span><span class="dd">Every Anomaly, back to back</span></button>
-    <button class="door" id="labBtn"><span class="dn">Pattern Lab</span><span class="dd">Every wave shape, on a key</span></button>
+    <button class="door" id="arenaBtn"><span class="dn" data-t="menu.rush">Boss Rush</span><span class="dd" data-t="menu.rushD">Every Anomaly, back to back</span></button>
+    <button class="door" id="labBtn"><span class="dn" data-t="menu.lab">Pattern Lab</span><span class="dd" data-t="menu.labD">Every wave shape, on a key</span></button>
   </div>
   <!-- A real rule that the UI never stated anywhere: both practice modes are score-sandboxed. -->
-  <div class="doornote">Practice only · neither can set your best</div>
+  <div class="doornote" data-t="menu.note">Practice only · neither can set your best</div>
   <!-- Four links now, and the gap comes down from 28px with them: at 28 the row measured 373px against
        331px of usable width on a 375px phone and wrapped Settings onto a line of its own. -->
   <div class="refs">
-    <button class="ref" id="recordsBtn">Records</button>
-    <button class="ref" id="bestiaryBtn">Bestiary</button>
-    <button class="ref" id="codexBtn">Codex</button>
-    <button class="ref" id="settingsBtn">Settings</button>
+    <button class="ref" id="recordsBtn" data-t="ref.records">Records</button>
+    <button class="ref" id="bestiaryBtn" data-t="ref.bestiary">Bestiary</button>
+    <button class="ref" id="codexBtn" data-t="ref.codex">Codex</button>
+    <button class="ref" id="settingsBtn" data-t="ref.settings">Settings</button>
   </div>
-  <div class="hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
+  <div class="hint" data-th="menu.hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
 </div>
 
 <!-- BESTIARY (loads the standalone bestiary.html in an overlay) -->
 <div class="overlay hidden" id="bestiary" style="padding:0;z-index:20;background:rgba(4,6,15,.97);backdrop-filter:none;-webkit-backdrop-filter:none;">
-  <button class="btn sm ghost" id="bestiaryClose" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
-  <iframe id="bestiaryFrame" title="ORBITAL CRASH Bestiary" style="flex:1 1 auto;width:100%;height:100%;border:0;background:transparent;"></iframe>
+  <button class="btn sm ghost" id="bestiaryClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <iframe id="bestiaryFrame" data-tt="bestiary.frame" title="ORBITAL CRASH Bestiary" style="flex:1 1 auto;width:100%;height:100%;border:0;background:transparent;"></iframe>
 </div>
 
 <!-- CODEX: every rule of the game, in one place -->
 <div class="overlay hidden" id="codex" style="z-index:20;background:rgba(4,6,15,.97);">
-  <button class="btn sm ghost" id="codexClose" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
-  <div class="final" style="letter-spacing:.3em;margin-top:8px;">Codex</div>
-  <h2 style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">How it works</h2>
+  <button class="btn sm ghost" id="codexClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <div class="final" data-t="codex.kicker" style="letter-spacing:.3em;margin-top:8px;">Codex</div>
+  <h2 data-t="codex.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">How it works</h2>
   <div id="codexBody"></div>
 </div>
 
@@ -649,18 +660,18 @@
      tutorial did was grade you. Author: "no other comments, go simple." A question needs no verdict
      attached, and the two buttons under it are the only answer it wants. -->
 <div class="overlay hidden" id="tutDone">
-  <h2 style="font-size:clamp(26px,5.4vw,44px);font-weight:900;margin:0 0 26px;max-width:14em;line-height:1.25;">Time to play a main game!</h2>
-  <button class="btn" id="tutPlayBtn">Enter the field</button>
-  <button class="btn sm ghost" id="tutMenuBtn" style="margin-top:12px;">Menu</button>
+  <h2 style="font-size:clamp(26px,5.4vw,44px);font-weight:900;margin:0 0 26px;max-width:14em;line-height:1.25;" data-t="tut.doneH">Time to play a main game!</h2>
+  <button class="btn" id="tutPlayBtn" data-t="tut.play">Enter the field</button>
+  <button class="btn sm ghost" id="tutMenuBtn" data-t="ui.menu" style="margin-top:12px;">Menu</button>
 </div>
 
 <!-- RECORDS. Built on open, same as the Codex, because it is a view of `store` and `store` changes every
      time you die. Nothing here is a leaderboard: there is no server, and both practice modes are barred
      from it by the same guard that protects the best score. -->
 <div class="overlay hidden" id="records" style="z-index:20;background:rgba(4,6,15,.97);">
-  <button class="btn sm ghost" id="recordsClose" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
-  <div class="final" style="letter-spacing:.3em;margin-top:8px;">Records</div>
-  <h2 style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">What you have done</h2>
+  <button class="btn sm ghost" id="recordsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <div class="final" data-t="rc.kicker" style="letter-spacing:.3em;margin-top:8px;">Records</div>
+  <h2 data-t="rc.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">What you have done</h2>
   <div id="recordsBody"></div>
 </div>
 
@@ -670,14 +681,27 @@
        Repainted on open rather than bound once, so the switches show live state — the mute key works
      while this panel is open, and a row that disagreed with it would be a row nobody could trust. -->
 <div class="overlay hidden" id="settings" style="z-index:20;background:rgba(4,6,15,.97);">
-  <button class="btn sm ghost" id="settingsClose" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
-  <div class="final" style="letter-spacing:.3em;margin-top:8px;">Settings</div>
-  <h2 style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 16px;">How it plays</h2>
+  <button class="btn sm ghost" id="settingsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <div class="final" data-t="set.kicker" style="letter-spacing:.3em;margin-top:8px;">Settings</div>
+  <h2 data-t="set.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 16px;">How it plays</h2>
+
+  <!-- ⚠️ THE ONE ROW IN THE GAME THAT IS NEVER MONOLINGUAL, in either table. Whichever language you are
+       stranded in, this is the row that gets you out of it, and a Korean speaker who cannot read the
+       word "Language" has no other way back. It is first for the same reason.
+         The pill shows the CURRENT language rather than the one you would switch to. A button labelled
+       with the thing it is not is a coin-flip every time you read it. -->
+  <div class="setrow">
+    <div class="st">
+      <div class="sn" data-t="set.lang">언어 / Language</div>
+      <div class="sd" data-t="set.langD">Menu, tutorial and Codex. Your choice is remembered; the browser only picks the first one.</div>
+    </div>
+    <button class="sw wide on" id="swLang">English</button>
+  </div>
 
   <div class="setrow">
     <div class="st">
-      <div class="sn">Colourblind palette</div>
-      <div class="sd">For red-green colourblindness. Turns the red pole orange, so it stands off the dark
+      <div class="sn" data-t="set.cb">Colourblind palette</div>
+      <div class="sd" data-t="set.cbD">For red-green colourblindness. Turns the red pole orange, so it stands off the dark
         field as well as cyan does, and moves the Gilded Bounty ring to violet.</div>
     </div>
     <button class="sw" id="swCb">Off</button>
@@ -685,8 +709,8 @@
 
   <div class="setrow">
     <div class="st">
-      <div class="sn">Reduced motion</div>
-      <div class="sd">Calmer shake and flashes when something dies close to you.</div>
+      <div class="sn" data-t="set.motion">Reduced motion</div>
+      <div class="sd" data-t="set.motionD">Calmer shake and flashes when something dies close to you.</div>
     </div>
     <button class="sw" id="swMotion">Off</button>
   </div>
@@ -698,10 +722,10 @@
        place twice, and this one is read at arm's length on a phone. -->
   <div class="setrow" style="border-bottom:0;">
     <div class="st">
-      <div class="sn">Sound <span class="snv" id="volReadout">100%</span></div>
-      <div class="sd">The ambient bed and every cue on top of it.</div>
+      <div class="sn"><span data-t="set.sound">Sound</span> <span class="snv" id="volReadout">100%</span></div>
+      <div class="sd" data-t="set.soundD">The ambient bed and every cue on top of it.</div>
       <input type="range" id="volRange" class="rng" min="0" max="100" step="5" value="100"
-             aria-label="Sound level">
+             data-ta="set.soundA" aria-label="Sound level">
     </div>
     <button class="sw" id="swSound">Off</button>
   </div>
@@ -709,43 +733,43 @@
 
 <!-- PAUSE -->
 <div class="overlay hidden" id="pause">
-  <div class="final" style="letter-spacing:.4em;">Paused</div>
+  <div class="final" data-t="pause.kicker" style="letter-spacing:.4em;">Paused</div>
   <h2 style="font-size:clamp(40px,11vw,84px);font-weight:900;letter-spacing:.06em;margin:6px 0 22px;">❚❚</h2>
   <div class="deadstats" style="margin:0 0 18px;">
-    <div class="ds"><div class="k">Score</div><div class="v" id="pScore">0</div></div>
-    <div class="ds"><div class="k">Time</div><div class="v" id="pTime">0:00</div></div>
+    <div class="ds"><div class="k" data-t="hud.score">Score</div><div class="v" id="pScore">0</div></div>
+    <div class="ds"><div class="k" data-t="hud.time">Time</div><div class="v" id="pTime">0:00</div></div>
   </div>
-  <div id="pOdLogLab" class="loglab hidden">Overdrive · <span id="pOdLogSum"></span></div>
+  <div id="pOdLogLab" class="loglab hidden"><span data-t="log.od">Overdrive · </span><span id="pOdLogSum"></span></div>
   <div id="pOdLog" class="chiplog"></div>
-  <div id="pAnomLogLab" class="loglab hidden">Anomalies · <span id="pAnomLogSum"></span></div>
+  <div id="pAnomLogLab" class="loglab hidden"><span data-t="log.anom">Anomalies · </span><span id="pAnomLogSum"></span></div>
   <div id="pAnomLog" class="chiplog"></div>
-  <button class="btn" id="resumeBtn">Resume</button>
-  <button class="btn sm ghost" id="quitBtn" style="margin-top:14px;">Quit to menu</button>
+  <button class="btn" id="resumeBtn" data-t="pause.resume">Resume</button>
+  <button class="btn sm ghost" id="quitBtn" data-t="pause.quit" style="margin-top:14px;">Quit to menu</button>
   <!-- Settings without leaving the run. See the note on the settings overlay: the reason to open it is
        usually that steering is not working, and quitting to fix that costs you the run you were fixing. -->
-  <div class="refs" style="margin-top:15px;"><button class="ref" id="pSettingsBtn">Settings</button></div>
-  <div class="hint"><kbd>P</kbd> or <kbd>Esc</kbd> to resume</div>
+  <div class="refs" style="margin-top:15px;"><button class="ref" id="pSettingsBtn" data-t="ref.settings">Settings</button></div>
+  <div class="hint" data-th="pause.hint"><kbd>P</kbd> or <kbd>Esc</kbd> to resume</div>
 </div>
 
 <!-- DEAD -->
 <div class="overlay hidden" id="dead">
-  <div class="final">Core Lost</div>
+  <div class="final" data-t="dead.kicker">Core Lost</div>
   <div class="finalv" id="deadScore">0</div>
   <div id="deadCause" style="font-size:13px;color:var(--dim);margin:6px 0 2px;letter-spacing:.04em;"></div>
-  <div id="deadBest" class="newbest hidden">New Best!</div>
+  <div id="deadBest" class="newbest hidden" data-t="dead.best">New Best!</div>
   <div class="deadstats">
-    <div class="ds"><div class="k">Time Survived</div><div class="v" id="deadTime">0:00</div></div>
-    <div class="ds"><div class="k">Peak Combo</div><div class="v" id="deadCombo">0</div></div>
+    <div class="ds"><div class="k" data-t="dead.time">Time Survived</div><div class="v" id="deadTime">0:00</div></div>
+    <div class="ds"><div class="k" data-t="dead.combo">Peak Combo</div><div class="v" id="deadCombo">0</div></div>
   </div>
   <!-- The receipt is a LOG, not a scoreboard. Four sips and a redline is a different run from two full
        burns and they total the same, so the rides are listed one by one; likewise each Anomaly fight is
        priced separately. Both rows hide themselves when the run had none of that event. -->
-  <div id="deadOdLogLab" class="loglab hidden">Overdrive · <span id="deadOdLogSum"></span></div>
+  <div id="deadOdLogLab" class="loglab hidden"><span data-t="log.od">Overdrive · </span><span id="deadOdLogSum"></span></div>
   <div id="deadOdLog" class="chiplog"></div>
-  <div id="deadAnomLogLab" class="loglab hidden">Anomalies · <span id="deadAnomLogSum"></span></div>
+  <div id="deadAnomLogLab" class="loglab hidden"><span data-t="log.anom">Anomalies · </span><span id="deadAnomLogSum"></span></div>
   <div id="deadAnomLog" class="chiplog"></div>
-  <button class="btn" id="againBtn">Reforge</button>
-  <button class="btn sm ghost" id="deadMenuBtn" style="margin-top:12px;">Menu</button>
+  <button class="btn" id="againBtn" data-t="dead.again">Reforge</button>
+  <button class="btn sm ghost" id="deadMenuBtn" data-t="ui.menu" style="margin-top:12px;">Menu</button>
 </div>
 
 <script>
@@ -936,6 +960,13 @@ const store={
   vol:clamp(num('orbitalcrash_vol',1),0,1),
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
   cb:LS.getItem('orbitalcrash_cb')==='1',                     // red-green colourblind palette — see PAL
+  // ⚠️ THE BROWSER DECIDES ONCE, AND ONLY ONCE. A stored choice is never second-guessed: a Korean
+  // speaker who deliberately switched to English on a ko-KR machine must not be flipped back on every
+  // reload, and there is no way for them to tell the difference between that and a broken switch.
+  //   `^ko(-|$)` rather than `startsWith('ko')` — 'kok' is Konkani, not Korean.
+  lang:(()=>{ const v=LS.getItem('orbitalcrash_lang');
+              if(v==='en'||v==='ko') return v;
+              return /^ko(-|$)/i.test(navigator.language||'') ? 'ko' : 'en'; })(),
   // ---- RECORDS ----
   // A single best score was the whole memory of this game, which made every run either a new record or
   // nothing at all. These two say what actually happened: `runs` is the last RUNS_KEPT survival runs
@@ -961,18 +992,217 @@ function save(){
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
     LS.setItem('orbitalcrash_cb',store.cb?'1':'0');
+    LS.setItem('orbitalcrash_lang',store.lang);
   }catch(e){}                                               // losing the save beats crashing mid-run
 }
 
+// =====================================================================
+//  LANGUAGE
+// =====================================================================
+// EVERY user-facing string lives in this one table, and nothing outside it may build one by
+// concatenation. That rule is not stylistic. English survives `'Lost to '+name+' · Epoch '+n` because
+// it is SVO with no case marking; Korean does not — the epoch leads, the killer takes 에게, and the
+// numeral is infixed (제3기). A frame with a hole in it can only ever be ONE language's frame, so a
+// whole sentence per language with named {slots} is the only shape that serves both. Templates are
+// handed every variable a language might want (`{r}` roman AND `{n}` arabic) and each uses what it needs.
+//   Static markup carries `data-t` (textContent), `data-th` (innerHTML — the lines with <kbd> in them),
+// `data-tt` (title) or `data-ta` (aria-label).
+//   ⚠️ THE ENGLISH IN THE MARKUP IS A DELIBERATE DUPLICATE of L.en. It keeps the HTML readable as a
+// page and it is what shows if the script dies before applyLang(). The two must not drift; the check
+// that proves they haven't is in docs/MECHANICS.md ## Traps and takes one console line.
+//   Prose blocks (the Codex, the Records empty state) are ONE key each, not one key per sentence.
+// Shredding 649 words of authored prose into thirty numbered keys makes it unwritable in English and
+// untranslatable in Korean, because neither can be read in order any more.
+const L={ en:{
+
+  // ---- shared ----
+  'ui.close':'✕ Close',  'ui.menu':'Menu',  'sw.on':'On',  'sw.off':'Off',
+  'lang.en':'English',   'lang.ko':'한국어',
+
+  // ---- HUD ----
+  'hud.score':'Score',  'hud.best':'Best',  'hud.time':'Time',
+  'hud.hp':'Core Integrity',  'hud.chg':'Capacitor',
+  'hud.od':'Overdrive',  'hud.odKey':'Hold Shift',
+  'hud.anomaly':'Anomaly',
+  'hud.streak':'{n} no-hit streak',
+  'hud.epoch':'EPOCH {r} · {name}',
+  'hud.lab':'PATTERN LAB',  'hud.rush':'BOSS RUSH',
+  'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> Change Anomaly',
+  'hud.bossHunt':'IT IS COMING FOR THE CORE · MOVE',
+  'ctl.steer':'<kbd>Mouse</kbd> Steer star',
+  'ctl.flip':'<kbd>Space</kbd><kbd>Click</kbd> Reverse poles',
+  'ctl.od':'<kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive',
+  'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute',
+  'tc.drag':'<b>Drag</b> Steer &mdash; star rides above your finger',
+  'tc.lean':'<b>Lean</b> Steer star',
+  'tc.tap':'<b>Tap</b> Reverse poles',
+  'tc.second':'<b>Second finger</b> Hold: Overdrive',
+  'btn.motion':'Reduced motion: calmer shake and flashes',
+  'tilt.stale':'Motion data stopped.',
+  'tilt.ok':'TILT ✓  x {x}   y {y}   ({n} events)',
+
+  // ---- canvas text ----
+  'fx.ready':'GET READY',  'fx.skip':'tap to skip',
+  'fx.purged':'ANOMALY PURGED  +{n}',
+  'fx.bounty':'BOUNTY +{n}',
+  'fx.poked':'Charger Poked!',
+  'fx.achv':'Achievement · {name}',
+  'fx.achvAny':'recorded',
+
+  // ---- menu ----
+  'menu.start':'Enter the field',
+  'menu.tut':'How to play',
+  'menu.rush':'Boss Rush',      'menu.rushD':'Every Anomaly, back to back',
+  'menu.lab':'Pattern Lab',     'menu.labD':'Every wave shape, on a key',
+  'menu.note':'Practice only · neither can set your best',
+  'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.codex':'Codex',  'ref.settings':'Settings',
+  'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
+  'bestiary.frame':'ORBITAL CRASH Bestiary',
+
+  // ---- settings ----
+  'set.kicker':'Settings',  'set.h2':'How it plays',
+  // THE ONE ROW THAT IS NEVER MONOLINGUAL, in either table. Whichever language you are stranded in,
+  // this is the row that gets you out of it, and a Korean speaker who cannot read "Language" has no
+  // other way back.
+  'set.lang':'언어 / Language',
+  'set.langD':'Menu, tutorial and Codex. Your choice is remembered; the browser only picks the first one.',
+  'set.cb':'Colourblind palette',
+  'set.cbD':'For red-green colourblindness. Turns the red pole orange, so it stands off the dark field as well as cyan does, and moves the Gilded Bounty ring to violet.',
+  'set.motion':'Reduced motion',
+  'set.motionD':'Calmer shake and flashes when something dies close to you.',
+  'set.sound':'Sound',
+  'set.soundD':'The ambient bed and every cue on top of it.',
+  'set.soundA':'Sound level',
+
+  // ---- pause ----
+  'pause.kicker':'Paused',  'pause.resume':'Resume',  'pause.quit':'Quit to menu',
+  'pause.hint':'<kbd>P</kbd> or <kbd>Esc</kbd> to resume',
+  'log.od':'Overdrive · ',  'log.anom':'Anomalies · ',  'log.left':' left',
+
+  // ---- death ----
+  'dead.kicker':'Core Lost',  'dead.best':'New Best!',  'dead.again':'Reforge',
+  'dead.time':'Time Survived',  'dead.combo':'Peak Combo',
+  'dead.cause':'Lost to {src} · Epoch {r}',
+  'dead.causeDev':'Lost to {src} · Epoch {r} · phase {p}',
+  'dead.src':'{name} ({col})',  'dead.srcN':'{name}',   // Neutral wears both colours, so it takes no colour word
+
+  // ---- tutorial ----
+  // ⚠️ THREE STEPS BRANCH ON THE DEVICE, AND THEY BRANCH AS WHOLE SENTENCES. They used to substitute a
+  // bare verb ("Click"/"Tap") into a shared English frame, which is a shape only English can hold: in
+  // Korean the verb inflects into the clause that follows it (클릭해서 / 탭해서), so there is no seam to
+  // slot a noun into. One key per device per language, and the sentence a player reads is written, not
+  // assembled. Steps 2, 3 and 6 name no control and need no branch.
+  'tut.doneH':'Time to play a main game!',
+  'tut.play':'Enter the field',
+  'tut.1.desktop':'Move the mouse',
+  'tut.1.touch':'Drag',
+  'tut.1.tilt':'Lean the phone',
+  'tut.1.ok':"That's how you move.",
+  'tut.2':'Look at your current colour, and get close to the same-coloured dots!',
+  'tut.2.note':'{n} / 4 gathered',
+  'tut.2.ok':"Now that's your sword and shield! Don't move too quick, you may lose it.",
+  'tut.3':'Make your ring contact with another colour.',
+  'tut.3.note':'{n} / 5 cleared',
+  'tut.3.ok':'This is how you clear them out.',
+  'tut.4.desktop':'Click to flip your colour.',
+  'tut.4.touch':'Tap to flip your colour.',
+  'tut.4.tilt':'Tap to flip your colour.',
+  'tut.4.ok':'Time to focus — your enemies are now allies!',
+  'tut.5.desktop':'Hold Shift for Overdrive, a faster and wider sweep with your ring.',
+  'tut.5.touch':'Hold a second finger for Overdrive, a faster and wider sweep with your ring.',
+  'tut.5.tilt':'Hold a second finger for Overdrive, a faster and wider sweep with your ring.',
+  'tut.5.noteOn':'burning',
+  'tut.5.noteOff':'the Capacitor is full',
+  'tut.5.ok':'Good work!',
+  'tut.6':"Let's experience a complex situation for a while, and end our tutorial!",
+  'tut.6.note':'{n}s',
+
+  // ---- records ----
+  'rc.kicker':'Records',  'rc.h2':'What you have done',
+  'rc.best':'Best',  'rc.highest':'Highest score',  'rc.lifetime':'Lifetime',
+  'rc.runs':'Runs',  'rc.timeIn':'Time in the field',  'rc.combo':'Best combo',  'rc.anom':'Anomalies met',
+  'rc.last':'Last {n} runs',
+  'rc.hScore':'Score',  'rc.hLost':'Lost to',  'rc.hTime':'Time',  'rc.hEpoch':'Epoch',  'rc.hCombo':'Combo',
+  'rc.empty':`Nothing here yet — finish a run and it lands at the top of this list.<br>
+       Boss Rush and Pattern Lab are practice and never record, which is the same rule that keeps them
+       from setting your best.`,
+  'rc.wipe':'Erase records',  'rc.wipeArm':'Press again to erase',
+
+  // ---- codex ----
+  'codex.kicker':'Codex',  'codex.h2':'How it works',
+  'codex.secret':'a secret feat',  'codex.secretTag':'secret',
+  'codex.body':`
+  <div class="cxs"><h3>The charge law</h3>
+    <p>Every Dot out there is <b>red</b> or <b>cyan</b>, and so are you.</p>
+    <p>Your own colour is drawn to you and settles into <b>rings</b> that orbit your star. Those rings are the weapon. Anything of the opposite colour they sweep through dies.</p>
+    <p>The opposite colour comes after you under its own steam, and you have no hold over it at all. You cannot reel it in and you cannot push it away. Touching it kills it, but it hurts on the way past, so let the rings do that job instead.</p></div>
+  <div class="cxs"><h3>Score</h3>
+    <p>Everything you kill is worth the same, however and wherever you killed it. No multiplier to nurse, no combo arithmetic to keep in your head. Kills leave <b>motes</b> behind, and your own colour hoovers those up by itself, so sweeping your own wreckage on the way past is quietly worth doing.</p>
+    <p>Now and again a <b class="gold">gold-ringed Dot</b> drifts in. Pop it before the ring runs out and it pays properly.</p></div>
+  <div class="cxs"><h3>Capacitor and Overdrive</h3>
+    <p>Nothing here levels up. There are no upgrades, and nothing carries from one run to the next. The <b>Capacitor</b> is the only thing you bank, and <b>Overdrive</b> is the only thing it buys.</p>
+    <p>Hold <b>Shift</b>, or the right mouse button. Your rings swing out wide and whirl fast, sweeping a much bigger circle than usual, and you move quicker along with them.</p>
+    <p>It drains the whole time you hold it, so let go early and you keep what is left. You do not have to wait for a full meter either. The <b class="gold">button</b> turns up the moment you can afford to light it.</p>
+    <p>It will not touch an Anomaly. Nothing you press will.</p></div>
+  <div class="cxs"><h3>Streak</h3>
+    <p>Kill without being hit and the count climbs. Each rank pays into the Capacitor: <b style="color:var(--cyan)">AWAKENING</b>, <b class="gold">MAGNETIC</b>, <b class="vio">UNSTOPPABLE</b>, <b>TRANSCENDENT</b>.</p>
+    <p>Any real hit ends it, and nothing in this game blocks a hit for you. Lose a long one and it does not simply evaporate. It bursts into charge on the way out.</p></div>
+  <div class="cxs"><h3>The flip</h3>
+    <p>Hold a colour and a gauge loads around your star. What you do with it is most of the skill in the game.</p>
+    <p><b>Tap it</b> and you swap colours, nothing more. Useful for repositioning, or for changing which half of the sky is currently safe.</p>
+    <p><b>Let it load first</b> and the flip <b>flings</b>. Everything that just became the wrong colour is thrown outward, still alive. Nothing dies, and that is the whole point: flipping turns your own rings hostile at close range, and the fling is what clears them off you before they can bite. The more you had gathered, the further it throws.</p>
+    <p>With an Anomaly on the field that throw becomes a <b>volley</b>, aimed at it.</p></div>
+  <div class="cxs"><h3>The Anomaly</h3>
+    <p>It sits outside all of the above. Your flip does not move it, and what it fires passes clean through every Dot in the way, so <b>nothing is cover</b>. Dodge it. Matching colours will not save you here.</p>
+    <p>The loop is: dodge what it throws, gather your own colour, keep clear of the other, and flip to volley.</p>
+    <p>There are only three ways to hurt it. The volley. Carrying a loaded ring into it. And standing so that a <b>Charger</b> draws its dash straight through it. Every one of those is something you aimed or something you carried, and there is no button anywhere that does it for you.</p>
+    <p>It will not wander off, either. No timer, no escape. One of you leaves.</p>
+    <p>They all hunt, too. Sooner or later it breaks station and walks at your core, slowly and loudly enough that you can see it coming. It lands one hit and backs off.</p></div>
+  <div class="cxs"><h3>Achievements</h3>{achRows}</div>
+  <div class="cxs"><h3>Everything else</h3><p>Every species, the three kinds of Anomaly, and the shapes that come for you in waves, all drawn by the game's own code. They are in the <b>Bestiary</b>, one button over.</p></div>`,
+
+  // ---- names: Dots, Epochs, wave shapes, Anomalies, achievements ----
+  'col.red':'red',  'col.cyan':'cyan',
+  'dot.drift':'Drifter',  'dot.fast':'Dart',      'dot.heavy':'Brute',    'dot.bomber':'Bomber',
+  'dot.charger':'Charger','dot.neutral':'Neutral','dot.planet':'Planet',  'dot.harrier':'Harrier',
+  'dot.boss':'Anomaly',
+  'msl.volley':'Anomaly Volley',  'msl.seeker':'Anomaly Seeker',  'msl.ring':'Anomaly Ring',
+  'msl.mine':'Anomaly Mine',      'msl.spear':'Anomaly Spear',    'msl.other':'Anomaly Missile',
+  'act.0':'Drift',  'act.1':'Ember',  'act.2':'Bloom',  'act.3':'Tide',
+  'lab.wall':'Wall',  'lab.noose':'Noose',  'lab.pulse':'Pulse',
+  'lab.cross':'Cross','lab.comet':'Comet',  'lab.drift':'Drift',
+  'anom.emitter.tip' :'EMITTER · CROSS ITS BURSTS · VOLLEY YOUR RINGS',
+  'anom.emitter.tip3':'EMITTER · CROSS ITS BURSTS · DODGE THE DASH',
+  'anom.sentinel.tip':'SENTINEL · CHASE IT · RUN DOWN ITS TRAIL',
+  'anom.pulsar.tip'  :'PULSAR · BE IN THE SEAM · LEAVE THE MINES',
+  'achv.firstBoss.nm':'Purge an Anomaly',  'achv.firstBoss.ds':'Defeat an Anomaly',
+  'achv.combo60.nm' :'Chain Reactor',      'achv.combo60.ds' :'Land a 60-chain',
+  'achv.act3.nm'    :'Deep Field',         'achv.act3.ds'    :'Reach Epoch III',
+  'achv.redline.nm' :'Redline',            'achv.redline.ds' :'Burn a full Capacitor down to nothing in one Overdrive',
+  'achv.lancegild.nm':'Skeet Shooter',     'achv.lancegild.ds':'Volley your Gilded Bounty into an Anomaly',
+
+}, ko:{
+  // filled by the Korean copy pass — every missing key falls through to L.en above
+} };
+
+// Falls back to English before falling back to the key itself, so a half-translated table renders a
+// readable page rather than a grid of identifiers.
+function T(k,v){
+  const t=L[store.lang], s=(t&&t[k]!=null) ? t[k] : (L.en[k]!=null ? L.en[k] : k);
+  return v ? String(s).replace(/\{(\w+)\}/g,(m,n)=>(n in v ? v[n] : m)) : s;
+}
+
 // ---------- achievements (flavour only — they unlock nothing; there is no meta economy) ----------
+// Name and description live in L under `achv.<id>.nm` / `.ds`; what stays here is the id and whether
+// the feat is hidden, which is the only part of a row that is not language.
 const ACHV=[
-  {id:'firstBoss',   nm:'Purge an Anomaly', ds:'Defeat an Anomaly'},
-  {id:'combo60',     nm:'Chain Reactor',    ds:'Land a 60-chain'},
-  {id:'act3',        nm:'Deep Field',       ds:'Reach Epoch III'},
-  {id:'redline',     nm:'Redline',          ds:'Burn a full Capacitor down to nothing in one Overdrive'},
+  {id:'firstBoss'},
+  {id:'combo60'},
+  {id:'act3'},
+  {id:'redline'},
   // hidden feats — discovered, never assigned. They pay nothing either; `hid:true` only means the row
   // renders as "???" in the Codex until it is earned.
-  {id:'lancegild', nm:'Skeet Shooter',    ds:'Volley your Gilded Bounty into an Anomaly', hid:true},
+  {id:'lancegild', hid:true},
 ];
 function grantAchv(id){
   if(store.achv.has(id))return;
@@ -982,7 +1212,7 @@ function grantAchv(id){
   // A WORD, NOT A STAR. The gold pill says "something good happened" but not WHAT KIND of thing, and the
   // star was carrying that alone — so a first-time player got a bare name like MAGNETIC with no category
   // attached to it. Naming it costs a few characters the pill has room for.
-  showAchvToast('Achievement · '+(ac?ac.nm:'recorded'));
+  showAchvToast(T('fx.achv',{name: ac?T('achv.'+ac.id+'.nm'):T('fx.achvAny')}));
   if(typeof sfx!=='undefined') sfx.level();
 }
 
@@ -1474,11 +1704,12 @@ function endOverdrive(){
   odCd=OD_CD;                // ⚠️ EVERY end path cools, including the 0.1s double-tap that logs nothing
 }
 // ---- acts / biomes / pacing (mood + depth) ----
+// Colours only. The Epoch's NAME is `act.<index>` in L — it is the one field here a player reads.
 const ACTS=[
-  {name:'Drift', bg1:'#0a1526', bg2:'#04060f', tint:'#38e0ff'},
-  {name:'Ember', bg1:'#1c0e0a', bg2:'#0a0403', tint:'#ff7a4d'},
-  {name:'Bloom', bg1:'#160b26', bg2:'#08040f', tint:'#c66bff'},
-  {name:'Tide',  bg1:'#07181a', bg2:'#03080b', tint:'#3fffc2'},
+  {bg1:'#0a1526', bg2:'#04060f', tint:'#38e0ff'},   // Drift
+  {bg1:'#1c0e0a', bg2:'#0a0403', tint:'#ff7a4d'},   // Ember
+  {bg1:'#160b26', bg2:'#08040f', tint:'#c66bff'},   // Bloom
+  {bg1:'#07181a', bg2:'#03080b', tint:'#3fffc2'},   // Tide
 ];
 const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
 let act=1, wavePhase='calm', phaseT=6, intensity=0.14, intensityTarget=0.14;
@@ -2274,7 +2505,7 @@ const LAB_SHAPES=[formWall,formNoose,formPulse,formCross,formComet,formNeutralDr
 // LAB_SHAPES — so removing one shape silently made key 4 fire a different pattern than the HUD named, with
 // nothing anywhere to catch it. Two lists in two files that must agree, and only one of them was code.
 // Keep this in step with the line above and the legend follows; the key COUNT can no longer drift at all.
-const LAB_NAMES=['Wall','Noose','Pulse','Cross','Comet','Drift'];
+const LAB_KEYS=['wall','noose','pulse','cross','comet','drift'];   // names live in L under `lab.<key>`
 // The first one lands early enough that a short run still sees one; after that they space out, and
 // the timer PAUSES during a boss (an Anomaly is already the thing demanding your attention).
 let formT=rand(9,16), lastForm=-1;
@@ -2539,16 +2770,17 @@ const ANOM={
   // LUNGES: the boss you learned first grows up, instead of being replaced by a near-copy of itself.
   // `·` throughout rather than a mixed dash-and-dot: the bar is a list of terms, so it gets one
   // separator. The leading ◆ these all carried was decoration, and the bar already says what it is.
-  emitter:{tip:'EMITTER · CROSS ITS BURSTS · VOLLEY YOUR RINGS',
-           tip3:'EMITTER · CROSS ITS BURSTS · DODGE THE DASH'},
+  // ⚠️ These are L KEYS, not the text. `updateHUD` renders them; the `tip3 &&` test still reads as
+  // "does this kind have a grown-up line", because only the Emitter carries the second key.
+  emitter:{tip:'anom.emitter.tip', tip3:'anom.emitter.tip3'},
   // SENTINEL — the chase boss. Circles the arena AND sheds swarmers as it goes, so the swarm is strung
   // out along its orbit. Movement and adds now reinforce each other: chasing it means running down the
   // trail it just laid, instead of the old Seeder's tidy pile dropped at a stationary point.
-  sentinel:{tip:'SENTINEL · CHASE IT · RUN DOWN ITS TRAIL'},
+  sentinel:{tip:'anom.sentinel.tip'},
   // PULSAR — the dodge boss. A radial wall of 13 with one seam, plus mines lobbed onto the ground
   // around you. It carries 25% less HP because it is the kind that MOVES you rather than out-damaging
   // you: its answer is footwork, so it should not also be the longest fight.
-  pulsar: {tip:'PULSAR · BE IN THE SEAM · LEAVE THE MINES'},
+  pulsar: {tip:'anom.pulsar.tip'},
 };
 let lastVariant=null;
 function pickAnomalyVariant(){
@@ -2622,8 +2854,17 @@ function labFire(i){
 // time. Deriving it also means editing the copy cannot silently outrun the pacing, which is the coupling
 // a constant would quietly have.
 //   0.32s/word is ~190wpm. Slow for prose, right for a short line read once while something is moving.
-const TUT_FINALE_S=25, TUT_WPS=0.32;
-const readS=t=>clamp(String(t).trim().split(/\s+/).length*TUT_WPS, 1.3, 5.2);
+//   ⚠️ AND THE UNIT IS PER-LANGUAGE, because a whitespace token is not a constant amount of reading.
+// Korean packs into 어절 what English spreads over a clause, so word-counting a Korean line returns
+// about a THIRD less time for the same instruction — "지금 내 색을 확인하고, 같은 색 입자에 가까이
+// 가세요!" is 8 tokens against the English 12. That is precisely the complaint this function exists to
+// answer, so Korean is measured in syllables instead. 0.16s/char is ~375음절/분.
+const TUT_FINALE_S=25, TUT_WPS=0.32, TUT_KCPS=0.16;
+const readS=t=>{
+  const s=String(t).trim();
+  return clamp(store.lang==='ko' ? s.replace(/\s+/g,'').length*TUT_KCPS
+                                 : s.split(/\s+/).length*TUT_WPS, 1.3, 5.2);
+};
 let tutStep=0, tutT=0, tutKills=0, tutFlips=0, tutTravel=0, tutOdT=0, tutPrev=null, tutSpawned=false;
 let tutBeat=0, tutBarCache='';
 
@@ -2634,10 +2875,13 @@ function tutSafe(){ return tutMode && tutStep<TUT_STEPS.length-1; }
 // Copy differs by how you actually steer, which is three cases and not two: a desktop pointer, a finger,
 // and the native app's tilt. `touchSteers` is false on tilt and true on a web phone, so the coarse test
 // has to come first and then split. Never a bare "click" — that was the menu's own bug on touch.
-const tutVerb=()=>{
+//   It returns the CASE, not the words. It used to hand back three verbs that got substituted into a
+// shared frame, which is a shape only English can hold — see the tutorial keys in L for why Korean
+// cannot take a noun in that slot.
+const tutDev=()=>{
   const coarse=matchMedia('(pointer: coarse)').matches;
-  if(!coarse) return {move:'Move the mouse', act:'Click', hold:'Hold Shift'};
-  return {move: touchSteers?'Drag':'Lean the phone', act:'Tap', hold:'Hold a second finger'};
+  if(!coarse) return 'desktop';
+  return touchSteers ? 'touch' : 'tilt';
 };
 // `note` is the counter made visible, and it exists for the same complaint as the beat: a step whose
 // progress is invisible cannot be understood as progress. "5 gathered" is a thing you watch happen;
@@ -2648,35 +2892,35 @@ const tutVerb=()=>{
 // instruction turns an acknowledgement into a second thing to read, and doubles the step.
 //   ⚠️ THE COPY IS THE AUTHOR'S, AND ONLY THE BRACKETED VERBS MAY VARY. Steps 1, 4 and 5 were written
 // as "Move the mouse", "Click" and "Hold shift" — all three describe a desktop, and a phone told to move
-// a mouse is the exact fault the old menu paragraph had. `tutVerb()` substitutes those three phrases and
-// nothing else, so the sentence a player reads is theirs on every device.
+// a mouse is the exact fault the old menu paragraph had. `tutDev()` picks which of the three WHOLE
+// sentences to show, so the line a player reads is theirs on every device — and, now, in every language.
 const TUT_STEPS=[
-  { say:()=>tutVerb().move,
+  { say:()=>T('tut.1.'+tutDev()),
     setup:()=>{},
     done:()=>tutTravel>400,
-    ok:"That's how you move." },
-  { say:()=>'Look at your current colour, and get close to the same-coloured dots!',
+    ok:()=>T('tut.1.ok') },
+  { say:()=>T('tut.2'),
     setup:()=>{ for(let i=0;i<7;i++) tutDrop(P.polarity); },
-    note:()=>`${Math.min(tutRingN(),4)} / 4 gathered`,
+    note:()=>T('tut.2.note',{n:Math.min(tutRingN(),4)}),
     done:()=>tutRingN()>=4,
-    ok:"Now that's your sword and shield! Don't move too quick, you may lose it." },
-  { say:()=>'Make your ring contact with another colour.',
+    ok:()=>T('tut.2.ok') },
+  { say:()=>T('tut.3'),
     setup:()=>{ for(let i=0;i<6;i++) tutDrop(P.polarity==='red'?'cyan':'red'); },
-    note:()=>`${Math.min(tutKills,5)} / 5 cleared`,
+    note:()=>T('tut.3.note',{n:Math.min(tutKills,5)}),
     done:()=>tutKills>=5,
-    ok:'This is how you clear them out.' },
-  { say:()=>`${tutVerb().act} to flip your colour.`,
+    ok:()=>T('tut.3.ok') },
+  { say:()=>T('tut.4.'+tutDev()),
     setup:()=>{ for(let i=0;i<5;i++) tutDrop(P.polarity); },
     done:()=>tutFlips>=1,
-    ok:'Time to focus — your enemies are now allies!' },
-  { say:()=>`${tutVerb().hold} for Overdrive, a faster and wider sweep with your ring.`,
+    ok:()=>T('tut.4.ok') },
+  { say:()=>T('tut.5.'+tutDev()),
     setup:()=>{ P.charge=1; for(let i=0;i<8;i++) tutDrop(Math.random()<0.5?'red':'cyan'); },
-    note:()=>odOn?'burning':'the Capacitor is full',
+    note:()=>T(odOn?'tut.5.noteOn':'tut.5.noteOff'),
     done:()=>tutOdT>=0.5,
-    ok:'Good work!' },
-  { say:()=>"Let's experience a complex situation for a while, and end our tutorial!",
+    ok:()=>T('tut.5.ok') },
+  { say:()=>T('tut.6'),
     setup:()=>{ intensityTarget=0.9; tutRoster=0; tutNextT=0; },
-    note:()=>`${Math.max(0,Math.ceil(TUT_FINALE_S-tutT))}s`,
+    note:()=>T('tut.6.note',{n:Math.max(0,Math.ceil(TUT_FINALE_S-tutT))}),
     done:()=>tutT>=TUT_FINALE_S },
 ];
 // EVERY SPECIES, IN ORDER, BY NAME. The wave clock is parked at phaseT=1e9 so nothing arrives on its
@@ -2714,7 +2958,7 @@ function tutPaint(){
 function tutPaintOk(){
   const S=TUT_STEPS[tutStep];
   tutBarCache='';   // force the next tutPaint through: the beat text is not a note update
-  el('tutBar').innerHTML=`<span class="n">✓</span>${S.ok||'Done.'}`;
+  el('tutBar').innerHTML=`<span class="n">✓</span>${S.ok?S.ok():'Done.'}`;
   el('tutBar').classList.add('ok');
 }
 function stepTutorial(dt){
@@ -2750,7 +2994,7 @@ function stepTutorial(dt){
   if(!S.done()) return;
   // The finale has nowhere to advance to, and no beat: its acknowledgement is the end card.
   if(tutStep>=TUT_STEPS.length-1){ tutFinish(); return; }
-  tutBeat=readS(S.ok||'Done'); tutPaintOk();
+  tutBeat=readS(S.ok?S.ok():'Done'); tutPaintOk();
   flash=0.22; flashCol=COL.cyan; sfx.level();
 }
 function tutAdvance(){
@@ -3121,9 +3365,9 @@ function bossNovaRing(b){                                      // PULSAR: a wall
 }
 // keep the old name as a thin alias (debug seam + any callers): a plain hex burst
 function fireLanceVolley(){ fireHexVolley(boss); }
-// death-cause names, so the run summary says which missile actually got you
-const MSLNAME={volley:'Anomaly Volley', seeker:'Anomaly Seeker', ring:'Anomaly Ring',
-               mine:'Anomaly Mine', spear:'Anomaly Spear'};
+// death-cause KINDS, so the run summary says which missile actually got you. Names are `msl.<kind>` in
+// L; what travels through coreHit and into the save is the kind, never the rendered name.
+const MSLKIND={volley:1, seeker:1, ring:1, mine:1, spear:1};
 // One place that knows how the core takes a hit, so the missile strike and the mine blast cannot drift
 // apart on i-frames, streak-breaking or the death check. Returns true if the run just ended.
 //   NOTHING BLOCKS A HIT ANY MORE. An Aegis branch sat here and in the Dot-contact path, absorbing the
@@ -3414,7 +3658,7 @@ function stepLances(dt){
     if(!gone){
       const dx=L.x-P.x, dy=L.y-P.y, rr=L.r+P.r;
       if(dx*dx+dy*dy<rr*rr){
-        if(coreHit(10, MSLNAME[L.kind]||'Anomaly Missile')) return;
+        if(coreHit(10, {m: MSLKIND[L.kind]?L.kind:'other'})) return;
         gone=true;
       }
     }
@@ -3475,7 +3719,7 @@ function killBoss(b){
     parts.push({x:b.x,y:b.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.5,1.15),max:1.15,color:i%2?'#fff':COL[col],r:rand(2,5),ring:false}); }
   spawnRing(b.x,b.y,'#fff',Math.max(W,H)*0.5);
   const rew=Math.round(200*act*(P?P.scoreMult:1)); score+=rew;
-  pushText(b.x,b.y-32,'ANOMALY PURGED  +'+rew, COL.gold, 1.7, 22);
+  pushText(b.x,b.y-32,T('fx.purged',{n:rew}), COL.gold, 1.7, 22);
   if(P){ P.hp=Math.min(P.maxHp,P.hp+30); P.charge=Math.min(1,P.charge+0.4*P.chargeGain); }  // the one income site that used to skip chargeGain, which made the purge 2x the value of everything else once income halved
   // PURGE THUNDERCLAP: the game's biggest kill gets its own voice, not a reused collapse
   trauma=1; flash=0.8; flashCol='#fff'; hitstop=0.28;
@@ -4016,7 +4260,7 @@ function stepAnnihilation(){
                   // world layer — every other one is a caps readout (BOUNTY +, STREAK BURST, EPOCH II).
                   // A remark reads differently from a measurement, which is the point: this is the game
                   // reacting to something you set up, not reporting a quantity.
-                  pushText(B.x,B.y-B.r-34,'Charger Poked!',COL.gold,1.15,22);
+                  pushText(B.x,B.y-B.r-34,T('fx.poked'),COL.gold,1.15,22);
                   if(typeof sfx!=='undefined') sfx.baited();
                 }
                 // 'Skeet Shooter' — you fired your Gilded Bounty as ammunition and it connected. The
@@ -4134,7 +4378,7 @@ function stepPlayerContact(){
         const dmg=e.dmg*P.armor;
         P.hp-=dmg; P.iframe=IFRAME; P.hurtT=0;
         if(boss && anomLog.length) anomLog[anomLog.length-1]+=dmg;  // this fight's tab — the Anomaly's own 30-damage body lands here, and so does every Dot that punishes you while you are busy with it
-        breakStreak((DOTNAME[e.type]||e.type)+(e.color!=='neutral'?' ('+e.color+')':'')); // every real hit severs the streak
+        breakStreak({t:e.type, c:e.color});   // every real hit severs the streak
         sfx.hurt();
         hurtText(dmg);
         if(P.hp<=0){ P.hp=0; die(); return true; }
@@ -4245,10 +4489,24 @@ function processKills(){
 //                                   from the contact path. It leaked back in through here.
 // What survives is the BURST, and only because it reports Capacitor you can now spend: without it a 20%
 // jump in the charge bar has no cause on screen. It is a gain, printed in gold, over the hurt voice.
-// ⚠️ `boss` BELONGS IN HERE. The Anomaly's body damages you through the Dot-contact path like everything
+// ⚠️ `dot.boss` BELONGS IN L. The Anomaly's body damages you through the Dot-contact path like everything
 // else, so a missing key printed the raw type on the death screen — "Lost to boss (red)" — the same class
 // of internal-identifier leak that put `phase` behind DEV two lines below the receipt.
-const DOTNAME={drift:'Drifter',fast:'Dart',heavy:'Brute',bomber:'Bomber',charger:'Charger',neutral:'Neutral',planet:'Planet',harrier:'Harrier',boss:'Anomaly'};
+//
+// ⚠️ A DAMAGE SOURCE IS A KEY PAIR, NOT A NAME, and that is a save-format rule rather than a rendering
+// one. `die()` writes lastDmg.src straight into store.runs, so while this carried "Brute (cyan)" every
+// record was frozen in the language it was played in — switch to Korean and the Records table stays
+// half English for ever, with no way back and nothing to migrate from. `{t,c}` for a Dot, `{m}` for a
+// missile, rendered here at the moment it is shown.
+//   A bare STRING is a row written before this changed. It renders as-is: those rows carry no key to
+// look up, and showing the old name beats erasing the run or printing an identifier.
+function srcName(s){
+  if(!s) return '—';
+  if(typeof s!=='object') return s;
+  if(s.m) return T('msl.'+s.m);
+  const nm=T('dot.'+s.t);
+  return s.c==='neutral' ? T('dead.srcN',{name:nm}) : T('dead.src',{name:nm, col:T('col.'+s.c)});
+}
 let lastDmg=null; // {src, act, phase} — death receipt
 function breakStreak(src){
   lastDmg={src, act, phase:wavePhase};
@@ -4316,7 +4574,7 @@ function onKill(e){
   if(e.gild>0){
     const rew=Math.round(250*act*P.scoreMult); score+=rew;
     P.charge=Math.min(1,P.charge+0.05*P.chargeGain);
-    pushText(e.x,e.y-30,'BOUNTY +'+rew,COL.gold,1.4,17);
+    pushText(e.x,e.y-30,T('fx.bounty',{n:rew}),COL.gold,1.4,17);
     spawnRing(e.x,e.y,COL.gold,90); trauma=Math.min(1,trauma+0.2);
     sfx.streakMile(2);
   }
@@ -4711,11 +4969,14 @@ function die(){
   // so either would flood the list with runs that are not comparable to a survival run. One condition,
   // two consumers — if a fourth mode is ever added, both are wrong together or right together.
   if(!testMode && !labMode && !tutMode){
-    store.runs.unshift({s:score, t:+elapsed.toFixed(1), e:act, c:peakCombo, d:lastDmg?lastDmg.src:'—'});
+    store.runs.unshift({s:score, t:+elapsed.toFixed(1), e:act, c:peakCombo, d:lastDmg?lastDmg.src:null});
     store.runs.length=Math.min(store.runs.length,RUNS_KEPT);
-    const T=store.totals;
-    T.runs=(T.runs||0)+1; T.time=+((T.time||0)+elapsed).toFixed(1);
-    T.combo=Math.max(T.combo||0,peakCombo); T.anom=(T.anom||0)+bossN;
+    // `Tt`, not `T`. Block scope saves this one by a hair — `T` is the translator and the death receipt
+    // fourteen lines below calls it — but a name that is only safe because of where its braces happen
+    // to be is one refactor away from calling store.totals as a function.
+    const Tt=store.totals;
+    Tt.runs=(Tt.runs||0)+1; Tt.time=+((Tt.time||0)+elapsed).toFixed(1);
+    Tt.combo=Math.max(Tt.combo||0,peakCombo); Tt.anom=(Tt.anom||0)+bossN;
   }
   save();
   el('deadScore').textContent='0';
@@ -4724,7 +4985,8 @@ function die(){
   // It is genuinely useful to us (it says WHERE in the beat the run ended), so it moves behind DEV
   // rather than being deleted. The heading already says "Core Lost"; the line names the killer.
   el('deadCause').textContent = lastDmg
-    ? 'Lost to '+lastDmg.src+' · Epoch '+ROMAN[(lastDmg.act-1)%12]+(DEV?' · phase '+lastDmg.phase:'')
+    ? T(DEV?'dead.causeDev':'dead.cause',
+        {src:srcName(lastDmg.src), r:ROMAN[(lastDmg.act-1)%12], n:lastDmg.act, p:lastDmg.phase})
     : '';
   el('deadTime').textContent=fmtTime(elapsed);
   el('deadCombo').textContent=peakCombo;
@@ -5640,12 +5902,17 @@ function drawLances(){
   }
   ctx.lineCap='butt';
 }
+// ⚠️ CANVAS CARRIES ITS OWN FONT STACK and it is not the CSS one — `ctx.font` cannot inherit. It was
+// three separate literals that all said `-apple-system,system-ui,sans-serif`, which resolves no Hangul
+// on Windows or Android, so "변칙체 소멸" would have picked a different fallback from every other
+// string on screen. One constant, three users.
+const CANVAS_FONT='-apple-system,system-ui,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
 function drawTexts(){
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(const t of texts){
     const a=clamp(t.life/t.max,0,1);
     ctx.globalAlpha=a; ctx.fillStyle=t.color;
-    ctx.font='800 '+t.size+'px -apple-system,system-ui,sans-serif';
+    ctx.font='800 '+t.size+'px '+CANVAS_FONT;
     ctx.fillText(t.txt,t.x,t.y);
   }
   ctx.globalAlpha=1;
@@ -5662,12 +5929,12 @@ function drawReady(){
   ctx.lineCap='butt';
   // label
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillStyle='#fff'; ctx.font='800 15px -apple-system,system-ui,sans-serif';
+  ctx.fillStyle='#fff'; ctx.font='800 15px '+CANVAS_FONT;
   ctx.globalAlpha=0.55+0.45*Math.sin(resumeT*9);
-  ctx.fillText('GET READY', P.x, P.y - P.r - 48);
+  ctx.fillText(T('fx.ready'), P.x, P.y - P.r - 48);
   ctx.globalAlpha=1;
-  ctx.fillStyle=hexA(COL[P.polarity],0.7); ctx.font='800 11px -apple-system,system-ui,sans-serif';
-  ctx.fillText('tap to skip', P.x, P.y + P.r + 44);
+  ctx.fillStyle=hexA(COL[P.polarity],0.7); ctx.font='800 11px '+CANVAS_FONT;
+  ctx.fillText(T('fx.skip'), P.x, P.y + P.r + 44);
 }
 // SIX-DIGIT HEX ONLY. '#fff' parses to 4095 and comes out rgb(0,15,255) — saturated blue, silently, with
 // no error. Three boss strokes shipped that way (the Sentinel's rings, the Emitter's hex outline, the
@@ -5690,7 +5957,7 @@ function updateHUD(){
   const cEl=el('combo');
   // No glyph at 5+. The tier already recolours this line on the very next statement, so the bolt was a
   // second encoding of something the colour was already saying.
-  cEl.textContent=combo>1?combo+' no-hit streak':'';
+  cEl.textContent=combo>1?T('hud.streak',{n:combo}):'';
   cEl.style.color=['',COL.cyan,COL.gold,COL.violet,'#ffffff'][streakTier]||'';
   el('time').textContent=fmtTime(elapsed);
   hpI.style.transform=`scaleX(${clamp(P?P.hp/P.maxHp:1,0,1)})`;
@@ -5724,11 +5991,14 @@ function updateHUD(){
   // else. A keymap here puts 60 characters of "1 WALL · 2 NOOSE · …" in the one place the eye checks
   // mid-fight; keys belong with the other keys, in the control legend.
   const mk=el('modeKeys');
-  if(labMode){ al.textContent='PATTERN LAB'; al.style.color=COL.violet;
-    mk.innerHTML=LAB_SHAPES.map((_,i)=>'<kbd>'+(i+1)+'</kbd>').join('')+' '+LAB_NAMES.join(' · '); }
-  else if(testMode){ al.textContent='BOSS RUSH'; al.style.color=COL.violet;
-    mk.innerHTML='<kbd>1</kbd>–<kbd>'+TEST_ORDER.length+'</kbd> Change Anomaly'; }
-  else { al.textContent='EPOCH '+ROMAN[(act-1)%12]+' · '+info.name.toUpperCase(); al.style.color=info.tint; }
+  if(labMode){ al.textContent=T('hud.lab'); al.style.color=COL.violet;
+    mk.innerHTML=LAB_SHAPES.map((_,i)=>'<kbd>'+(i+1)+'</kbd>').join('')+' '+LAB_KEYS.map(k=>T('lab.'+k)).join(' · '); }
+  else if(testMode){ al.textContent=T('hud.rush'); al.style.color=COL.violet;
+    mk.innerHTML=T('hud.rushKeys',{n:TEST_ORDER.length}); }
+  else { const nm=T('act.'+((act-1)%ACTS.length));
+    // toUpperCase() is a no-op on Hangul, which is the point: the CSS already declares the caps look
+    // for Latin, and the Korean name simply is what it is.
+    al.textContent=T('hud.epoch',{r:ROMAN[(act-1)%12], n:act, name:nm.toUpperCase()}); al.style.color=info.tint; }
   mk.classList.toggle('hidden', !(labMode||testMode));
   // boss integrity bar
   const bb=el('bossbar');
@@ -5738,7 +6008,7 @@ function updateHUD(){
     // The hunt outranks the standing tip, and is the only thing that may displace it: it is the one
     // time the Anomaly is actively walking onto your core, it is over in a few seconds, and the answer
     // is a movement answer — which is exactly what this line is allowed to name.
-    bb.querySelector('.bl').textContent = boss.hunt>0 ? 'IT IS COMING FOR THE CORE · MOVE' : tip;
+    bb.querySelector('.bl').textContent = boss.hunt>0 ? T('hud.bossHunt') : T(tip);
     bb.querySelector('.bl').style.color = boss.hunt>0 ? COL.red : ''; }
   else bb.classList.add('hidden');
   updateTiltDiag();
@@ -5770,14 +6040,14 @@ const TILT_STALE_MS=2000;
 function updateTiltDiag(){
   const d=el('tiltDiag'); if(!d) return;
   if(tiltDevice && tiltLastT && performance.now()-tiltLastT>TILT_STALE_MS){
-    d.textContent='Motion data stopped.'; d.classList.remove('ok','hidden'); return;
+    d.textContent=T('tilt.stale'); d.classList.remove('ok','hidden'); return;
   }
   // `!touchSteers` rather than `tiltOn`, and the distinction still matters: `tiltOn` means "a reading
   // arrived", `touchSteers` means "this device answers to the pointer". They are derived from the same
   // event now, but reading the one the ENGINE branches on is what stops this panel ever describing a
   // state the game is not in.
   if(state==='menu' && tiltOn && !touchSteers){
-    d.textContent='TILT ✓  x '+tiltVec.x.toFixed(2)+'   y '+tiltVec.y.toFixed(2)+'   ('+tiltEvents+' events)';
+    d.textContent=T('tilt.ok',{x:tiltVec.x.toFixed(2), y:tiltVec.y.toFixed(2), n:tiltEvents});
     d.classList.add('ok'); d.classList.remove('hidden'); return;
   }
   d.classList.add('hidden');
@@ -5996,7 +6266,7 @@ function showRunLogs(pfx,live){
   fillChips(el(pfx+'OdLog'), n?odLog:[], odCount, v=>`<span class="n">${v.toFixed(1)}s</span>`);
   // No bolt on the live chip. `.bchip.key` already gives it a gold border and the word "left" already
   // separates it from the finished rides, so the glyph was the third thing saying one thing.
-  if(live) el(pfx+'OdLog').prepend(chip(`<span class="n">${(P.charge/OD_DRAIN).toFixed(1)}s</span> left`,'bchip key'));
+  if(live) el(pfx+'OdLog').prepend(chip(`<span class="n">${(P.charge/OD_DRAIN).toFixed(1)}s</span>${T('log.left')}`,'bchip key'));
   el(pfx+'AnomLogLab').classList.toggle('hidden', anomLog.length===0);
   el(pfx+'AnomLogSum').textContent = anomLog.length ? '×'+anomLog.length : '';
   // Roman numerals because the Epoch label and the death cause already number the run this way.
@@ -6131,38 +6401,10 @@ function closeBestiary(){ el('bestiary').classList.add('hidden'); }
 function openCodex(){
   const achRows=ACHV.map(a=>{
     const got=store.achv.has(a.id);
-    if(a.hid && !got) return `<div class="cxa"><span class="st">○</span><span><b>???</b> · a secret feat</span></div>`;
-    return `<div class="cxa${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${a.nm}</b> · ${a.ds}${a.hid?` <span class="rw">· secret</span>`:''}</span></div>`;
+    if(a.hid && !got) return `<div class="cxa"><span class="st">○</span><span><b>???</b> · ${T('codex.secret')}</span></div>`;
+    return `<div class="cxa${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${T('achv.'+a.id+'.nm')}</b> · ${T('achv.'+a.id+'.ds')}${a.hid?` <span class="rw">· ${T('codex.secretTag')}</span>`:''}</span></div>`;
   }).join('');
-  el('codexBody').innerHTML=`
-  <div class="cxs"><h3>The charge law</h3>
-    <p>Every Dot out there is <b>red</b> or <b>cyan</b>, and so are you.</p>
-    <p>Your own colour is drawn to you and settles into <b>rings</b> that orbit your star. Those rings are the weapon. Anything of the opposite colour they sweep through dies.</p>
-    <p>The opposite colour comes after you under its own steam, and you have no hold over it at all. You cannot reel it in and you cannot push it away. Touching it kills it, but it hurts on the way past, so let the rings do that job instead.</p></div>
-  <div class="cxs"><h3>Score</h3>
-    <p>Everything you kill is worth the same, however and wherever you killed it. No multiplier to nurse, no combo arithmetic to keep in your head. Kills leave <b>motes</b> behind, and your own colour hoovers those up by itself, so sweeping your own wreckage on the way past is quietly worth doing.</p>
-    <p>Now and again a <b class="gold">gold-ringed Dot</b> drifts in. Pop it before the ring runs out and it pays properly.</p></div>
-  <div class="cxs"><h3>Capacitor and Overdrive</h3>
-    <p>Nothing here levels up. There are no upgrades, and nothing carries from one run to the next. The <b>Capacitor</b> is the only thing you bank, and <b>Overdrive</b> is the only thing it buys.</p>
-    <p>Hold <b>Shift</b>, or the right mouse button. Your rings swing out wide and whirl fast, sweeping a much bigger circle than usual, and you move quicker along with them.</p>
-    <p>It drains the whole time you hold it, so let go early and you keep what is left. You do not have to wait for a full meter either. The <b class="gold">button</b> turns up the moment you can afford to light it.</p>
-    <p>It will not touch an Anomaly. Nothing you press will.</p></div>
-  <div class="cxs"><h3>Streak</h3>
-    <p>Kill without being hit and the count climbs. Each rank pays into the Capacitor: <b style="color:var(--cyan)">AWAKENING</b>, <b class="gold">MAGNETIC</b>, <b class="vio">UNSTOPPABLE</b>, <b>TRANSCENDENT</b>.</p>
-    <p>Any real hit ends it, and nothing in this game blocks a hit for you. Lose a long one and it does not simply evaporate. It bursts into charge on the way out.</p></div>
-  <div class="cxs"><h3>The flip</h3>
-    <p>Hold a colour and a gauge loads around your star. What you do with it is most of the skill in the game.</p>
-    <p><b>Tap it</b> and you swap colours, nothing more. Useful for repositioning, or for changing which half of the sky is currently safe.</p>
-    <p><b>Let it load first</b> and the flip <b>flings</b>. Everything that just became the wrong colour is thrown outward, still alive. Nothing dies, and that is the whole point: flipping turns your own rings hostile at close range, and the fling is what clears them off you before they can bite. The more you had gathered, the further it throws.</p>
-    <p>With an Anomaly on the field that throw becomes a <b>volley</b>, aimed at it.</p></div>
-  <div class="cxs"><h3>The Anomaly</h3>
-    <p>It sits outside all of the above. Your flip does not move it, and what it fires passes clean through every Dot in the way, so <b>nothing is cover</b>. Dodge it. Matching colours will not save you here.</p>
-    <p>The loop is: dodge what it throws, gather your own colour, keep clear of the other, and flip to volley.</p>
-    <p>There are only three ways to hurt it. The volley. Carrying a loaded ring into it. And standing so that a <b>Charger</b> draws its dash straight through it. Every one of those is something you aimed or something you carried, and there is no button anywhere that does it for you.</p>
-    <p>It will not wander off, either. No timer, no escape. One of you leaves.</p>
-    <p>They all hunt, too. Sooner or later it breaks station and walks at your core, slowly and loudly enough that you can see it coming. It lands one hit and backs off.</p></div>
-  <div class="cxs"><h3>Achievements</h3>${achRows}</div>
-  <div class="cxs"><h3>Everything else</h3><p>Every species, the three kinds of Anomaly, and the shapes that come for you in waves, all drawn by the game's own code. They are in the <b>Bestiary</b>, one button over.</p></div>`;
+  el('codexBody').innerHTML=T('codex.body',{achRows});
   el('codex').classList.remove('hidden');
 }
 function closeCodex(){ el('codex').classList.add('hidden'); }
@@ -6175,37 +6417,35 @@ function closeCodex(){ el('codex').classList.add('hidden'); }
 // is deliberate.
 const fmtN=n=>Math.round(n).toLocaleString();
 function openRecords(){
-  const R=store.runs, T=store.totals;
+  const R=store.runs, Tt=store.totals;   // NOT `T` — that is the translator, and shadowing it here renders identifiers
   const rows = R.map(r=>{
     // `best` is the STANDING best, so at most one row can wear the mark, and only while it survives in
     // the last ten. A row that ties it is not marked: two golds would say the record was set twice.
     const isBest = r.s===store.best && r.s>0;
     return `<div class="r">
       <div class="c n${isBest?' best':''}">${fmtN(r.s)}</div>
-      <div class="c d">${r.d}</div>
+      <div class="c d">${srcName(r.d)}</div>
       <div class="c">${fmtTime(r.t)}</div>
       <div class="c">${ROMAN[(r.e-1)%12]}</div>
       <div class="c">${r.c}</div></div>`;
   }).join('');
   const table = R.length ? `<div class="rcT">
-      <div class="h">Score</div><div class="h">Lost to</div><div class="h">Time</div>
-      <div class="h">Epoch</div><div class="h">Combo</div><div class="hr"></div>${rows}</div>`
-    : `<div class="rcEmpty">Nothing here yet — finish a run and it lands at the top of this list.<br>
-       Boss Rush and Pattern Lab are practice and never record, which is the same rule that keeps them
-       from setting your best.</div>`;
-  const tot = T.runs ? `<div class="rcTot">
-      <div class="ds"><div class="k">Runs</div><div class="v">${fmtN(T.runs)}</div></div>
-      <div class="ds"><div class="k">Time in the field</div><div class="v">${fmtTime(T.time||0)}</div></div>
-      <div class="ds"><div class="k">Best combo</div><div class="v">${fmtN(T.combo||0)}</div></div>
-      <div class="ds"><div class="k">Anomalies met</div><div class="v">${fmtN(T.anom||0)}</div></div>
+      <div class="h">${T('rc.hScore')}</div><div class="h">${T('rc.hLost')}</div><div class="h">${T('rc.hTime')}</div>
+      <div class="h">${T('rc.hEpoch')}</div><div class="h">${T('rc.hCombo')}</div><div class="hr"></div>${rows}</div>`
+    : `<div class="rcEmpty">${T('rc.empty')}</div>`;
+  const tot = Tt.runs ? `<div class="rcTot">
+      <div class="ds"><div class="k">${T('rc.runs')}</div><div class="v">${fmtN(Tt.runs)}</div></div>
+      <div class="ds"><div class="k">${T('rc.timeIn')}</div><div class="v">${fmtTime(Tt.time||0)}</div></div>
+      <div class="ds"><div class="k">${T('rc.combo')}</div><div class="v">${fmtN(Tt.combo||0)}</div></div>
+      <div class="ds"><div class="k">${T('rc.anom')}</div><div class="v">${fmtN(Tt.anom||0)}</div></div>
     </div>` : '';
   el('recordsBody').innerHTML=
-     `<div class="rcH">Best</div>
-      <div class="rcTot"><div class="ds"><div class="k">Highest score</div>
+     `<div class="rcH">${T('rc.best')}</div>
+      <div class="rcTot"><div class="ds"><div class="k">${T('rc.highest')}</div>
         <div class="v" style="color:var(--gold)">${fmtN(store.best)}</div></div></div>`
-    + (tot?`<div class="rcH">Lifetime</div>${tot}`:'')
-    + `<div class="rcH">Last ${RUNS_KEPT} runs</div>${table}`
-    + `<button class="rcWipe" id="wipeBtn">Erase records</button>`;
+    + (tot?`<div class="rcH">${T('rc.lifetime')}</div>${tot}`:'')
+    + `<div class="rcH">${T('rc.last',{n:RUNS_KEPT})}</div>${table}`
+    + `<button class="rcWipe" id="wipeBtn">${T('rc.wipe')}</button>`;
   wipeArmed=0; el('wipeBtn').onclick=onWipe;
   el('records').classList.remove('hidden');
 }
@@ -6217,9 +6457,9 @@ const WIPE_ARM_MS=3000;
 function onWipe(){
   const b=el('wipeBtn');
   if(!wipeArmed){
-    wipeArmed=1; b.classList.add('armed'); b.textContent='Press again to erase';
+    wipeArmed=1; b.classList.add('armed'); b.textContent=T('rc.wipeArm');
     clearTimeout(wipeT); wipeT=setTimeout(()=>{ wipeArmed=0;
-      if(el('wipeBtn')){ b.classList.remove('armed'); b.textContent='Erase records'; } }, WIPE_ARM_MS);
+      if(el('wipeBtn')){ b.classList.remove('armed'); b.textContent=T('rc.wipe'); } }, WIPE_ARM_MS);
     return;
   }
   clearTimeout(wipeT); wipeArmed=0;
@@ -6257,9 +6497,36 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('records').classList.
 //   The Escape handler sits with the two above it and uses stopImmediatePropagation for the reason given
 // there — except that for THIS overlay the bug is not latent. It opens from the pause panel, so a plain
 // stopPropagation would close the panel and then resume the run on the way past.
+// One pass over the markup, then a repaint of everything the JS builds. Called at boot before the first
+// frame, and again on every switch.
+//   ⚠️ THE OVERLAYS HAVE TO CHANGE UNDER THE PLAYER, not at the next screen. This panel opens from the
+// PAUSE panel, so at the moment of the switch there is a live run behind it with an Epoch label, a
+// streak line and possibly an Anomaly's tip on screen — and `updateHUD` only runs from frameBody while
+// state is 'play'/'ready', which paused is not. Left to itself the HUD would sit in the old language on
+// the one screen where all of it is still and readable.
+function applyLang(){
+  document.documentElement.lang=store.lang;
+  document.querySelectorAll('[data-t]' ).forEach(n=>{ n.textContent=T(n.dataset.t);  });
+  document.querySelectorAll('[data-th]').forEach(n=>{ n.innerHTML  =T(n.dataset.th); });
+  document.querySelectorAll('[data-tt]').forEach(n=>{ n.title      =T(n.dataset.tt); });
+  document.querySelectorAll('[data-ta]').forEach(n=>{ n.setAttribute('aria-label',T(n.dataset.ta)); });
+  // Painted here and not only in paintSettings, which runs on OPEN: the markup ships "English", so a
+  // Korean player who never opened this panel had a pill sitting on the wrong word until they did.
+  el('swLang').textContent=T('lang.'+store.lang);
+  paintTouchCtl();
+  if(P) updateHUD();
+  if(!el('settings').classList.contains('hidden')) paintSettings();
+  if(!el('codex'   ).classList.contains('hidden')) openCodex();
+  if(!el('records' ).classList.contains('hidden')) openRecords();
+  // Not during a beat: tutPaint() writes the INSTRUCTION, and the beat is showing the acknowledgement.
+  // Repainting through it would replace "That's how you move." with the step you have just finished.
+  if(tutMode && tutBeat<=0){ tutBarCache=''; tutPaint(); }
+}
+
 let setPoll=0;
 function paintSettings(){
-  const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=on?'On':'Off'; };
+  const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=T(on?'sw.on':'sw.off'); };
+  el('swLang').textContent=T('lang.'+store.lang);   // a value, not a state — see the row's markup note
   sw('swCb', store.cb);
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
@@ -6285,6 +6552,7 @@ el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without e
 el('settingsClose').onclick=closeSettings;
 // Repaints on the spot rather than at the next run: this panel opens from the pause screen, so the
 // field it is judged against is usually sitting right behind it.
+el('swLang').onclick  =()=>{ store.lang=(store.lang==='ko'?'en':'ko'); save(); applyLang(); };
 el('swCb').onclick    =()=>{ store.cb=!store.cb; save(); applyPalette(); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
@@ -6558,9 +6826,7 @@ function refreshTouchSteer(){ touchSteers=!tiltDevice; paintTouchCtl(); }
 // own thumb hiding the one object they have to watch.
 function paintTouchCtl(){
   const s=el('tcSteer'); if(!s) return;
-  s.innerHTML = touchSteers
-    ? '<b>Drag</b> Steer &mdash; star rides above your finger'
-    : '<b>Lean</b> Steer star';
+  s.innerHTML = T(touchSteers ? 'tc.drag' : 'tc.lean');
 }
 refreshTouchSteer();
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
@@ -6798,6 +7064,7 @@ const sfx={
 // =====================================================================
 el('best').querySelector('.v').textContent=store.best.toLocaleString();
 applyPalette();   // before the first frame, or one frame paints in the wrong pole colour
+applyLang();      // likewise: the markup ships English, and a Korean player must never see it flash
 // idle background render before start
 
 // ---- FIRST VISIT: the tutorial runs itself, exactly once, ever ----
@@ -6913,6 +7180,11 @@ window.__orbital=window.__polaris=window.__flux={
   // TUTORIAL. `safe` is the one worth being able to read from outside: "damage is off right now" is
   // invisible from every other angle, and a test that cannot see it can only infer it from not dying.
   COL, applyPalette,
+  // LANGUAGE. `applyLang` is the only way to make a language change take from outside — setting
+  // store.lang alone changes what the NEXT lookup returns and repaints nothing, which looks exactly
+  // like a working switch until you check the screen. `T` is here so a test can assert a key resolves
+  // rather than asserting on rendered text that a copy edit is allowed to change.
+  applyLang, T, get L(){return L;},
   get tut(){ return {mode:tutMode, step:tutStep, of:TUT_STEPS.length, t:+tutT.toFixed(2),
                      beat:+tutBeat.toFixed(2), safe:tutSafe(), kills:tutKills, flips:tutFlips,
                      travel:Math.round(tutTravel), bar:el('tutBar').textContent}; },
