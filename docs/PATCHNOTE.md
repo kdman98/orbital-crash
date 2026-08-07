@@ -38,9 +38,14 @@ from the edge of the screen.
 
 ⚠️ **The comment being replaced claimed 0.16 was "the slow turn half", and that was false at any value.**
 Turning here is *friction*-bound, not `seek`-bound. Reversal excursion — how far a cruising Dot carries on
-the wrong way once you get behind it — measures **1-3px over 3 frames for every species, Dart to Planet**,
-because 0.86 is a ~3-frame time constant and all eight share it. The slow turn is real, but it lives inside
-the ring where the bleed is `ARC_FR`. No free-flight number can buy it.
+the wrong way once you get behind it — is **exactly `1.5653 × cruise` for the seven species that share the
+0.86 bleed**, identical to floating-point precision, because friction sets the shape of the turn and `seek`
+sets only its scale. In pixels: 1.25 for a Planet, 4.04 for a Dart, over 5 frames. (The armed Charger runs
+its own accel and bleed, so it sits off this basis at 2.4341 over 7 frames.)
+
+⚠️ *Which means the buff above also widened the Harrier's turn* — doubling cruise doubles excursion, 1.54px
+to 3.27px. That is the trade the ratio makes visible and a per-species pixel figure hides. The slow turn is
+real, but it lives inside the ring where the bleed is `ARC_FR`; no free-flight number can buy it.
 
 **And it does not move the orbit, which is why it was safe.** For a constant central accel `a` the turning
 points solve `½k²r0³/r² + r = r0(½k²+1)` — `a` cancels, so the ellipse is set by `ARC_INJ` and the capture

@@ -118,9 +118,13 @@ paragraph goes in MECHANICS and this line points at it.
   `maxsp` as pace is what left the Harrier shipping sixth-fastest of eight while its row read second.
   (`cruiseSpeed`, `CRUISE_K`)
 - **Reversal excursion** — how far a cruising Dot carries on the wrong way once you get behind it, and the
-  honest measure of "slow turn". It is **1-3px over 3 frames for every species**, Dart to Planet, because
-  turning is bound by the shared 0.86 friction rather than by `seek`. No free-flight number makes a Dot
-  turn slowly; only a ballistic body's near-zero bleed can. (`ARC_FR`)
+  honest measure of "slow turn". **It is exactly `1.5653 × cruise` for the seven species that share the
+  0.86 bleed** — identical to floating-point precision — because friction sets the *shape* of the turn and
+  `seek` sets only its scale. 1.25px (Planet) to 4.04px (Dart), over 5 frames. Note which way it runs: a
+  faster Dot overshoots proportionally **more**, so raising `seek` buys approach speed and pays in turn
+  radius. ⚠️ The **armed Charger is not on this basis** — it runs its own loop at accel 0.17 and bleed 0.9,
+  so its ratio is 2.4341 over 7 frames. No free-flight number makes a Dot turn slowly; only a ballistic
+  body's near-zero bleed can. (`ARC_FR`)
 - **Swarmer** — a Dot the Sentinel sheds while orbiting. Matter, not a shot, so the colour law owns it.
   (`seedT`)
 - **Same-charge shove** — like-charge overlaps resolved **positionally**, split by mass. Positions only,

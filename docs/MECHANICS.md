@@ -1849,6 +1849,19 @@ opposite directions — and neither was a wrong number. Both numbers were correc
   while scrupulously stripping mines from its reach column. Right number, wrong population again — and
   the Pulsar is the only variant carrying a fuse, so again the only row of its kind.
 
+- A fifth, and the sharpest: **"the Harrier was sixth-fastest" was challenged as fifth, by me, using
+  `seek × CRUISE_K` on all eight species.** Seven of them share the 0.86 bleed, so that product is their
+  cruise. The **armed Charger does not** — it `continue`s into its own loop at accel 0.17 and bleed 0.9,
+  giving `K = 9` and a cruise of exactly **1.530**, which is the figure I was about to "correct" to 0.860.
+  With it restored the Charger is second, the Harrier is sixth, and the original was right all along. Same
+  for the turn ratio: `1.5653 × cruise` holds for the seven and the Charger sits at 2.4341.
+
+**Note what that one cost and where it was caught.** The challenge was already written into two documents
+and a heading before a disagreeing cell — a Charger reading 1.530 where my method said 0.860 — forced the
+question. **The disagreement was the finding, exactly as this entry prescribes**, and following it was the
+only thing between a correct figure and a confident wrong one. It never shipped, which is the entry
+working rather than luck.
+
 **The third was found by running the trap against the table the trap was written for**, which is the part
 worth keeping. "Recompute a neighbouring row from source" caught the second. "Is this row the same *kind*
 of row as the ones beside it" caught the third, in a table its own author had just cleaned — of the other
