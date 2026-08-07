@@ -274,7 +274,11 @@
   /* Sits under the boxes and above a gap, so there is now exactly one group it can be read against.
      Hung between the two pairs, it could have been captioning either. */
   .doornote{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;}
-  .refs{display:flex;gap:28px;justify-content:center;margin-top:16px;}
+  /* gap 16, down from 28 when this became four links. MEASURED, because the arithmetic decides this one:
+     the four labels total 305.7px and a 375px phone offers 331px inside the overlay padding, which
+     leaves 8.4px per gap — too tight to read as deliberate, and at 320px wide they cannot fit on one
+     row at ANY gap. So narrow screens do not get a row; they get the 2x2 below. */
+  .refs{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
   .ref{pointer-events:auto;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 2px;
     color:var(--ink);font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
     border-bottom:1px solid rgba(255,255,255,.24);transition:color .12s ease,border-color .12s ease;}
@@ -330,6 +334,37 @@
   .setrow.off .rng::-webkit-slider-thumb{background:rgba(255,255,255,.3);box-shadow:none;}
   .setrow.off .rng::-moz-range-thumb{background:rgba(255,255,255,.3);box-shadow:none;}
 
+  /* RECORDS. Narrower than the Codex because it is a table of five short columns, not prose — at 720px
+     the numbers drift so far apart that reading across a row stops being free. */
+  #recordsBody{width:min(560px,94vw);max-height:74vh;overflow-y:auto;text-align:left;padding:4px 10px 24px 4px;}
+  .rcT{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:0 12px;align-items:baseline;
+    font-variant-numeric:tabular-nums;}
+  .rcT .h{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);padding-bottom:7px;}
+  /* One rule spanning every column, NOT a border-bottom per header cell. Per-cell, the 12px column gaps
+     cut the line into five pieces of different lengths — it read as five underlined words rather than
+     as the top of a table. */
+  .rcT .hr{grid-column:1/-1;height:1px;background:rgba(255,255,255,.1);margin-bottom:4px;}
+  .rcT .c{font-size:13px;color:#c3ccdb;padding:5px 0;line-height:1.35;}
+  .rcT .c.n{font-weight:800;color:var(--ink);}          /* the score: the column the eye goes to first */
+  .rcT .c.d{color:var(--dim);font-size:11.5px;}         /* what killed you — context, not a statistic */
+  .rcT .c.best{color:var(--gold);}                      /* the row that set the standing best */
+  .rcT .r{display:contents;}
+  .rcEmpty{color:var(--dim);font-size:13px;line-height:1.7;}
+  .rcTot{display:flex;gap:26px;flex-wrap:wrap;margin:2px 0 20px;}
+  .rcTot .ds{display:flex;flex-direction:column;gap:4px;}
+  .rcTot .ds .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);}
+  .rcTot .ds .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .rcH{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);margin:0 0 8px;}
+  /* THE WIPE ARMS BEFORE IT FIRES, and it is not window.confirm — that dialog is blocked in the
+     Capacitor WebView and looks like a browser error over a fullscreen canvas. Two presses, and the
+     armed state times out on its own so a stray tap cannot leave a live destructive button sitting
+     under the next one. */
+  .rcWipe{margin-top:26px;pointer-events:auto;cursor:pointer;background:none;font-family:inherit;
+    border:1px solid rgba(255,255,255,.16);border-radius:100px;padding:9px 20px;color:var(--dim);
+    font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+    transition:color .12s ease,border-color .12s ease;}
+  .rcWipe:hover{color:var(--ink);border-color:rgba(255,255,255,.34);}
+  .rcWipe.armed{color:var(--red);border-color:var(--red);}
   #codexBody{width:min(720px,94vw);max-height:74vh;overflow-y:auto;text-align:left;padding:4px 14px 30px 4px;}
   .cxs{margin:0 0 18px;}
   .cxs h3{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);margin:0 0 7px;}
@@ -409,6 +444,15 @@
      and leaving nothing in its place stopped being right the moment touch steered again. Two legends
      rather than one rewritten in JS, because #controls carries #modeKeys and the Lab writes into it. */
   @media (pointer:coarse){ .hint,#controls{display:none;} }
+  /* FOUR LINKS DO NOT FIT ON ONE ROW ON A PHONE, so this makes the wrap deliberate. Left to flex-wrap
+     alone the widths (80/83/59/84) break 3-then-1, which reads as a layout that ran out of room rather
+     than as a group. A 2x2 grid is the same four links saying so on purpose.
+       Keyed on width, not on `pointer:coarse` — a narrow desktop window has exactly the same shortage,
+     and 420px is comfortably above the 340px where the one-row version actually fails. */
+  @media (max-width:420px){
+    .refs{display:grid;grid-template-columns:1fr 1fr;gap:13px 16px;justify-items:center;
+      width:min(100%,300px);}
+  }
   /* Same corner, same type, same opacity as #controls — it IS #controls for a device with fingers, and
      anything that made it look like a different kind of object would be saying something untrue.
      Hidden at every fine pointer; the media query below is the only thing that reveals it, and the
@@ -518,7 +562,10 @@
   </div>
   <!-- A real rule that the UI never stated anywhere: both practice modes are score-sandboxed. -->
   <div class="doornote">Practice only · neither can set your best</div>
+  <!-- Four links now, and the gap comes down from 28px with them: at 28 the row measured 373px against
+       331px of usable width on a 375px phone and wrapped Settings onto a line of its own. -->
   <div class="refs">
+    <button class="ref" id="recordsBtn">Records</button>
     <button class="ref" id="bestiaryBtn">Bestiary</button>
     <button class="ref" id="codexBtn">Codex</button>
     <button class="ref" id="settingsBtn">Settings</button>
@@ -538,6 +585,16 @@
   <div class="final" style="letter-spacing:.3em;margin-top:8px;">Codex</div>
   <h2 style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">How it works</h2>
   <div id="codexBody"></div>
+</div>
+
+<!-- RECORDS. Built on open, same as the Codex, because it is a view of `store` and `store` changes every
+     time you die. Nothing here is a leaderboard: there is no server, and both practice modes are barred
+     from it by the same guard that protects the best score. -->
+<div class="overlay hidden" id="records" style="z-index:20;background:rgba(4,6,15,.97);">
+  <button class="btn sm ghost" id="recordsClose" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <div class="final" style="letter-spacing:.3em;margin-top:8px;">Records</div>
+  <h2 style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">What you have done</h2>
+  <div id="recordsBody"></div>
 </div>
 
 <!-- SETTINGS. Reachable from the menu AND from the pause panel: comfort and volume are both things you
@@ -758,13 +815,29 @@ const store={
   // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
   vol:clamp(num('orbitalcrash_vol',1),0,1),
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
+  // ---- RECORDS ----
+  // A single best score was the whole memory of this game, which made every run either a new record or
+  // nothing at all. These two say what actually happened: `runs` is the last RUNS_KEPT survival runs
+  // newest-first, `totals` the flat lifetime tally.
+  //   Everything in a row already exists at die() and was being thrown away — score, elapsed, act,
+  // peakCombo, lastDmg.src. Nothing new is measured, it is only kept.
+  //   ⚠️ NO DATE FIELD. It is the obvious next column and it would have to come from `new Date()`, which
+  // .oracle.js cannot allow: the fingerprint suite has to reproduce byte-for-byte and a wall clock in
+  // the save makes that impossible to reason about. The list is ordered by insertion, which is the only
+  // thing the screen actually reads.
+  runs:list('orbitalcrash_runs'),
+  totals:(()=>{ try{ const o=JSON.parse(LS.getItem('orbitalcrash_totals'));
+                     return (o&&typeof o==='object') ? o : {}; }catch(e){ return {}; } })(),
 };
+const RUNS_KEPT=10;
 function save(){
   try{                                                      // Safari private mode throws on write even when reads work
     LS.setItem('orbitalcrash_best2',store.best);
     LS.setItem('orbitalcrash_achv',JSON.stringify([...store.achv]));
     LS.setItem('orbitalcrash_mute',store.mute?'1':'0');
     LS.setItem('orbitalcrash_vol',store.vol);
+    LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
+    LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
   }catch(e){}                                               // losing the save beats crashing mid-run
 }
@@ -2381,6 +2454,10 @@ function beginTestRun(){
 // from it, so the array is the only place the number lives — and this line said "1-5 to the five shapes"
 // through a change that made it six, which is exactly the coupling deriving the legend was meant to end.
 let labMode=false;
+// Declared here with the other two mode flags rather than down in the tutorial block, because die() and
+// the score guard read all three and a mode flag that exists only where it is written is how one of
+// these gets forgotten at the third reader.
+let tutMode=false;
 function beginLabRun(){ act=1; wavePhase='calm'; phaseT=1e9; boss=null; bossTime=0; intensityTarget=0.34; }
 function labFire(i){
   if(!labMode || state!=='play') return;
@@ -4313,6 +4390,17 @@ function die(){
                    // and the ride you died in is the one you most want to see on the receipt
   let nb=false;
   if(score>store.best && !testMode && !labMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
+  // THE RECORD IS FILED UNDER EXACTLY THE SAME GUARD AS THE BEST, and that is the point rather than a
+  // convenience: Boss Rush pays 200*act per purge from an endless supply and the Lab spawns on demand,
+  // so either would flood the list with runs that are not comparable to a survival run. One condition,
+  // two consumers — if a fourth mode is ever added, both are wrong together or right together.
+  if(!testMode && !labMode && !tutMode){
+    store.runs.unshift({s:score, t:+elapsed.toFixed(1), e:act, c:peakCombo, d:lastDmg?lastDmg.src:'—'});
+    store.runs.length=Math.min(store.runs.length,RUNS_KEPT);
+    const T=store.totals;
+    T.runs=(T.runs||0)+1; T.time=+((T.time||0)+elapsed).toFixed(1);
+    T.combo=Math.max(T.combo||0,peakCombo); T.anom=(T.anom||0)+bossN;
+  }
   save();
   el('deadScore').textContent='0';
   // The death receipt. `phase` is an internal identifier — 'calm'/'build'/'storm'/'boss' — and no
@@ -5629,7 +5717,7 @@ function startRun(mode){
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
   el('bossbar').classList.add('hidden');
-  el('bestiary').classList.add('hidden'); el('codex').classList.add('hidden'); // a run must never start hidden under an info overlay
+  el('bestiary').classList.add('hidden'); el('codex').classList.add('hidden'); el('records').classList.add('hidden'); // a run must never start hidden under an info overlay
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
   state='play'; lastT=performance.now(); acc=0;
   if(labMode) beginLabRun(); else if(testMode) beginTestRun(); else beginRun();
@@ -5754,10 +5842,74 @@ function openCodex(){
   el('codex').classList.remove('hidden');
 }
 function closeCodex(){ el('codex').classList.add('hidden'); }
+
+// ---- RECORDS: the last RUNS_KEPT survival runs and the lifetime tally. Built on open, like the Codex,
+// because `store` changes every time you die. ----
+//   THE EMPTY STATE IS THE ONE MOST PEOPLE SEE FIRST and it has to say why it is empty, or a fresh
+// player reads a broken screen. It also has to say what does NOT count here, because a player who
+// grinds Boss Rush and finds nothing recorded will conclude the feature is broken rather than that it
+// is deliberate.
+const fmtN=n=>Math.round(n).toLocaleString();
+function openRecords(){
+  const R=store.runs, T=store.totals;
+  const rows = R.map(r=>{
+    // `best` is the STANDING best, so at most one row can wear the mark, and only while it survives in
+    // the last ten. A row that ties it is not marked: two golds would say the record was set twice.
+    const isBest = r.s===store.best && r.s>0;
+    return `<div class="r">
+      <div class="c n${isBest?' best':''}">${fmtN(r.s)}</div>
+      <div class="c d">${r.d}</div>
+      <div class="c">${fmtTime(r.t)}</div>
+      <div class="c">${ROMAN[(r.e-1)%12]}</div>
+      <div class="c">${r.c}</div></div>`;
+  }).join('');
+  const table = R.length ? `<div class="rcT">
+      <div class="h">Score</div><div class="h">Lost to</div><div class="h">Time</div>
+      <div class="h">Epoch</div><div class="h">Combo</div><div class="hr"></div>${rows}</div>`
+    : `<div class="rcEmpty">Nothing here yet — finish a run and it lands at the top of this list.<br>
+       Boss Rush and Pattern Lab are practice and never record, which is the same rule that keeps them
+       from setting your best.</div>`;
+  const tot = T.runs ? `<div class="rcTot">
+      <div class="ds"><div class="k">Runs</div><div class="v">${fmtN(T.runs)}</div></div>
+      <div class="ds"><div class="k">Time in the field</div><div class="v">${fmtTime(T.time||0)}</div></div>
+      <div class="ds"><div class="k">Best combo</div><div class="v">${fmtN(T.combo||0)}</div></div>
+      <div class="ds"><div class="k">Anomalies met</div><div class="v">${fmtN(T.anom||0)}</div></div>
+    </div>` : '';
+  el('recordsBody').innerHTML=
+     `<div class="rcH">Best</div>
+      <div class="rcTot"><div class="ds"><div class="k">Highest score</div>
+        <div class="v" style="color:var(--gold)">${fmtN(store.best)}</div></div></div>`
+    + (tot?`<div class="rcH">Lifetime</div>${tot}`:'')
+    + `<div class="rcH">Last ${RUNS_KEPT} runs</div>${table}`
+    + `<button class="rcWipe" id="wipeBtn">Erase records</button>`;
+  wipeArmed=0; el('wipeBtn').onclick=onWipe;
+  el('records').classList.remove('hidden');
+}
+function closeRecords(){ el('records').classList.add('hidden'); wipeArmed=0; }
+// Arms on the first press and disarms itself after WIPE_ARM_MS. A destructive button that stays live
+// indefinitely is one stray tap away from firing under whatever the player pressed next.
+let wipeArmed=0, wipeT=0;
+const WIPE_ARM_MS=3000;
+function onWipe(){
+  const b=el('wipeBtn');
+  if(!wipeArmed){
+    wipeArmed=1; b.classList.add('armed'); b.textContent='Press again to erase';
+    clearTimeout(wipeT); wipeT=setTimeout(()=>{ wipeArmed=0;
+      if(el('wipeBtn')){ b.classList.remove('armed'); b.textContent='Erase records'; } }, WIPE_ARM_MS);
+    return;
+  }
+  clearTimeout(wipeT); wipeArmed=0;
+  store.runs.length=0; store.totals={}; store.best=0;
+  save();
+  el('best').querySelector('.v').textContent='0';   // the HUD carries it too, and it is on screen behind this
+  openRecords();                                    // rebuild: the empty state is the confirmation
+}
 el('bestiaryBtn').onclick=openBestiary;
 el('bestiaryClose').onclick=closeBestiary;
 el('codexBtn').onclick=openCodex;
 el('codexClose').onclick=closeCodex;
+el('recordsBtn').onclick=openRecords;
+el('recordsClose').onclick=closeRecords;
 // stopIMMEDIATEPropagation, not stopPropagation. Both of these and the main input handler are registered
 // on the SAME target (window), and `stopPropagation` only stops the walk to the NEXT target — it does
 // nothing to other listeners already attached to this one. With plain stopPropagation, Escape closes the
@@ -5766,6 +5918,7 @@ el('codexClose').onclick=closeCodex;
 // either becomes reachable mid-run.
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('bestiary').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeBestiary(); }});
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeCodex(); }});
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('records').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeRecords(); }});
 
 // ---- SETTINGS ----
 // NOTHING HERE OWNS STATE. Every switch reads the same source the rest of the game reads and writes
