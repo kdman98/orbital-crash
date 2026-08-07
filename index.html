@@ -6605,9 +6605,21 @@ function bindFrameEsc(f){
     });
   }catch(_){}
 }
+// ⚠️ THE LANGUAGE TRAVELS IN THE URL. bestiary.html is a separate document sharing no code, so it
+// carries its own string table and reads `?lang=` from its own location — an iframe cannot reliably see
+// the opener's localStorage under storage partitioning, and a postMessage handshake would race the
+// first paint of nineteen canvases.
+//   The src is compared rather than merely tested for existence. The frame is cached ON PURPOSE
+// (re-loading it restarts every animation on the page), and the old `if(!src)` meant it kept serving
+// whichever language it happened to be opened in first, for the rest of the session.
+let bestiaryBound=false;
 function openBestiary(){
   const f=el('bestiaryFrame');
-  if(!f.getAttribute('src')){ f.setAttribute('src','bestiary.html'); f.addEventListener('load',()=>bindFrameEsc(f)); }
+  const want='bestiary.html?lang='+store.lang;
+  if(f.getAttribute('src')!==want){
+    f.setAttribute('src',want);
+    if(!bestiaryBound){ bestiaryBound=true; f.addEventListener('load',()=>bindFrameEsc(f)); }
+  }
   el('bestiary').classList.remove('hidden');
   bindFrameEsc(f);
 }
@@ -6742,6 +6754,7 @@ function applyLang(){
   if(!el('settings').classList.contains('hidden')) paintSettings();
   if(!el('codex'   ).classList.contains('hidden')) openCodex();
   if(!el('records' ).classList.contains('hidden')) openRecords();
+  if(!el('bestiary').classList.contains('hidden')) openBestiary();   // re-points the frame at the new ?lang=
   // Not during a beat: tutPaint() writes the INSTRUCTION, and the beat is showing the acknowledgement.
   // Repainting through it would replace "That's how you move." with the step you have just finished.
   if(tutMode && tutBeat<=0){ tutBarCache=''; tutPaint(); }

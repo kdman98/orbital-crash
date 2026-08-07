@@ -10,7 +10,8 @@
   html,body{margin:0;}
   body{background:radial-gradient(130% 100% at 50% 0%,#0d1730 0%,#060812 62%,#04060f 100%);
     color:var(--ink);min-height:100vh;padding:30px 20px 52px;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,
+                'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;}
   .wrap{max-width:920px;margin:0 auto;}
   header{text-align:center;margin-bottom:8px;}
   .logo{font-size:clamp(40px,10vw,72px);font-weight:900;line-height:.85;letter-spacing:.02em;
@@ -40,6 +41,14 @@
   .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--violet);
     font-weight:800;text-align:center;margin:18px 0 2px;}
   .card.anom{border-color:rgba(155,107,255,.28);}
+  /* Korean, same reasoning as index.html's block: .42em and .34em are the small-caps look and Hangul
+     syllables are already square, so the tracking comes down; keep-all stops Korean breaking words in
+     half, which is its default and reads as a rendering fault. .tag has a 30px min-height sized for two
+     English lines, and Korean fits the same cards in fewer — it stays, so the grid rows keep aligning. */
+  html[lang="ko"] .sub{letter-spacing:.16em;}
+  html[lang="ko"] .section{letter-spacing:.12em;}
+  html[lang="ko"] .tag,
+  html[lang="ko"] .legend{word-break:keep-all;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -64,44 +73,123 @@
   const TAU=Math.PI*2;
   const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
 
+  // ---- LANGUAGE ----------------------------------------------------------------------------------
+  // This page shares NO code with index.html, so it carries its own small table and its own reader.
+  // The language arrives as `?lang=` on the iframe src — the parent appends it, because an iframe
+  // cannot see the opener's localStorage across every browser's storage-partitioning rules and a
+  // postMessage handshake would race the first paint.
+  //   IDs are namespaced by kind. `drift` is BOTH a Dot type (the Drifter) and a Pattern key (The
+  // Drift), which collides on a flat key and is exactly the collision index.html keeps deliberately —
+  // 드리프터 for the creature, 표류 for the shape.
+  const LANG=(()=>{ const p=new URLSearchParams(location.search).get('lang');
+                    return p==='ko' ? 'ko' : 'en'; })();
+  document.documentElement.lang=LANG;
+  const TXT={ en:{
+    'page.title':'ORBITAL CRASH · Bestiary',  'page.sub':'Bestiary',
+    'page.legend':'Every Dot is <b style="color:#ff3f6c">red</b> or <b style="color:#38e0ff">cyan</b>. The <b>opposite</b> colour comes for you and dies the moment it touches you, so it is your danger and your ammunition at the same time. Your <b>own</b> colour is safe, and gathers into your rings. <b style="color:#c7b8ff">Neutral</b> has no charge either way. The colours here are only examples; anything can turn up as either.',
+    'page.foot':"Everything on this page is drawn by the game's own code. This is what you will meet out there.",
+    'sec.patterns':'Patterns',  'sec.anomaly':'The Anomaly',  'sec.kinds':'Anomaly kinds',
+    'core.nm':'The Star',
+    'core.tg':'You. Steer with the mouse, click to flip your colour. That is the whole toolkit.',
+    'dot.drift.nm':'Drifter',
+    'dot.drift.tg':'The plain one. Comes straight at you, in no particular hurry. Learn the colours on these.',
+    'dot.fast.nm':'Dart',
+    'dot.fast.tg':'Small, quick, and trailing a wake. Nothing else in the sky moves like that.',
+    'dot.heavy.nm':'Brute',
+    'dot.heavy.tg':'Big, slow, tough. It can take hard hits and survive.',
+    'dot.bomber.nm':'Bomber',
+    'dot.bomber.tg':'A normal Dot, but it explodes when it dies. Harmless to you, deadly to every Dot around you. Use it well, or take care.',
+    'dot.charger.nm':'Charger',
+    'dot.charger.tg':'Draws a line, then dashes down it. The one Dot you cannot pull off course. Step aside.',
+    // The one card that gained a fact. Nothing else in the game says how a Neutral dies now that the
+    // Codex has stopped listing rules, and "you cannot beat this" is the wrong thing to leave a new
+    // player holding when a flip does in fact kill it.
+    'dot.neutral.nm':'Neutral',
+    'dot.neutral.tg':'Wears both colours at once, so neither of yours makes it safe. Do not touch it. A flip pops it anyway.',
+    // The Harrier's tag names the ORBIT, because the orbit is the only thing about it that matters and
+    // it is the one property a card cannot show — a still image has no time axis. The hull teaches
+    // recognition; the words have to carry the behaviour.
+    'dot.harrier.nm':'Harrier',
+    'dot.harrier.tg':'The fastest thing in the sky after a Dart, and too fast to turn tightly. Your field cannot pull it in — it catches it into a long orbit instead, and it circles you until it runs out of speed.',
+    // The Planet earns a longer tag than anything else here, and it is the one card that has to say what
+    // the PAYOFF is. Every other Dot is a thing you avoid or annihilate on sight; this is the only body
+    // you are meant to keep alive and carry, and none of that is guessable from watching it.
+    'dot.planet.nm':'Planet',
+    'dot.planet.tg':'Hold it in your rings and it starts to break apart. Keep it there long enough and it takes every Dot of the other colour with it. Flip, and you throw it away.',
+    'boss.nm':'The Anomaly',
+    'boss.tg':'The boss of the Epoch, and it will not leave. Gather your colour into your rings, then flip to throw them at it. Nothing else touches it.',
+    'anom.emitter.nm':'Emitter',
+    'anom.emitter.tg':'Hangs back and shoots. Cross its fire. Never back away in a straight line.',
+    'anom.sentinel.nm':'Sentinel',
+    'anom.sentinel.tg':'Circles you and sends seekers. They turn better than you, but they cannot keep up. So run.',
+    'anom.pulsar.nm':'Pulsar',
+    'anom.pulsar.tg':'Throws up a wall with one way through. Find the gap and be standing in it.',
+    'form.wall.nm':'The Wall',   'form.noose.nm':'The Noose', 'form.pulse.nm':'The Pulse',
+    'form.cross.nm':'The Cross', 'form.comet.nm':'The Comet', 'form.drift.nm':'The Drift',
+  }, ko:{
+    'page.title':'ORBITAL CRASH · 도감',  'page.sub':'도감',
+    'page.legend':'모든 입자는 <b style="color:#ff3f6c">빨강</b> 아니면 <b style="color:#38e0ff">시안</b>이다. <b>반대</b> 색은 나를 향해 오고, 닿는 순간 죽는다. 위험이자 탄약이라는 뜻이다. <b>같은</b> 색은 안전하고, 모여서 링이 된다. <b style="color:#c7b8ff">중성체</b>는 어느 쪽 전하도 없다. 여기 색은 예시일 뿐이고, 무엇이든 둘 중 어느 쪽으로도 나타난다.',
+    'page.foot':'이 페이지의 모든 것은 게임의 코드가 직접 그렸다. 바깥에서 만나게 될 그대로다.',
+    'sec.patterns':'패턴',  'sec.anomaly':'변칙체',  'sec.kinds':'변칙체 종류',
+    'core.nm':'별',
+    'core.tg':'나 자신. 마우스로 조종하고, 클릭으로 색을 뒤집는다. 도구는 이게 전부다.',
+    'dot.drift.nm':'드리프터',
+    'dot.drift.tg':'평범한 놈. 서두르지 않고 곧장 다가온다. 색은 이걸로 익히면 된다.',
+    'dot.fast.nm':'다트',
+    'dot.fast.tg':'작고 빠르고 흔적을 끌고 온다. 하늘에서 저렇게 움직이는 건 이것뿐이다.',
+    'dot.heavy.nm':'거구',
+    'dot.heavy.tg':'크고 느리고 단단하다. 세게 맞아도 버틴다.',
+    'dot.bomber.nm':'폭격체',
+    'dot.bomber.tg':'평범한 입자지만 죽을 때 터진다. 나한테는 무해하고, 주변 입자에는 치명적이다. 잘 쓰거나, 조심하거나.',
+    'dot.charger.nm':'돌격체',
+    'dot.charger.tg':'선을 긋고 그 선을 따라 돌진한다. 궤도를 틀 수 없는 유일한 입자다. 비켜라.',
+    'dot.neutral.nm':'중성체',
+    'dot.neutral.tg':'두 색을 동시에 두른다. 내 색이 무엇이든 안전해지지 않는다. 닿지 마라. 그래도 플립이면 터진다.',
+    'dot.harrier.nm':'추격체',
+    'dot.harrier.tg':'다트 다음으로 빠르고, 너무 빨라서 좁게 돌지 못한다. 필드가 끌어당기지 못하고 긴 궤도로 붙잡을 뿐이다. 속도가 다할 때까지 주위를 돈다.',
+    'dot.planet.nm':'행성',
+    'dot.planet.tg':'링 안에 붙들고 있으면 부서지기 시작한다. 충분히 오래 두면 반대 색 입자를 전부 데리고 간다. 플립하면 던져버리게 된다.',
+    'boss.nm':'변칙체',
+    'boss.tg':'그 시기의 보스이고, 떠나지 않는다. 같은 색을 링에 모은 다음 플립으로 던져라. 그 밖에는 아무것도 통하지 않는다.',
+    'anom.emitter.nm':'방출체',
+    'anom.emitter.tg':'뒤에서 쏜다. 탄막을 가로질러라. 일직선으로 물러나지 마라.',
+    'anom.sentinel.nm':'감시자',
+    'anom.sentinel.tg':'주위를 돌면서 추적탄을 보낸다. 나보다 잘 돌지만 속도는 못 따라온다. 그러니 달려라.',
+    'anom.pulsar.nm':'맥동체',
+    'anom.pulsar.tg':'길이 하나뿐인 벽을 세운다. 그 틈을 찾아 미리 서 있어라.',
+    'form.wall.nm':'장벽',   'form.noose.nm':'올가미', 'form.pulse.nm':'파동',
+    'form.cross.nm':'십자',  'form.comet.nm':'혜성',   'form.drift.nm':'표류',
+  } };
+  const T=k=>{ const t=TXT[LANG]; return (t&&t[k]!=null) ? t[k] : (TXT.en[k]!=null ? TXT.en[k] : k); };
+  const idOf=s=>s.kind==='core'||s.kind==='boss' ? s.kind : s.kind+'.'+(s.type||s.key);
+
+  document.title=T('page.title');
+  document.querySelector('.sub').textContent=T('page.sub');
+  document.querySelector('.legend').innerHTML=T('page.legend');
+  document.querySelector('.foot').textContent=T('page.foot');
+
   // COPY RULE FOR THIS PAGE: a card is for someone who has not played yet. Say what the thing does and
   // what to do about it, in about the length of a spoken sentence. No stats, no numbers, no tuning
   // detail — docs/MECHANICS.md is the spec and this is not it. If a card needs a figure to make sense,
   // the card is answering the wrong question.
-  const CORE={kind:'core',name:'The Star',tag:'You. Steer with the mouse, click to flip your colour. That is the whole toolkit.'};
+  const CORE={kind:'core'};
   const DOTS=[
-    {kind:'dot',type:'drift',  name:'Drifter', col:'cyan',   r:11,tag:'The plain one. Comes straight at you, in no particular hurry. Learn the colours on these.'},
-    {kind:'dot',type:'fast',   name:'Dart',    col:'red',    r:8, tag:'Small, quick, and trailing a wake. Nothing else in the sky moves like that.'},
-    {kind:'dot',type:'heavy',  name:'Brute',   col:'cyan',   r:20,tag:'Big, slow, tough. It can take hard hits and survive.'},
-    {kind:'dot',type:'bomber', name:'Bomber',  col:'cyan',   r:17,
-     tag:'A normal Dot, but it explodes when it dies. Harmless to you, deadly to every Dot around you. Use it well, or take care.'},
-    {kind:'dot',type:'charger',name:'Charger', col:'red',    r:13,tag:'Draws a line, then dashes down it. The one Dot you cannot pull off course. Step aside.'},
-    // The one card that gained a fact. Nothing else in the game says how a Neutral dies now that the
-    // Codex has stopped listing rules, and "you cannot beat this" is the wrong thing to leave a new
-    // player holding when a flip does in fact kill it.
-    {kind:'dot',type:'neutral',name:'Neutral', col:'neutral',r:15,tag:'Wears both colours at once, so neither of yours makes it safe. Do not touch it. A flip pops it anyway.'},
-    // The Planet earns a longer tag than anything else here, and it is the one card that has to say what
-    // the PAYOFF is. Every other Dot is a thing you avoid or annihilate on sight; this is the only body
-    // you are meant to keep alive and carry, and none of that is guessable from watching it.
-    // The Harrier's tag names the ORBIT, because the orbit is the only thing about it that matters and it
-    // is the one property a card cannot show — a still image has no time axis. The hull teaches
-    // recognition; the words have to carry the behaviour.
-    {kind:'dot',type:'harrier',name:'Harrier', col:'red',    r:13,
-     tag:'The fastest thing in the sky after a Dart, and too fast to turn tightly. Your field cannot pull it in — it catches it into a long orbit instead, and it circles you until it runs out of speed.'},
-    {kind:'dot',type:'planet', name:'Planet',  col:'cyan',   r:23,
-     tag:'Hold it in your rings and it starts to break apart. Keep it there long enough and it takes every Dot of the other colour with it. Flip, and you throw it away.'},
+    {kind:'dot',type:'drift',  col:'cyan',   r:11},
+    {kind:'dot',type:'fast',   col:'red',    r:8 },
+    {kind:'dot',type:'heavy',  col:'cyan',   r:20},
+    {kind:'dot',type:'bomber', col:'cyan',   r:17},
+    {kind:'dot',type:'charger',col:'red',    r:13},
+    {kind:'dot',type:'neutral',col:'neutral',r:15},
+    {kind:'dot',type:'harrier',col:'red',    r:13},
+    {kind:'dot',type:'planet', col:'cyan',   r:23},
   ];
   // r is the hull AND the collider, same law as every dot row.
-  const BOSS={kind:'boss',name:'The Anomaly',col:'red',r:37,
-    tag:'The boss of the Epoch, and it will not leave. Gather your colour into your rings, then flip to throw them at it. Nothing else touches it.'};
+  const BOSS={kind:'boss',col:'red',r:37};
   // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
   const ANOMS=[
-    {kind:'anom',key:'emitter', name:'Emitter', col:'cyan',
-     tag:'Hangs back and shoots. Cross its fire. Never back away in a straight line.'},
-    {kind:'anom',key:'sentinel',name:'Sentinel',col:'cyan',
-     tag:'Circles you and sends seekers. They turn better than you, but they cannot keep up. So run.'},
-    {kind:'anom',key:'pulsar',  name:'Pulsar',  col:'red',
-     tag:'Throws up a wall with one way through. Find the gap and be standing in it.'},
+    {kind:'anom',key:'emitter', col:'cyan'},
+    {kind:'anom',key:'sentinel',col:'cyan'},
+    {kind:'anom',key:'pulsar',  col:'red'},
   ];
   // The six shapes, in Pattern Lab key order (1-6). Four are true Patterns — irregular waves that
   // arrive between the drizzle from ~0:42 onward — and two, the Comet and the Drift, are EVENTS on their
@@ -111,12 +199,12 @@
   // stay quiet in a way the Dot cards cannot — a Dot is a thing you must recognise mid-fight, a Pattern
   // is a puzzle that announces itself. Adding a tag back would put the answer above the puzzle.
   const FORMS=[
-    {kind:'form',key:'wall',  name:'The Wall',  col:'cyan'},
-    {kind:'form',key:'noose', name:'The Noose', col:'red' },
-    {kind:'form',key:'pulse', name:'The Pulse', col:'red' },
-    {kind:'form',key:'cross', name:'The Cross', col:'cyan'},
-    {kind:'form',key:'comet', name:'The Comet', col:'cyan'},
-    {kind:'form',key:'drift', name:'The Drift', col:'neutral'},
+    {kind:'form',key:'wall',  col:'cyan'},
+    {kind:'form',key:'noose', col:'red' },
+    {kind:'form',key:'pulse', col:'red' },
+    {kind:'form',key:'cross', col:'cyan'},
+    {kind:'form',key:'comet', col:'cyan'},
+    {kind:'form',key:'drift', col:'neutral'},
   ];
 
   const renders=[];
@@ -128,7 +216,10 @@
     // next to the canvas; with the Pattern text gone there is nothing to sit there, and the name floated
     // alone in half an empty card. `bare` stacks it instead — canvas full width, name centred under it.
     // The Anomaly is still a wide card WITH a tag, so it keeps the original two-column arrangement.
-    const bare = wide && !spec.tag;
+    //   ⚠️ ASKS THE TABLE, not the spec. `spec.tag` moved into TXT, so testing it here would have been
+    // undefined on every card and stacked the Anomaly like a Pattern — a layout bug with no error.
+    const tag = TXT.en[idOf(spec)+'.tg'] ? T(idOf(spec)+'.tg') : '';
+    const bare = wide && !tag;
     card.className=(wide?'wide':'card')+(bare?' bare':'');
     // Only the WIDTH grows. `ch` stays at 190 because the Pattern draw code is tuned to that vertical
     // extent — formPulse puts its source at y+105, the Comet runs y+44 to y-44 — and moving it would
@@ -146,7 +237,7 @@
     // No stat line. It used to read `r 11 · hp 1 · 10 dmg` off the spec, which is exactly the "real
     // values" this page no longer advertises. `r` stays in the data because the DRAWING needs it —
     // a Brute has to look like a Brute — but it is geometry now, not a figure on show.
-    info.innerHTML='<div class="nm">'+spec.name+'</div>'+(spec.tag?'<div class="tag">'+spec.tag+'</div>':'');
+    info.innerHTML='<div class="nm">'+T(idOf(spec)+'.nm')+'</div>'+(tag?'<div class="tag">'+tag+'</div>':'');
     card.appendChild(cv); card.appendChild(info);
     grid.appendChild(card);
     renders.push({ctx,cw,ch,spec});
@@ -526,11 +617,11 @@
   }
   makeCard(CORE,false);
   DOTS.forEach(d=>makeCard(d,false));
-  addSection('Patterns');
+  addSection(T('sec.patterns'));
   FORMS.forEach(f=>makeCard(f,true));
-  addSection('The Anomaly');
+  addSection(T('sec.anomaly'));
   makeCard(BOSS,true);
-  addSection('Anomaly kinds');
+  addSection(T('sec.kinds'));
   ANOMS.forEach(a=>makeCard(a,false));
 
   function draw(t){
