@@ -1663,6 +1663,13 @@ hold over the opposite colour. **A section here is a mixture of taught and untau
 test for any candidate paragraph is whether a tutorial step *demonstrates* it, not whether its heading
 sounds like something the tutorial covered.
 
+**And one class of paragraph can never fail that test, which makes it decidable rather than a judgement
+call: a fact about ABSENCE.** The tutorial teaches by doing, so it can only cover what a player can
+perform. Nothing anyone *does* can show that nothing carries between runs, or that Overdrive will not
+touch an Anomaly, or that no button does the volley for you. Those live in the Codex permanently, however
+much the tutorial grows. (Credit to orbital main for the formulation — it is sharper than the version
+this section shipped with, which asked the editor to judge overlap paragraph by paragraph.)
+
 ---
 
 ## Language
