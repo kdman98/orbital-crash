@@ -195,12 +195,20 @@
   .titlewrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;}
   .logo{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
     margin:0;font-weight:900;line-height:.84;}
-  /* the two words moved toward each other on purpose: ORBITAL +6px, CRASH -10px. The lockup reads
-     as one object rather than a label stuck above a headline. margin-bottom is em-based, so it was
-     pulled back to .7 to stop the bigger ORBITAL from opening the gap it used to hold. */
-  .logo .l1{font-size:clamp(17px,3.5vw,23px);letter-spacing:.62em;text-indent:.62em;color:#8fa4c8;
-    margin-bottom:.7em;}
-  .logo .l2{font-size:clamp(60px,16vw,158px);letter-spacing:-.012em;
+  /* THE TWO WORDS ARE NOW CLOSE TO THE SAME SIZE, and that is the whole brief: ORBITAL doubled, CRASH
+     halved. It used to be a 23px kicker over a 158px headline — a 6.9x ratio, so CRASH *was* the logo
+     and ORBITAL was a label above it. At 46/79 the ratio is 1.7 and the lockup reads as two words of
+     one name.
+       ⚠️ TRACKING HAD TO COME DOWN WITH THE SIZE, and not for taste. letter-spacing is in em, so .62em
+     doubles in px along with the type: ORBITAL measured 159px at 375px wide and would have gone past
+     318px against 331px of usable width — one hair from overflowing a phone, and actually overflowing
+     anything narrower. .24em holds it near CRASH's own width at every size, which is what makes the
+     pair read as a lockup rather than as a wide word above a small one. text-indent must match, or the
+     trailing space after the L pushes the whole word off centre by half the tracking.
+       margin-bottom is em-based too, so it halves to .35 to hold the same optical gap at 2x the type. */
+  .logo .l1{font-size:clamp(34px,7vw,46px);letter-spacing:.24em;text-indent:.24em;color:#8fa4c8;
+    margin-bottom:.35em;}
+  .logo .l2{font-size:clamp(30px,8vw,79px);letter-spacing:-.012em;
     background:linear-gradient(178deg,#fff 12%,#c9dcf2 62%,#8fa8c8 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
     filter:drop-shadow(0 10px 40px rgba(0,0,0,.7));}
@@ -366,8 +374,16 @@
       padding-left:max(12px,env(safe-area-inset-left,0px));
       padding-right:max(12px,env(safe-area-inset-right,0px));
       padding-bottom:max(10px,env(safe-area-inset-bottom,0px));}
-    .logo .l1{font-size:clamp(11px,2.2vh,15px);}
-    .logo .l2{font-size:clamp(34px,8.5vh,54px);}
+    /* ⚠️ DO NOT APPLY THE 2x/0.5x FROM THE BASE RULES HERE — this branch has already shrunk CRASH once,
+       for height, and halving it again inverts the lockup. Measured at 844x390 the naive version put
+       ORBITAL at 22px and CRASH at 17px/61px wide: the headline word rendered smaller and less than half
+       the width of its own kicker.
+         What this branch owes is the SAME lockup, shorter. So it keeps the base ratio (1.72, from 79/46)
+       and buys its vertical space by scaling both words together — 18/31 at a landscape phone against
+       46/79 on the desktop, ~49px of type where the base rules want 125. The vh coefficients are in the
+       same 1.72 proportion, so the ratio survives anywhere the clamp is live. */
+    .logo .l1{font-size:clamp(18px,3.4vh,26px);}
+    .logo .l2{font-size:clamp(31px,5.85vh,45px);}
     /* max-width goes UP, not down. 26em is a reading-length cap that assumes height is cheap and width
        is scarce; landscape reverses both. At 26em the longest beat ("Then let the other colour crash
        into what you gathered.") wrapped and orphaned "gathered." onto a line of its own — the exact
