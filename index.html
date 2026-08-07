@@ -1321,11 +1321,19 @@ const ETYPE={
   //                 carries on the wrong way once you get behind it — measures exactly `1.5653 × cruise`,
   //                 identical to four decimals across all seven species that share the bleed, because
   //                 the system is LINEAR in `seek`: friction fixes the shape of the turn and `seek`
-  //                 scales it. So `seek` sets turn radius in direct proportion, and 0.16 bought the
-  //                 TIGHTEST turn on the roster bar one — 1.54px, against the Planet's 1.25 and the
-  //                 Dart's 4.04. The species briefed "slow turn" was turning on a sixpence. 0.34 measures
-  //                 3.27px, second-widest behind the Dart, so the raise pays BOTH halves of the brief at
-  //                 once rather than trading one for the other.
+  //                 scales it. So `seek` sets turn radius in direct proportion, and 0.16 put the species
+  //                 briefed "slow turn" in the TIGHTEST QUARTER of the field. The whole ladder, because
+  //                 two claims about its rank have already been written wrong from the same numbers:
+  //                     Planet 1.25 · Charger-spent 1.35 · Brute 1.44 · HARRIER-at-0.16 1.54 ·
+  //                     Bomber 1.63 · Neutral 1.92 · Drifter 2.12 · Charger-armed 3.72 · Dart 4.04
+  //                 Fourth-tightest of nine, not "tightest bar the Planet" — the Brute and a spent
+  //                 Charger sit in between, and a spent Charger IS a real cruising regime: `spent` drops
+  //                 it out of stepCharger into this loop for CHG_COOL, which its own note calls the
+  //                 majority of its life. 0.34 measures 3.27px: second-widest of the SEVEN on the shared
+  //                 basis, third of all nine states, because the armed Charger's 3.72 sits above it on a
+  //                 basis of its own. Quote the basis with the rank or the rank is not checkable.
+  //                 Either way the raise pays BOTH halves of the brief at once instead of trading one
+  //                 for the other.
   //                 ⚠️ AND THE ARMED CHARGER IS NOT ON THIS BASIS — it `continue`s into `stepCharger`,
   //                 which runs its own accel 0.17 and bleed 0.9, so K is 9 and its ratio is 2.4341 over 7
   //                 frames. Quoting 1.5653 at it, or `seek*6.1429` for its cruise, describes the SPENT
