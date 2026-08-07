@@ -305,10 +305,10 @@
   /* Sits under the boxes and above a gap, so there is now exactly one group it can be read against.
      Hung between the two pairs, it could have been captioning either. */
   .doornote{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;}
-  /* gap 16, down from 28 when this became four links. MEASURED, because the arithmetic decides this one:
-     the four labels total 305.7px and a 375px phone offers 331px inside the overlay padding, which
-     leaves 8.4px per gap — too tight to read as deliberate, and at 320px wide they cannot fit on one
-     row at ANY gap. So narrow screens do not get a row; they get the 2x2 below. */
+  /* gap 16, set when this was four links: at 28 they totalled 373px against 331px of usable width on a
+     375px phone and wrapped Settings onto a line of its own. Three links now — 278.5px at this gap — so
+     the value is no longer load-bearing, but it is what the row was measured at and there is no reason
+     to move it. */
   /* Top-right of the menu, the corner every game puts this in. Absolutely positioned so it costs the
      stacked content no height — that column is measured and the short-screen branch has none to give. */
   .langsel{position:absolute;top:16px;right:16px;display:flex;gap:2px;pointer-events:auto;
@@ -376,7 +376,7 @@
   .setrow.off .rng::-webkit-slider-thumb{background:rgba(255,255,255,.3);box-shadow:none;}
   .setrow.off .rng::-moz-range-thumb{background:rgba(255,255,255,.3);box-shadow:none;}
 
-  /* RECORDS. Narrower than the Codex because it is a table of five short columns, not prose — at 720px
+  /* RECORDS. Narrow because it is a table of five short columns, not prose — at 720px
      the numbers drift so far apart that reading across a row stops being free. */
   #recordsBody{width:min(560px,94vw);max-height:74vh;overflow-y:auto;text-align:left;padding:4px 10px 24px 4px;}
   .rcT{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:0 12px;align-items:baseline;
@@ -407,14 +407,9 @@
     transition:color .12s ease,border-color .12s ease;}
   .rcWipe:hover{color:var(--ink);border-color:rgba(255,255,255,.34);}
   .rcWipe.armed{color:var(--red);border-color:var(--red);}
-  #codexBody{width:min(720px,94vw);max-height:74vh;overflow-y:auto;text-align:left;padding:4px 14px 30px 4px;}
-  .cxs{margin:0 0 18px;}
-  .cxs h3{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);margin:0 0 7px;}
-  .cxs p{font-size:13px;line-height:1.65;color:#c3ccdb;margin:0 0 6px;}
-  .cxs b{color:#fff;} .cxs .gold{color:var(--gold);} .cxs .vio{color:var(--violet);}
-  /* ACHIEVEMENT ROWS. `.cxa` once, when these lived in the Codex — the name said `cx` and the rows are
-     in Records now, so it would have been a class claiming the wrong panel. `.acvL` carries the block's
-     bottom margin so the group clears the next `.rcH` the way `.rcTot` does. */
+  /* ACHIEVEMENT ROWS. `.cxa` once, when these lived in the Codex — the name said `cx`, the rows moved to
+     Records, and the Codex itself is gone now. `.acvL` carries the block's bottom margin so the group
+     clears the next `.rcH` the way `.rcTot` does. */
   .acvL{margin:0 0 20px;}
   .acv{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.7;color:#c3ccdb;}
   .acv .st{width:18px;flex:0 0 auto;} .acv.got .st{color:var(--lime);} .acv .rw{color:var(--dim);font-size:11.5px;}
@@ -487,15 +482,11 @@
      and leaving nothing in its place stopped being right the moment touch steered again. Two legends
      rather than one rewritten in JS, because #controls carries #modeKeys and the Lab writes into it. */
   @media (pointer:coarse){ .hint,#controls{display:none;} }
-  /* FOUR LINKS DO NOT FIT ON ONE ROW ON A PHONE, so this makes the wrap deliberate. Left to flex-wrap
-     alone the widths (80/83/59/84) break 3-then-1, which reads as a layout that ran out of room rather
-     than as a group. A 2x2 grid is the same four links saying so on purpose.
-       Keyed on width, not on `pointer:coarse` — a narrow desktop window has exactly the same shortage,
-     and 420px is comfortably above the 340px where the one-row version actually fails. */
-  @media (max-width:420px){
-    .refs{display:grid;grid-template-columns:1fr 1fr;gap:13px 16px;justify-items:center;
-      width:min(100%,300px);}
-  }
+  /* ⚠️ A 2x2 GRID LIVED HERE AND WENT WITH THE CODEX LINK. It existed because FOUR labels could not
+     share a row on a phone, and it made that wrap deliberate rather than accidental. At three it did
+     the precise thing it was written to prevent — 2 then 1, which reads as a layout that ran out of
+     room. Measured at 375px after the cut: one row needs 278.5px of 331px usable in English and 114.5px
+     in Korean, so the shortage it answered no longer exists. Put it back if a fourth link ever does. */
   /* Same corner, same type, same opacity as #controls — it IS #controls for a device with fingers, and
      anything that made it look like a different kind of object would be saying something untrue.
      Hidden at every fine pointer; the media query below is the only thing that reveals it, and the
@@ -555,7 +546,7 @@
      it are left exactly as they are — the caps look simply does not apply, which is correct.
 
      !important is load-bearing on the .final rules and nowhere else. Four kickers set letter-spacing
-     INLINE (.3em on Codex/Records/Settings, .4em on Paused) and an inline style outranks any selector.
+     INLINE (.3em on Records/Settings, .4em on Paused) and an inline style outranks any selector.
      The alternative is lifting those four into classes, which would edit the English rendering to fix
      a Korean problem.
 
@@ -572,8 +563,7 @@
   html[lang="ko"] .deadstats .ds .k,
   html[lang="ko"] .rcTot .ds .k,
   html[lang="ko"] .rcT .h{letter-spacing:.06em;}
-  html[lang="ko"] .rcH,
-  html[lang="ko"] .cxs h3{letter-spacing:.1em;}
+  html[lang="ko"] .rcH{letter-spacing:.1em;}
   html[lang="ko"] .ref{letter-spacing:.04em;}
   html[lang="ko"] .doornote{letter-spacing:.06em;}
   html[lang="ko"] .loglab{letter-spacing:.1em;}
@@ -582,12 +572,10 @@
   html[lang="ko"] .sw{letter-spacing:.04em;}
   html[lang="ko"] .newbest{letter-spacing:.06em;}
   html[lang="ko"] .rcWipe{letter-spacing:.04em;}
-  html[lang="ko"] .cxs p,
   html[lang="ko"] .setrow .sd,
   html[lang="ko"] .rcEmpty,
   html[lang="ko"] #tutBar,
   html[lang="ko"] .acv{word-break:keep-all;}
-  html[lang="ko"] .cxs p,
   html[lang="ko"] .setrow .sd{line-height:1.68;}
   /* The live counter, on its own line so a changing number never reflows the sentence above it —
      "3 / 4" becoming "4 / 4" must not shift the words a player is mid-way through reading. */
@@ -687,7 +675,7 @@
        one door, two rooms and two pages. Grouped now — the modes side by side as a pair, the pages as
        links — so the shape carries what the margins were being asked to.
          "Pattern Lab" is the one label here a first-time player cannot decode: Boss Rush, Bestiary and
-       Codex are all conventions they have met before, and that one is ours. Hence the line under it.
+       and the Bestiary are conventions they have met before, and that one is ours. Hence the line under it.
          Both lines are built to hold ONE line inside the cell, and they open on the same word so the
        pair scans as a pair. The Lab's line said "on keys 1-5" first and the range broke across the
        wrap, orphaning a lone "5" — the exact keys live in the HUD legend the moment you are inside,
@@ -698,12 +686,11 @@
   </div>
   <!-- A real rule that the UI never stated anywhere: both practice modes are score-sandboxed. -->
   <div class="doornote" data-t="menu.note">Practice only · neither can set your best</div>
-  <!-- Four links now, and the gap comes down from 28px with them: at 28 the row measured 373px against
-       331px of usable width on a 375px phone and wrapped Settings onto a line of its own. -->
+  <!-- Three links, since the Codex was deleted. They fit one row at every width the game supports; the
+       2x2 fallback that carried four on a phone went with the fourth. -->
   <div class="refs">
     <button class="ref" id="recordsBtn" data-t="ref.records">Records</button>
     <button class="ref" id="bestiaryBtn" data-t="ref.bestiary">Bestiary</button>
-    <button class="ref" id="codexBtn" data-t="ref.codex">Codex</button>
     <button class="ref" id="settingsBtn" data-t="ref.settings">Settings</button>
   </div>
   <div class="hint" data-th="menu.hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
@@ -713,14 +700,6 @@
 <div class="overlay hidden" id="bestiary" style="padding:0;z-index:20;background:rgba(4,6,15,.97);backdrop-filter:none;-webkit-backdrop-filter:none;">
   <button class="btn sm ghost" id="bestiaryClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
   <iframe id="bestiaryFrame" data-tt="bestiary.frame" title="ORBITAL CRASH Bestiary" style="flex:1 1 auto;width:100%;height:100%;border:0;background:transparent;"></iframe>
-</div>
-
-<!-- CODEX: every rule of the game, in one place -->
-<div class="overlay hidden" id="codex" style="z-index:20;background:rgba(4,6,15,.97);">
-  <button class="btn sm ghost" id="codexClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
-  <div class="final" data-t="codex.kicker" style="letter-spacing:.3em;margin-top:8px;">Codex</div>
-  <h2 data-t="codex.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">How it works</h2>
-  <div id="codexBody"></div>
 </div>
 
 <!-- TUTORIAL END CARD. One card for both endings, because they ARE one ending — the finale is over.
@@ -736,7 +715,7 @@
   <button class="btn sm ghost" id="tutMenuBtn" data-t="ui.menu" style="margin-top:12px;">Menu</button>
 </div>
 
-<!-- RECORDS. Built on open, same as the Codex, because it is a view of `store` and `store` changes every
+<!-- RECORDS. Built on open rather than bound once, because it is a view of `store` and `store` changes every
      time you die. Nothing here is a leaderboard: there is no server, and both practice modes are barred
      from it by the same guard that protects the best score. -->
 <div class="overlay hidden" id="records" style="z-index:20;background:rgba(4,6,15,.97);">
@@ -1068,9 +1047,10 @@ function save(){
 //   ⚠️ THE ENGLISH IN THE MARKUP IS A DELIBERATE DUPLICATE of L.en. It keeps the HTML readable as a
 // page and it is what shows if the script dies before applyLang(). The two must not drift; the check
 // that proves they haven't is in docs/MECHANICS.md ## Traps and takes one console line.
-//   Prose blocks (the Codex, the Records empty state) are ONE key each, not one key per sentence.
-// Shredding 649 words of authored prose into thirty numbered keys makes it unwritable in English and
-// untranslatable in Korean, because neither can be read in order any more.
+//   Prose blocks (the Records empty state) are ONE key each, not one key per sentence. Shredding a
+// paragraph into numbered keys makes it unwritable in English and untranslatable in Korean, because
+// neither can be read in order any more. The Codex body was the reason this rule exists — 649 words
+// under one key — and the rule outlives it.
 const L={ en:{
 
   // ---- shared ----
@@ -1111,7 +1091,7 @@ const L={ en:{
   'menu.tut':'How to play',
   'menu.rush':'Boss Rush',  'menu.lab':'Pattern Lab',
   'menu.note':'Practice only · neither can set your best',
-  'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.codex':'Codex',  'ref.settings':'Settings',
+  'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',
   'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
   'bestiary.frame':'ORBITAL CRASH Bestiary',
 
@@ -1180,33 +1160,6 @@ const L={ en:{
   'rc.wipe':'Erase records',  'rc.wipeArm':'Press again to erase',
   'rc.achv':'Achievements',   'rc.secret':'a secret feat',  'rc.secretTag':'secret',
 
-  // ---- codex ----
-  'codex.kicker':'Codex',  'codex.h2':'How it works',
-  'codex.body':`
-  <div class="cxs"><h3>The charge law</h3>
-    <p>Every Dot out there is <b>red</b> or <b>cyan</b>, and so are you. Your own colour is drawn to you and settles into <b>rings</b> that orbit your star. Those rings are the weapon: anything of the opposite colour they sweep through dies.</p>
-    <p>The opposite colour comes after you under its own steam. Touching it kills it, but it hurts on the way past, so let the rings do that job instead.</p></div>
-  <div class="cxs"><h3>Score</h3>
-    <p>Everything you kill is worth the same, however and wherever you killed it. No multiplier to nurse, no combo arithmetic to keep in your head. Kills leave <b>motes</b> behind, and your own colour hoovers those up by itself, so sweeping your own wreckage on the way past is quietly worth doing.</p>
-    <p>Now and again a <b class="gold">gold-ringed Dot</b> drifts in. Pop it before the ring runs out and it pays properly.</p></div>
-  <div class="cxs"><h3>Capacitor and Overdrive</h3>
-    <p>The <b>Capacitor</b> is the only thing you bank, and <b>Overdrive</b> is the only thing it buys.</p>
-    <p>Hold <b>Shift</b>, or the right mouse button, and your rings swing out wide and whirl fast with you moving quicker along with them. The <b class="gold">button</b> turns up the moment you can afford to light it.</p></div>
-  <div class="cxs"><h3>Streak</h3>
-    <p>Kill without being hit and the count climbs. Each rank pays into the Capacitor: <b style="color:var(--cyan)">AWAKENING</b>, <b class="gold">MAGNETIC</b>, <b class="vio">UNSTOPPABLE</b>, <b>TRANSCENDENT</b>.</p>
-    <p>Any real hit ends it, and nothing in this game blocks a hit for you. Lose a long one and it does not simply evaporate. It bursts into charge on the way out.</p></div>
-  <div class="cxs"><h3>The flip</h3>
-    <p>Hold a colour and a gauge loads around your star. What you do with it is most of the skill in the game.</p>
-    <p><b>Tap it</b> and you swap colours, nothing more. Useful for repositioning, or for changing which half of the sky is currently safe.</p>
-    <p><b>Let it load first</b> and the flip <b>flings</b>. Everything that just became the wrong colour is thrown outward, still alive. Nothing dies, and that is the whole point: flipping turns your own rings hostile at close range, and the fling is what clears them off you before they can bite. The more you had gathered, the further it throws.</p>
-    <p>With an Anomaly on the field that throw becomes a <b>volley</b>, aimed at it.</p></div>
-  <div class="cxs"><h3>The Anomaly</h3>
-    <p>It sits outside all of the above. Your flip does not move it, and what it fires passes clean through every Dot in the way, so <b>nothing is cover</b>. Dodge it. Matching colours will not save you here.</p>
-    <p>The loop is: dodge what it throws, gather your own colour, keep clear of the other, and flip to volley.</p>
-    <p>There are only three ways to hurt it. The volley. Carrying a loaded ring into it. And standing so that a <b>Charger</b> draws its dash straight through it. Every one of those is something you aimed or something you carried, and there is no button anywhere that does it for you.</p>
-    <p>It will not wander off, either. No timer, no escape. One of you leaves.</p>
-    <p>They all hunt, too. Sooner or later it breaks station and walks at your core, slowly and loudly enough that you can see it coming. It lands one hit and backs off.</p></div>
-  <div class="cxs"><h3>Everything else</h3><p>Every species, the three kinds of Anomaly, and the shapes that come for you in waves, all drawn by the game's own code. They are in the <b>Bestiary</b>, one button over.</p></div>`,
 
   // ---- names: Dots, Epochs, wave shapes, Anomalies, achievements ----
   'col.red':'red',  'col.cyan':'cyan',
@@ -1283,7 +1236,7 @@ const L={ en:{
   'menu.tut':'튜토리얼',
   'menu.rush':'보스 러시',  'menu.lab':'패턴 실험실',
   'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
-  'ref.records':'기록',  'ref.bestiary':'도감',  'ref.codex':'규칙',  'ref.settings':'설정',
+  'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',
   'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
   'bestiary.frame':'ORBITAL CRASH 도감',
 
@@ -1352,36 +1305,6 @@ const L={ en:{
   'rc.wipe':'기록 지우기',  'rc.wipeArm':'한 번 더 누르면 지워집니다',
   'rc.achv':'업적',         'rc.secret':'숨은 업적',  'rc.secretTag':'숨김',
 
-  // ---- codex ----
-  'codex.kicker':'규칙',  'codex.h2':'이 게임의 원리',
-  // 한다체 throughout, and the sentences are SHORTER than the English rather than the same length.
-  // English builds long declaratives out of subordinate clauses; Korean carrying those wholesale is the
-  // single loudest tell of a machine translation, so the long ones are broken where the thought breaks.
-  'codex.body':`
-  <div class="cxs"><h3>전하 법칙</h3>
-    <p>저 바깥의 입자는 전부 <b>빨간색</b> 아니면 <b>청록색</b>이고, 나도 마찬가지다. 같은 색은 끌려와서 별 주위를 도는 <b>링</b>이 된다. 그 링이 무기이고, 링이 훑고 지나간 반대 색은 죽는다.</p>
-    <p>반대 색은 제 힘으로 다가온다. 닿으면 죽지만 지나가면서 아프다. 그 일은 링에 맡겨라.</p></div>
-  <div class="cxs"><h3>점수</h3>
-    <p>무엇을 어떻게 어디서 잡든 점수는 같다. 관리할 배율도, 머릿속으로 굴릴 콤보 계산도 없다. 잡은 자리에는 <b>파편</b>이 남고, 같은 색은 그걸 알아서 빨아들인다. 지나가는 길에 제가 만든 잔해를 쓸어담는 건 조용히 이득이다.</p>
-    <p>가끔 <b class="gold">금색 링을 두른 입자</b>가 흘러든다. 링이 사라지기 전에 터뜨리면 값을 제대로 쳐준다.</p></div>
-  <div class="cxs"><h3>축전기와 오버드라이브</h3>
-    <p>쌓이는 건 <b>축전기</b> 하나뿐이고, 그걸로 살 수 있는 것도 <b>오버드라이브</b> 하나뿐이다.</p>
-    <p><b>Shift</b>나 마우스 오른쪽 버튼을 누르고 있으면 된다. 링이 크게 벌어져 빠르게 돌고, 나도 함께 빨라진다. 불을 붙일 만큼만 모이면 <b class="gold">버튼</b>이 나타난다.</p></div>
-  <div class="cxs"><h3>무피격 콤보</h3>
-    <p>맞지 않고 잡으면 수가 올라간다. 단계마다 축전기가 채워진다. <b style="color:var(--cyan)">각성</b>, <b class="gold">자력</b>, <b class="vio">무적</b>, <b>초월</b>.</p>
-    <p>제대로 한 대 맞으면 거기서 끝이고, 이 게임에는 대신 막아주는 것이 없다. 길게 쌓은 콤보가 끊길 때는 그냥 사라지지 않는다. 나가면서 충전으로 터진다.</p></div>
-  <div class="cxs"><h3>플립</h3>
-    <p>한 색을 쥐고 있으면 별 주위로 게이지가 찬다. 이걸 어떻게 쓰느냐가 이 게임 실력의 대부분이다.</p>
-    <p><b>짧게 누르면</b> 색만 바뀐다. 그뿐이다. 자리를 옮기거나, 하늘의 어느 쪽이 안전한지를 바꿀 때 쓴다.</p>
-    <p><b>다 찰 때까지 기다렸다</b> 누르면 플립이 <b>밀어낸다</b>. 방금 반대 색이 된 것들이 산 채로 바깥으로 날아간다. 아무것도 죽지 않는데, 그게 핵심이다. 플립은 코앞의 내 링을 적으로 만들고, 밀어내기는 그것들이 물기 전에 떼어내는 수단이다. 많이 모아뒀을수록 멀리 날아간다.</p>
-    <p>필드에 변이체가 있으면 그 밀어내기가 변이체를 겨눈 <b>일제사격</b>이 된다.</p></div>
-  <div class="cxs"><h3>변이체</h3>
-    <p>변이체는 위의 모든 규칙 바깥에 있다. 플립으로 밀리지 않고, 쏘는 것은 앞을 막은 입자를 그대로 통과한다. <b>엄폐물은 없다.</b> 피해라. 색을 맞춰도 여기서는 살아남지 못한다.</p>
-    <p>루프는 이렇다. 날아오는 것을 피하고, 같은 색을 모으고, 반대 색에서 떨어지고, 플립으로 쏜다.</p>
-    <p>상처를 입힐 방법은 셋뿐이다. 일제사격. 링을 두른 채로 들이받기. 그리고 <b>쐐기</b>의 돌진선이 변이체를 관통하도록 서 있기. 셋 다 내가 겨눴거나 내가 들고 간 것이고, 대신 해주는 버튼은 어디에도 없다.</p>
-    <p>달아나지도 않는다. 제한 시간도, 탈출도 없다. 둘 중 하나만 남는다.</p>
-    <p>전부 사냥도 한다. 언젠가는 자리를 떠나 코어를 향해 걸어온다. 오는 게 보일 만큼 느리고 요란하게. 한 대 치고 물러난다.</p></div>
-  <div class="cxs"><h3>나머지 전부</h3><p>모든 종, 세 종류의 변이체, 웨이브로 몰려오는 형태들. 전부 이 게임의 코드가 직접 그린 것이다. <b>도감</b>에 있다. 버튼 하나 옆이다.</p></div>`,
 
   // ---- names ----
   // ⚠️ NO -체 SUFFIX PILE. Four of the eight ended in -체 (폭격체·돌격체·중성체·추격체), which is the
@@ -1430,7 +1353,7 @@ const ACHV=[
   {id:'act3'},
   {id:'redline'},
   // hidden feats — discovered, never assigned. They pay nothing either; `hid:true` only means the row
-  // renders as "???" in the Codex until it is earned.
+  // renders as "???" in Records until it is earned.
   {id:'lancegild', hid:true},
 ];
 function grantAchv(id){
@@ -4916,8 +4839,10 @@ const BOMB_R=120, BOMB_DMG=2;
 //   Charger's dash you aimed. The Planet is already ring matter, so it ALREADY grinds and ALREADY volleys
 //   for vdmg 1 like anything else in the hoard — which is the whole fork. Volley it now for 1, or hold it
 //   for the arena. Giving the blast a boss channel would collapse that choice into "always hold".
-//   IT DOES NOT POP NEUTRALS. A reversal Shockwave remains the only thing that clears one, singular, as
-//   the Codex and the Bestiary both state.
+//   IT DOES NOT POP NEUTRALS. A reversal Shockwave remains the only thing that clears one, singular.
+//   ⚠️ THE BESTIARY IS NOW THE ONLY SURFACE THAT SAYS SO. This read "the Codex and the Bestiary both
+//   state" until the Codex was deleted; the Neutral's card is the last copy in the game, in both
+//   languages. Do not trim it on the grounds that something else carries the rule. Nothing does.
 //   IT PAYS NOTHING — `dead` alone, never queueKill, for the Planet itself as well as its victims. Same
 //   law as bomberBlast, and here the argument is even sharper: an arena-wide clear that paid per body
 //   would be worth 40+ kills at once, so hold-then-detonate would out-earn playing, and the reward for a
@@ -5156,7 +5081,8 @@ function flipShockwave(hc){
         // you flip, and a damaged Neutral is drawn identically to a fresh one, so ANY multi-hit kill
         // makes the first hit invisible and the Dot reads as immune. As a subtraction this was a silent
         // coupling between two constants in different parts of the file; as a kill it cannot go stale.
-        // The Codex and the Bestiary both say "pop it with a reversal", singular.
+        // The Bestiary's Neutral card says "pop it with a reversal", singular — and since the Codex
+        // was deleted it is the only place that says it. See the same warning in planetBlast.
         if(o.type==='neutral') queueKill(o);
       }
     }
@@ -6547,7 +6473,7 @@ function startRun(mode){
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
   el('bossbar').classList.add('hidden');
-  el('bestiary').classList.add('hidden'); el('codex').classList.add('hidden'); el('records').classList.add('hidden'); // a run must never start hidden under an info overlay
+  el('bestiary').classList.add('hidden'); el('records').classList.add('hidden'); // a run must never start hidden under an info overlay
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
   state='play'; lastT=performance.now(); acc=0;
   if(labMode) beginLabRun(); else if(tutMode) beginTutRun(); else if(testMode) beginTestRun(); else beginRun();
@@ -6601,7 +6527,7 @@ el('quitBtn').onclick=()=>{ el('pause').classList.add('hidden'); if(AC&&AC.state
 // INSIDE IT moves `document.activeElement` to IFRAME#bestiaryFrame, so the keystroke is delivered to the
 // CHILD document and a `window` listener in the parent never sees it. Escape is then dead until you
 // click back out, and there is nothing obvious to click back out ONTO because the overlay fills the
-// screen. (The Codex is a plain div in this document and is not affected.)
+// screen. (Records is a plain div in this document and is not affected.)
 // Same-origin, so the parent can simply listen on the child document as well. Bound on every `load` (the
 // src is set once, but a reload would replace the document) and again on open, which covers the second
 // and later opens where the load event has long since fired. A WeakSet keyed on the document makes it
@@ -6640,30 +6566,8 @@ function openBestiary(){
 }
 function closeBestiary(){ el('bestiary').classList.add('hidden'); }
 
-// ---- Codex: how the game works, for somebody who has not played it. Rebuilt on open so achievement
-// status stays fresh. ----
-//   NOT A SPEC. It used to carry twenty-one figures — reach in pixels, the per-Dot damage table, the
-// bounty multiplier, the streak ranks — and a player meeting the game for the first time cannot use any
-// of them. `docs/MECHANICS.md` is the spec and is kept current; this screen is the welcome. If you find
-// yourself wanting to add a number back, the honest question is whether the SENTENCE is failing.
-//   THERE ARE NO GLYPHS ON THIS SCREEN AT ALL NOW. Every marker it ever carried was decoration standing
-// in for structure — eight different shapes across six sections, with no rule saying which meant what —
-// and the achievement ticks were the one exception, because they carry state. They still do, in Records,
-// which already asked the same question this section was answering. See `openRecords`.
-//   ⚠️ IT ALSO NO LONGER TEACHES WHAT THE TUTORIAL TEACHES BY PLAYING. Steps 2, 3 and 5 demonstrate the
-// rings, the annihilation and the Overdrive hold, so the paragraphs restating them are gone. What is
-// deliberately KEPT is everything six steps cannot reach: that nothing carries between runs, that
-// Overdrive drains while held and can be spent part-way, that it cannot touch an Anomaly, that you have
-// no hold over the opposite colour, and the whole of Score, Streak and the Anomaly. Trimming by SECTION
-// rather than by paragraph would have deleted all of those — the sections are mixed, not redundant.
-function openCodex(){
-  el('codexBody').innerHTML=T('codex.body');
-  el('codex').classList.remove('hidden');
-}
-function closeCodex(){ el('codex').classList.add('hidden'); }
-
-// ---- RECORDS: the last RUNS_KEPT survival runs and the lifetime tally. Built on open, like the Codex,
-// because `store` changes every time you die. ----
+// ---- RECORDS: the last RUNS_KEPT survival runs, the lifetime tally and the achievement list. Built on
+// open rather than bound once, because `store` changes every time you die. ----
 //   THE EMPTY STATE IS THE ONE MOST PEOPLE SEE FIRST and it has to say why it is empty, or a fresh
 // player reads a broken screen. It also has to say what does NOT count here, because a player who
 // grinds Boss Rush and finds nothing recorded will conclude the feature is broken rather than that it
@@ -6671,10 +6575,9 @@ function closeCodex(){ el('codex').classList.add('hidden'); }
 const fmtN=n=>Math.round(n).toLocaleString();
 function openRecords(){
   const R=store.runs, Tt=store.totals;   // NOT `T` — that is the translator, and shadowing it here renders identifiers
-  // ACHIEVEMENTS LIVE HERE, NOT IN THE CODEX. This panel's own heading is "what you have done" and the
-  // achievements were a second answer to that question one menu entry away — two entries for one
-  // question, which is the fault the .refs/.doors grouping exists to prevent. The Codex is what the
-  // tutorial cannot show you; a list of feats is not that.
+  // ACHIEVEMENTS LIVE HERE. They arrived from the Codex, on the grounds that this panel's heading is
+  // "what you have done" and a list of feats was a second answer to that question one menu entry away.
+  // The Codex has since been deleted outright, which makes the move the reason they still exist.
   //   ⚠️ THE TICK IS THE ONLY GLYPH LEFT ANYWHERE IN THE UI, and it earns that because it carries state:
   // ✓ earned, ○ not. `.got` colours it lime — a tick that looked identical either way would be decoration.
   //   ⚠️ `rc.wipe` DOES NOT CLEAR THESE. onWipe resets runs/totals/best and never touches `store.achv`,
@@ -6738,8 +6641,6 @@ function onWipe(){
 }
 el('bestiaryBtn').onclick=openBestiary;
 el('bestiaryClose').onclick=closeBestiary;
-el('codexBtn').onclick=openCodex;
-el('codexClose').onclick=closeCodex;
 el('recordsBtn').onclick=openRecords;
 el('recordsClose').onclick=closeRecords;
 // stopIMMEDIATEPropagation, not stopPropagation. Both of these and the main input handler are registered
@@ -6749,7 +6650,6 @@ el('recordsClose').onclick=closeRecords;
 // because these overlays only open from the menu where togglePause is inert; a real bug the moment
 // either becomes reachable mid-run.
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('bestiary').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeBestiary(); }});
-addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('codex').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeCodex(); }});
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('records').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeRecords(); }});
 
 // ---- SETTINGS ----
@@ -6785,7 +6685,6 @@ function applyLang(){
   paintTouchCtl();
   if(P) updateHUD();
   if(!el('settings').classList.contains('hidden')) paintSettings();
-  if(!el('codex'   ).classList.contains('hidden')) openCodex();
   if(!el('records' ).classList.contains('hidden')) openRecords();
   if(!el('bestiary').classList.contains('hidden')) openBestiary();   // re-points the frame at the new ?lang=
   // Not during a beat: tutPaint() writes the INSTRUCTION, and the beat is showing the acknowledgement.
@@ -7109,7 +7008,7 @@ canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); });
 window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   keys[k]=true;
-  const infoOpen=!el('bestiary').classList.contains('hidden') || !el('codex').classList.contains('hidden');
+  const infoOpen=!el('bestiary').classList.contains('hidden') || !el('records').classList.contains('hidden');
   if(k===' '){ e.preventDefault();
     if(e.repeat){} // key auto-repeat: ignore — one press, one flip
     else if(state==='play') flip();
@@ -7449,7 +7348,7 @@ window.__orbital=window.__polaris=window.__flux={
   // Same reason as bossN: `act` gates the Anomaly's HP pool AND its pace ramp, and both are per-Epoch
   // curves that are untestable if a harness can only reach Epoch V by surviving to it.
   get act(){return act;}, set act(v){act=v;},
-  openCodex, queueKill,
+  queueKill,
   get flipCd(){return P&&P.flipCd;},
   // TUTORIAL. `safe` is the one worth being able to read from outside: "damage is off right now" is
   // invisible from every other angle, and a test that cannot see it can only infer it from not dying.

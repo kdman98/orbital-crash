@@ -1398,7 +1398,7 @@ including the ones that move standing population the most.
   Only ever a Drifter or a Dart, never a big Dot. Its dashed gold ring is drawn at exactly `e.r + P.r`,
   so it is simultaneously the bounty cue *and* the true contact edge (law 3). Affordable only because it
   is rare and unique — forty of these would be a HUD rather than a cue.
-- **Achievement** — an in-run feat recorded in the Codex. **Flavour only; they unlock nothing.** There is
+- **Achievement** — an in-run feat listed in Records. **Flavour only; they unlock nothing.** There is
   no meta economy. Nothing counts the rows, so adding or retiring one is a single line.
 
 ### Progression
@@ -1566,14 +1566,16 @@ attraction read; it is not a lerp.
 **There is no copy under the title, and the rules that governed it did not all die with it.** It was five
 one-line beats, then one, then none — `.tag` was deleted outright once the tutorial took over the
 teaching. Two of its three rules were about that paragraph. **Two are about the game, and they bind every
-surface that describes it** — tutorial steps, Codex, Bestiary, both languages:
+surface that describes it** — tutorial steps, Bestiary, both languages:
 
 - **`steer into`, never `pull`.** The star exerts no pull on the **opposite** charge, ever. Copy saying
   the matter that kills you comes to you teaches the most expensive misconception in the game.
   ⚠️ **Read this against the Field section above, not alone.** It said *"no pull on another charge"*,
-  which invites the opposite reading of the Codex's *"Your own colour is drawn to you"* — and that line
-  is **correct**: like-charge leans in under core gravity (`LIKE_GRAV`), opposite-charge gets none, ever.
-  A rule compressed to a slogan can end up forbidding the shipped copy it was written to protect.
+  which invites the reading that same-colour matter is not drawn in either — and it **is**: like-charge
+  leans in under core gravity (`LIKE_GRAV`), opposite-charge gets none, ever. A rule compressed to a
+  slogan can end up forbidding the shipped copy it was written to protect. The Codex line that made this
+  concrete — *"Your own colour is drawn to you"* — was deleted with the Codex; the rule outlives it and
+  now binds the Bestiary and the tutorial alone.
 - **Never write a line that forbids steering into same-colour matter.** The deleted beat carried the word
   `opposite` for exactly this reason: without it, that line forbade the thing the next line required.
   Same-colour matter is harmless and steering into it is the *only* way to build rings. The tutorial's
@@ -1645,12 +1647,12 @@ ending, which made marking your work the last thing the tutorial did.
 
 Each screen owns a question, and a second screen answering the same one is the defect — it was four
 identical ghost pills before the `.doors`/`.refs` grouping, and it was the achievement list sitting in
-the Codex while Records was headed *"What you have done"*.
+the Codex while Records was headed *"What you have done"*. **The Codex has since been deleted outright**,
+which settles its row below by removing the surface rather than answering for it.
 
 | Surface | The question it owns |
 |---|---|
 | **Tutorial** | how do I do this? — shown by playing, never by prose |
-| **Codex** | what could the six steps not show me? |
 | **Bestiary** | what is that thing? |
 | **Records** | what have I done? — the run table, the lifetime tally **and the achievements** |
 | **Settings** | how does it reach my eyes and ears? |
@@ -1703,10 +1705,10 @@ from `frameBody` while state is `play`/`ready`.
 
 Two things are deliberate rather than tidy:
 
-- **Prose blocks are one key each.** The Codex body and the Records empty state are single strings with
-  a `{achRows}` placeholder, not one key per sentence. Shredding 649 words of authored prose into thirty
-  numbered keys makes it unwritable in English and untranslatable in Korean, because neither can be read
-  in order any more.
+- **Prose blocks are one key each.** The Records empty state is a single string, not one key per
+  sentence. Shredding a paragraph into numbered keys makes it unwritable in English and untranslatable in
+  Korean, because neither can be read in order any more. The 649-word Codex body was what forced the
+  rule; the rule outlived it.
 - **떠돌이 and 표류 split a name the English shares.** `Drifter` the Dot and `Drift` the Epoch are the
   same word in English and appear together — "EPOCH I · DRIFT" runs while Drifters are in the field.
   Korean gives the creature and the era two different words. Do not tidy them back into one.
