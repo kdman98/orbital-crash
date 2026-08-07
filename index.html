@@ -531,6 +531,57 @@
      which is the main reason people quit one. */
   #tutBar .n{display:inline-block;margin-right:9px;color:var(--cyan);font-weight:800;font-size:11px;
     letter-spacing:.12em;}
+
+  /* ================================================================
+     KOREAN TYPOGRAPHY — everything here is scoped to html[lang="ko"], so English is untouched.
+     Two things in this stylesheet are built for Latin and only one of them is harmless.
+
+     TRACKING is the harmful one. Forty-eight rules carry letter-spacing up to .28em, which is the
+     small-caps label look — it works because Latin capitals are narrow and need the air. A Hangul
+     syllable is already a full square block, so the same value does not read as styling, it reads as
+     characters that have come apart: 축 전 기. Every label class is pulled back here. The values are
+     not zero, because a little tracking still separates a label from body text at 9-11px; they are
+     roughly a third of the Latin figure.
+
+     `text-transform:uppercase` is the harmless one. It is a no-op on Hangul, so the 22 rules carrying
+     it are left exactly as they are — the caps look simply does not apply, which is correct.
+
+     !important is load-bearing on the .final rules and nowhere else. Four kickers set letter-spacing
+     INLINE (.3em on Codex/Records/Settings, .4em on Paused) and an inline style outranks any selector.
+     The alternative is lifting those four into classes, which would edit the English rendering to fix
+     a Korean problem.
+
+     word-break:keep-all is the single highest-value line in this block. Korean's default is to break
+     between any two syllables, so a wrapped sentence splits words down the middle; keep-all breaks at
+     spaces the way English already does. line-height goes up with it: Hangul fills more of its box
+     vertically than lowercase Latin, and 1.5 that looks airy in English looks packed in Korean. */
+  html[lang="ko"] #actlab{letter-spacing:.1em;}
+  html[lang="ko"] .barlabel{letter-spacing:.08em;}
+  html[lang="ko"] #combo{letter-spacing:.04em;}
+  html[lang="ko"] #collapseBtn{letter-spacing:.08em;}
+  html[lang="ko"] .final{letter-spacing:.12em !important;}
+  html[lang="ko"] .stat .k,
+  html[lang="ko"] .deadstats .ds .k,
+  html[lang="ko"] .rcTot .ds .k,
+  html[lang="ko"] .rcT .h{letter-spacing:.06em;}
+  html[lang="ko"] .rcH,
+  html[lang="ko"] .cxs h3{letter-spacing:.1em;}
+  html[lang="ko"] .ref{letter-spacing:.04em;}
+  html[lang="ko"] .doornote{letter-spacing:.06em;}
+  html[lang="ko"] .loglab{letter-spacing:.1em;}
+  html[lang="ko"] .hint{letter-spacing:.02em;}
+  html[lang="ko"] #controls .cr{letter-spacing:.02em;}
+  html[lang="ko"] .sw{letter-spacing:.04em;}
+  html[lang="ko"] .newbest{letter-spacing:.06em;}
+  html[lang="ko"] .rcWipe{letter-spacing:.04em;}
+  html[lang="ko"] .cxs p,
+  html[lang="ko"] .setrow .sd,
+  html[lang="ko"] .door .dd,
+  html[lang="ko"] .rcEmpty,
+  html[lang="ko"] #tutBar,
+  html[lang="ko"] .cxa{word-break:keep-all;}
+  html[lang="ko"] .cxs p,
+  html[lang="ko"] .setrow .sd{line-height:1.68;}
   /* The live counter, on its own line so a changing number never reflows the sentence above it —
      "3 / 4" becoming "4 / 4" must not shift the words a player is mid-way through reading. */
   #tutBar .p{display:block;margin-top:5px;color:var(--cyan);font-weight:800;font-size:11px;
@@ -1182,7 +1233,148 @@ const L={ en:{
   'achv.lancegild.nm':'Skeet Shooter',     'achv.lancegild.ds':'Volley your Gilded Bounty into an Anomaly',
 
 }, ko:{
-  // filled by the Korean copy pass — every missing key falls through to L.en above
+  // RE-AUTHORED, NOT TRANSLATED. The English voice is terse, cold and fond of the em dash, and carrying
+  // that sentence-for-sentence is what makes translated Korean sound translated: 당신의 for every "your",
+  // 의 chains where Korean compounds, ~할 수 있습니다 where 하면 된다 does the job, and one long English
+  // sentence becoming one long Korean one. Meaning and stance carry over; sentence boundaries do not.
+  //   Register splits the way the English already does: instructions and settings speak to the player
+  // (하세요체), rules and lore state facts (한다체).
+
+  // ---- shared ----
+  'ui.close':'✕ 닫기',  'ui.menu':'메뉴',  'sw.on':'켬',  'sw.off':'끔',
+
+  // ---- HUD ----
+  'hud.score':'점수',  'hud.best':'최고',  'hud.time':'시간',
+  'hud.hp':'코어 상태',  'hud.chg':'축전기',
+  'hud.od':'오버드라이브',  'hud.odKey':'Shift 유지',
+  'hud.anomaly':'변칙체',
+  'hud.streak':'무피격 {n}연쇄',
+  'hud.epoch':'제{n}기 · {name}',
+  'hud.lab':'패턴 실험실',  'hud.rush':'보스 러시',
+  'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> 변칙체 교체',
+  'hud.bossHunt':'코어로 온다 · 피해라',
+  // Space/Shift/Esc/P/M stay Latin because they are printed on the key. "Mouse" is not a key, it is a
+  // device, and Korean writes 마우스.
+  'ctl.steer':'<kbd>마우스</kbd> 별 조종',
+  'ctl.flip':'<kbd>Space</kbd><kbd>클릭</kbd> 극 반전',
+  'ctl.od':'<kbd>Shift</kbd><kbd>우클릭</kbd> 유지: 오버드라이브',
+  'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> 일시정지 &nbsp;·&nbsp; <kbd>M</kbd> 음소거',
+  'tc.drag':'<b>드래그</b> 조종 &mdash; 별은 손끝보다 위에 뜹니다',
+  'tc.lean':'<b>기울이기</b> 별 조종',
+  'tc.tap':'<b>탭</b> 극 반전',
+  'tc.second':'<b>두 번째 손가락</b> 유지: 오버드라이브',
+  'btn.motion':'모션 줄이기: 흔들림과 섬광을 약하게',
+  'tilt.stale':'모션 데이터가 끊겼습니다.',
+  'tilt.ok':'TILT ✓  x {x}   y {y}   ({n}회)',
+
+  // ---- canvas text ----
+  'fx.ready':'준비',  'fx.skip':'탭하면 건너뜁니다',
+  'fx.purged':'변칙체 소멸  +{n}',
+  'fx.bounty':'현상금 +{n}',
+  'fx.poked':'돌격체 명중!',
+  'fx.achv':'업적 · {name}',
+  'fx.achvAny':'기록됨',
+
+  // ---- menu ----
+  'menu.start':'필드로 진입',
+  'menu.tut':'게임 방법',
+  'menu.rush':'보스 러시',      'menu.rushD':'모든 변칙체를 연달아',
+  'menu.lab':'패턴 실험실',      'menu.labD':'모든 웨이브 형태를 키 하나로',
+  'menu.note':'연습 전용 · 최고 기록에 남지 않는다',
+  'ref.records':'기록',  'ref.bestiary':'도감',  'ref.codex':'규칙',  'ref.settings':'설정',
+  'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 극 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
+  'bestiary.frame':'ORBITAL CRASH 도감',
+
+  // ---- settings ----
+  'set.kicker':'설정',  'set.h2':'플레이 환경',
+  'set.lang':'언어 / Language',
+  'set.langD':'메뉴와 튜토리얼, 규칙 화면에 적용됩니다. 한 번 고르면 기억하고, 브라우저는 처음 한 번만 정합니다.',
+  'set.cb':'색각 이상 팔레트',
+  'set.cbD':'적록색약을 위한 설정입니다. 빨강 극을 주황으로 바꿔 어두운 필드에서 시안만큼 잘 보이게 하고, 황금 현상금 링은 보라로 옮깁니다.',
+  'set.motion':'모션 줄이기',
+  'set.motionD':'가까운 곳에서 뭔가 터질 때 흔들림과 섬광을 줄입니다.',
+  'set.sound':'소리',
+  'set.soundD':'배경음과 그 위에 얹히는 모든 효과음.',
+  'set.soundA':'소리 크기',
+
+  // ---- pause ----
+  'pause.kicker':'일시정지',  'pause.resume':'계속하기',  'pause.quit':'메뉴로 나가기',
+  'pause.hint':'<kbd>P</kbd> 또는 <kbd>Esc</kbd>로 계속',
+  'log.od':'오버드라이브 · ',  'log.anom':'변칙체 · ',  'log.left':' 남음',
+
+  // ---- death ----
+  // ⚠️ THE COLOUR MOVES IN FRONT OF THE NOUN, and this is the clearest case in the file for why a
+  // template had to be per-language rather than a frame with a slot. English appends it — "Brute
+  // (cyan)" — because English modifiers can trail; Korean puts every modifier before what it modifies,
+  // so the same data reads 시안 거구. Nothing about the {t,c} pair changes. Only the sentence does.
+  'dead.kicker':'코어 소실',  'dead.best':'신기록!',  'dead.again':'다시 벼리기',
+  'dead.time':'생존 시간',  'dead.combo':'최고 연쇄',
+  'dead.cause':'{src}에 당함 · 제{n}기',
+  'dead.causeDev':'{src}에 당함 · 제{n}기 · phase {p}',
+  'dead.src':'{col} {name}',  'dead.srcN':'{name}',
+
+  // ---- tutorial ----
+  'tut.doneH':'이제 본 게임을 할 시간!',
+  'tut.play':'필드로 진입',
+  'tut.1.desktop':'마우스를 움직여 보세요',
+  'tut.1.touch':'드래그해 보세요',
+  'tut.1.tilt':'폰을 기울여 보세요',
+  'tut.1.ok':'이렇게 움직입니다.',
+  'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
+  'tut.2.note':'{n} / 4 수집',
+  'tut.2.ok':'이게 칼이자 방패예요! 너무 빨리 움직이면 놓칩니다.',
+  'tut.3':'링을 다른 색에 닿게 하세요.',
+  'tut.3.note':'{n} / 5 제거',
+  'tut.3.ok':'이렇게 치웁니다.',
+  'tut.4.desktop':'클릭해서 색을 뒤집으세요.',
+  'tut.4.touch':'탭해서 색을 뒤집으세요.',
+  'tut.4.tilt':'탭해서 색을 뒤집으세요.',
+  'tut.4.ok':'집중하세요 — 방금까지 적이던 것이 이제 아군입니다!',
+  'tut.5.desktop':'Shift를 누르고 있으면 오버드라이브. 링이 더 빠르고 넓게 쓸어냅니다.',
+  'tut.5.touch':'두 번째 손가락을 대고 있으면 오버드라이브. 링이 더 빠르고 넓게 쓸어냅니다.',
+  'tut.5.tilt':'두 번째 손가락을 대고 있으면 오버드라이브. 링이 더 빠르고 넓게 쓸어냅니다.',
+  'tut.5.noteOn':'연소 중',
+  'tut.5.noteOff':'축전기 가득',
+  'tut.5.ok':'잘했어요!',
+  'tut.6':'잠깐 복잡한 상황을 겪어 보고, 튜토리얼을 마칩니다!',
+  'tut.6.note':'{n}초',
+
+  // ---- records ----
+  'rc.kicker':'기록',  'rc.h2':'지금까지의 전적',
+  'rc.best':'최고',  'rc.highest':'최고 점수',  'rc.lifetime':'누적',
+  'rc.runs':'판수',  'rc.timeIn':'필드에 있던 시간',  'rc.combo':'최고 연쇄',  'rc.anom':'만난 변칙체',
+  'rc.last':'최근 {n}판',
+  'rc.hScore':'점수',  'rc.hLost':'사인',  'rc.hTime':'시간',  'rc.hEpoch':'기',  'rc.hCombo':'연쇄',
+  'rc.empty':`아직 아무것도 없습니다. 한 판 끝내면 이 목록 맨 위에 올라옵니다.<br>
+       보스 러시와 패턴 실험실은 연습이라 기록되지 않습니다. 최고 점수를 세울 수 없는 것과 같은 규칙입니다.`,
+  'rc.wipe':'기록 지우기',  'rc.wipeArm':'한 번 더 누르면 지워집니다',
+
+  // ---- codex chrome (the prose body lands in the next pass) ----
+  'codex.kicker':'규칙',  'codex.h2':'이 게임의 원리',
+  'codex.secret':'숨은 업적',  'codex.secretTag':'숨김',
+
+  // ---- names ----
+  // ⚠️ 드리프터 STAYS TRANSLITERATED while the Drift epoch is 표류, and that is deliberate. English calls
+  // both "Drift" and they share the screen — "EPOCH I · DRIFT" runs while Drifters are in the field.
+  // Splitting them removes a collision the English has. Do not tidy it into 표류체.
+  'col.red':'빨강',  'col.cyan':'시안',
+  'dot.drift':'드리프터',  'dot.fast':'다트',      'dot.heavy':'거구',    'dot.bomber':'폭격체',
+  'dot.charger':'돌격체',  'dot.neutral':'중성체',  'dot.planet':'행성',   'dot.harrier':'추격체',
+  'dot.boss':'변칙체',
+  'msl.volley':'변칙체 일제사격',  'msl.seeker':'변칙체 추적탄',  'msl.ring':'변칙체 고리',
+  'msl.mine':'변칙체 지뢰',        'msl.spear':'변칙체 창',       'msl.other':'변칙체 발사체',
+  'act.0':'표류',  'act.1':'잔불',  'act.2':'개화',  'act.3':'밀물',
+  'lab.wall':'장벽',  'lab.noose':'올가미',  'lab.pulse':'파동',
+  'lab.cross':'십자',  'lab.comet':'혜성',    'lab.drift':'표류',
+  'anom.emitter.tip' :'방출체 · 탄막 사이를 지나가라 · 링을 쏴라',
+  'anom.emitter.tip3':'방출체 · 탄막 사이를 지나가라 · 돌진을 피하라',
+  'anom.sentinel.tip':'감시자 · 쫓아가라 · 자취를 훑어라',
+  'anom.pulsar.tip'  :'맥동체 · 틈에 서라 · 지뢰는 두고 가라',
+  'achv.firstBoss.nm':'변칙체 소멸',  'achv.firstBoss.ds':'변칙체를 쓰러뜨린다',
+  'achv.combo60.nm' :'연쇄 반응',     'achv.combo60.ds' :'60연쇄를 달성한다',
+  'achv.act3.nm'    :'심층',          'achv.act3.ds'    :'제3기에 도달한다',
+  'achv.redline.nm' :'레드라인',      'achv.redline.ds' :'가득 찬 축전기를 오버드라이브 한 번에 다 태운다',
+  'achv.lancegild.nm':'클레이 사격',  'achv.lancegild.ds':'황금 현상금을 변칙체에 쏴 맞힌다',
 } };
 
 // Falls back to English before falling back to the key itself, so a half-translated table renders a
