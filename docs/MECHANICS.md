@@ -1862,6 +1862,23 @@ question. **The disagreement was the finding, exactly as this entry prescribes**
 only thing between a correct figure and a confident wrong one. It never shipped, which is the entry
 working rather than luck.
 
+⚠️ **The exposed moment is the correction, not the checking — and this is the more useful half of the
+whole entry.** Every one of the five above was written *inside a fix*, after the diagnosis felt settled:
+each was somebody's correction of somebody's number, and four of the five were corrections of a
+correction. The sixth belongs here as the twin of the fifth rather than as another basis error, because
+its shape is different and its timing is identical — a **sound measurement generalised past what it
+measured**. Turn *time* really is friction-bound and shared, all seven reversing in the same 5 frames
+whatever their `seek`; "turning" was then written for "turn time", and turn *radius* scales with `seek`
+like everything else in a linear system. Right measurement, wrong scope. It shipped, in a comment written
+specifically to flag a stale claim, replacing a line that turned out to be nearer right than its
+replacement.
+
+**So the prior that blinds you is not "their table has an error." It is "I have just found the error."**
+That state supplies confidence, momentum, and the feeling that the replacement inherits the rigour of the
+thing it replaces — which it does not. **A correction is a new claim and gets the same standard as the one
+it retires**, including a re-derivation you would have demanded of anyone else. If you have just been
+right about something, you are in the worst position to check what you write next.
+
 **The third was found by running the trap against the table the trap was written for**, which is the part
 worth keeping. "Recompute a neighbouring row from source" caught the second. "Is this row the same *kind*
 of row as the ones beside it" caught the third, in a table its own author had just cleaned — of the other
