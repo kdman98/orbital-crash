@@ -123,8 +123,11 @@ paragraph goes in MECHANICS and this line points at it.
   `seek` sets only its scale. 1.25px (Planet) to 4.04px (Dart), over 5 frames. Note which way it runs: a
   faster Dot overshoots proportionally **more**, so raising `seek` buys approach speed and pays in turn
   radius. ⚠️ The **armed Charger is not on this basis** — it runs its own loop at accel 0.17 and bleed 0.9,
-  so its ratio is 2.4341 over 7 frames. No free-flight number makes a Dot turn slowly; only a ballistic
-  body's near-zero bleed can. (`ARC_FR`)
+  so its ratio is 2.4341 over 7 frames. ⚠️ Do not collapse this into "a free-flight number cannot buy a
+  slow turn" — that was the wrong half of the distinction, and it is mine. Turn **time** is friction-bound
+  and shared: all seven reverse in the same 5 frames whatever their `seek`. Turn **radius** is `seek` in
+  direct proportion. Only in the ring does the third thing happen — `ARC_FR` lets momentum outlast
+  steering altogether, which is a different mechanism, not more of this one. (`ARC_FR`)
 - **Swarmer** — a Dot the Sentinel sheds while orbiting. Matter, not a shot, so the colour law owns it.
   (`seedT`)
 - **Same-charge shove** — like-charge overlaps resolved **positionally**, split by mass. Positions only,

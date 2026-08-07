@@ -1314,13 +1314,23 @@ const ETYPE={
   //                 whose own table row reads second-fastest in the game. Author: "harrier should be
   //                 faster than this, when not caught in ring." 0.34 measures 2.089 against the Dart's
   //                 2.580, and halves the crossing of a 720px approach from 8.07s to 4.05s.
-  //                 ⚠️ THE LINE THIS REPLACES CALLED 0.16 "the slow turn half". That was false at every
-  //                 value, not just this one: turning here is FRICTION-bound, not seek-bound. Measured
-  //                 reversal excursion — how far a cruising Dot carries on the wrong way once you get
-  //                 behind it — is 1-3px over 3 frames for EVERY species from Dart to Planet, because
-  //                 0.86 is a ~3-frame time constant and all eight share it. The slow turn is real but it
-  //                 lives INSIDE the ring, where the bleed is ARC_FR and momentum finally outlasts
-  //                 steering. Out here `seek` buys speed and nothing else.
+  //                 ⚠️ THE LINE THIS REPLACES CALLED 0.16 "the slow turn half", AND IT HAD THE SIGN
+  //                 BACKWARDS — which is worth more than knowing it was wrong. Turn TIME is friction-
+  //                 bound and shared: every species takes the same 5 frames to reverse, because 0.86 is
+  //                 the only term in it. Turn RADIUS is not. Reversal excursion — how far a cruising Dot
+  //                 carries on the wrong way once you get behind it — measures exactly `1.5653 × cruise`,
+  //                 identical to four decimals across all seven species that share the bleed, because
+  //                 the system is LINEAR in `seek`: friction fixes the shape of the turn and `seek`
+  //                 scales it. So `seek` sets turn radius in direct proportion, and 0.16 bought the
+  //                 TIGHTEST turn on the roster bar one — 1.54px, against the Planet's 1.25 and the
+  //                 Dart's 4.04. The species briefed "slow turn" was turning on a sixpence. 0.34 measures
+  //                 3.27px, second-widest behind the Dart, so the raise pays BOTH halves of the brief at
+  //                 once rather than trading one for the other.
+  //                 ⚠️ AND THE ARMED CHARGER IS NOT ON THIS BASIS — it `continue`s into `stepCharger`,
+  //                 which runs its own accel 0.17 and bleed 0.9, so K is 9 and its ratio is 2.4341 over 7
+  //                 frames. Quoting 1.5653 at it, or `seek*6.1429` for its cruise, describes the SPENT
+  //                 Charger instead: a different regime of the same species, and a plausible-looking
+  //                 0.860 where the truth is 1.530.
   //                 ⚠️ AND IT DOES NOT MOVE THE ORBIT, which is why it was safe to raise. For a constant
   //                 central accel `a` the turning points solve `½k²r0³/r² + r = r0(½k²+1)` — `a` cancels,
   //                 so the ellipse is set by ARC_INJ and the capture radius alone. Measured across
