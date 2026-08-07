@@ -1726,6 +1726,24 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 
 Things that have cost real time, in this codebase specifically.
 
+⚠️ **`git add index.html` takes every hunk in the file, including the other session's.** Two sessions
+share this checkout and `index.html` is one 7,000-line file, so an in-progress edit belonging to someone
+else gets swept into your commit whenever they happen to be mid-pass. It has happened three times. Once
+it shipped a half-done CSS rename: `.acv` defined in the stylesheet while the builder still emitted
+`class="cxa"`, so the achievement rows rendered with no rule behind them for ~50 minutes.
+
+**Know your changed-line count before you stage, and check it against `git diff --numstat`.** This is a
+comparison, not a review, which is the whole point — "inspect every hunk" is what nobody does under
+time pressure, and a filtered copy costs real effort even when the file is quiet.
+The strongest form is a **parity check**: a pass of one-for-one string replacements *cannot* produce
+unequal insertions and deletions, so any asymmetry is somebody else's work. The commit that caused the
+rename breakage read `19 15` where the author's twelve one-line swaps could only be `12 12`, and that
+number had already been printed by the pre-commit `--stat`.
+
+⚠️ It only catches this in **one direction.** Equal counts do not prove a clean diff — a foreign hunk
+that happens to be balanced hides inside yours. It catches the case that has actually bitten us, and
+that is all it claims.
+
 ⚠️ **A user-facing string built by `+` is an English-only string, and it fails silently.** English is SVO
 with no case marking, so `'Lost to '+name+' · Epoch '+n` reads fine; Korean puts the epoch first, gives
 the killer 에게/에, and infixes the numeral (제3기). A frame with a hole in it can only ever be one
