@@ -310,6 +310,17 @@
      the four labels total 305.7px and a 375px phone offers 331px inside the overlay padding, which
      leaves 8.4px per gap — too tight to read as deliberate, and at 320px wide they cannot fit on one
      row at ANY gap. So narrow screens do not get a row; they get the 2x2 below. */
+  /* Top-right of the menu, the corner every game puts this in. Absolutely positioned so it costs the
+     stacked content no height — that column is measured and the short-screen branch has none to give. */
+  .langsel{position:absolute;top:16px;right:16px;display:flex;gap:2px;pointer-events:auto;
+    padding:3px;border-radius:100px;background:rgba(255,255,255,.05);
+    box-shadow:0 0 0 1px rgba(255,255,255,.12) inset;}
+  .langsel button{cursor:pointer;border:none;background:none;font-family:inherit;font-size:11px;
+    font-weight:800;letter-spacing:.06em;color:var(--dim);padding:5px 11px;border-radius:100px;
+    transition:background .12s ease,color .12s ease;}
+  .langsel button:hover{color:var(--ink);}
+  .langsel button.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;}
+  @media (max-height:520px){ .langsel{top:10px;right:12px;} }
   .refs{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
   .ref{pointer-events:auto;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 2px;
     color:var(--ink);font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
@@ -646,6 +657,19 @@
 
 <!-- MENU -->
 <div class="overlay" id="menu">
+  <!-- LANGUAGE, ON THE FIRST SCREEN AND NOT BURIED IN SETTINGS. A player who cannot read the menu
+       cannot be asked to work out which of four ghost links says "Settings" — that is the one control
+       whose discoverability cannot depend on reading the language it is trying to get you out of.
+         ⚠️ IT SHOWS BOTH LANGUAGES, NOT THE CURRENT ONE. A single pill reading "English" tells a Korean
+       speaker nothing about what pressing it does; two labels, each written in its own script, need no
+       reading at all — you find your own and press it. Same principle as the Settings row's bilingual
+       name, and the reason neither of these strings goes through T().
+         ⚠️ NOT in the HUD's corner cluster with ♪ and ✺, which was the obvious home and is a trap: the
+       overlay is z-index 10 over the HUD's 5, so those buttons RENDER under the menu and are dead to a
+       click. Measured, not assumed — they look perfectly available in a screenshot. -->
+  <div class="langsel" id="langSel">
+    <button data-lang="en">EN</button><button data-lang="ko">한국어</button>
+  </div>
   <div class="titlewrap" id="titleLock">
     <div class="tring"></div><div class="tring in"></div>
     <div class="tfx"><i class="tburst"></i><i class="tshock"></i></div>
@@ -1277,7 +1301,7 @@ const L={ en:{
 
   // ---- menu ----
   'menu.start':'필드로 진입',
-  'menu.tut':'게임 방법',
+  'menu.tut':'튜토리얼',
   'menu.rush':'보스 러시',      'menu.rushD':'모든 변칙체를 연달아',
   'menu.lab':'패턴 실험실',      'menu.labD':'모든 웨이브 형태를 키 하나로',
   'menu.note':'연습 전용 · 최고 기록에 남지 않는다',
@@ -1286,7 +1310,12 @@ const L={ en:{
   'bestiary.frame':'ORBITAL CRASH 도감',
 
   // ---- settings ----
-  'set.kicker':'설정',  'set.h2':'플레이 환경',
+  // ⚠️ NOT 플레이 환경, and not for tone reasons — nothing in this panel changes how the game PLAYS.
+  // Language, colour, shake, volume: all four rows are how the game reaches your eyes and ears. The
+  // English "How it plays" gets away with it as a loose headline; the Korean was inheriting a claim.
+  // It also has to sit in a set with 이 게임의 원리 and 지금까지의 전적 — descriptive phrases, not
+  // category labels, which is what 환경 reads as.
+  'set.kicker':'설정',  'set.h2':'보이고 들리는 방식',
   'set.lang':'언어 / Language',
   'set.langD':'메뉴와 튜토리얼, 규칙 화면에 적용됩니다. 한 번 고르면 기억하고, 브라우저는 처음 한 번만 정합니다.',
   'set.cb':'색각 이상 팔레트',
@@ -6749,6 +6778,8 @@ function applyLang(){
   // Painted here and not only in paintSettings, which runs on OPEN: the markup ships "English", so a
   // Korean player who never opened this panel had a pill sitting on the wrong word until they did.
   el('swLang').textContent=T('lang.'+store.lang);
+  // The menu selector shows BOTH labels always; only which one is lit changes.
+  for(const b of el('langSel').children) b.classList.toggle('on', b.dataset.lang===store.lang);
   paintTouchCtl();
   if(P) updateHUD();
   if(!el('settings').classList.contains('hidden')) paintSettings();
@@ -6789,7 +6820,11 @@ el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without e
 el('settingsClose').onclick=closeSettings;
 // Repaints on the spot rather than at the next run: this panel opens from the pause screen, so the
 // field it is judged against is usually sitting right behind it.
-el('swLang').onclick  =()=>{ store.lang=(store.lang==='ko'?'en':'ko'); save(); applyLang(); };
+// Two entry points, one setter. The menu selector is the discoverable one; the Settings row stays
+// because the panel also opens from PAUSE, and that is the only route to it mid-run.
+function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
+el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
+el('swLang').onclick  =()=>setLang(store.lang==='ko'?'en':'ko');
 el('swCb').onclick    =()=>{ store.cb=!store.cb; save(); applyPalette(); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
