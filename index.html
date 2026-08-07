@@ -496,6 +496,14 @@
      which is the main reason people quit one. */
   #tutBar .n{display:inline-block;margin-right:9px;color:var(--cyan);font-weight:800;font-size:11px;
     letter-spacing:.12em;}
+  /* The live counter, on its own line so a changing number never reflows the sentence above it —
+     "3 / 4" becoming "4 / 4" must not shift the words a player is mid-way through reading. */
+  #tutBar .p{display:block;margin-top:5px;color:var(--cyan);font-weight:800;font-size:11px;
+    letter-spacing:.16em;text-transform:uppercase;}
+  /* THE BEAT READS AS A DIFFERENT KIND OF LINE, not as the next instruction in a different colour. Lime
+     is used nowhere else in the HUD, so "you did the thing" cannot be mistaken for "do this thing". */
+  #tutBar.ok{border-color:rgba(141,255,107,.45);color:var(--lime);}
+  #tutBar.ok .n{color:var(--lime);font-size:13px;}
 </style>
 </head>
 <body>
@@ -2513,8 +2521,30 @@ function labFire(i){
 // `tutSafe()` is the whole of that rule and both damage paths call it.
 //   Per the author, the finale ENDS THE TUTORIAL WHETHER OR NOT YOU SURVIVE IT: dying and lasting the
 // full TUT_FINALE_S both land on the same card. It is not a test, it is the last thing it shows you.
-const TUT_FINALE_S=25;
+// ⚠️ A STEP THAT COMPLETES THE INSTANT ITS TEST PASSES IS UNREADABLE, and the first version did exactly
+// that — `if(!S.done()) return;` and then straight into the next sentence on the following line. Author:
+// "realize what to do / i did it progress sometimes passes too fast." Two different faults in one
+// symptom, and they need two different fixes:
+//   A FLOOR ON READING. A player already dragging satisfies step 1 in well under a second, so the
+// sentence was replaced before it had been read — the tutorial taught nothing and simply scrolled.
+// Progress still accumulates during the floor; it is completion that waits, not counting.
+//   A COMPLETION BEAT — the "I did it" the symptom names. Passing a step used to be indistinguishable
+// from the text changing on its own: no pause, no acknowledgement, just a different sentence. The beat
+// holds the finished step and swaps the instruction for what it TAUGHT, which is the one moment that
+// lands, because it arrives one second after the thing it describes.
+//
+// ⚠️ BOTH DURATIONS ARE DERIVED FROM THE SENTENCE, NOT SET. A single constant was the first version and
+// measuring it is what showed it could not work: every teaching step held for exactly the floor, because
+// the floor was shorter than every task. At 2.5s flat, "Move the mouse to steer your star" (7 words) got
+// the same time as "Click to reverse your poles — what you gathered turns hostile, and is flung clear"
+// (14) — under three words a second on the second one, for a reader meeting the vocabulary for the first
+// time. Deriving it also means editing the copy cannot silently outrun the pacing, which is the coupling
+// a constant would quietly have.
+//   0.32s/word is ~190wpm. Slow for prose, right for a short line read once while something is moving.
+const TUT_FINALE_S=25, TUT_WPS=0.32;
+const readS=t=>clamp(String(t).trim().split(/\s+/).length*TUT_WPS, 1.3, 5.2);
 let tutStep=0, tutT=0, tutKills=0, tutFlips=0, tutTravel=0, tutOdT=0, tutPrev=null, tutSpawned=false;
+let tutBeat=0, tutBarCache='';
 
 // True only while a TEACHING step is live. The finale is deliberately outside it, and so is every state
 // that is not the tutorial at all.
@@ -2528,24 +2558,40 @@ const tutVerb=()=>{
   if(!coarse) return {move:'Move the mouse', act:'Click', hold:'Hold Shift'};
   return {move: touchSteers?'Drag':'Lean the phone', act:'Tap', hold:'Hold a second finger'};
 };
+// `note` is the counter made visible, and it exists for the same complaint as the beat: a step whose
+// progress is invisible cannot be understood as progress. "5 gathered" is a thing you watch happen;
+// reaching four with no readout is a sentence that vanishes for no stated reason.
+//   `ok` is what the step actually taught, shown during the beat. Not "Well done" — the pause is worth a
+// sentence, and this is the only moment in the game where the lesson and the thing it describes are one
+// second apart. KEPT SHORT ON PURPOSE, because the beat is timed off it: an `ok` as long as its own
+// instruction turns an acknowledgement into a second thing to read, and doubles the step.
 const TUT_STEPS=[
   { say:()=>`${tutVerb().move} to steer your star.`,
     setup:()=>{},
-    done:()=>tutTravel>400 },
+    done:()=>tutTravel>400,
+    ok:'That is all the steering there is.' },
   { say:()=>'This is your colour. Steer into it — it gathers into rings.',
     setup:()=>{ for(let i=0;i<7;i++) tutDrop(P.polarity); },
-    done:()=>tutRingN()>=4 },
+    note:()=>`${Math.min(tutRingN(),4)} / 4 gathered`,
+    done:()=>tutRingN()>=4,
+    ok:'Those rings are your weapon. Nothing else is.' },
   { say:()=>'The other colour dies on those rings. Sweep it up.',
     setup:()=>{ for(let i=0;i<6;i++) tutDrop(P.polarity==='red'?'cyan':'red'); },
-    done:()=>tutKills>=5 },
+    note:()=>`${Math.min(tutKills,5)} / 5 annihilated`,
+    done:()=>tutKills>=5,
+    ok:'That is annihilation. Everything else arranges it.' },
   { say:()=>`${tutVerb().act} to reverse your poles — what you gathered turns hostile, and is flung clear.`,
     setup:()=>{ for(let i=0;i<5;i++) tutDrop(P.polarity); },
-    done:()=>tutFlips>=1 },
+    done:()=>tutFlips>=1,
+    ok:'Hold a colour longer and the flip throws harder.' },
   { say:()=>`${tutVerb().hold} for Overdrive. Your rings swing wide and sweep a much bigger circle.`,
     setup:()=>{ P.charge=1; for(let i=0;i<8;i++) tutDrop(Math.random()<0.5?'red':'cyan'); },
-    done:()=>tutOdT>=0.5 },
+    note:()=>odOn?'burning':'the Capacitor is full',
+    done:()=>tutOdT>=0.5,
+    ok:'Let go early and you keep the rest.' },
   { say:()=>'Now everything at once. This part can kill you — that is the game.',
     setup:()=>{ intensityTarget=0.9; tutRoster=0; tutNextT=0; },
+    note:()=>`${Math.max(0,Math.ceil(TUT_FINALE_S-tutT))}s`,
     done:()=>tutT>=TUT_FINALE_S },
 ];
 // EVERY SPECIES, IN ORDER, BY NAME. The wave clock is parked at phaseT=1e9 so nothing arrives on its
@@ -2566,21 +2612,43 @@ function tutRingN(){ let n=0; for(const e of enemies) if(e.ring && !e.dead && !e
 function beginTutRun(){
   act=1; wavePhase='calm'; phaseT=1e9; boss=null; bossTime=0; intensityTarget=0.2;
   tutStep=0; tutT=0; tutKills=0; tutFlips=0; tutTravel=0; tutOdT=0; tutPrev=null; tutSpawned=false;
-  el('tutBar').classList.remove('hidden');
+  tutBeat=0; tutBarCache='';   // a beat or a cached string surviving a restart would show the last run's line
+  el('tutBar').classList.remove('hidden','ok');
   tutPaint();
 }
-function tutPaint(){ el('tutBar').innerHTML=
-  `<span class="n">${tutStep+1}/${TUT_STEPS.length}</span>${TUT_STEPS[tutStep].say()}`; }
+// Repainted per frame while a `note` is live, so the counter actually counts — but diffed against the
+// last string first. innerHTML at 60Hz for text that changes maybe five times a step is the kind of
+// waste that is invisible until it is in a hot loop next to something that matters.
+function tutPaint(){
+  const S=TUT_STEPS[tutStep];
+  const html = `<span class="n">${tutStep+1}/${TUT_STEPS.length}</span>${S.say()}`
+             + (S.note?`<span class="p">${S.note()}</span>`:'');
+  if(html!==tutBarCache){ tutBarCache=html; el('tutBar').innerHTML=html; }
+  el('tutBar').classList.remove('ok');
+}
+function tutPaintOk(){
+  const S=TUT_STEPS[tutStep];
+  tutBarCache='';   // force the next tutPaint through: the beat text is not a note update
+  el('tutBar').innerHTML=`<span class="n">✓</span>${S.ok||'Done.'}`;
+  el('tutBar').classList.add('ok');
+}
 function stepTutorial(dt){
   if(!tutMode || state!=='play') return;
   const S=TUT_STEPS[tutStep];
   // The setup runs on the first FRAME of a step rather than at the moment it is entered, so P and the
   // field are already whatever the previous step left behind.
   if(!tutSpawned){ tutSpawned=true; S.setup(); }
+
+  // THE BEAT. Only the tutorial's own progression pauses — everything else in step() has already run or
+  // is about to, so the field stays live underneath and the star still steers. A frozen world here would
+  // read as a stutter rather than as an acknowledgement.
+  if(tutBeat>0){ tutBeat-=dt; if(tutBeat<=0) tutAdvance(); return; }
+
   tutT+=dt;
   if(tutPrev) tutTravel+=Math.hypot(P.x-tutPrev.x,P.y-tutPrev.y);
   tutPrev={x:P.x,y:P.y};
   if(odOn) tutOdT+=dt;
+  if(S.note) tutPaint();
   // The finale feeds itself, one species at a time, because nothing else will: see TUT_ROSTER.
   if(tutStep===TUT_STEPS.length-1){
     tutNextT-=dt;
@@ -2590,11 +2658,22 @@ function stepTutorial(dt){
       tutRoster++;
     }
   }
-  // The last step is the finale and it has nowhere to advance to — it ends the tutorial instead.
+  // ⚠️ THE FLOOR IS TESTED BEFORE `done()`, NOT INSTEAD OF IT. Progress keeps accumulating underneath —
+  // a player who finishes the task at 0.4s still passes the moment the sentence has been readable, and
+  // never has to do it twice.
+  if(tutT<readS(S.say())) return;
   if(!S.done()) return;
+  // The finale has nowhere to advance to, and no beat: its acknowledgement is the end card.
   if(tutStep>=TUT_STEPS.length-1){ tutFinish(true); return; }
-  tutStep++; tutT=0; tutSpawned=false; tutKills=0; tutFlips=0; tutTravel=0; tutOdT=0;
+  tutBeat=readS(S.ok||'Done'); tutPaintOk();
   flash=0.22; flashCol=COL.cyan; sfx.level();
+}
+function tutAdvance(){
+  tutStep++; tutT=0; tutBeat=0; tutSpawned=false;
+  tutKills=0; tutFlips=0; tutTravel=0; tutOdT=0;
+  // ⚠️ MUST be nulled, or the first travel sample of the new step spans the whole beat — the star keeps
+  // moving during it, so ~1.4s of drift would be credited to a step that has not started.
+  tutPrev=null;
   tutPaint();
 }
 // One exit for both endings, because they are the same ending: the finale is over. `survived` only
@@ -6746,7 +6825,8 @@ window.__orbital=window.__polaris=window.__flux={
   // TUTORIAL. `safe` is the one worth being able to read from outside: "damage is off right now" is
   // invisible from every other angle, and a test that cannot see it can only infer it from not dying.
   get tut(){ return {mode:tutMode, step:tutStep, of:TUT_STEPS.length, t:+tutT.toFixed(2),
-                     safe:tutSafe(), kills:tutKills, flips:tutFlips, travel:Math.round(tutTravel)}; },
+                     beat:+tutBeat.toFixed(2), safe:tutSafe(), kills:tutKills, flips:tutFlips,
+                     travel:Math.round(tutTravel), bar:el('tutBar').textContent}; },
 };
 
 // =====================================================================
