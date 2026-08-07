@@ -1879,6 +1879,30 @@ thing it replaces — which it does not. **A correction is a new claim and gets 
 it retires**, including a re-derivation you would have demanded of anyone else. If you have just been
 right about something, you are in the worst position to check what you write next.
 
+### The operative form: a rank is not inherited from the measurement
+
+Every number in the exchange above was **correct**. Both failures were *ordinal* claims — "sixth-fastest",
+"tightest bar the Planet", "second-widest behind the Dart" — computed over a table that was never
+re-sorted. **A rank is a claim about every other row**, so it carries a dependency the measurement it came
+from does not, and a right number will happily produce a wrong rank.
+
+> **A rank, a superlative or an ordinal is never inherited from the measurement it was computed over.**
+> It is a separate claim over a table: name the basis, list every state, re-sort, then read the rank off.
+
+This is where the basis rule and the timing rule turn out to be one thing seen from two sides — **a rank
+is exactly where a basis mismatch stops being a formula and becomes a number.** The Charger proves it by
+holding *both ends of the same ladder*: spent it is 2nd-tightest on the shared bleed, armed it is
+2nd-widest on its own, and each regime produced a plausible wrong answer in the opposite direction from
+correct data. So the ladder lives in the code as a list rather than in anyone's head:
+
+> `Planet 1.25 · Charger-spent 1.35 · Brute 1.44 · Harrier@0.16 1.54 · Bomber 1.63 · Neutral 1.92 ·
+> Drifter 2.12 · Harrier@0.34 3.27 · Charger-armed 3.72 · Dart 4.04`
+
+⚠️ *"Second-widest behind the Dart" was checked by a second person and passed*, because that check
+re-derived the numbers and re-sorted a table with the armed Charger **missing** — the same omission the
+fifth instance was about, made while verifying the correction to it. Re-deriving is not re-sorting, and
+a ladder is only a check if it is complete.
+
 **The third was found by running the trap against the table the trap was written for**, which is the part
 worth keeping. "Recompute a neighbouring row from source" caught the second. "Is this row the same *kind*
 of row as the ones beside it" caught the third, in a table its own author had just cleaned — of the other
