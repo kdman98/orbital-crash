@@ -80,8 +80,6 @@ paragraph goes in MECHANICS and this line points at it.
 - **Annihilation** — the core kill event: two opposite-charge things touch, both destroyed.
   (`queueKill`, `processKills`)
 - **Pop** — to destroy a Dot.
-- **Graze** — a dangerous Dot skimming the Star and leaving without touching. Score crumb only, no
-  Capacitor. (`e.grz`, `grazeN`)
 - **Vacuum** — what a reversal does to opposite-colour Motes lying inert on the field.
 - **Purge** — destroying an Anomaly. The word means only this. (`killBoss`)
 
@@ -260,8 +258,10 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   everything else. Not an inert 1.
 - **Streak** — a no-hit combo; resets only on real damage. Named tiers each pay a Capacitor chunk.
   (`combo`, `streakTier`, `breakStreak`)
-- **Score** — **addition, with no multiplier anywhere.** A kill, a Mote and a graze each pay a flat
-  amount, wherever they happen. (`onKill`, `KILL_SCORE`, `MOTE_SCORE`, `GRAZE_SCORE`)
+- **Score** — **addition, with no multiplier anywhere.** A kill (20) and a Mote (5) each pay a flat
+  amount wherever they happen; an Epoch purge pays `200×act` and a Bounty `250×act`, the only two
+  terms that scale with anything. Five write sites, every one an integer.
+  (`onKill`, `KILL_SCORE`, `MOTE_SCORE`)
 - **Ring shell** — the radius your Rings orbit at. Overdrive nearly doubles it. (`P.eddy`, `P.ringMul`)
 - **Achievement** — an in-run feat listed in **Records**. Flavour only; unlocks nothing.
   (`ACHV`, `store.achv`)

@@ -1402,11 +1402,16 @@ including the ones that move standing population the most.
   instead of vanishing.
 - **Mote** — annihilation loot carrying the popped Dot's colour. Same-polarity Motes hoover to you;
   opposite ones lie inert until a reversal vacuums them. Collecting one pays score where it lands.
-- **Score is addition, and there is no multiplier.** A kill, a Mote and a graze each pay a flat amount
-  (`KILL_SCORE`, `MOTE_SCORE`, `GRAZE_SCORE`) wherever they happen. A kill is the unit, a Mote is a
-  quarter of one, and a kill sheds 1–2 of them — so hoovering your own debris is worth about a third
-  again on top of the kill that made it. Where you stand is already priced by the things that decide
-  the fight.
+- **Score is addition, and there is no multiplier.** A kill (`KILL_SCORE` 20) and a Mote (`MOTE_SCORE`
+  5) each pay a flat amount wherever they happen. A kill is the unit, a Mote is a quarter of one, and a
+  kill sheds 1–2 of them — so hoovering your own debris is worth about a third again on top of the kill
+  that made it. Where you stand is already priced by the things that decide the fight.
+
+  **Five write sites, and the list is the whole scoring model:** `+MOTE_SCORE` on a pickup, `+KILL_SCORE`
+  on a kill, `+200×act` on an Epoch purge, `+250×act` on a Gilded Bounty, and `score=0` on reset. Every
+  term is an integer, so nothing rounds. ⚠️ **The two `×act` terms are the only thing in scoring that
+  scales with anything** — clearing Epoch V pays five times Epoch I. Say that out loud in any copy that
+  claims "no multiplier": true of your *skill*, not of the depth you reach.
 
   **The multiplier was removed because it measured as a coin flip, not a curve.** `mult` was
   `min(15, 1+motesBank*0.1)`, banked by Motes and halved on every hit. Over 12 runs that took hits it
@@ -1415,8 +1420,14 @@ including the ones that move standing population the most.
   The halving also punished backwards: a clean run banks 761 Motes against the 140 needed to cap, so
   the first two hits cost a deep bank literally nothing while a shallow one lost half. Anything
   reintroduced here has to beat that bar: it must separate *outcomes*, not just decorate them.
-- **Graze** — a dangerous Dot that skims you and leaves. Score crumb and a sound, and **no Capacitor**:
-  charge income should be chosen, not lucked into.
+- ~~**Graze**~~ — **removed.** A dangerous Dot entering `P.r+e.r+16` and leaving past `+28` paid 10
+  points, a white burst and a rising blip. ⚠️ **It was never a dodge: no input was required.** It fired
+  on the Dot's trajectory, and opposite polarity is *attracted* to you, so your own field bent Dots onto
+  the arcs that paid. The comment above it had said so since it shipped — *"grazes are luck as often as
+  skill"* — which is why it never paid Capacitor, and the tell was there the whole time: **a channel the
+  game would not trust with meter income was still allowed to print score.** If a reward is too lucky to
+  pay the meter, ask what it is doing paying anything. See *Open* for the shield plan that wants the
+  detection back, and the restore point is marked in `stepPlayerContact`.
 - **Gilded Bounty** — periodically one Dot arrives gold-ringed; pop it inside the window for a jackpot.
   Only ever a Drifter or a Dart, never a big Dot. Its dashed gold ring is drawn at exactly `e.r + P.r`,
   so it is simultaneously the bounty cue *and* the true contact edge (law 3). Affordable only because it
@@ -2618,11 +2629,15 @@ n=30, against t=1.12 and t=1.56 for the other two). But removing it cost **−23
 tellingly, **halved the run-to-run variance** (sd 18.8 → 8.5): a free shield was most of the long tail,
 so the best runs are gone rather than the average one being worse.
 
-**The intended replacement is a close call earning a shield** — grazes paying defence instead of a score
-crumb, so the reward for cutting it fine is what lets you keep cutting it fine. It has to fill that
-measured hole, and it changes Graze's deliberately thin pricing (score and a sound, no Capacitor, so
-meter income stays chosen rather than lucked into). The old shield-block shape is described in a comment
-where it was deleted, as the thing to bring back. Not started.
+**The intended replacement is a close call earning a shield** — a near miss paying defence, so the reward
+for cutting it fine is what lets you keep cutting it fine. It has to fill that measured hole. ⚠️ **The
+graze system it was going to be built on has since been removed**, so this now needs its own detection —
+about ten lines, and the restore point is marked in `stepPlayerContact`. **That is a smaller loss than it
+looks and arguably a clarification:** SCOPE's design note already said not to pay a *single* graze
+(*"grazes are luck as often as skill"* — the game's own words), so the plan always needed the **ladder**
+with a threshold on it, 단발은 운 지속은 실력, and never the crumb that was deleted. What it does cost is
+`grazeN` and its 1.5s decay, which have to come back with the detection. The old shield-block shape is
+described in a comment where it was deleted, as the thing to bring back. Not started.
 
 **~~The Splitter has no answer the player can aim.~~ Closed by deletion in `6324914`.** The species
 is gone, and the Mini with it. The item was that the one Dot whose death made the field *worse* had

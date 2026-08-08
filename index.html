@@ -61,7 +61,7 @@
   /* NO SCORE MULTIPLIER. A `#mult` stat stood here in gold at 44px, the second-biggest number on
      screen. Measured: it read a median ×1.9 over 12 runs and never once passed ×7 while taking hits,
      against an advertised cap of ×15, and the whole system moved final score by 1.30×. It is gone;
-     the streak is now the only thing in this corner. See MOTE_SCORE / KILL_SCORE / GRAZE_SCORE. */
+     the streak is now the only thing in this corner. See MOTE_SCORE / KILL_SCORE. */
   /* ⚠️ `position:absolute` is load-bearing. #combo carries no class, so without it the element is STATIC
      and both offsets below are silently ignored — it laid out as a full-width in-flow block jammed into
      the very top-right corner with no inset at all. That went unnoticed while #mult sat underneath and
@@ -1402,7 +1402,6 @@ let spawnTimer=0, elapsed=0;
 let spawnBias='cyan', biasTimer=0; // enemies arrive in shifting colour waves
 let combo=0, peakCombo=0;
 let streakTier=0;                      // next streak-milestone index (25/50/100/200)
-let grazeN=0, grazeT=0;                // near-miss ladder (pitch rises, decays after 1.5s)
 let gildTimer=14;                      // seconds until the next Gilded Bounty spawns
 let motes=[];                          // Flux Motes: annihilation loot. Worth points where they land.
 let moteN=0, moteT=0;                  // pickup ratchet ladder
@@ -1467,7 +1466,7 @@ function stepWarns(dt){
 //   These three are the whole income table now, priced at the old expressions evaluated at the measured
 // median so a median run scores about what it used to. A kill is the unit; a Mote is a quarter of one, and
 // a kill sheds 1-2 of them, so hoovering your debris is worth ~35% on top of the kill that made it.
-const KILL_SCORE=20, MOTE_SCORE=5, GRAZE_SCORE=10;
+const KILL_SCORE=20, MOTE_SCORE=5;
 let score=0;                           // no XP, no levels, no multiplier — survival and annihilations ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 // THE CAPACITOR GRANT PULSE — the wordless replacement for 'STREAK 50 · +12%' and 'STREAK BURST +8%'.
@@ -1966,7 +1965,7 @@ function freshRun(){
     // Anomaly purge), so this one number halves the fill without touching seven scattered literals or
     // the caps that bind them to each other. Paired with OD_DRAIN's doubling; see the note there for why
     // the two compound. Restore to 1 to undo the income half alone.
-    moveMult:1, chargeGain:0.5, scoreMult:1,
+    moveMult:1, chargeGain:0.5,
     charge:0, iframe:0, flipCd:0, pulseCd:0, hurtT:99, regen:2.6,
     armor:1,
     holdT:0, holdMax:1.5, conduitAmp:0.5, // polarity mastery
@@ -3933,7 +3932,7 @@ function stepMotes(dt){
       motes.splice(i,1);
       moteN++; moteT=0.8;
       if(!odOn) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
-      score+=Math.round(MOTE_SCORE*P.scoreMult);
+      score+=MOTE_SCORE;
       sfx.mote(moteN);
       // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
       // several times a second, on top of the Core, on the exact pixels the flip read happens on.
@@ -3960,7 +3959,7 @@ function killBoss(b){
   for(let i=0;i<52;i++){ const a=rand(0,TAU),s=rand(1,7.5);
     parts.push({x:b.x,y:b.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.5,1.15),max:1.15,color:i%2?'#fff':COL[col],r:rand(2,5),ring:false}); }
   spawnRing(b.x,b.y,'#fff',Math.max(W,H)*0.5);
-  const rew=Math.round(200*act*(P?P.scoreMult:1)); score+=rew;
+  const rew=200*act; score+=rew;
   pushText(b.x,b.y-32,T('fx.purged',{n:rew}), COL.gold, 1.7, 22);
   if(P){ P.hp=Math.min(P.maxHp,P.hp+30); P.charge=Math.min(1,P.charge+0.4*P.chargeGain); }  // the one income site that used to skip chargeGain, which made the purge 2x the value of everything else once income halved
   // PURGE THUNDERCLAP: the game's biggest kill gets its own voice, not a reused collapse
@@ -4600,20 +4599,19 @@ function stepPlayerContact(){
     if(e.dead||e.queued)continue; // a Dot already claimed by the wave/a lance/decay this frame can't also hit you
     const dx=e.x-P.x, dy=e.y-P.y, rr=e.r+P.r;
     const d2=dx*dx+dy*dy;
-    // near-miss GRAZE: a dangerous Dot that enters the skim band and LEAVES without touching.
-    // Flavor + a score crumb ONLY — it pays no Capacitor. Charge income must stay legible
-    // (kills, purges, Motes, streak), and grazes are luck as often as skill.
-    const dangerous = e.type!=='boss' && (e.color==='neutral' || e.color!==P.polarity);
-    if(dangerous){
-      const gb=rr+16;
-      if(d2<gb*gb){ e.grz=true; }
-      else if(e.grz && d2>(gb+12)*(gb+12)){
-        e.grz=false; grazeN++; grazeT=1.5;
-        score+=Math.round(GRAZE_SCORE*P.scoreMult);
-        spawnBurst(P.x+dx*0.45, P.y+dy*0.45, '#fff', 3, 2.0);
-        sfx.graze(grazeN);
-      }
-    }
+    // ⚠️ THE GRAZE IS GONE, AND IT WAS NEVER A DODGE. A dangerous Dot entering `rr+16` and leaving
+    // past `rr+28` paid 10 points, a white burst and a rising blip — but NO INPUT WAS REQUIRED. It
+    // fired on the Dot's trajectory, not on your reaction, and opposite polarity is ATTRACTED to you,
+    // so the field bent Dots onto the arcs that paid. The comment that stood here said it outright
+    // ("grazes are luck as often as skill"), which is why it never paid Capacitor — a channel the
+    // game declined to trust with meter income, but let print score anyway.
+    //   ⚠️ ITS `spawnBurst` DREW 12 rand() CALLS PER GRAZE, so removing it shifts the seeded stream
+    // and the oracle CANNOT certify this change — see PATCHNOTE. Any future removal of an effect
+    // call has the same property; do not read a moved fingerprint here as a regression.
+    //   RESTORE POINT for the shield plan (MECHANICS "Open", the Aegis hole at survival -23.5%): the
+    // detection is ten lines and belongs here. Do NOT bring the payout back with it. SCOPE's warning
+    // is the design: pay the LADDER, not the single graze -- 단발은 운, 지속은 실력 -- so a restored
+    // version needs `grazeN` and its 1.5s decay back as well, and a threshold on the count.
     if(d2<rr*rr){
       // same-colour enemies are repelled allies — they pass through the core harmlessly (no UI cue).
       if(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity) continue;
@@ -4672,7 +4670,6 @@ function stepRunTimers(dt){
   // go above the floor and it stays quiet, because you never stopped being armed.
   if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); }
   else if(P.charge<OD_MIN) chargeReady=false;
-  if(grazeT>0){ grazeT-=dt; if(grazeT<=0) grazeN=0; }
   // Gilded Bounty: every 12-18s one Dot arrives gilded — annihilate it within 6s for a jackpot (not in the Arena)
   gildTimer-=dt;
   if(gildTimer<=0 && !testMode){
@@ -4805,9 +4802,9 @@ function onKill(e){
   // Every kill is worth the same wherever it happens. Where you stand is already priced by the things
   // that decide the fight: closing the range is how a Volley connects, and it is what walks you into an
   // Anomaly's point-blank fire.
-  const gain=Math.round(KILL_SCORE*P.scoreMult);
+  const gain=KILL_SCORE;
   score+=gain;
-  tutKills++;   // the tutorial's "you have annihilated five things" test — score cannot serve, since Motes and grazes pay into it too
+  tutKills++;   // the tutorial's "you have annihilated five things" test — score cannot serve, since Motes pay into it too
   // Flux Motes: annihilations shed collectible loot carrying the Dot's colour.
   const moteCap=40, moteLife=()=>rand(4,8);
   if(e.color!=='neutral' && motes.length<moteCap){
@@ -4819,7 +4816,7 @@ function onKill(e){
   }
   // Gilded Bounty: cash the jackpot Dot
   if(e.gild>0){
-    const rew=Math.round(250*act*P.scoreMult); score+=rew;
+    const rew=250*act; score+=rew;
     P.charge=Math.min(1,P.charge+0.05*P.chargeGain);
     pushText(e.x,e.y-30,T('fx.bounty',{n:rew}),COL.gold,1.4,17);
     spawnRing(e.x,e.y,COL.gold,90); trauma=Math.min(1,trauma+0.2);
@@ -6001,8 +5998,9 @@ function drawPlayer(){
   // the player needs to READ their own star instead of seeing it.
   ctx.globalAlpha=1;
   // (Three concentric white rings drew the Aegis shell here, at P.r+7+i*4. Nothing grants a shield now.
-  //  Note for whoever builds the close-call shield: those radii sit INSIDE P.r+16, the graze band, so they
-  //  never claimed a false danger edge — keep that property.)
+  //  Note for whoever builds the close-call shield: those radii sit INSIDE P.r+16, which WAS the graze
+  //  band and is now only a number written down in two places — see the restore point in
+  //  stepPlayerContact. The shell never claimed a false danger edge; keep that property.)
 }
 function drawParticles(){
   for(const p of parts){
@@ -6547,7 +6545,7 @@ function startRun(mode){
   warns.length=0;
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
-  grazeN=0;grazeT=0;gildTimer=14;lastDmg=null;
+  gildTimer=14;lastDmg=null;
   motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   chargeReady=false;deathRevealT=0;deadCountT=0;
   odOn=false;                                      // never start a run already burning
@@ -7383,12 +7381,11 @@ const sfx={
   // THE BAITED CHARGE. It has to be tellable from bosshit() while your eyes are on the far side of the
   // field, so it is built the opposite way round: bosshit is one short square blip that falls (300→180
   // in 0.09s), this is a heavy low SLAM that falls much further and much longer, and then RISES. The
-  // rise is the part that carries the meaning — every reward voice in this game goes up (graze,
+  // rise is the part that carries the meaning — every reward voice in this game goes up (mote,
   // capFull, level) and every damage voice goes down (hurt, dead, closing). A baited charge
   // is the rare event that is both an impact and a reward, so it does both, in that order.
   baited(){ beep(110,0.20,'sawtooth',0.26,44); noise(0.20,0.18);
             beep(523,0.16,'triangle',0.13,784); beep(784,0.22,'sine',0.10,1175); },
-  graze(n){ beep(1500+Math.min(n,10)*130, 0.03, 'sine', 0.05, 1900+Math.min(n,10)*130); },
   mote(n){ beep(600+Math.min(n,16)*70,0.04,'square',0.055,850+Math.min(n,16)*70); },
   inhale(){ beep(55,0.45,'sine',0.22,220); noise(0.45,0.12); beep(200,0.45,'sine',0.08,1800); },
   capFull(){ beep(660,0.09,'triangle',0.12,990); beep(990,0.12,'sine',0.09,1320); },
@@ -7524,7 +7521,7 @@ window.__orbital=window.__polaris=window.__flux={
   get warns(){return warns;}, warnSpawn, WARN_T,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
-  get motes(){return motes;}, KILL_SCORE, MOTE_SCORE, GRAZE_SCORE,
+  get motes(){return motes;}, KILL_SCORE, MOTE_SCORE,
   // Particles are normally beneath a harness's notice, but the flip's PUSH READ lives entirely in them
   // now (the wake at the two fling sites), and a direction is not something a screenshot can be raced
   // for — the sparks are gone in 0.3-0.7s. Exposed so the cone can be asserted rather than eyeballed.
