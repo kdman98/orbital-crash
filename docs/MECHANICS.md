@@ -1268,10 +1268,33 @@ ammunition you were about to use.
 
 ## The run
 
-**Epochs** are the major stages, each with its own name and palette — Drift → Ember → Bloom → Tide, then
-looping in Roman numerals. Each Epoch raises pressure three ways: the same species bites harder and moves
-faster, the mix shifts toward positioning-demanding species, and the arena holds more Dots. **HP is
+**Epochs** are the major stages, each with its own name and palette — **Nebula → Aurora → Eclipse →
+Meteor Shower**, then looping. Each Epoch raises pressure three ways: the same species bites harder and
+moves faster, the mix shifts toward positioning-demanding species, and the arena holds more Dots. **HP is
 deliberately never scaled** — annihilation is binary.
+
+**Everything qualitative is finished by Epoch III, and that is worth knowing before tuning anything at
+the far end.** `pace` pins at 1.0 there (`clamp((act-1)/2,0,1)`) and every roster gate is `act>=2` or
+`act>=3`. After III the game introduces nothing new — Dot damage, Dot speed, Anomaly HP, storm surge size
+and purge score keep climbing, and that is all. Three things also quietly stop: the calm clock floors at
+Epoch 10, build at 12, storm at 17; and the arena cap is `min(330, 40 + elapsed + act*10)`, where
+`elapsed` alone reaches 330 at ~4:50, so past five minutes the `act` term contributes nothing at all.
+
+**The Meteor Shower is the one Epoch with a mechanic of its own.** At Epoch IV — and VIII, XII, every
+fourth — `isShower(act)` puts the comet formation on formation cadence, `rand(9,16)`, against its
+ordinary `rand(200,300)`. Do the arithmetic before touching it: an Epoch's non-boss window is about 38s,
+so on the base clock a comet lands inside any given shower roughly **one time in seven** — the Epoch
+would have been named for something that mostly did not happen. ⚠️ **The clock is re-armed at the Epoch
+boundary in `onBossCleared`, not only where it fires**, because `cometT` survives the boundary: arriving
+with 180s left shows no shower at all, and leaving with 12s left drops a stray comet into the next Epoch
+where nothing explains it. Measured over a walk from Epoch 1 to 8, purging on sight: **17 comet bodies at
+IV and 11 at VIII, zero in all six non-shower Epochs**, including V immediately after.
+
+**The palette cannot carry hue, so it carries lightness.** Solving for four tints ≥ΔE 32 from every
+colour the game has already claimed has *no solution above chroma 22* — polarity plus the cue vocabulary
+own the wheel. So the Epochs are told apart by L\* instead: **Eclipse 46 is the darkest sky in the game
+and Meteor Shower 74 the brightest**, Nebula 60 and Aurora 64 between. Adding a fifth mood means
+re-solving, not picking a fifth hex; there is no room left to guess into.
 
 **Phases** run inside an Epoch, in order: **Calm → Build → Storm → Boss**, then release into the next
 Epoch. A **Storm** is a colour-themed surge whose colour swaps halfway through, so you re-decide your
@@ -1785,9 +1808,14 @@ Two things are deliberate rather than tidy:
   sentence. Shredding a paragraph into numbered keys makes it unwritable in English and untranslatable in
   Korean, because neither can be read in order any more. The 649-word Codex body was what forced the
   rule; the rule outlived it.
-- **떠돌이 and 표류 split a name the English shares.** `Drifter` the Dot and `Drift` the Epoch are the
-  same word in English and appear together — "EPOCH I · DRIFT" runs while Drifters are in the field.
-  Korean gives the creature and the era two different words. Do not tidy them back into one.
+- **떠돌이 and 표류 split a name the English shares.** Korean gives the creature and the shape two
+  different words. Do not tidy them back into one.
+  ⚠️ **THE SITE THIS NAMED HAS MOVED ONCE ALREADY.** It read *"`Drift` the Epoch … 'EPOCH I · DRIFT'
+  runs while Drifters are in the field"* until the Epochs became celestial, at which point that exact
+  pairing became impossible and the sentence was describing a screen the game no longer draws. **The
+  collision did not go away with it:** `lab.drift` is still 표류/`Drift`, and the Pattern Lab legend
+  prints it while 떠돌이 are on the field. Same rule, one slot over — which is the whole lesson. A note
+  written around its example dies when the example does; write the rule and cite the site.
   ⚠️ **The rule is the split, not the method, and the method has already changed once.** This read
   *"transliterates the creature and translates the Epoch"* against 드리프터 until `466efcd` renamed the
   roster off its -체 endings; 떠돌이 is a native word, so that sentence described a technique the file no

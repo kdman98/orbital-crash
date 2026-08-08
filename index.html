@@ -67,7 +67,18 @@
      the very top-right corner with no inset at all. That went unnoticed while #mult sat underneath and
      took the eye; with the multiplier gone this line is the only thing in the corner. */
   #combo{position:absolute;right:20px;top:18px;text-align:right;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);}
-  #center{position:absolute;left:50%;top:14px;transform:translateX(-50%);text-align:center;}
+  /* ⚠️ WAS `left:50%` + `translateX(-50%)`, WHICH CAPPED THIS SLOT AT HALF THE SCREEN. An absolutely
+     positioned box with `left:50%` and no `right` gets `100% - 50%` of the containing block to lay out
+     in; the transform runs AFTER layout, so it re-centres a box that was already squeezed. At 375px the
+     usable width was 187.5, and `EPOCH IV · METEOR SHOWER` (188px) wrapped onto the timer.
+       It was never about the new name. `EPOCH XXXIX · ECLIPSE` measured 161px — deep English runs were
+     already within 27px of wrapping, and nobody had gone looking because every name here had been one
+     short word since the first commit. `left:0;right:0` gives the block the whole width and lets
+     `text-align:center` do the centring, which is what the transform was imitating.
+       `#hud` is `pointer-events:none` and this subtree opts nothing back in, so a full-width box
+     intercepts nothing. (`#achv` still has the half-width bug — its `max-width:90vw` cannot exceed the
+     50vw it is actually given. Left alone: different element, different change.) */
+  #center{position:absolute;left:0;right:0;top:14px;text-align:center;}
   #actlab{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);font-weight:800;margin-bottom:6px;opacity:.85;transition:color .8s;}
   #time{font-size:13px;letter-spacing:.16em;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums;}
   #bossbar{position:absolute;left:50%;top:104px;transform:translateX(-50%);width:min(64vw,460px);height:11px;
@@ -1166,7 +1177,7 @@ const L={ en:{
   'dot.boss':'Anomaly',
   'msl.volley':'Anomaly Volley',  'msl.seeker':'Anomaly Seeker',  'msl.ring':'Anomaly Ring',
   'msl.mine':'Anomaly Mine',      'msl.spear':'Anomaly Spear',    'msl.other':'Anomaly Missile',
-  'act.0':'Drift',  'act.1':'Ember',  'act.2':'Bloom',  'act.3':'Tide',
+  'act.0':'Nebula',  'act.1':'Aurora',  'act.2':'Eclipse',  'act.3':'Meteor Shower',
   'lab.wall':'Wall',  'lab.noose':'Noose',  'lab.pulse':'Pulse',
   'lab.cross':'Cross','lab.comet':'Comet',  'lab.drift':'Drift',
   // ⚠️ NAME · THREAT · ANSWER, one term each. These sit on the Anomaly's integrity bar and are read
@@ -1309,8 +1320,11 @@ const L={ en:{
   // ⚠️ NO -체 SUFFIX PILE. Four of the eight ended in -체 (폭격체·돌격체·중성체·추격체), which is the
   // stiffest way to name a creature in Korean and made the roster read as one part of speech repeated.
   // These are concrete nouns instead, each naming the thing's one property, the way the English does.
-  //   떠돌이 and the 표류 epoch stay apart on purpose: English calls both "Drift" and shows them
-  // together — "EPOCH I · DRIFT" runs while Drifters are in the field.
+  //   떠돌이 and 표류 stay apart on purpose, and ⚠️ THE THING THEY ARE APART FROM HAS MOVED. This used
+  // to name the Epoch — "EPOCH I · DRIFT" ran while Drifters were in the field — and the Epochs are
+  // celestial now, so that pairing cannot happen. The collision it was guarding did not go away with
+  // it: `lab.drift` is still 표류, and the Pattern Lab legend prints it while 떠돌이 are on screen.
+  // Same rule, one slot over. A note that names the site instead of the rule dies when the site moves.
   //   행성 / 위성 is a pair the English does not have. The Harrier is too fast to turn, so your field
   // cannot pull it in — it catches it into a long orbit and it circles you until it runs out of speed.
   // A satellite is what it becomes, and it names the one property a still image cannot show.
@@ -1321,7 +1335,7 @@ const L={ en:{
   'dot.boss':'변이체',
   'msl.volley':'변이체 일제사격',  'msl.seeker':'변이체 추적탄',  'msl.ring':'변이체 고리',
   'msl.mine':'변이체 지뢰',        'msl.spear':'변이체 창',       'msl.other':'변이체 발사체',
-  'act.0':'표류',  'act.1':'잔불',  'act.2':'개화',  'act.3':'밀물',
+  'act.0':'성운',  'act.1':'극광',  'act.2':'월식',  'act.3':'유성우',
   'lab.wall':'장벽',  'lab.noose':'올가미',  'lab.pulse':'파동',
   'lab.cross':'십자',  'lab.comet':'혜성',    'lab.drift':'표류',
   // 이름 · 위협 · 대응, 한 단어씩. Read mid-fight with something shooting at you.
@@ -1882,12 +1896,22 @@ function endOverdrive(){
 // guess into. `scratchpad/solve2.js` sweeps it; the floor is 32 and the chroma ceiling is 22.
 //   bg1/bg2 are deliberately untouched: at L* 1-7 they are black with a hint, and the measured sky
 // medians sit ΔE 85-96 from both poles. They were never the thing competing.
+//   ⚠️ RE-SOLVED WHEN THE EPOCHS BECAME CELESTIAL. The first pass fitted Drift/Ember/Bloom/Tide, and a
+// warm sand sky for an AURORA is simply wrong — a tint is a claim about what you are looking at, so it
+// goes stale the moment the name over it changes. Same floor, same chroma, new arcs.
+//   THE LADDER IS THE POINT. Hue is capped at chroma 22, so the Epochs carry their identity in L*
+// instead — ECLIPSE 46 is the darkest sky in the game and METEOR SHOWER 74 the brightest, with NEBULA
+// and AURORA between. That is the one channel polarity does not own, and it is why these four can mean
+// something where four hues could not.
 const ACTS=[
-  {bg1:'#0a1526', bg2:'#04060f', tint:'#709bbb'},   // Drift — slate blue,  L*62 h253
-  {bg1:'#1c0e0a', bg2:'#0a0403', tint:'#c3a685'},   // Ember — warm sand,   L*70 h75
-  {bg1:'#160b26', bg2:'#08040f', tint:'#a97f99'},   // Bloom — dusty mauve, L*58 h340
-  {bg1:'#07181a', bg2:'#03080b', tint:'#83b6a0'},   // Tide  — sea green,   L*70 h165
+  {bg1:'#0a1526', bg2:'#04060f', tint:'#6a96b5'},   // Nebula        — slate blue,  L*60 h252
+  {bg1:'#07181a', bg2:'#03080b', tint:'#7ea487'},   // Aurora        — aurora green,L*64 h150
+  {bg1:'#1c0e0a', bg2:'#0a0403', tint:'#906257'},   // Eclipse       — rust copper, L*46 h38  (darkest)
+  {bg1:'#160b26', bg2:'#08040f', tint:'#cfb190'},   // Meteor Shower — pale straw,  L*74 h74  (brightest)
 ];
+// Epoch IV, and every fourth after it — see the comet clock in `director`, which is what makes the
+// name true rather than decorative.
+const isShower=a=>((a-1)%ACTS.length)===3;
 // ⚠️ THIS WAS A 12-ENTRY ARRAY INDEXED `[(act-1)%12]`, AND THE MODULO WAS A LIE THE PLAYER COULD READ.
 // At Epoch 13 the HUD printed `EPOCH I · DRIFT` — byte-identical to the run's opening frame — and the
 // Records row for the deepest run anyone had ever played filed it under `I`, sorting and reading as the
@@ -2721,6 +2745,13 @@ function onBossCleared(){
   const info=actInfo();
   if(act>=3) grantAchv('act3');
   if(P) P.charge=Math.min(1,P.charge+0.15); // clearing an Epoch tops the Capacitor a little
+  // ⚠️ RE-ARM THE COMET CLOCK ON THE BOUNDARY, not only where it fires. `cometT` is a countdown that
+  // SURVIVES the Epoch change, so re-rolling it at the fire site alone is not enough in either
+  // direction: arrive at a shower with 180s still on it and the Epoch named for the shower shows none,
+  // and leave one with 12s on it and a stray comet lands in the NEXT Epoch, where nothing explains it.
+  // The short entry roll puts the first one inside the opening calm, so the name is true immediately
+  // rather than a minute in.
+  cometT = isShower(act) ? rand(3,7) : rand(200,300);
   enterCalm(false);
 }
 function director(dt){
@@ -2748,8 +2779,13 @@ function director(dt){
     // The comet on its own, much longer clock, tuned to ~1 per 10 minutes. NOTE THIS TIMER ONLY ADVANCES
     // OUTSIDE A BOSS — roughly half a run — so the wall-clock gap is about double the interval, which is
     // what makes a naive "make it rarer" pass land at twice the intended rate.
+    //   ⚠️ AND INSIDE THE METEOR SHOWER EPOCH IT RUNS ON FORMATION CADENCE INSTEAD. Do the arithmetic
+    // before touching this: an Epoch's non-boss window is calm+build+storm, about 38s at Epoch IV, so
+    // against a rand(200,300) clock the odds of a comet landing inside any given shower are roughly one
+    // in seven. An Epoch NAMED for the shower would have shown nothing, six times out of seven. At
+    // rand(9,16) it lands 3-4 of them, which at n=3-5 bodies each is a readable event and not a wall.
     cometT-=dt;
-    if(cometT<=0){ cometT=rand(200,300); formComet(); }
+    if(cometT<=0){ cometT = isShower(act) ? rand(9,16) : rand(200,300); formComet(); }
     // THE NEUTRAL DRIFT, on its own clock for the budget reason at FORMS, and gated LATE for a second
     // reason: Neutrals enter no ambient table until t>=125, so before that these six would be somebody's
     // FIRST Neutral — six at once, of the one body no polarity answers, before the game has taught that

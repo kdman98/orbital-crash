@@ -220,8 +220,12 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 ## The run
 
 - **Run** — one playthrough, start to death.
-- **Epoch** — a major stage with its own name and palette: Drift → Ember → Bloom → Tide, then looping in
-  Roman numerals. (`act`, `ACTS`)
+- **Epoch** — a major stage with its own name and palette: Nebula → Aurora → Eclipse → Meteor Shower,
+  then looping. Roman numerals in English, Arabic in Korean, and **neither wraps** — `roman()` is exact
+  to 3999, where the 12-entry array it replaced printed `EPOCH I` at Epoch 13. (`act`, `ACTS`, `roman`)
+- **Meteor Shower** — Epoch IV and every fourth after it. The comet formation, normally on a ~10-minute
+  clock, runs on formation cadence for the length of it, so the Epoch is named for something that
+  actually happens. (`isShower`, `cometT`)
 - **Phase** — the beat inside an Epoch: Calm → Build → Storm → Boss. (`wavePhase`)
 - **Storm** — a colour-themed surge. (`enterStorm`)
 - **Storm Shift** — the colour swap halfway through a Storm. (`stormShiftT`)
