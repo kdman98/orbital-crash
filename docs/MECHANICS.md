@@ -1637,6 +1637,48 @@ bosshit and milestones: **peak 0.3507, rms 0.0473, zero clipped samples.** Densi
 that verifies a sound cannot begin by silencing it. Anyone reading the mute rule while doing audio work
 is inside the exception, not breaking the rule.
 
+### The sky cache
+
+The background — one full-screen radial gradient plus five nebula clouds — is painted into an offscreen
+canvas and blitted, not repainted per frame. It is the cheapest change in the game's history by ratio:
+measured under software rasterisation at 2560×1600, **the background was 68.7ms of a 69.3ms frame**,
+against **0.60ms for every enemy, mote, particle and lance on the field together**. A full-screen radial
+gradient alone costs 9.35ms against 0.63ms for a flat fill of the same area. Blitting is 0.03ms.
+
+⚠️ **Three rebuild triggers, and you must know all three before touching `easePalette`, `resize()` or the
+counter.** The cache is stale-by-design, so anything that changes what the sky *should* look like without
+hitting one of these draws the previous picture:
+
+1. **`palMoving`** — set in `easePalette` from the largest channel gap the ease still has to close,
+   thresholded at **half a channel**, below which the cache cannot round to a different byte and a
+   repaint would draw the identical image. **The palette is the only input that can move fast**, and only
+   for the ~2s after an Epoch flip, when the sky repaints *every frame* and pays the full old price.
+   ⚠️ **This trigger is what allows `SKY_EVERY` to be wide at all** — without it the counter would have to
+   be pinned to the worst thing that ever happens, and an Epoch transition would visibly step.
+   It initialises `true`, so the first frame cannot blit an empty cache.
+2. **`++skyAge>=SKY_EVERY`** (8). ⚠️ **The counter is FRAMES, not `elapsed`** — `elapsed` only advances
+   inside `step()`, so a time-based clock would freeze the sky on the menu, the pause and the death
+   screen, which are exactly the states where `palCur` is still easing somewhere new.
+3. **A canvas size change**, unconditionally (`skyAge=1e9`). The cache is sized off `canvas.width/height`
+   rather than a recomputed `W*S*DPR`, so it cannot drift out of step with whatever `resize()` decided.
+
+Everything the counter *does* cover is slower than the eye: clouds 0.25 design units/frame, parallax
+~0.14, breath 0.006 of a 0.9–1.05 factor, intensity 0.0007 of an alpha of ~0.04. **The picture that cost
+68.7ms drifts half a device pixel per frame**, which is the whole justification.
+
+Stars composite above the clouds rather than between them. Exact in principle — both layers use
+`lighter`, which is addition, and `min(1,min(1,a+b)+c) == min(1,a+b+c)` for non-negative terms — and
+near-exact in fact: of 7,500 sampled channels **three differ, each by exactly 1/255**, bounded at one
+8-bit round and unable to grow.
+
+⚠️ **There is no measured frame-rate improvement, and this section claims none.** Every GPU figure
+produced for the change was withdrawn: the dev pane's instrument inverts the work it aims at, since an
+uncomposited pane lets the browser discard frames it never shows — each frame's opaque background
+`fillRect` overwrites the last, so the sky never rasterises — while the cache canvas **is** read every
+frame by `drawImage` and cannot be discarded. Under that method the optimisation measures *slower*. **The
+honest status is a measured win in software rasterisation, unverified on GPU, and the only thing that
+settles it is a frame counter on the iOS build.** See *Open*.
+
 ---
 
 ## The title screen
@@ -2626,6 +2668,21 @@ Drive `overdrive()` by hand through the seam if you are testing anything downstr
 ## Open
 
 Questions the game has not answered. These are live; everything else in this file is settled.
+
+**🟡 Does the sky cache actually raise the frame rate? Nobody knows, and the dev browser cannot tell
+us.** The software-rasterisation win is real and large (background 68.7ms of a 69.3ms frame → a 0.03ms
+blit), but that is a *cost* measurement, not a frame-rate one, and every GPU figure produced for the
+change was withdrawn. ⚠️ **The instrument inverts the work it aims at** — an uncomposited pane lets the
+browser discard frames it never shows, because each frame's opaque background `fillRect` overwrites the
+last and the sky never rasterises, while the cache canvas *is* read every frame by `drawImage` and cannot
+be discarded. Under that method the optimisation measures **slower** (0.41 vs 0.33 ms/frame), which is
+the instrument and not the change. Batch-sweeping exposes the artefact: "cost per frame" falls from
+81.7ms at *M*=1 to 1.36ms at *M*=90, i.e. one ~80ms readback stall divided by *M*.
+
+**The only thing that settles it is a frame counter on the Capacitor iOS build**, where frames are
+actually composited and cannot be discarded. Until then the honest claim is *"a measured win in software
+rasterisation, unverified on GPU"* — and ⚠️ **any copy or commit body asserting a frame-rate improvement
+is asserting something nobody has measured.** See *Feel → The sky cache*.
 
 **🟡 The grind exploit, restated without the cliff that was never there.** This item spent months
 reasoned as a threshold — a line at 18 HP, a *trigger condition*, a margin above it that widened and

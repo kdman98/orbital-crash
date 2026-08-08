@@ -80,6 +80,9 @@ paragraph goes in MECHANICS and this line points at it.
 - **Annihilation** — the core kill event: two opposite-charge things touch, both destroyed.
   (`queueKill`, `processKills`)
 - **Pop** — to destroy a Dot.
+- **Sky cache** — the background painted once into an offscreen canvas and blitted, rather than
+  repainted every frame. Rebuilt on three triggers only: the palette easing after an Epoch flip, a frame
+  counter, and a canvas size change. (`blitSky`, `paintSky`, `SKY_EVERY`, `palMoving`)
 - **Vacuum** — what a reversal does to opposite-colour Motes lying inert on the field.
 - **Purge** — destroying an Anomaly. The word means only this. (`killBoss`)
 
