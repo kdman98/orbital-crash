@@ -1527,6 +1527,31 @@ different octave, or both. The current blast leads on a **triangle** rising 150�
 sub at 75Hz, which clears the square band on timbre and sits under it on pitch. Check a new voice
 against what is *already sounding* at that moment, not only against the rule.
 
+**A third axis: a transient and a pulse can share an octave. Two transients cannot.** The Moment Engine's
+two layers (`a96d813`) both sit in the sub-bass that `bomb()` owns, which the paragraph above forbids —
+and they are fine, because neither competes on the axis that was crowded. The **storm** is *noise*
+through a 150Hz lowpass, so it clears every oscillator voice in the game on timbre regardless of where
+its energy sits. The **heartbeat** is a tone in the same octave, but *periodic and in pairs* — and rhythm
+is a channel nothing else in the bank uses, because every other voice here is a one-shot. Register is the
+usual answer; it is not the only one.
+
+**Position is a fourth, and only kills have it.** `kill()` is panned by the dying Dot's `x`; nothing else
+is. ⚠️ **`mote()` is deliberately excluded** — motes are collected at `d<P.r+8`, at the core, so every
+pickup happens in the same place and panning them would encode the Star's position as if it were the
+event's. A cue that reports a position it does not have is the same fault as a cue that reports damage
+that did not happen. Pan is capped at `PAN_MAX` 0.7: a hard-panned mono voice vanishes from one ear,
+which reads as a broken channel rather than as a location.
+
+**A cue reports an event; a layer reports a state.** The heartbeat fires on a clock rather than on
+damage, which is what keeps it from being heard as a hit — `hurt()` remains the only voice that speaks
+when the core is actually struck. ⚠️ **Gate a state layer on the state, not on the number**: `P.hp`
+keeps its last value through the death screen and the pause panel, so a heartbeat testing HP alone
+leaves a corpse with a pulse, playing under the receipt for as long as the panel is open.
+
+**`HP_LOW` is shared by the HP bar and the heartbeat**, and that is the point rather than a tidy-up: a
+bar that turns red while the pulse is silent would be two channels disagreeing about whether you are in
+trouble. Two consumers turn a literal into a contract.
+
 ---
 
 ## The title screen
@@ -2477,10 +2502,13 @@ the player could not reach it on purpose, so in the hand there was not. **An ans
 cannot choose to use is not an answer**, and that test applies to every species added later — the
 Planet is the current one to hold it against.
 
-**The Moment Engine's audio half was never built.** The time side is live (`timeScale`, `slowmo`); the
-sound side — stereo-panned kill pops, a low-HP heartbeat with a lowpass, a storm drum layer — is agreed
-direction that has never been started. It is the one thing that would make the slow-motion dips land as
-weight rather than as lag.
+**~~The Moment Engine's audio half was never built.~~ Built in `a96d813`** — all three: panned kill pops,
+a low-HP heartbeat, and a storm bed. See *Sound design rule* for how two of them get away with living in
+an occupied register. ⚠️ **One thing is shipped but not independently verified**: the storm layer's
+*gate* is a clamp to zero and an early return, which is readable, but its *level* was never isolated —
+the ambient bed's gain also scales with intensity and `ambPluck` fires on a random timer, so an A/B
+across the gate is dominated by that noise. If the bed ever reads as too loud or too quiet in `storm`,
+nothing has measured it yet.
 
 **~~`P.iframe` has two values, and one of them is a literal.~~ Closed — there is no literal.** Both damage
 sites (`3536`, `4538`) set `IFRAME`; the third writer sets `FLIP_IFRAME`, which is a **named constant**

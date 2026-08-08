@@ -14,6 +14,113 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-07
 
+### The Moment Engine's audio half `a96d813`
+The time side has been live for months (`timeScale`, `slowmo`, `hitstop`); the sound meant to sit under it
+had been on the Open list as *"agreed direction that has never been started."* Three pieces, and the
+register argument at `bomb()` decided all three.
+
+**Kills are panned by the dying Dot's `x`** — a second axis of separation that register cannot buy, since
+two kills at opposite edges no longer stack in the same place in the image. ⚠️ **A panner per voice, not
+one shared node re-aimed**: at 5.6 kills/s a shared panner would be re-pointed while earlier blips were
+still ringing, sliding every tail to wherever the newest kill happened. ⚠️ **`mote()` is excluded on
+purpose** — motes are collected *at the core*, so panning them would report the Star's position as the
+event's. `PAN_MAX` is 0.7, because a hard-panned mono voice vanishes from one ear and reads as a broken
+channel rather than a location.
+
+**A low-HP heartbeat**, on a clock rather than on damage — it reports a state you are already in, and
+`hurt()` stays the only voice that speaks when the core is struck. A *pair*, because lub-dub is a rhythm
+nobody hears as a hit. ⚠️ **Gated on alive-and-playing, not on the number**: `P.hp` keeps its last value
+through the death screen, so testing HP alone leaves a corpse with a pulse under the receipt. `HP_LOW`
+now backs both this and the HP bar's red state — two consumers make a literal a contract.
+
+**A storm bed** — noise through a 150Hz lowpass under a falling sub, faded in from `STORM_AT` so `calm`
+stays calm.
+
+**Both new layers sit in the sub-bass `bomb()` owns, which the register rule forbids** — and get away
+with it on other axes: the storm is *noise* (clears every oscillator on timbre), the heartbeat is
+*periodic* (rhythm is a channel nothing else uses). **A transient and a pulse can share an octave; two
+transients cannot.**
+
+Measured with **sound on**, which is the inversion of every other test loop this week:
+
+| | peak | rms | clipped |
+|---|---|---|---|
+| worst-case barrage **+ new layers** | 0.3606 | 0.02753 | **0** |
+| same barrage, heartbeat off | 0.3094 | 0.02262 | 0 |
+
+Pan read off a channel splitter rather than off the pan parameter: left bias 1.62, right 0.59
+(reciprocal), no-position 0.99 and `mote` 1.00 — both centred. Heartbeat over 6s windows: 0 beats at 31%,
+5 at 1.13s at 29%, 7 at 0.85s at 15%, 9 at 0.62s at 4%, **0 at hp=0**. Oracle byte-identical, len 1654,
+FNV `9f659ef7`.
+
+⚠️ **The first pan rig reported `R=0` for un-panned cues and the game was fine** — `ChannelSplitter` is
+spec-locked to `discrete`, so a mono input leaves channel 1 silent where the destination up-mixes to both
+ears. Re-measured through an explicit two-channel speakers-mode gain.
+
+⚠️ **The storm layer's level is not independently verified**, and this is stated rather than implied. Its
+gate is readable code; isolating its *contribution* from outside failed, because the ambient bed's gain
+also scales with intensity and `ambPluck` fires on a random timer.
+
+**The debug seam gains `audio(dt)` and `bus()`** — fourth of the `render()` / `hud()` / `title()` family
+and for the identical reason: these layers step from `frameBody`, so in a hidden tab they never run, a
+test hears nothing and reports silence. `bus()` hands back the live nodes so a test can put an
+`AnalyserNode` on the mix and measure it, which is exactly what *"it sounds fine to me"* cannot do.
+
+### Dead-point sweep: two CSS rules with no user since `git init` `5a78bb3`
+Detectors rather than reading — orphan CSS classes and ids, dangling `el()` ids, ids nothing reads, `L`
+keys with no consumer, backticked symbols absent from code, unread consts, uncalled functions,
+unreferenced `@keyframes` and `--custom-properties`, across both documents. ⚠️ **Every detector was run
+against a planted defect first** (an injected orphan class, a dangling `el('zzNoSuchId')`, an unused key
+and a fake symbol — all four caught), because otherwise a clean result is only a tool agreeing with you.
+
+`.deadstats .ds .v.gold` and `--panel` both went: `class="gold"` appears **zero** times, nothing adds it
+dynamically, and `git log -S 'v gold'` returns nothing at all — **neither has had a user in recorded
+history.** Both arrived with `e21eda6`, the pre-version-control snapshot, and neither could have been
+caught by reading, because a dead rule looks exactly like a working one.
+
+GLOSSARY still pointed at the Codex — it had not been touched since `8f32215`, well before `c7da498` —
+so *"an in-run feat recorded in the Codex"* now reads **Records**, the Codex moved to *Retired names*,
+and a **Records** entry was added that had never existed despite the screen shipping in `1271fe3`.
+
+*Recorded so the next sweep does not re-chase them:* ternary-computed keys (`sw.on`/`sw.off`,
+`dead.cause`, `tc.drag`), keys arriving through `data-tt` / `data-ta`, twelve ids built as `pfx+'OdLog'`,
+`tdot` as a computed className, and all 26 backticked symbols — every one inside a comment about its own
+removal, which the backtick rule allows.
+
+### A Korean playthrough, and the Charger's floating text still named 돌격체 `83e665d`
+Played start to finish in Korean on a fresh profile. ⚠️ **`fx.poked` read "돌격체 명중!"** while the
+Charger has been 쐐기 since `466efcd` — **the only string in the game that names a Dot outside the name
+table**, so the rename swept every other site and left this one pointing at a creature that does not
+exist. Nothing but playing could have caught it: it fires only when a Charger's dash is aimed through an
+Anomaly. The seconds unit was also hardcoded `'s'` in three places, so one run showed *"25초"* on the
+tutorial counter and *"1.5s"* on the death receipt.
+
+*Recorded rather than fixed, because it is unreachable today:* `applyLang()` repaints the run-log labels
+but not the chips, so an English label could sit over *"2.2초"* — impossible while the language selector
+is menu-only, and reachable the moment one returns to Settings, which opens from pause.
+
+### The Records empty state is one line, and the sentence it dropped lives on the menu `36db0a3`
+Author: *"remove everything, leave 아직 기록이 없어요!"* ⚠️ **Checked before cutting, because the deleted
+sentence had a stated reason** — the comment above `openRecords` argued the empty state *must* say that
+Boss Rush and Pattern Lab never record. That fact does not leave the game: `menu.note` states it in
+`.doornote`, under the two mode buttons, which reaches the player *before* they spend a run rather than
+after. **This is the `706673e` pattern with the answer coming out the other way** — there the backup was
+deleted because the primary existed and the primary was later removed; here the survivor is on the
+earlier screen, which is the better home. The comment records where it went.
+
+### Step 5's note reports a state instead of promising an action `0d72439`
+The note slot is a live readout — its neighbours are *"{n} / 4 수집"*, *"연소 중"*, *"{n}초"* — and the old
+text promised something that had already happened, since the step's setup writes `P.charge=1` before the
+line is shown. ⚠️ **Spaced 충전되어, not 충전 되어**: 되다 as a passive suffix binds to the noun, so the
+space is a 띄어쓰기 error rather than a choice — same class as 빨강색 → 빨간색 in `466efcd`.
+
+### 연쇄 반응 → 콤보 반응, which retires 연쇄 from the game entirely `7c67307`
+Closes the loose end `466efcd` left: that commit moved 연쇄 → 콤보 everywhere *except* this achievement
+name, kept because 연쇄반응 is the pun the English *"Chain Reactor"* is making. Rendered in Records it read
+*"연쇄 반응 · 60콤보를 달성한다"* — **a name using a word the game no longer used, next to its own
+description using the word it does.** English keeps *"Chain Reactor"*: the pun survives translation
+either way and both names mean the same thing, so it is a wordplay difference rather than a content one.
+
 ### The Codex is deleted, and the two comments that leaned on it now say so `c7da498`
 Author: *"remove codex."* Gone entirely — the overlay, the menu link, `openCodex` / `closeCodex`, the
 Escape handler, the seam export, `#codexBody` and the `.cxs` rules with their two Korean overrides, and
