@@ -2058,6 +2058,11 @@ only the second one gets read. Three specimens from one day, all sound in method
 - A PATCHNOTE coverage sweep reported **all four** entries missing, minutes after they were written.
   `git rev-list` emits 40-character SHAs and the entries cite 7 — a comparison between two different
   alphabets, which can only ever return "no match."
+- A test written to prove the sky cache repaints after a size change blanked the canvas with
+  `c.width=c.width`, which assigns the *same* value — so the `skyCv.width!==canvas.width` branch never
+  fired, the cache was never reallocated, and what the author watched "prove" the mechanism was an
+  already-good cache being blitted. **It passed. It proved nothing.** ⚠️ **A test that operates on the
+  wrong buffer confirms whatever you hoped, and reports it green.**
 
 ⚠️ **The direction of the error decides whether anyone looks.** The third was caught in seconds because
 it demanded *more* work; the first two were believed because they said the work was done and done well.
@@ -2065,6 +2070,27 @@ it demanded *more* work; the first two were believed because they said the work 
 gets it.** Noise is what makes us look twice, so the failures that survive review are exactly the ones
 that produce cleaner results than the truth — a broken comparison does not return a wrong answer, it
 returns a *perfect* one, because agreeing with itself is the only thing it can do.
+
+⚠️ **A comment asserting what a line GUARANTEES is a claim to test, not a fact to copy. The code says
+what it does; the comment says what someone thought it did.** This file is dense with comments precisely
+because the reasoning matters — which is exactly what makes a wrong one durable, since it will be
+inherited by every reader who has no reason to doubt it.
+
+*Worked example, and the failure mode is specific enough to be actionable.* `let palMoving=true;` carried
+the comment *"true until the first ease proves otherwise."* That reads as a guarantee about frame one,
+and it is false: `render()` calls `easePalette()` and *then* `blitSky()`, `easePalette` assigns
+`palMoving` unconditionally, and `blitSky` is its only reader — **so the initialiser has never once been
+read.** What actually makes frame one blit a filled cache is `skyAge` being declared at `1e9`, three
+lines away. The claim reached two files before anyone tested it.
+
+⚠️ **The precise gap: values were being verified and behavioural claims were not.** `SKY_EVERY=8`,
+`m>0.5` and `skyAge=1e9` were all re-read off the source, deliberately, because a *number* from the same
+author had been wrong earlier the same day. `palMoving=true`'s *behaviour* was taken from prose — and a
+comment sitting on the declaration line is the most authoritative-looking place a wrong claim can live.
+**Numbers get audited because they look checkable; sentences about what a line ensures do not, and they
+are the ones that go wrong.** To test one, find every reader (`grep -n <symbol>`), check the call order
+of the writer against the reader, and *exercise* it — this one was settled by forcing a real size change
+and sampling pixels before and after, not by reasoning at the code.
 
 ⚠️ **The oracle cannot certify any change that adds or removes an RNG-consuming call, and it will not
 say so — it will just hand you a different number.** The fingerprint is a bit-exact trace of a seeded
