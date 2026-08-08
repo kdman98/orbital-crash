@@ -18,6 +18,12 @@ assets/
 # than source — the harness that reads them (.harness/) IS committed.
 tapes/
 
+# Commercial planning — the free/paid split, the recommended price, the Steam page timing and the
+# revenue expectations. It stays on disk and keeps being written; it is simply not part of the public
+# repository. Removed from tracking rather than from history: the rest of the log stays intact, and
+# every commit body that mentions it still makes sense.
+docs/SCOPE.md
+
 # Capacitor native build output. The ios/ project itself IS committed; these parts are generated.
 ios/App/Pods/
 ios/App/App/public/
