@@ -5385,7 +5385,11 @@ function render(){
 // Returns the largest channel gap it still had to close. That return value is what tells the sky
 // cache whether the palette is mid-Epoch-flip or parked — see palMoving below.
 function easeArr(a,b,e){ let m=0; for(let i=0;i<3;i++){ const d=b[i]-a[i]; a[i]+=d*e; const ad=d<0?-d:d; if(ad>m)m=ad; } return m; }
-let palMoving=true;                    // read by blitSky; true until the first ease proves otherwise
+// ⚠️ This initialiser is NEVER READ. render() calls easePalette() and then blitSky(), in that order,
+// and easePalette assigns palMoving unconditionally — so by the time blitSky looks, this frame's value
+// has already replaced it. Kept only so the binding is never observed undefined. What actually
+// guarantees frame one blits a FILLED cache rather than a blank one is `skyAge=1e9` below.
+let palMoving=true;
 function easePalette(){
   const inMenu=(state==='menu'); // 'ready' and 'paused' are IN-RUN — the biome must not lurch back to Act I
   const t=inMenu?ACTS[0]:actInfo(), e=0.03;

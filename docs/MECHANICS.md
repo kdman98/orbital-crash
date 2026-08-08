@@ -1655,10 +1655,15 @@ hitting one of these draws the previous picture:
    for the ~2s after an Epoch flip, when the sky repaints *every frame* and pays the full old price.
    ⚠️ **This trigger is what allows `SKY_EVERY` to be wide at all** — without it the counter would have to
    be pinned to the worst thing that ever happens, and an Epoch transition would visibly step.
-   It initialises `true`, so the first frame cannot blit an empty cache.
+   ⚠️ Its `= true` initialiser is **never read** and guarantees nothing: `render()` calls `easePalette()`
+   and *then* `blitSky()`, and `easePalette` assigns `palMoving` unconditionally, so this frame's value
+   has always replaced it before `blitSky` looks. See trigger 2 for what actually covers frame one.
 2. **`++skyAge>=SKY_EVERY`** (8). ⚠️ **The counter is FRAMES, not `elapsed`** — `elapsed` only advances
    inside `step()`, so a time-based clock would freeze the sky on the menu, the pause and the death
    screen, which are exactly the states where `palCur` is still easing somewhere new.
+   ⚠️ **`skyAge` is declared at `1e9`, and that — not anything about `palMoving` — is what makes frame
+   one blit a FILLED cache**: `++skyAge` clears any threshold, so the very first `blitSky` paints before
+   it draws. Lower that initial value and the first frame of every run blits a blank canvas.
 3. **A canvas size change**, unconditionally (`skyAge=1e9`). The cache is sized off `canvas.width/height`
    rather than a recomputed `W*S*DPR`, so it cannot drift out of step with whatever `resize()` decided.
 
