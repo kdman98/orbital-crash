@@ -1153,6 +1153,7 @@ const L={ en:{
   'rc.runs':'Runs',  'rc.timeIn':'Time in the field',  'rc.combo':'Best combo',  'rc.anom':'Anomalies met',
   'rc.last':'Last {n} runs',
   'rc.hScore':'Score',  'rc.hLost':'Lost to',  'rc.hTime':'Time',  'rc.hEpoch':'Epoch',  'rc.hCombo':'Combo',
+  'rc.epochVal':'{r}',
   'rc.empty':'No records yet!',
   'rc.wipe':'Erase records',  'rc.wipeArm':'Press again to erase',
   'rc.achv':'Achievements',   'rc.secret':'a secret feat',  'rc.secretTag':'secret',
@@ -1197,7 +1198,7 @@ const L={ en:{
   'hud.od':'오버드라이브',  'hud.odKey':'Shift 유지',
   'hud.anomaly':'변이체',
   'hud.streak':'{n}콤보',
-  'hud.epoch':'제{n}기 · {name}',
+  'hud.epoch':'{n}단계 · {name}',
   'hud.lab':'패턴 실험실',  'hud.rush':'보스 러시',
   'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> 변이체 교체',
   // The HUNT. Every Anomaly eventually breaks station and walks at your core for 6-8s, and this line
@@ -1262,8 +1263,8 @@ const L={ en:{
   // so the same data reads 청록색 덩치. Nothing about the {t,c} pair changes. Only the sentence does.
   'dead.kicker':'코어 소실',  'dead.best':'신기록!',  'dead.again':'재시도',
   'dead.time':'생존 시간',  'dead.combo':'최고 콤보',
-  'dead.cause':'{src}에 당함 · 제{n}기',
-  'dead.causeDev':'{src}에 당함 · 제{n}기 · phase {p}',
+  'dead.cause':'{src}에 당함 · {n}단계',
+  'dead.causeDev':'{src}에 당함 · {n}단계 · phase {p}',
   'dead.src':'{col} {name}',  'dead.srcN':'{name}',
 
   // ---- tutorial ----
@@ -1297,7 +1298,8 @@ const L={ en:{
   'rc.best':'최고',  'rc.highest':'최고 점수',  'rc.lifetime':'누적',
   'rc.runs':'판수',  'rc.timeIn':'필드에 있던 시간',  'rc.combo':'최고 콤보',  'rc.anom':'만난 변이체 수',
   'rc.last':'최근 {n}판',
-  'rc.hScore':'점수',  'rc.hLost':'사인',  'rc.hTime':'시간',  'rc.hEpoch':'기',  'rc.hCombo':'콤보',
+  'rc.hScore':'점수',  'rc.hLost':'사인',  'rc.hTime':'시간',  'rc.hEpoch':'단계',  'rc.hCombo':'콤보',
+  'rc.epochVal':'{n}',
   'rc.empty':'아직 기록이 없어요!',
   'rc.wipe':'기록 지우기',  'rc.wipeArm':'한 번 더 누르면 지워집니다',
   'rc.achv':'업적',         'rc.secret':'숨은 업적',  'rc.secretTag':'숨김',
@@ -1329,7 +1331,7 @@ const L={ en:{
   'anom.pulsar.tip'  :'맥동체 · 탄막벽 · 틈새',
   'achv.firstBoss.nm':'변이체 소멸',  'achv.firstBoss.ds':'변이체를 쓰러뜨린다',
   'achv.combo60.nm' :'콤보 반응',     'achv.combo60.ds' :'60콤보를 달성한다',
-  'achv.act3.nm'    :'심층',          'achv.act3.ds'    :'제3기에 도달한다',
+  'achv.act3.nm'    :'심층',          'achv.act3.ds'    :'3단계에 도달한다',
   'achv.redline.nm' :'레드라인',      'achv.redline.ds' :'가득 찬 축전기를 오버드라이브 한 번에 다 태운다',
   'achv.lancegild.nm':'클레이 사격',  'achv.lancegild.ds':'황금 현상금을 변이체에 쏴 맞힌다',
 } };
@@ -6441,7 +6443,9 @@ function showRunLogs(pfx,live){
   if(live) el(pfx+'OdLog').prepend(chip(`<span class="n">${(P.charge/OD_DRAIN).toFixed(1)}${T('log.sec')}</span>${T('log.left')}`,'bchip key'));
   el(pfx+'AnomLogLab').classList.toggle('hidden', anomLog.length===0);
   el(pfx+'AnomLogSum').textContent = anomLog.length ? '×'+anomLog.length : '';
-  // Roman numerals because the Epoch label and the death cause already number the run this way.
+  // Roman numerals — these count ANOMALIES MET, not Epochs, so they are a sequence of their own and
+  // do not follow `rc.epochVal`. (They used to be justified by matching the Epoch label; Korean numbers
+  // that in Arabic now, so the old reason is gone and the choice stands on the quantity being different.)
   fillChips(el(pfx+'AnomLog'), anomLog, anomLog.length, (v,i)=>`${ROMAN[i%12]} <span class="n">${Math.round(v)}</span>`);
 }
 
@@ -6604,7 +6608,7 @@ function openRecords(){
       <div class="c n${isBest?' best':''}">${fmtN(r.s)}</div>
       <div class="c d">${srcName(r.d)}</div>
       <div class="c">${fmtTime(r.t)}</div>
-      <div class="c">${ROMAN[(r.e-1)%12]}</div>
+      <div class="c">${T('rc.epochVal',{r:ROMAN[(r.e-1)%12], n:r.e})}</div>
       <div class="c">${r.c}</div></div>`;
   }).join('');
   const table = R.length ? `<div class="rcT">
