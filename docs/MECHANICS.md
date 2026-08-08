@@ -1867,6 +1867,14 @@ it shipped a half-done CSS rename: `.acv` defined in the stylesheet while the bu
 **Know your changed-line count before you stage, and check it against `git diff --numstat`.** This is a
 comparison, not a review, which is the whole point — "inspect every hunk" is what nobody does under
 time pressure, and a filtered copy costs real effort even when the file is quiet.
+
+⚠️ **Paste the number, never recall it.** Both sessions have now published a numstat in a commit body
+that the terminal never printed — `34 0` against a real `32 0`, `23 0` against `22 0`, `22 insertions,
+6 deletions` against `13 2` — **twice each, and twice inside commits whose own subject was about not
+asserting what you have not run.** The mechanism is mundane and worth naming: a sentence that wants a
+figure will accept a remembered one, and nothing in the sentence looks wrong afterwards. So run the
+check, copy its output into the body, and treat any number you typed from memory as unverified — which,
+in a section built entirely out of remembered numbers being wrong, it is.
 The strongest form is a **parity check**: a pass of one-for-one string replacements *cannot* produce
 unequal insertions and deletions, so any asymmetry is somebody else's work. The commit that caused the
 rename breakage read `19 15` where the author's twelve one-line swaps could only be `12 12`, and that
