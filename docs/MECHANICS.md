@@ -1789,6 +1789,22 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 
 Things that have cost real time, in this codebase specifically.
 
+⚠️ **Running `.oracle.js` leaves the game muted for every later page load in that profile.** The harness
+clicks the mute button, `toggleMute()` calls `save()`, and `orbitalcrash_mute` persists — so the next
+load builds `master` at `gainNow()`, which is 0. Nothing resets it and nothing reports it. Fingerprint a
+build, then try to measure audio, and you get **silence with no error**: the bus reads 0, the controls
+read 0, and it looks exactly like a graph that was never wired up. Clear the key or click the button
+before any audio pass.
+
+⚠️ **A claim can be broader than the command that produced it, and the output cannot tell you.** A Codex
+sweep ran `grep -n "Codex" docs/MECHANICS.md README.md` — two named files — and the commit body reported
+it as sweeping *"the glossary's"* reference, a category. `docs/GLOSSARY.md` was never in the search path
+and still described the Codex as live. Nothing in the grep's output could have revealed that, because
+the grep did exactly what it was asked. The same shape produced a coverage sweep that tested *"did this
+commit touch `index.html`"* and reported it as *"did the game change"*.
+**The failure lives in the gap between the command and the sentence, so the check is to re-read the
+sentence against the command** — not to search harder.
+
 ⚠️ **Checking where a claim came from is not checking whether it is true, and it feels identical.**
 Two sessions spent four exchanges defending four sentences in the Codex. Both sessions verified: that
 each sentence occurred exactly once in the tree, that the commit which deleted its backup really said
