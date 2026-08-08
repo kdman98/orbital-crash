@@ -7129,9 +7129,15 @@ function updateAmbient(inten,dt){
 // always-on layers, and the reason they are layers rather than cues is that a dip is a state, not an
 // event — an event already has a cue, and adding a second one to the same instant just doubles it.
 //
-// ⚠️ BOTH LIVE IN THE SUB-BASS, WHICH IS ALREADY OCCUPIED, and the register argument at bomb() is the
-// thing to read before touching either. `bomb()` owns 75-150Hz because being alone down there is what
-// makes it findable — so these two must NOT simply pile in beside it. What separates them is not pitch:
+// ⚠️ `bomb()` OWNS THREE VOICES, NOT ONE BAND, AND ONLY THE MIDDLE ONE IDENTIFIES IT: sub weight at
+// 75-150Hz, a TRIANGLE 150-700Hz that leads, and a 1700-2500Hz tick its own comment calls flavour. THE
+// BAND THAT MUST STAY CLEAR IS 150-700Hz, and nothing here goes near it.
+//   Measured, because "the sub-bass" is not a band and reasoning from it gets this wrong: the heartbeat
+// runs 30-52Hz and the storm's sub 32-46Hz, against bomb()'s 75Hz floor — 6.3 semitones clear, ADJACENT
+// rather than overlapping. So for both tonal layers the register rule was never engaged.
+//   Exactly one thing collides: the storm's NOISE body (lowpassed at 150Hz) against bomb()'s sub weight.
+// That one is answered on timbre — noise against a sine — and it is the only place these two need an
+// argument at all. What separates them there is not pitch:
 //   · the storm is NOISE through a 150Hz lowpass — a drum, not a tone, so it clears every oscillator
 //     voice in the game on timbre no matter where its energy sits;
 //   · the heartbeat is a TONE but a PERIODIC one, in pairs, and rhythm is a channel nothing else in the

@@ -1527,13 +1527,36 @@ different octave, or both. The current blast leads on a **triangle** rising 150�
 sub at 75Hz, which clears the square band on timbre and sits under it on pitch. Check a new voice
 against what is *already sounding* at that moment, not only against the rule.
 
-**A third axis: a transient and a pulse can share an octave. Two transients cannot.** The Moment Engine's
-two layers (`a96d813`) both sit in the sub-bass that `bomb()` owns, which the paragraph above forbids —
-and they are fine, because neither competes on the axis that was crowded. The **storm** is *noise*
-through a 150Hz lowpass, so it clears every oscillator voice in the game on timbre regardless of where
-its energy sits. The **heartbeat** is a tone in the same octave, but *periodic and in pairs* — and rhythm
-is a channel nothing else in the bank uses, because every other voice here is a one-shot. Register is the
-usual answer; it is not the only one.
+**`bomb()` does not own one band, it owns three — and only the middle one identifies it.** 75→150Hz sub
+weight, a **triangle 150→700Hz that leads**, and a 1700→2500Hz tick that its own comment calls *"flavour,
+NOT the identifying part"*. **The band that must stay clear is 150–700Hz.** Anything reasoning about
+"the sub-bass `bomb()` owns" as a single region is reasoning about a voice the cue does not depend on.
+
+Measured against that, the Moment Engine's layers (`a96d813`) sit as follows:
+
+| voice | band |
+|---|---|
+| `bomb()` **triangle — the identifying part** | **150 → 700 Hz** |
+| `bomb()` sub weight | 75 → 150 Hz |
+| storm noise body | lowpass 150 Hz |
+| heartbeat lub / dub | 52 → 38 Hz / 44 → 30 Hz |
+| storm sub | 46 → 32 Hz |
+
+**Neither tonal layer is in `bomb()`'s register at all** — they top out at 52Hz against its 75Hz floor,
+6.3 semitones clear, adjacent rather than overlapping. **Exactly one thing collides: the storm's noise
+body against `bomb()`'s sub weight**, and that is the case timbre answers — noise against a sine. Nothing
+added goes near 150–700Hz.
+
+**A third axis, for that one real collision: a transient and a pulse can share a band. Two transients
+cannot.** The storm is *noise*, so it clears every oscillator voice on timbre wherever its energy sits;
+the heartbeat is *periodic and in pairs*, and rhythm is a channel nothing else in the bank uses because
+every other voice here is a one-shot. Register is the usual answer; it is not the only one.
+
+⚠️ **This section previously read "both layers sit in the sub-bass `bomb()` owns … and they are fine."**
+That was false about the code it described *and* dangerous as a rule: it licensed putting a periodic
+voice anywhere `bomb()` lives, **including 150–700Hz**, where a heartbeat variant at 200Hz would satisfy
+the sentence and destroy the cue this whole section exists to protect. A reason stated more broadly than
+the thing it was derived from — the same shape as `706673e`, in a rule rather than a comment.
 
 **Position is a fourth, and only kills have it.** `kill()` is panned by the dying Dot's `x`; nothing else
 is. ⚠️ **`mote()` is deliberately excluded** — motes are collected at `d<P.r+8`, at the core, so every

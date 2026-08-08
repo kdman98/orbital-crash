@@ -36,10 +36,16 @@ now backs both this and the HP bar's red state — two consumers make a literal 
 **A storm bed** — noise through a 150Hz lowpass under a falling sub, faded in from `STORM_AT` so `calm`
 stays calm.
 
-**Both new layers sit in the sub-bass `bomb()` owns, which the register rule forbids** — and get away
-with it on other axes: the storm is *noise* (clears every oscillator on timbre), the heartbeat is
-*periodic* (rhythm is a channel nothing else uses). **A transient and a pulse can share an octave; two
-transients cannot.**
+**Neither tonal layer is in `bomb()`'s register at all** — the heartbeat runs 30–52Hz and the storm's sub
+32–46Hz against its 75Hz floor, **6.3 semitones clear**. Exactly one thing collides: the storm's *noise*
+body against `bomb()`'s sub weight, answered on timbre (noise against a sine). **The band that must stay
+clear is the triangle at 150–700Hz that identifies the cue, and nothing added goes near it.**
+
+⚠️ *This entry first read "both layers sit in the sub-bass `bomb()` owns … and get away with it."* That
+was false about the code and dangerous as a rule — it licensed a periodic voice anywhere `bomb()` lives,
+**including 150–700Hz**, where a 200Hz heartbeat variant would satisfy the sentence and destroy the cue.
+Corrected after orbital main pulled the actual bands. **A conclusion that is right on a reason broader
+than its evidence.**
 
 Measured with **sound on**, which is the inversion of every other test loop this week:
 
