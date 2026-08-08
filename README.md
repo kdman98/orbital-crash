@@ -33,17 +33,15 @@ The game is a single HTML file. **No build step, no runtime dependencies, no net
 
 ## Run it yourself
 
-The game is a single HTML file, so `git clone` and open `index.html` — that is the whole procedure.
-To serve it instead, from the `ddd-games` root:
+Clone and open `index.html`. That is the whole procedure — nothing to install, nothing to build.
+To serve it instead, from the repository root:
 
 ```bash
 python3 -m http.server 8755
 ```
 
-- **Play** — http://localhost:8755/orbital-crash/index.html
-- **Bestiary** — http://localhost:8755/orbital-crash/bestiary.html
-
-Any static file server works, and `file://` works too.
+Then http://localhost:8755/ for the game, `/bestiary.html` for the Bestiary. Any static file server
+works, and `file://` works too.
 
 ## Docs
 
