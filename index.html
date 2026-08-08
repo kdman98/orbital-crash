@@ -1070,7 +1070,16 @@ const L={ en:{
   'hud.hp':'Core Integrity',  'hud.chg':'Capacitor',
   'hud.od':'Overdrive',  'hud.odKey':'Hold Shift',
   'hud.anomaly':'Anomaly',
-  'hud.streak':'{n} no-hit streak',
+  // ⚠️ SHORT BECAUSE IT SHARES A ROW, and the row is why "no-hit" left. This read `{n} no-hit streak`
+  // — 16 characters against Korean's 5 — and `#combo` is right-aligned on the same line as the centred
+  // Epoch label, so English overlapped it at every phone width and Korean at none: 43px at 375 and 16px
+  // at 430 on the SHORTEST Epoch name, 87 and 60 on METEOR SHOWER. Measured before blaming the name:
+  // shortening the Epoch does not fix it, one-word `Meteor` still overlaps 22px at 430. This string was
+  // the long one. Anything put back here has to be measured against `#combo`'s left edge, not eyeballed.
+  //   "no-hit" is not lost with it — `docs/GLOSSARY.md` and MECHANICS both define the streak that way,
+  // and the HUD never taught it: the word sat in a label nobody reads mid-fight while the mechanic is
+  // taught by the counter dropping to zero when you are hit.
+  'hud.streak':'{n} streak',
   'hud.epoch':'EPOCH {r} · {name}',
   'hud.lab':'PATTERN LAB',  'hud.rush':'BOSS RUSH',
   'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> Change Anomaly',
@@ -1208,7 +1217,8 @@ const L={ en:{
   'hud.hp':'코어 상태',  'hud.chg':'축전기',
   'hud.od':'오버드라이브',  'hud.odKey':'Shift 유지',
   'hud.anomaly':'변이체',
-  'hud.streak':'{n}콤보',
+  // 숫자와 단위 사이의 한 칸: `23콤보`는 붙여 읽히고 `23 콤보`는 세어 읽힌다. HUD에서 이건 세는 수다.
+  'hud.streak':'{n} 콤보',
   'hud.epoch':'{n}단계 · {name}',
   'hud.lab':'패턴 실험실',  'hud.rush':'보스 러시',
   'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> 변이체 교체',
@@ -4843,7 +4853,7 @@ function onKill(e){
   spawnBurst(e.x,e.y,c,e.type==='heavy'?18:9,e.type==='heavy'?4:2.6);
   // EVERY TENTH KILL IS FELT, NOT SPELLED. This printed 'N CHAIN' in 20px gold at the kill — the largest
   // text in the game, firing once every 4.1s measured over 6 runs, and the count it announced was already
-  // sitting in the HUD permanently as 'N no-hit streak', recoloured by the same tier. A second encoding of
+  // sitting in the HUD permanently as 'N STREAK', recoloured by the same tier. A second encoding of
   // a number already on screen, which is the exact argument that deleted the bolt glyph from that HUD line.
   //   The shake and the sting stay. They were never the redundant part: they say "that one mattered"
   //   without saying anything, which is what the rest of this game does.
