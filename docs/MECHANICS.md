@@ -1842,6 +1842,14 @@ and a defended claim is exactly where nobody looks twice, because the other part
 reporting a verification, name which kind it was. "I confirmed the sentence appears once" and "I
 confirmed the sentence is true" are different sentences, and only one of them was ever said.
 
+⚠️ **A `ChannelSplitter` reports silence on channel 1 for every mono source, and it is not a bug.**
+`ChannelSplitterNode` is spec-locked to `channelInterpretation: "discrete"`, so it does **not** up-mix —
+a mono voice tapped through one leaves the right channel empty, while the same voice sent straight to
+`destination` up-mixes and is heard in both ears. The first pan rig read `R=0` for every un-panned cue
+and looked exactly like a stereo routing fault; acting on it would have "fixed" a channel that was never
+broken. **The tap manufactured the reading it reported.** Same family as the two below: the tool ran
+correctly and the number was fiction.
+
 ⚠️ **A dead dev server still serves pages, and `navigate` still reports success.** When the server on
 8777 died, the browser rendered the page from cache: `preview_start` and `navigate` both returned OK, so
 a verification run reported **every removed string as still present with the word count unchanged** —
