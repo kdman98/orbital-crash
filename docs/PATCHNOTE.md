@@ -14,6 +14,116 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-08
 
+### The sky is painted once instead of sixty times, and the GPU number is not measurable from here `fccd00b`
+One full-screen radial gradient plus five nebula clouds, repainted from scratch sixty times a second —
+for a picture that moves **half a device pixel per frame**. It is now painted into an offscreen canvas
+and blitted, rebuilt every fourth frame.
+
+Measured at 2560×1600 under software rasterisation, one canvas, one raster mode:
+
+| | |
+|---|---|
+| full-screen flat `fillRect` | 0.63ms |
+| full-screen radial gradient | **9.35ms** — ~15× the flat fill of the same area |
+| `drawNebula`, five clouds | 59.30ms |
+| every enemy, mote, particle and lance on the field | **0.60ms** |
+| blitting the cached picture | 0.03ms |
+
+**The background was 68.7ms of a 69.3ms frame. The entire game you are actually playing is the last
+row.** ⚠️ **The rebuild counter is FRAMES, not `elapsed`** — `elapsed` only advances inside `step()`, so
+a time-based clock would freeze the sky on the menu, the pause and the death screen, which are exactly
+the states where `palCur` is still easing somewhere new.
+
+Stars now composite above the clouds rather than between them. The reordering is exact in principle —
+both layers use `lighter`, which is addition, and `min(1,min(1,a+b)+c) == min(1,a+b+c)` for non-negative
+terms — and **very nearly exact in fact**: of 7,500 sampled channels **three differ, each by exactly
+1/255**, with whole-frame luma moving 346 out of 310,968,828. That residue is the intermediate 8-bit
+round landing on `(bg+clouds)` instead of `(bg+stars)`; it is bounded at one step and cannot grow.
+
+⚠️ **AN EARLIER VERSION OF THIS ENTRY WOULD HAVE SAID "all 4,096,000 pixels identical, FNV `50619787`
+both sides." THAT MEASUREMENT WAS BROKEN AND IS RETRACTED.** `navigate` was silently failing, so the
+"old" and "new" captures both ran on the *same page* — two readings of one build, read as agreement.
+**A comparison that never compared anything returns perfect agreement, which is the most convincing
+result it could possibly give.** The corrected rig asserts the URL and a build marker on every load.
+
+⚠️ **THERE IS NO MEASURED GPU-PATH IMPROVEMENT, AND THIS ENTRY CLAIMS NONE.** Every GPU figure produced
+for this change is withdrawn. The instrument inverts the work it is aimed at: a hidden or uncomposited
+pane lets the browser discard frames it never shows — each frame's opaque background `fillRect`
+overwrites the last, so the sky never rasterises — while the cache canvas **is** read every frame by
+`drawImage` and cannot be discarded. Regressing total time against batch size exposes it, with "cost per
+frame" falling from 81.7ms at batch 1 to 1.36ms at batch 90, because it is one ~80ms readback stall
+divided by *M*. **The honest status is: a measured win in software rasterisation, unverified on GPU, and
+the real test is a frame counter on the iOS build.**
+
+**Sim untouched, verified independently on both sides:** oracle len 1651 / FNV `e9cc1d16` at `fccd00b`,
+identical to the reading at `7e09392`, re-run with the URL guard and two build assertions (`blitSky`
+present, `GRAZE_SCORE` absent) *before* measuring — because a silently-failing navigate is what produced
+the retracted number in the first place.
+
+### The graze is removed, and it was never a dodge `7e09392`
+Author: *"i'd like to remove graze system, dead score mult. is graze point-blank dodge, right?"*
+
+**No — and that is the argument for cutting it.** A dangerous Dot entering `P.r+e.r+16` and leaving past
+`+28` paid 10 points, a white burst and a rising blip, and **no input was required**. It fired on the
+Dot's trajectory rather than the player's reaction, and opposite polarity is *attracted* to the Star, so
+your own field bent Dots onto the arcs that paid. ⚠️ **The tell had been sitting above it since it
+shipped** — *"grazes are luck as often as skill"*, which is why it never paid Capacitor. **A channel the
+game would not trust with meter income was still allowed to print score.** If a reward is too lucky to
+pay the meter, ask what it is doing paying anything.
+
+**`P.scoreMult` went with it: initialised to 1 and never assigned in 201 commits.** `git log -S
+"scoreMult="` returns nothing across the entire history — five read sites multiplying by a permanent 1,
+left behind when `mult` was removed. `Math.round` went too, since 20, 5, `200×act` and `250×act` are all
+integers and nothing was ever rounding.
+
+**Scoring is now five write sites and that list is the whole model** — `+MOTE_SCORE` on a pickup,
+`+KILL_SCORE` on a kill, `+200×act` on an Epoch purge, `+250×act` on a Bounty, `score=0` on reset.
+Enumerated statically, which is a stronger proof than any fingerprint. ⚠️ **The two `×act` terms are the
+only thing in scoring that scales**, so a claim of "no multiplier" is true of the player's *skill* and
+not of the depth they reach — flagged for the submission copy, which currently states it flat.
+
+⚠️ **The oracle moved, and it cannot certify this change.** len 1654 / `9f659ef7` → len 1651 /
+`e9cc1d16`. The move was predicted **for the wrong reason** — "graze feeds score" — and the prediction
+came true anyway, which is how it nearly passed. Two of six pilot runs then scored *higher* without
+graze (emitter 500→785, survival-202 3080→3650), and removing a points source cannot do that. **The real
+cause is that the graze's `spawnBurst(…,3,…)` drew 12 `rand()` calls**, so deleting it shifts the seeded
+xorshift stream and desynchronises every downstream spawn. Any removal of an effect call has this
+property; a moved fingerprint there is not a regression, and the restore point in the code says so.
+
+Verified in place of the oracle: the baseline reproduced at len 1654 / `9f659ef7` off a gitignored copy
+of HEAD *before* the rig was trusted; the new build asserted free of `GRAZE_SCORE` in source **and** seam
+before measuring; 5,400 frames of `tick()` driving `stepPlayerContact` every frame with zero errors and
+zero `console.error`; viewport forced to 1280×900 first, because `innerWidth` reads 0 in that harness.
+
+### The streak label stops fighting the Epoch label for the same row `0a0f2f4`
+`{n} no-hit streak` → `{n} streak`, `{n}콤보` → `{n} 콤보`. `#combo` is right-aligned on the same line as
+the centred Epoch label, and the English string was 16 characters against Korean's 5 — **which is the
+whole reason English overlapped at every phone width and Korean at none.**
+
+⚠️ **Measured before blaming the name, because the obvious suspect was wrong.** Shortening the Epoch does
+not fix it: one-word *Meteor* still overlaps 22px at 430, and `EPOCH I · NEBULA` — the *shortest* name in
+the set — was already overlapping 43px at 375. **This predates every Epoch rename** and was simply never
+looked at, because every name in that slot had been one short word since the first commit. At 375px,
+before → after: Nebula 43 → 0, Aurora 43 → 0, Eclipse 43 → 0 (3–5px past a 150 streak), **Meteor Shower
+87 → 21–40px**.
+
+⚠️ **Epoch IV is not fixed, and typography cannot fix it.** Sweeping font-size against tracking at the
+worst case: 11px/.20em leaves 29, 10px/.16em leaves 15, and even 9px/.18em — far smaller than this HUD's
+language — still leaves 8. **At 375px a 24-character centred label and a right-aligned counter do not
+both fit.** The remaining options are structural: move `#combo` off the row, or shorten the English name.
+
+*"no-hit" is not lost with the string* — GLOSSARY and MECHANICS both define the streak that way, and the
+HUD never taught it anyway; the mechanic is taught by the counter dropping to zero when you are hit.
+Korean takes the space deliberately: `23콤보` reads as one token, `23 콤보` reads as a count, and in the
+HUD it is a count.
+
+### The Run section pointed at a directory layout that exists only on one machine `72afe64`
+`git clone` gives you a directory called `orbital-crash`. There is no `ddd-games` root on anyone else's
+disk, so *"from the ddd-games root"* plus `localhost:8755/orbital-crash/index.html` was **a 404 for every
+visitor who followed it** — paths written from inside a parent that is not part of this repository and
+never gets cloned with it. Now: serve the repository root, and the game is at the root of the server.
+Kept rather than deleted, because it answers the first question a repository gets.
+
 ### The Epochs become celestial, and Meteor Shower earns its name instead of just wearing it `094c982`
 Nebula / Aurora / Eclipse / Meteor Shower, 성운 / 극광 / 월식 / 유성우. **Why the old four felt
 arbitrary: no shared domain.** 표류 is motion, 잔불 is fire, 개화 is botany, 밀물 is ocean — each fine
