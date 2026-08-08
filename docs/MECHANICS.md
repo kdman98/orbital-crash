@@ -1552,6 +1552,34 @@ leaves a corpse with a pulse, playing under the receipt for as long as the panel
 bar that turns red while the pulse is silent would be two channels disagreeing about whether you are in
 trouble. Two consumers turn a literal into a contract.
 
+⚠️ **AN ALWAYS-ON VOICE MUST HONOUR THE MUTE CONTRACT, and it breaks silently and only under test.**
+Every rig in this repo silences the game through `store.mute`, because a headless loop fires the whole
+bank at once. A periodic layer scheduling onto its own node would keep playing straight through that. The
+two shapes that work are `sfx`'s guard (`if(!AC||gainNow()<=0) return`) and the ambient bed's (multiply
+the envelope by `store.vol`); both new layers take the first, and every voice lands on `master`, so they
+inherit `applyVolume()` and `MASTER_GAIN` for free. **The panner therefore sits between the voice and
+`master`, never after it.** Verified rather than argued: muted, with the whole bank firing and the
+heartbeat at 3% HP, the bus reads **peak 0, rms 0**.
+
+⚠️ **`store.mute` and `master.gain` are two different mechanisms and a test can exercise one without the
+other.** `gainNow()` is what the guards read; `master.gain` is a node value only `applyVolume()` writes.
+Setting `store.mute` directly leaves the bus untouched — which is why a rig should mute the way the game
+does, through the button. A first attempt at the measurement above read **zero on its own control**
+because of this, and three passes that meant nothing looked exactly like three passes.
+
+⚠️ **Measure the mute *after* the analyser's own window.** At `fftSize` 2048 and 48kHz that is 42.7ms of
+rolling buffer, so the frames straight after the click still contain pre-mute samples: the first run of
+this test reported a 0.095 peak "leak" that was entirely the buffer.
+
+**Headroom, worst case, measured at `master` (pre-compressor).** Storm above its gate, heartbeat at 3% HP,
+a full Overdrive ride held, a bomber chain at 260ms, plus `kill` 5.6/s, `mote` 6.2/s, flips, hurt,
+bosshit and milestones: **peak 0.3507, rms 0.0473, zero clipped samples.** Density moves rms (0.0275 →
+0.0473 against a lighter barrage) and barely moves peak, which is the limiter's case behaving as designed.
+
+**The standing rule is to mute before any test loop. SFX work is the exception, and this is it** — a pass
+that verifies a sound cannot begin by silencing it. Anyone reading the mute rule while doing audio work
+is inside the exception, not breaking the rule.
+
 ---
 
 ## The title screen
