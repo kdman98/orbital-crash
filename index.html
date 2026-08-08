@@ -1862,13 +1862,43 @@ function endOverdrive(){
 }
 // ---- acts / biomes / pacing (mood + depth) ----
 // Colours only. The Epoch's NAME is `act.<index>` in L — it is the one field here a player reads.
+//
+// ⚠️ `tint` IS SPENT ON THE FIELD, NOT JUST THE SKY: the nebula's four accent clouds, 22% of every
+// star layer, and the HUD Epoch label. So it is drawn among the Dots and it obeys the same law as
+// everything else that is — one colour, one meaning.
+//   IT DID NOT. Drift's tint WAS `#38e0ff`, which is `COL.cyan` character for character; `git log -S`
+// puts both in the same first commit, so nobody chose it, one blue got typed twice. Bloom sat ΔE 13.3
+// from `COL.violet` (the event flash, so a violet cue fired against a violet sky) and Ember ΔE 13.7
+// from colourblind red — inside the "unsafe on a small fast object" band declared above `PAL`, in the
+// mode a player turns on precisely to find red things.
+//   THE CONSTRAINT IS CHROMA, NOT HUE, AND THE WHEEL PROVES IT. Solving for four tints ≥ΔE 32 from
+// every claimed colour (red, cyan, neutral, gold, violet, lime, both palettes) has NO SOLUTION above
+// chroma 22 — the rose wedge Bloom needs is walled in by violet at 307° and red at 15°. Four saturated
+// biome colours do not fit on this wheel, because polarity and the cue vocabulary already own it. So
+// these are a CAST rather than a colour: L*58-70 at chroma 22, which is enough to tell four skies apart
+// (mood-to-mood separation 30.3 at the closest) and not enough to compete with anything that can kill
+// you. Nearest claimed colour is ΔE 32.4.
+//   ⚠️ ADDING A FIFTH MOOD MEANS RE-SOLVING, NOT EYEBALLING A FIFTH HEX. There is no room left to
+// guess into. `scratchpad/solve2.js` sweeps it; the floor is 32 and the chroma ceiling is 22.
+//   bg1/bg2 are deliberately untouched: at L* 1-7 they are black with a hint, and the measured sky
+// medians sit ΔE 85-96 from both poles. They were never the thing competing.
 const ACTS=[
-  {bg1:'#0a1526', bg2:'#04060f', tint:'#38e0ff'},   // Drift
-  {bg1:'#1c0e0a', bg2:'#0a0403', tint:'#ff7a4d'},   // Ember
-  {bg1:'#160b26', bg2:'#08040f', tint:'#c66bff'},   // Bloom
-  {bg1:'#07181a', bg2:'#03080b', tint:'#3fffc2'},   // Tide
+  {bg1:'#0a1526', bg2:'#04060f', tint:'#709bbb'},   // Drift — slate blue,  L*62 h253
+  {bg1:'#1c0e0a', bg2:'#0a0403', tint:'#c3a685'},   // Ember — warm sand,   L*70 h75
+  {bg1:'#160b26', bg2:'#08040f', tint:'#a97f99'},   // Bloom — dusty mauve, L*58 h340
+  {bg1:'#07181a', bg2:'#03080b', tint:'#83b6a0'},   // Tide  — sea green,   L*70 h165
 ];
-const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+// ⚠️ THIS WAS A 12-ENTRY ARRAY INDEXED `[(act-1)%12]`, AND THE MODULO WAS A LIE THE PLAYER COULD READ.
+// At Epoch 13 the HUD printed `EPOCH I · DRIFT` — byte-identical to the run's opening frame — and the
+// Records row for the deepest run anyone had ever played filed it under `I`, sorting and reading as the
+// shallowest. Korean never had the bug: its templates take `{n}`, so it counted 13 while English reset.
+// Same run, two languages, two different claims about how far you got.
+//   Reachable, not theoretical: the phase clock alone is 428s across Epochs I-XII, plus twelve Anomaly
+// fights, and no boss has a deadline. Eleven to fifteen minutes.
+//   A wider array would only move the lie. This is exact to 3999, which no run will see.
+const RN=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],
+          [10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+function roman(n){ let s='', v=Math.max(1,Math.round(n)); for(const [k,r] of RN){ while(v>=k){ s+=r; v-=k; } } return s; }
 let act=1, wavePhase='calm', phaseT=6, intensity=0.14, intensityTarget=0.14;
 let boss=null, bossFlash=0, bossTime=0;
 let bossN=0;  // Anomalies faced this run — the first always fires the teaching hexagon
@@ -1881,7 +1911,11 @@ let lances=[]; // anomaly's outer-screen projectiles: opposite-colour, hurt the 
 function actInfo(){ return ACTS[(act-1)%ACTS.length]; }
 function hx(h){ const n=parseInt(h.slice(1),16); return [n>>16&255,n>>8&255,n&255]; }
 function rgbStr(a,al){ return `rgba(${a[0]|0},${a[1]|0},${a[2]|0},${al})`; }
-let palCur={bg1:hx('#0a1526'), bg2:hx('#04060f'), tint:hx('#38e0ff')};
+// Seeded FROM `ACTS[0]`, not from copies of its hexes. It used to hold three literals of its own, and
+// the tint one still said `#38e0ff` after Drift's moved — a fourth copy of the polarity blue, painting
+// the boot frame in the colour the whole change existed to stop using. It eased away within two seconds
+// of the first render, which is exactly why nobody would ever have caught it.
+let palCur={bg1:hx(ACTS[0].bg1), bg2:hx(ACTS[0].bg2), tint:hx(ACTS[0].tint)};
 
 function freshRun(){
   const base={
@@ -5156,7 +5190,7 @@ function die(){
   // rather than being deleted. The heading already says "Core Lost"; the line names the killer.
   el('deadCause').textContent = lastDmg
     ? T(DEV?'dead.causeDev':'dead.cause',
-        {src:srcName(lastDmg.src), r:ROMAN[(lastDmg.act-1)%12], n:lastDmg.act, p:lastDmg.phase})
+        {src:srcName(lastDmg.src), r:roman(lastDmg.act), n:lastDmg.act, p:lastDmg.phase})
     : '';
   el('deadTime').textContent=fmtTime(elapsed);
   el('deadCombo').textContent=peakCombo;
@@ -6168,7 +6202,7 @@ function updateHUD(){
   else { const nm=T('act.'+((act-1)%ACTS.length));
     // toUpperCase() is a no-op on Hangul, which is the point: the CSS already declares the caps look
     // for Latin, and the Korean name simply is what it is.
-    al.textContent=T('hud.epoch',{r:ROMAN[(act-1)%12], n:act, name:nm.toUpperCase()}); al.style.color=info.tint; }
+    al.textContent=T('hud.epoch',{r:roman(act), n:act, name:nm.toUpperCase()}); al.style.color=info.tint; }
   mk.classList.toggle('hidden', !(labMode||testMode));
   // boss integrity bar
   const bb=el('bossbar');
@@ -6446,7 +6480,7 @@ function showRunLogs(pfx,live){
   // Roman numerals — these count ANOMALIES MET, not Epochs, so they are a sequence of their own and
   // do not follow `rc.epochVal`. (They used to be justified by matching the Epoch label; Korean numbers
   // that in Arabic now, so the old reason is gone and the choice stands on the quantity being different.)
-  fillChips(el(pfx+'AnomLog'), anomLog, anomLog.length, (v,i)=>`${ROMAN[i%12]} <span class="n">${Math.round(v)}</span>`);
+  fillChips(el(pfx+'AnomLog'), anomLog, anomLog.length, (v,i)=>`${roman(i+1)} <span class="n">${Math.round(v)}</span>`);
 }
 
 // `mode`: falsy = a normal run · 'boss' = Boss Rush · 'lab' = Pattern Lab.
@@ -6608,7 +6642,7 @@ function openRecords(){
       <div class="c n${isBest?' best':''}">${fmtN(r.s)}</div>
       <div class="c d">${srcName(r.d)}</div>
       <div class="c">${fmtTime(r.t)}</div>
-      <div class="c">${T('rc.epochVal',{r:ROMAN[(r.e-1)%12], n:r.e})}</div>
+      <div class="c">${T('rc.epochVal',{r:roman(r.e), n:r.e})}</div>
       <div class="c">${r.c}</div></div>`;
   }).join('');
   const table = R.length ? `<div class="rcT">
