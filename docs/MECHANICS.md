@@ -1974,12 +1974,50 @@ mistake.** Discarding your own work is a decision. Discarding it out of a file t
 writing is the same keystroke, and nothing in git distinguishes them — `checkout` reports success either
 way, and a clean `git status` afterwards looks exactly like a tidy tree rather than like a loss.
 
-**The rule that follows is not "never run `checkout`" — it is that in a shared tree, committing is the
-only durable claim on your own work.** What saved one side was that it had already committed; what lost
-the other was that it had not. Announcing a file, as this repo does, coordinates *edits* and does nothing
-about *reverts*, because the revert does not read the announcement. So: land small commits early rather
-than holding a clean one, and before any `checkout`/`restore`/`stash` of a shared path, run `git status`
-and read it as a list of other people's work, not as a list of your own.
+**Two rules follow, and the first one is stronger than the entry originally stated it.**
+
+⚠️ **Do not run a tree-mutating git command in this checkout at all** — `checkout --`, `restore`,
+`reset --hard`, `clean`. **There is no safe casual use of them while other sessions are live**, and the
+first draft of this entry said "run `git status` first," which is not good enough: the operator here
+*did* have the information and read it as success. (`git stash` is a different case — it stores what it
+removes, so it is recoverable. The four above are not.)
+
+⚠️ **There is no recovery path. Not a hard one — none.** No stash, no dangling object, nothing `git fsck`
+will surface, because content that was never staged never entered the object database. The session that
+lost the sky cache got it back only because it happened to be holding an unrelated `mine.patch` from a
+diff-filtering step minutes earlier. **Ten minutes sooner and it was gone. That is luck, not process, and
+it must not be written down as a procedure.**
+
+**So the second rule: in a shared tree, committing is the only durable claim on your own work.** What
+saved one side was that it committed within about three minutes of noticing; what lost the other was
+that it had not. Announcing a file, as this repo does, coordinates *edits* and does nothing about
+*reverts*, because **the revert does not read the announcement**. Land small commits early rather than
+holding a clean one.
+
+⚠️ **The tell is a `git status` that shows FEWER modified files than you expect.** The operator's went
+from `M index.html` to clean and they read it as the command having tidied up. **Every other trap in this
+file is caught by something appearing that should not be there; this one is caught by something
+missing** — and absence is the thing nobody scans for. A shorter status after a git command you did not
+think was destructive is the alarm.
+
+⚠️ **When a check returns a suspiciously clean result — in either direction — verify the comparison
+before you verify the finding.** A check has two halves: what it compares and what it concludes, and
+only the second one gets read. Three specimens from one day, all sound in method and wrong in target:
+
+- A pixel A/B reported **all 4,096,000 channels identical**. `navigate` was silently no-oping, so both
+  captures read the same page.
+- A GPU timing loop reported a **2.2× speedup**. It was one ~80ms readback stall divided by batch size;
+  sweeping the batch collapsed "cost per frame" from 81.7ms at *M*=1 to 1.36ms at *M*=90.
+- A PATCHNOTE coverage sweep reported **all four** entries missing, minutes after they were written.
+  `git rev-list` emits 40-character SHAs and the entries cite 7 — a comparison between two different
+  alphabets, which can only ever return "no match."
+
+⚠️ **The direction of the error decides whether anyone looks.** The third was caught in seconds because
+it demanded *more* work; the first two were believed because they said the work was done and done well.
+**A check that reports "you are finished" is the one that needs auditing, and it is the one that never
+gets it.** Noise is what makes us look twice, so the failures that survive review are exactly the ones
+that produce cleaner results than the truth — a broken comparison does not return a wrong answer, it
+returns a *perfect* one, because agreeing with itself is the only thing it can do.
 
 ⚠️ **The oracle cannot certify any change that adds or removes an RNG-consuming call, and it will not
 say so — it will just hand you a different number.** The fingerprint is a bit-exact trace of a seeded
