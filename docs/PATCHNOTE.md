@@ -81,6 +81,14 @@ at the closest, nearest claimed colour 32.4. **Adding a fifth mood means re-solv
 `bg1`/`bg2` untouched on purpose — at L\* 1–7 they are black with a hint, and the measured sky medians sit
 ΔE 85–96 from both poles. They were never what was competing.
 
+⚠️ **The four tints this commit chose no longer exist — the constraint it discovered does.** `094c982`
+re-solved inside the same floor and the same chroma ceiling and replaced every hex, so `#709bbb`
+`#c3a685` `#a97f99` `#83b6a0` return **zero hits** at HEAD, and the ladder above reads L\* 46–74 there
+rather than 58–70. **The order is the part worth keeping**: the chroma-22 wall was proven here and only
+*inherited* by the rename, which had to re-solve within it rather than arriving with it. Read as dated
+history, not as the current palette. (`#38e0ff` and `#ff7a2f` above are still live at HEAD, being
+polarity and colourblind red; Ember's own `#ff7a4d` went with this commit, which is the point of it.)
+
 ⚠️ **`palCur`'s seed held its own literal copy of `#38e0ff`** and still did after Drift's moved — a fourth
 copy of the polarity blue, painting the boot frame in the exact colour the change existed to remove. It
 eased away within two seconds of first render, which is why nobody would ever have caught it by looking.
