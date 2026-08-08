@@ -1153,9 +1153,7 @@ const L={ en:{
   'rc.runs':'Runs',  'rc.timeIn':'Time in the field',  'rc.combo':'Best combo',  'rc.anom':'Anomalies met',
   'rc.last':'Last {n} runs',
   'rc.hScore':'Score',  'rc.hLost':'Lost to',  'rc.hTime':'Time',  'rc.hEpoch':'Epoch',  'rc.hCombo':'Combo',
-  'rc.empty':`Nothing here yet — finish a run and it lands at the top of this list.<br>
-       Boss Rush and Pattern Lab are practice and never record, which is the same rule that keeps them
-       from setting your best.`,
+  'rc.empty':'No records yet!',
   'rc.wipe':'Erase records',  'rc.wipeArm':'Press again to erase',
   'rc.achv':'Achievements',   'rc.secret':'a secret feat',  'rc.secretTag':'secret',
 
@@ -1300,8 +1298,7 @@ const L={ en:{
   'rc.runs':'판수',  'rc.timeIn':'필드에 있던 시간',  'rc.combo':'최고 콤보',  'rc.anom':'만난 변이체 수',
   'rc.last':'최근 {n}판',
   'rc.hScore':'점수',  'rc.hLost':'사인',  'rc.hTime':'시간',  'rc.hEpoch':'기',  'rc.hCombo':'콤보',
-  'rc.empty':`아직 아무것도 없습니다. 한 판 끝내면 이 목록 맨 위에 올라옵니다.<br>
-       보스 러시와 패턴 실험실은 연습이라 기록되지 않습니다. 최고 점수도 세울 수 없는 것과 같은 규칙입니다.`,
+  'rc.empty':'아직 기록이 없어요!',
   'rc.wipe':'기록 지우기',  'rc.wipeArm':'한 번 더 누르면 지워집니다',
   'rc.achv':'업적',         'rc.secret':'숨은 업적',  'rc.secretTag':'숨김',
 
@@ -6568,10 +6565,11 @@ function closeBestiary(){ el('bestiary').classList.add('hidden'); }
 
 // ---- RECORDS: the last RUNS_KEPT survival runs, the lifetime tally and the achievement list. Built on
 // open rather than bound once, because `store` changes every time you die. ----
-//   THE EMPTY STATE IS THE ONE MOST PEOPLE SEE FIRST and it has to say why it is empty, or a fresh
-// player reads a broken screen. It also has to say what does NOT count here, because a player who
-// grinds Boss Rush and finds nothing recorded will conclude the feature is broken rather than that it
-// is deliberate.
+//   THE EMPTY STATE IS ONE LINE. It carried a second sentence explaining that Boss Rush and Pattern Lab
+// never record, on the grounds that a player who grinds them and finds nothing would call the feature
+// broken. ⚠️ That fact did NOT leave the game with it — `menu.note` states it in `.doornote`, sitting
+// directly under the two mode buttons, which reaches the player BEFORE they spend a run rather than
+// after. Do not restore it here on the old reasoning without checking that line still exists.
 const fmtN=n=>Math.round(n).toLocaleString();
 function openRecords(){
   const R=store.runs, Tt=store.totals;   // NOT `T` — that is the translator, and shadowing it here renders identifiers
