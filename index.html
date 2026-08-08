@@ -1480,6 +1480,12 @@ function hurtText(dmg){
 //   third window to name.)
 const IFRAME=0.8;
 const FLIP_IFRAME=0.12;    // brief grace on a reversal, covering the frame the shockwave clears around you.
+// WHAT "LOW" MEANS, for the HP bar's red state and for the heartbeat, from one place. It was a bare 0.3
+// sitting in updateHUD and nothing else knew it. The moment a second consumer reads the same idea the
+// literal stops being a detail and becomes a contract: a bar that turns red while the heartbeat is
+// silent — or the reverse — is two channels disagreeing about whether you are in trouble, which is
+// worse than either cue alone. One constant makes them agree by construction rather than by care.
+const HP_LOW=0.3;
 // THE CONTACT GHOST — one frozen frame of the Dot that just hit you, drawn where it actually touched.
 // Player report: "i still feel like i'm colliding a very little earlier."
 // It was real, and it was never the hitbox. `processKills()` and the dead sweep both run INSIDE step(),
@@ -4794,7 +4800,7 @@ function onKill(e){
   // a mean 6s life the equilibrium is ~47 against `moteCap` 40, and motes carry the DEAD Dot's colour, so
   // through the hold-a-pole play this game rewards they sit inert and pile up. Some kills shed nothing.
   // If that ever reads as dead air, the answer is the burst's count and speed on the line above — not text.
-  sfx.kill(combo);
+  sfx.kill(combo,e.x);
 }
 
 // blasts / shockwaves
@@ -6123,7 +6129,7 @@ function updateHUD(){
   cEl.style.color=['',COL.cyan,COL.gold,COL.violet,'#ffffff'][streakTier]||'';
   el('time').textContent=fmtTime(elapsed);
   hpI.style.transform=`scaleX(${clamp(P?P.hp/P.maxHp:1,0,1)})`;
-  el('hpbar').classList.toggle('low',P&&P.hp/P.maxHp<0.3);
+  el('hpbar').classList.toggle('low',P&&P.hp/P.maxHp<HP_LOW);
   // The Capacitor bar now runs BOTH WAYS — the same unconditional scaleX, and `.bar > i`'s
   // `transition: transform .1s linear` is direction-agnostic, so a drain animates exactly like a fill.
   // That falling bar is Overdrive's primary readout; nothing else in the game moves backwards.
@@ -6267,6 +6273,10 @@ function frameBody(now){
   }
   if(state==='play'||state==='ready') updateHUD();
   if(AC) updateAmbient((state==='play')?intensity:0.08, dt);
+  // ⚠️ REAL SECONDS, NOT SIM SECONDS. This sits outside the fixed-step accumulator on purpose: the
+  // heartbeat is a wall-clock pulse, and driving it off scaled time would make it slow down inside every
+  // slowmo dip — i.e. the Moment Engine would mute the one layer built to give its dips weight.
+  if(AC) updateHeart(dt);
 }
 // One uncaught throw anywhere in the frame path would break the rAF chain permanently: frozen canvas,
 // ambient still humming, no message. A bad frame is DROPPED and the loop survives; only a persistent
@@ -7110,6 +7120,62 @@ function updateAmbient(inten,dt){
   ambFilter.frequency.setTargetAtTime(lerp(300,1500,inten), now, 0.7);
   ambNoteT-=dt;
   if(ambNoteT<=0){ ambNoteT=lerp(2.6,0.6,inten)*rand(0.7,1.4); ambPluck(inten); }
+  stormT-=dt;
+  if(stormT<=0){ stormT=lerp(1.9,0.62,inten)*rand(0.82,1.2); stormHit(inten); }
+}
+// ---- THE MOMENT ENGINE'S AUDIO HALF ----
+// The time side has been live for a long time (`timeScale`, `slowmo`, `hitstop`); this is the sound that
+// was meant to sit under it, so a dip lands as WEIGHT rather than as the frame rate faltering. Two
+// always-on layers, and the reason they are layers rather than cues is that a dip is a state, not an
+// event — an event already has a cue, and adding a second one to the same instant just doubles it.
+//
+// ⚠️ BOTH LIVE IN THE SUB-BASS, WHICH IS ALREADY OCCUPIED, and the register argument at bomb() is the
+// thing to read before touching either. `bomb()` owns 75-150Hz because being alone down there is what
+// makes it findable — so these two must NOT simply pile in beside it. What separates them is not pitch:
+//   · the storm is NOISE through a 150Hz lowpass — a drum, not a tone, so it clears every oscillator
+//     voice in the game on timbre no matter where its energy sits;
+//   · the heartbeat is a TONE but a PERIODIC one, in pairs, and rhythm is a channel nothing else in the
+//     bank uses. Every other voice in this game is a one-shot.
+// A transient cue and a pulse can share an octave. Two transients cannot.
+const STORM_AT=0.55;      // below this the layer is silent, not merely quiet — `calm` should be calm
+let stormT=0, heartT=0;
+function stormHit(inten){
+  if(!AC||gainNow()<=0)return;
+  // Scaled from the top of its own range, not from zero, so crossing STORM_AT fades the layer in
+  // instead of dropping a drum on the first frame of the storm phase.
+  const t=clamp((inten-STORM_AT)/(1-STORM_AT),0,1);
+  if(t<=0)return;
+  noise(0.24,0.030+0.055*t,master,150);            // the body — lowpassed to a thud, never a hiss
+  beep(46,0.20,'sine',0.020+0.030*t,32);           // a falling sub under it, felt more than heard
+}
+// THE HEARTBEAT IS NOT A DAMAGE VOICE, and it must not be mistaken for one. It reports a STATE you are
+// already in, so it fires on a clock rather than on an event, and `hurt()` stays the only thing that
+// speaks when the core is actually struck. Same reason it is a pair: lub-dub is a rhythm nobody hears
+// as a hit, and one thump on a timer would read as a metronome or as a glitch.
+//   Rate rises as the core falls — the one thing here that is genuinely a gauge — and it is deliberately
+// the only place in the sound bank where tempo carries meaning.
+function updateHeart(dt){
+  if(!AC||gainNow()<=0||AC.state!=='running'){ heartT=0; return; }
+  // ⚠️ Gated on being ALIVE AND PLAYING, not merely on the number. `P.hp` keeps its last value through
+  // the death screen and the pause panel, so testing HP alone leaves a corpse with a pulse — audible
+  // under the receipt, for as long as the panel is open.
+  if(state!=='play'||!P||P.hp<=0){ heartT=0; return; }
+  const f=P.hp/P.maxHp;
+  if(f>=HP_LOW){ heartT=0; return; }               // shares the bar's threshold — see HP_LOW
+  const urg=clamp(1-f/HP_LOW,0,1);                 // 0 at the threshold, 1 at death's door
+  heartT-=dt;
+  if(heartT>0)return;
+  heartT=lerp(1.15,0.52,urg);
+  const v=0.055+0.075*urg;
+  beep(52,0.13,'sine',v,38);                       // lub
+  // The dub is a SECOND beat, not a layer on the first — the gap is the whole reason this reads as a
+  // pulse rather than as one thick thump. `beep()` schedules from `AC.currentTime` and takes no offset,
+  // so the delay has to come from outside it.
+  //   ⚠️ Re-checked at fire time, not only at schedule time: 145ms is long enough for the core to die,
+  // the run to end or the tab to be muted in between, and a dub landing on the death screen is exactly
+  // the corpse-with-a-pulse this function is written to avoid.
+  setTimeout(()=>{ if(AC&&gainNow()>0&&AC.state==='running'&&state==='play'&&P&&P.hp>0)
+    beep(44,0.17,'sine',v*0.72,30); },145);
 }
 function ambPluck(inten){
   if(!AC||gainNow()<=0)return;   // scheduling a note into a gain of 0 is work nobody hears
@@ -7126,7 +7192,31 @@ function ambPluck(inten){
   g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+1.3);
   o.connect(g); g.connect(master); o.start(); o.stop(AC.currentTime+1.4);
 }
-function beep(freq,dur,type,vol,slideTo){
+// ---- PLACEMENT. `dest` is the node a voice lands on, and it defaults to `master` so every existing
+// call is unchanged. The only thing that passes anything else is a panned cue.
+//   ⚠️ THE PANNER IS PER-VOICE AND DISPOSABLE, not a shared node with its `pan` rewritten. Kills fire
+// 5.6 times a second at the top end, so one shared panner would be re-aimed while earlier blips were
+// still ringing — every tail would slide to wherever the newest kill happened, which is a spatial lie
+// about events that already resolved. A node per voice costs nothing next to the oscillator it carries.
+//   Falls back to `master` where StereoPannerNode is unavailable: no pan is a worse cue, but a missing
+// constructor would take the whole sound bank down with it.
+function panAt(x){
+  // No position is not centre — it is "this cue has nowhere to be", and it must route dry. A missing x
+  // would otherwise reach clamp() as NaN, and a NaN written to an AudioParam throws, which would take
+  // the caller's whole cue out. Motes are the live example: they are collected AT the core, so they
+  // have no place of their own and are deliberately never panned.
+  if(!AC || !AC.createStereoPanner || typeof x!=='number' || !isFinite(x) || !(W>0)) return master;
+  const p=AC.createStereoPanner();
+  p.pan.value=clamp((x/W)*2-1,-1,1)*PAN_MAX;
+  p.connect(master);
+  return p;
+}
+// NOT 1.0, and this is a playfield rather than a soundstage. A hard-panned mono voice vanishes from one
+// ear entirely, which reads as a broken channel rather than as a position — and the arena is one screen
+// you are already looking at, so the pan is a HINT about where, not a simulation of it. 0.7 keeps both
+// ears fed at the extremes while still separating the two halves of the field.
+const PAN_MAX=0.7;
+function beep(freq,dur,type,vol,slideTo,dest){
   if(!AC)return;
   const o=AC.createOscillator(), g=AC.createGain();
   o.type=type||'sine'; o.frequency.setValueAtTime(freq,AC.currentTime);
@@ -7134,20 +7224,26 @@ function beep(freq,dur,type,vol,slideTo){
   g.gain.setValueAtTime(0,AC.currentTime);
   g.gain.linearRampToValueAtTime(vol||0.2,AC.currentTime+0.008);
   g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dur);
-  o.connect(g); g.connect(master); o.start(); o.stop(AC.currentTime+dur+0.02);
+  o.connect(g); g.connect(dest||master); o.start(); o.stop(AC.currentTime+dur+0.02);
 }
-function noise(dur,vol){
+function noise(dur,vol,dest,cut){
   if(!AC)return;
   const n=AC.sampleRate*dur, buf=AC.createBuffer(1,n,AC.sampleRate), d=buf.getChannelData(0);
   for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
   const s=AC.createBufferSource(); s.buffer=buf;
   const g=AC.createGain(); g.gain.value=vol||0.2;
-  const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1200;
-  s.connect(f); f.connect(g); g.connect(master); s.start();
+  const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=cut||1200;
+  s.connect(f); f.connect(g); g.connect(dest||master); s.start();
 }
 const sfx={
   flip(hc){ const c=hc||0; beep(320+c*260,0.08+c*0.05,'triangle',0.12,520+c*520); if(c>0.55) beep(900,0.1,'sine',0.08,1500); },
-  kill(c){ const f=380+Math.min(c,40)*22; beep(f,0.06,'square',0.06); },
+  // PANNED, and it is the only combat cue that is. A kill happens somewhere; the pan says where, which
+  // is information the flat mix was throwing away 5.6 times a second. It also buys separation the
+  // register argument cannot: two kills at opposite edges no longer stack in the same spot in the image.
+  //   ⚠️ NOT `mote()`, and not because it was forgotten. Motes are collected at `d<P.r+8` — at the core
+  // — so every pickup happens in the same place, and panning them would encode the Star's position as
+  // if it were the event's. A cue that reports a position it does not have is the fault at bomb().
+  kill(c,x){ const f=380+Math.min(c,40)*22; beep(f,0.06,'square',0.06,0,panAt(x)); },
   // THE EVERY-TENTH-KILL STING. Took a `c` (the combo) and never read it — a dead parameter the call
   // site was dutifully filling in. Dropped rather than wired up: scaling the pitch by streak was
   // considered and declined, because the HUD's no-hit streak line is the identification channel for
@@ -7286,6 +7382,20 @@ window.__orbital=window.__polaris=window.__flux={
   title(t){ titleOrbit(t||0);
     const rd=e=>({x:+e.getBoundingClientRect().left.toFixed(1),y:+e.getBoundingClientRect().top.toFixed(1),o:+e.style.opacity});
     return {t:t||0, spin:tSpin.map(p=>rd(p.el)), hit:tHit.map(p=>rd(p.el)), lastImpactCycle:tBoom}; },
+  // Fourth of the same family, and for the same reason — this time for SOUND. The two continuous layers
+  // (the low-HP heartbeat and the storm bed) are stepped from frameBody like everything else, so in a
+  // hidden tab they never run: a test hears nothing and reports silence, which is the identical false
+  // PASS that render() and hud() exist to prevent.
+  //   `bus()` is the half that matters more. It hands back the live nodes so a test can put an
+  // AnalyserNode on the mix and MEASURE it, instead of asserting that a function got called. Peak level
+  // is exactly what "it sounds fine to me" cannot report, it depends on whatever speakers the listener
+  // happens to own, and THIS MIX HAS CLIPPED BEFORE — the compressor in audioInit() is there because
+  // every voice used to sum straight into the destination and blow past 1.0 in a dense fight.
+  audio(dt){ const d=dt||1/60;
+    if(AC){ updateAmbient((state==='play')?intensity:0.08, d); updateHeart(d); }
+    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), stormT:+stormT.toFixed(3), gain:gainNow()}; },
+  bus(){ return AC?{ctx:AC, master, panMax:PAN_MAX, stormAt:STORM_AT, hpLow:HP_LOW}:null; },
+  sfx,
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
