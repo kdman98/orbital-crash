@@ -2482,16 +2482,23 @@ sound side — stereo-panned kill pops, a low-HP heartbeat with a lowpass, a sto
 direction that has never been started. It is the one thing that would make the slow-motion dips land as
 weight rather than as lag.
 
-**`P.iframe` has two values, and one of them is a literal.** Damage sets `IFRAME`; a shield block sets a
-hardcoded shorter window, at both of the two call sites. That is deliberate as a *feel* choice — a block
-is not a hit — but it is written as a magic number in two places, so it is one careless edit away from
-the drift the constant exists to prevent. Either name it or fold it into `IFRAME`.
+**~~`P.iframe` has two values, and one of them is a literal.~~ Closed — there is no literal.** Both damage
+sites (`3536`, `4538`) set `IFRAME`; the third writer sets `FLIP_IFRAME`, which is a **named constant**
+declared one line under `IFRAME`. The magic number this item was written about belonged to the shield
+block, and that path went with the powerup roster. *Closed by verification, not by work* — nobody fixed
+it; the code that carried it was deleted for other reasons and the item outlived it.
 
-**The `body` → `Dot` rename has not reached the code.** `index.html` carries 140 `body`/`bodies`
-comments meaning an enemy against 17 `Dot`s, and `bestiary.html` — the player-facing page — says `body`
-23 times and `Dot` never. The identifiers already agree with the docs (`DOTNAME`, `DOTSPD`). Mechanical,
-but the Bestiary half is player-visible copy under a 30-word-per-card budget, so it is a rewrite rather
-than a substitution.
+**~~The `body` → `Dot` rename has not reached the code.~~ Substantially done, and the counts here were
+off by an order of magnitude.** This read *"140 `body`/`bodies` against 17 `Dot`s"* in `index.html` and
+*"`body` 23 times and `Dot` never"* in `bestiary.html`. Measured at HEAD: **14 against 186**, and **2
+against 16**. ⚠️ **The half this item called the hard part is the half that is finished** — the Bestiary's
+player-visible copy says `Dot` throughout and `body` **zero** times; both survivors there are code
+comments.
+
+What is left is 16 comments, and most should stay: *"priced in connecting bodies"*, *"parked bodies keep
+their last sensible axis"*, *"six bodies"* use *body* as the physics word for a moving mass, not as a
+synonym for Dot. Retire the item rather than finish it — the rule is `Dot` in anything a player reads,
+which already holds.
 
 **A chase reward for the Sentinel that is not contact damage.** The obvious version measures backwards
 (see *No per-kind bonus*), so the idea needs a different vehicle, not a different number.
