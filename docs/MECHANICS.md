@@ -1957,11 +1957,78 @@ of an unfinished Codex removal. Two limits, both real:
   lost to the restore. `cmp` after restoring is the only thing that tells you nothing was; the recipe
   narrows the race and cannot close it.
 
+⚠️ **`git checkout -- <file>` in a shared checkout destroys everyone's uncommitted work in that file, and
+every other entry in this family is about the opposite direction.** The staging traps above all describe
+a commit sweeping someone else's work **in** — a bad commit, which can be amended. This sweeps it
+**out**, and there is nothing to amend: no reflog entry, no stash, no dangling blob. The worktree is not
+version-controlled until you stage it.
+
+It happened here on 2026-08-08. `git checkout -- index.html` was run casually as a cleanup while two
+sessions had uncommitted changes in that file, and it took a graze removal and a sky-cache optimisation
+with it. The graze work was reconstructible only because the session that wrote it still had every edit
+in context; **it was rewritten from scratch and committed within minutes, and that is the only reason it
+exists.**
+
+⚠️ **The asymmetry is what makes this worth its own entry: the recovery is not symmetric with the
+mistake.** Discarding your own work is a decision. Discarding it out of a file two other processes are
+writing is the same keystroke, and nothing in git distinguishes them — `checkout` reports success either
+way, and a clean `git status` afterwards looks exactly like a tidy tree rather than like a loss.
+
+**The rule that follows is not "never run `checkout`" — it is that in a shared tree, committing is the
+only durable claim on your own work.** What saved one side was that it had already committed; what lost
+the other was that it had not. Announcing a file, as this repo does, coordinates *edits* and does nothing
+about *reverts*, because the revert does not read the announcement. So: land small commits early rather
+than holding a clean one, and before any `checkout`/`restore`/`stash` of a shared path, run `git status`
+and read it as a list of other people's work, not as a list of your own.
+
+⚠️ **The oracle cannot certify any change that adds or removes an RNG-consuming call, and it will not
+say so — it will just hand you a different number.** The fingerprint is a bit-exact trace of a seeded
+xorshift run. Anything that changes *how many* `rand()` draws happen before a given frame desynchronises
+every spawn, pattern and drop after it, so the trace diverges completely and carries no information
+about whether behaviour was preserved. **Effect calls are the trap, because they do not look like sim
+code.** `spawnBurst(x, y, col, 3, spd)` draws four `rand()` per particle — twelve for that call — and it
+reads as decoration.
+
+*Worked example, `7e09392`.* Removing the graze moved the suite from len 1654 / FNV `9f659ef7` to len
+1651 / `e9cc1d16`. **The move was predicted, and the reason given was wrong** — *"graze feeds `score`, so
+the fingerprint should move."* ⚠️ **The prediction coming true is what nearly let it through**, because a
+confirmed prediction reads as an understood mechanism. What broke it was reading the numbers underneath:
+two of six pilot runs scored **higher** without graze (emitter 500→785, survival-202 3080→3650), and
+removing a points source cannot do that. The score story was incidental; the `spawnBurst` draws were the
+mechanism.
+
+**So when the fingerprint moves, first ask whether your diff changed the entropy budget** — and if it
+did, the oracle is silent rather than negative, and you owe the change a different proof. For `7e09392`
+that was: enumerate every write site of the affected quantity statically (scoring came to five, all
+integers), reproduce the *baseline* off a gitignored copy of HEAD before trusting the rig, assert the new
+build's markers in source **and** seam before measuring, and drive the touched function for 5,400 frames
+watching for throws.
+
+**The contrast case is the same day's `fccd00b`, and it is what makes the rule usable rather than
+paralysing.** A render-layer change certified cleanly at len 1651 / `e9cc1d16` on both sides — because it
+provably spent no entropy: added lines matching `Math.random|rand(|rnd(` came to **0**, and lines added
+or removed matching `spawnBurst|spawnRing|pushText|sfx.|queueKill` came to **0**. ⚠️ **Run that grep as
+part of claiming an oracle pass**, in both directions on the diff. A green fingerprint on a diff nobody
+checked for entropy is worth exactly as much as a red one.
+
 ⚠️ **A check can make the provenance-for-truth substitution too, and one written the day after that trap
 was recorded did.** A PATCHNOTE coverage sweep asked *"did this commit touch `index.html`"* and reported
 four commits as missing entries. All four were comment-only: the file was touched, the game was not. The
 convention is about substance, and the sweep tested provenance — the exact swap two paragraphs up, by
 someone who had just written it down. **Knowing a failure by name is no defence against it.**
+
+⚠️ **The purest form of it: when two claims in a file disagree, "which one is newer" is a provenance
+question and it feels like adjudication.** A comment about the sky cache said *"22 sample points, max
+channel delta 1/255"* in one draft and *"all 4,096,000 pixels identical"* in the next. The disagreement
+was spotted and flagged correctly — a 1/255 delta is not identity, so both cannot describe the same
+measurement — **and then resolved by assuming the newer line had superseded a stale one.** It had not.
+The 1/255 figure had been typed into a comment *before* anything was measured, and the byte-exact figure
+that replaced it came off a rig where `navigate` was silently no-oping, so both captures read the **same
+page**: two readings of one build, reported as agreement. ⚠️ **A comparison that never compared anything
+returns *perfect* agreement — the most persuasive result a broken rig can produce**, and it arrives
+looking like the strong version of the claim you were already inclined to believe. Neither number had
+ever been measured, and the question that would have found that — *"was either of these run?"* — is one
+sentence away from the question that was asked.
 
 The detector has to compare **code**, so strip comments from both blobs rather than filtering diff lines:
 
