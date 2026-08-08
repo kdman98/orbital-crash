@@ -17,7 +17,14 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 ### The sky is painted once instead of sixty times, and the GPU number is not measurable from here `fccd00b`
 One full-screen radial gradient plus five nebula clouds, repainted from scratch sixty times a second —
 for a picture that moves **half a device pixel per frame**. It is now painted into an offscreen canvas
-and blitted, rebuilt every fourth frame.
+and blitted, rebuilt every eighth frame — **except while the palette is easing after an Epoch flip,
+when it repaints every frame. That second trigger is what lets the first one be wide.** The palette is
+the only input that can move fast, and it only moves for ~2s a lap; `palMoving` (set in `easePalette`
+from the largest channel gap the ease still had to close, thresholded at half a channel — below that
+the cache cannot round to a different byte) pays the full old price for those two seconds rather than
+pinning the counter to the worst thing that ever happens. Everything else is slower than the eye:
+clouds 0.25 design units/frame, parallax ~0.14, breath 0.006 of a 0.9–1.05 factor, intensity 0.0007 of
+an alpha of ~0.04.
 
 Measured at 2560×1600 under software rasterisation, one canvas, one raster mode:
 
