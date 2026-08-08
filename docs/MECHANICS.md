@@ -1812,28 +1812,6 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 
 Things that have cost real time, in this codebase specifically.
 
-⚠️ **`git commit <path>` commits the WORKTREE version of that path, not the staged one — so in a shared
-checkout it sweeps, it does not isolate.** This was proposed in good faith as the safe one-command way to
-land your own staged work while a peer had uncommitted edits in the same file, and it is the opposite.
-Both sessions then described it wrongly from memory, in opposite directions, until it was actually run:
-
-```
-staged:   +PEER_STAGED          unstaged: +MY_UNSTAGED
-git commit -m msg f.txt
-committed:  base PEER_STAGED MY_UNSTAGED     ← BOTH. Nothing dropped, everything taken.
-```
-
-So it does not "ship only what is staged" (the claim that made it sound safe) and it does not "drop the
-staged half" (the correction). It commits what is *on disk* for that path, which in a contended file is
-by definition both people's work. ⚠️ **The path form's danger is exactly that it reads as narrowing** —
-naming one file feels like restraint, and it silently widens from the index to the worktree.
-**Ordinary `git add` then `git commit` is the safer pair**, because `add` snapshots at add-time and
-`commit` ships the index, so a peer's later write is not eligible. That is what actually saved
-`8429887`. For real isolation the filtered copy is still the only answer.
-  *Nobody had run it.* Two sessions that had spent the night on measure-don't-assert reasoned about a git
-flag from memory and both got it wrong — which is the same failure as every other entry here, applied to
-a tool rather than to the game.
-
 ⚠️ **Running `.oracle.js` leaves the game muted for every later page load in that profile.** The harness
 clicks the mute button, `toggleMute()` calls `save()`, and `orbitalcrash_mute` persists — so the next
 load builds `master` at `gainNow()`, which is 0. Nothing resets it and nothing reports it. Fingerprint a
@@ -1897,6 +1875,28 @@ number had already been printed by the pre-commit `--stat`.
 ⚠️ It only catches this in **one direction.** Equal counts do not prove a clean diff — a foreign hunk
 that happens to be balanced hides inside yours. It catches the case that has actually bitten us, and
 that is all it claims.
+
+⚠️ **`git commit <path>` commits the WORKTREE version of that path, not the staged one — so in a shared
+checkout it sweeps, it does not isolate.** This was proposed in good faith as the safe one-command way to
+land your own staged work while a peer had uncommitted edits in the same file, and it is the opposite.
+Both sessions then described it wrongly from memory, in opposite directions, until it was actually run:
+
+```
+staged:   +PEER_STAGED          unstaged: +MY_UNSTAGED
+git commit -m msg f.txt
+committed:  base PEER_STAGED MY_UNSTAGED     ← BOTH. Nothing dropped, everything taken.
+```
+
+So it does not "ship only what is staged" (the claim that made it sound safe) and it does not "drop the
+staged half" (the correction). It commits what is *on disk* for that path, which in a contended file is
+by definition both people's work. ⚠️ **The path form's danger is exactly that it reads as narrowing** —
+naming one file feels like restraint, and it silently widens from the index to the worktree.
+**Ordinary `git add` then `git commit` is the safer pair**, because `add` snapshots at add-time and
+`commit` ships the index, so a peer's later write is not eligible. That is what actually saved
+`8429887`. For real isolation the filtered copy is still the only answer.
+  *Nobody had run it.* Two sessions that had spent the night on measure-don't-assert reasoned about a git
+flag from memory and both got it wrong — which is the same failure as every other entry here, applied to
+a tool rather than to the game.
 
 **When you must commit out of a tree someone else is mid-edit in**, build the staged content instead of
 staging the file: back the tree up, write HEAD-plus-your-own-change to disk, `git add` that, restore the
