@@ -12,6 +12,147 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-08
+
+### The Epochs become celestial, and Meteor Shower earns its name instead of just wearing it `094c982`
+Nebula / Aurora / Eclipse / Meteor Shower, 성운 / 극광 / 월식 / 유성우. **Why the old four felt
+arbitrary: no shared domain.** 표류 is motion, 잔불 is fire, 개화 is botany, 밀물 is ocean — each fine
+alone, together generating nothing. One idea has to produce all four.
+
+⚠️ **The rename also freed a word that was doing three jobs.** `Drift` was the Epoch, `lab.drift` the
+formation, and `Drifter` the Dot. MECHANICS had documented the Epoch-vs-Dot half for weeks and **never
+noticed the formation shared it outright, in both languages** — the note named the *site* of the
+collision rather than the rule, so it died when the site moved. `lab.drift` is still `Drift` / 표류 and
+the Pattern Lab legend still prints it while Drifters are on screen: same rule, one slot over.
+
+**Meteor Shower is a mechanic, not a label.** `isShower(act)` — Epoch IV, VIII, XII, every fourth — puts
+the comet formation on formation cadence, `rand(9,16)`, against its ordinary `rand(200,300)`. The
+arithmetic is the argument: an Epoch's non-boss window is about 38s, so on the base clock a comet lands
+inside any given shower roughly **one time in seven**, and an Epoch named for the shower would have shown
+nothing six times out of seven. ⚠️ **Re-armed at the boundary in `onBossCleared`, not only at the fire
+site** — `cometT` survives the Epoch change, so re-rolling only where it fires fails in *both*
+directions: arrive with 180s left and the shower shows none, leave with 12s left and a stray comet lands
+in the next Epoch where nothing explains it. The boundary roll is `rand(3,7)` on entry, which puts the
+first one inside the opening calm so the name is true immediately rather than a minute in. Measured
+walking Epoch 1→8 purging on sight: **17 comet bodies at IV and 11 at VIII, zero in all six non-shower
+Epochs** — including V immediately after, which is the exit re-arm working.
+
+**The palette was re-solved with it**, because a tint is a claim about what you are looking at and a warm
+sand sky for an *aurora* is simply wrong. Same floor and same chroma ceiling as `1e1f8aa` below, new
+arcs — and **the L\* ladder is the point**: hue is capped at chroma 22, so the Epochs carry identity in
+lightness instead, Eclipse 46 the darkest sky in the game and Meteor Shower 74 the brightest. That is the
+one channel polarity does not own.
+
+⚠️ **`#center` was capped at half the screen, and had been since the first commit.** `left:50%` with no
+`right` gets `100% − 50%` of the containing block to lay out in, and the transform re-centres a box that
+was *already* squeezed — so at 375px the slot was 187.5 and the new name wrapped onto the timer. **Not
+caused by the name**: `EPOCH XXXIX · ECLIPSE` measured 161px, already within 27px of wrapping, unnoticed
+only because every name in that slot had been one short word for the project's whole history.
+`left:0;right:0` hands it the full width and lets `text-align:center` do what the transform was
+imitating. `#hud` is `pointer-events:none` and the subtree opts nothing back in, so a full-width box
+intercepts nothing. **`#achv` still has the same bug** — its `max-width:90vw` cannot exceed the 50vw it is
+given — and was left alone on purpose: different element, different change.
+
+⚠️ **Measured and left rather than fixed:** the English centre label overlaps `#combo`, 43px at 375 and
+16px at 430 for `EPOCH I · NEBULA`, 87px and 60px for Meteor Shower. **Shortening the Epoch name does not
+fix it** — one-word *Meteor* still overlaps 22px at 430. The long string is English's `{n} no-hit streak`
+at 16 characters against Korean's `{n}콤보` at 5, which is why **Korean overlaps by zero at every width**.
+The fix belongs on that string and it is a copy call, so it is open rather than guessed at.
+
+Oracle byte-identical, len 1654 / FNV `9f659ef7` — the pilots run 40s and the comet gate is
+`elapsed>42`, so no pilot ever reaches a shower and the suite could not have caught a regression here.
+
+### The Epoch palette stops spending polarity's colours, and Epoch XIII stops calling itself I `1e1f8aa`
+**Drift's tint was `#38e0ff` — `COL.cyan` character for character.** Not "close to"; the same six digits,
+and `git log -S` puts both hexes in the same first commit, so nobody chose it. One blue got typed twice.
+Bloom sat ΔE 13.3 from `COL.violet`, the event flash, so a violet cue fired against a violet sky. Ember
+sat ΔE 13.7 from colourblind red — `#ff7a4d` against `#ff7a2f`, differing in the blue channel alone —
+inside the "unsafe on a small fast object" band declared above `PAL`, **in the mode a player turns on
+precisely to find red things**.
+
+`tint` is not scenery: it paints the nebula's accent clouds, 22% of every star layer, and the Epoch
+label. It is drawn among the Dots, so it owes the same one-colour-one-meaning law they do.
+
+⚠️ **The wheel is full, and that is the finding.** Solving for four tints ≥ΔE 32 from every colour the
+game has already claimed has **no solution above chroma 22** — the rose wedge Bloom needs is walled in by
+violet at 307° and red at 15°. Four saturated biome colours do not fit next to polarity plus the cue
+vocabulary. So these are a cast rather than a colour: L\* 58–70 at chroma 22, four skies still 30.3 apart
+at the closest, nearest claimed colour 32.4. **Adding a fifth mood means re-solving, not guessing.**
+`bg1`/`bg2` untouched on purpose — at L\* 1–7 they are black with a hint, and the measured sky medians sit
+ΔE 85–96 from both poles. They were never what was competing.
+
+⚠️ **`palCur`'s seed held its own literal copy of `#38e0ff`** and still did after Drift's moved — a fourth
+copy of the polarity blue, painting the boot frame in the exact colour the change existed to remove. It
+eased away within two seconds of first render, which is why nobody would ever have caught it by looking.
+Now derived from `ACTS[0]`.
+
+**Separately, the numeral lied.** `ROMAN` was a 12-entry array and every site indexed `[(act-1)%12]`, so
+at Epoch 13 the HUD printed `EPOCH I · DRIFT` — byte-identical to the run's opening frame — and Records
+filed the deepest run anyone had played under `I`, sorting and reading as the shallowest. **Korean never
+had it**: its templates take `{n}`, so it counted 13 while English reset. Same run, two languages, two
+different claims about how far you got. Reachable rather than theoretical — 428s of phase clock across
+Epochs I–XII plus twelve Anomaly fights, and no boss has a deadline. A wider array would only move the
+lie; `roman()` is a greedy subtractive table, exact to 3999.
+
+Verified in-engine on the served file with a new-code marker asserted first: EPOCH XIII / XIV / XVII / XX
+/ XXXIX, Korean 13/20/39단계, Records XIII against 13 for one 13-Epoch row. Oracle byte-identical, len
+1654, FNV `9f659ef7`.
+
+### The repository becomes publishable: a licence, a play link, and the plan leaves the tree `05f9b5f`
+Prompted by the pending public release, which wants a public repository, a Pages link, and the full source
+with its commit record intact. **All 193 commits audited for secrets first** — every blob ever committed,
+against key / token / private-key / provisioning patterns. Zero hits, and no `.env` or certificate has
+ever been in this tree, so nothing below is a redaction.
+
+**`LICENSE` is PolyForm Noncommercial 1.0.0**, fetched verbatim rather than retyped. ⚠️ **Not CC BY-NC-ND**
+— Creative Commons says in its own FAQ not to use CC licences for software, and ND has no clear meaning
+for source code. PolyForm Noncommercial is built for this exact shape: source available, free to read and
+run and modify, commercial use reserved. It does not collide with the terms of that release, which
+leaves ownership with the author and licenses the distributor separately.
+
+**`docs/SCOPE.md` leaves the tree** — it is the free/paid split, the recommended price, the Steam page
+timing and the revenue expectations, and a reader who came for the craft is the wrong audience for that document.
+⚠️ **Removed from tracking, not from history.** A `filter-repo` purge would rewrite all 193 SHAs and need
+a force-push, and this checkout is shared by parallel sessions that would then be working against a
+rewritten base; the submission rules also ask for the commit record to be kept. The file stays on disk,
+gitignored, and still being written. **Its one inbound link, a README row, went with it** — `.gitignore`
+is now the only place the string `SCOPE` appears anywhere in the repository.
+
+README gains the three things a first-time visitor needs — the play link, the control table, and what
+actually kills you — above the developer material, which stays because the source is itself part of the
+submission. `.nojekyll` because Pages runs Jekyll by default; `index.html` has no Liquid syntax (0 hits
+for `{{` and `{%`, both checked) so nothing would have broken, but one empty file removes the question
+permanently. Verified for the subpath Pages serves from: 0 absolute paths in either HTML file, manifest
+`start_url` and `scope` both `./`, `sw.js` registered relatively — so `/orbital-crash/` needs no build
+step and no rewriting.
+
+### Epoch is 단계, and the Records column stopped disagreeing with the HUD about it `d8de275`
+Author: *"Epoch reads 단계 in Korean."* Five sites — `hud.epoch`, `dead.cause`, `dead.causeDev`,
+`rc.hEpoch`, `achv.act3.ds` — and 제 dropped with it, because *"제3단계"* is stiff where a game says
+*"3단계"*.
+
+⚠️ **And the Records column was numbering the same quantity differently.** The HUD and the death receipt
+render `{n}`, arabic; the Records row printed `ROMAN[]` as a raw expression with **no template at all**.
+So one Korean run read *"3단계"* on two screens and *"III"* on a third. English is Roman everywhere and
+stays that way — the value is now `rc.epochVal`, `'{r}'` in `en` and `'{n}'` in `ko`, so **each language
+picks its own numeral out of the same data**. This is the general shape of the rule in *Language*:
+templates are handed every variable a language might want, and each takes what it needs.
+
+The anomaly-log chips keep Roman, and their comment stops justifying it by matching the Epoch label,
+since Korean no longer numbers that way. They count **Anomalies met**, a different quantity, which is the
+reason that actually holds.
+
+Corpus scan of all 159 `ko` keys, clean: no 당신, no ~할 수 있습니다 padding, no imported passive, no 의
+chains, no stacked connectives, no latin `s` units left. One term per concept — 콤보, 변이체, 단계,
+빨간색/청록색 — with no survivors of any retired name. Placeholder parity holds, the four `{r}`/`{n}`
+differences being the per-language numeral, and `<b>`/`<kbd>` counts match on every key.
+
+⚠️ **The first register scan was wrong and nearly reported four false islands**: the pattern listed
+습니다/합니다/입니다 literally and missed every other -ㅂ니다 form, so 건너뜁니다, 바뀝니다, 마칩니다 and
+지워집니다 all classified as 한다체. **Same shape as the grep that missed `` .oracle.js` leaves `` — a
+check whose pattern does not match what it claims to test.** Corrected, and the real answer is five, all
+of them achievement descriptions.
+
 ## 2026-08-07
 
 ### The Moment Engine's audio half `a96d813`
