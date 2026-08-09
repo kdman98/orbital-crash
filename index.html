@@ -2028,7 +2028,25 @@ function freshRun(){
 const ETYPE={
   drift:  {r:11, hp:1, mass:1.0,  maxsp:3.4, seek:0.22, dmg:10},
   fast:   {r:8,  hp:1, mass:0.7,  maxsp:6.4, seek:0.42, dmg:8},
-  heavy:  {r:20, hp:3, mass:2.7,  maxsp:2.0, seek:0.15, dmg:22},
+  // ⚠️ THE BRUTE'S 2.0 -> 3.2 IS A RING FIX, AND IT CHANGES NOTHING ELSE. `maxsp` IS A CEILING, NOT A
+  // PACE (see the Harrier's note below): free flight is governed by `seek`, and at seek 0.15 a Brute
+  // cruises at 0.92 and never approaches its own ceiling. A RINGED body is different — it is PINNED at
+  // `maxsp*RING_CAP*DOTSPD`, so for ring matter the ceiling IS the speed.
+  //   Measured, 6 seeds, sweeping this number 2.0 -> 4.4 with everything else held: free-flight speed
+  // 1.13 px/frame at EVERY value (n=5537, identical to both decimals), base ring 119.07 at every value,
+  // and the sample counts bit-identical — i.e. the whole pre-Overdrive sim is untouched. The base ring
+  // does not move because it is not clamped there: base spin wants 6.0 px/frame against a 12.2 ceiling.
+  // Only the Overdrive ring is clamped, so this number reaches that and nothing else.
+  //   WHY IT NEEDED FIXING: the eddy orbit went 0.72 -> 0.45 and Overdrive's widening is v/r, so it is
+  // not uniform across species — the slowest body has the least momentum to overshoot with and lost the
+  // most. A Brute's ride opened it +39.9px before and +1.0px after, i.e. not at all, while the tutorial
+  // still promised "a wider, faster circle". At 3.2 it opens +25.6px and the whirl goes 1.024 -> 1.326
+  // rev/s. Author: "i want it faster."
+  //   ⚠️ 3.2 AND NOT 3.4, AND THE DIFFERENCE IS THE SPECIES. 3.4 is the Drifter's own ceiling and puts
+  // the Brute shell at 148.8 against the Drifter's 148.1 — the same circle, turning at the same rate, so
+  // the heaviest body in the sky would ring exactly like the modal one. 3.2 lands 144.6 at 1.326: still
+  // inside, still slower, still legibly the heavy one. Do not raise it to meet the Drifter.
+  heavy:  {r:20, hp:3, mass:2.7,  maxsp:3.2, seek:0.15, dmg:22},
   neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:15},
   // BOMBER at Drifter parity (10) on purpose. Contact is deliberately NOT where the Bomber is dangerous —
   // strictly weaker than a Drifter (same damage, slower, lower seek, far bigger target at r17). Its
@@ -4379,19 +4397,22 @@ function stepEnemyForces(dt){
       // real name here, and it is the one that is wrong to quote. (Do not write it in backticks — it
       // reads as something you can grep for, and two comments did exactly that.)
       //   It is also SPECIES-DEPENDENT, for the same v/r reason: under EDDY a Drifter settles at 148.1,
-      // a Mini at 160.2, a Brute at 117.5, because each sits on its OWN speed ceiling. So the band's
+      // a Mini at 160.2, a Brute at 144.6, because each sits on its OWN speed ceiling. So the band's
       // CENTRE varies by species as well as its WIDTH (which varies by hull radius) — two independent
       // species terms. There is no single shell radius, and a rig that feeds one species measures that
       // species.
-      //   ⚠️ AND THE SPECIES SPREAD IS WHAT THIS RETUNE SPENT. Overdrive's widening is not uniform, it is
-      // v/r, so pulling the target in costs the SLOW species almost everything: measured against each
-      // species' own base shell, the ride now opens a Mini by +51px, a Drifter by +31px, and a Brute by
-      // +1.0px — 116.8 to 117.8, which is no widening at all. At 0.72 a Brute gained +39.9px. The
-      // tutorial line still promises "a wider, faster circle" and for a Brute only the second half is
-      // true now. It was accepted knowingly: Drifters are the modal spawn and the thing the player reads
-      // as "my ring", and closing the gap to the base ring was the point. If heavy Dots need their
-      // widening back, 0.50 buys +7.8 and 0.55 buys +14.8 — at 154.6 and 160.7 on the Drifter, i.e. by
-      // giving back a third to a half of what was just taken off the number this change existed to move.
+      //   ⚠️ AND THE SPECIES SPREAD IS WHAT THIS RETUNE SPENT — THEN PAID BACK SOMEWHERE ELSE. Overdrive's
+      // widening is not uniform, it is v/r, so pulling the target in costs the SLOW species almost
+      // everything. Measured against each species' own base shell, this coefficient alone opened a Mini
+      // by +51px, a Drifter by +31px, and a Brute by +1.0px — 116.8 to 117.8, i.e. not at all, while the
+      // tutorial still promised "a wider, faster circle".
+      //   ⚠️ THE FIX WENT IN AT THE SPECIES, NOT HERE, and that is the part worth copying. Rolling this
+      // coefficient back to 0.50/0.55 would have bought the Brute +7.8/+14.8 by giving back a third to a
+      // half of the gap-closing this change exists to produce — paying for one species out of the number
+      // that serves every species. `heavy.maxsp` 2.0 -> 3.2 buys +25.6 for the Brute and costs the
+      // Drifter nothing, because a ringed body is pinned at its OWN ceiling. See the note at ETYPE.heavy.
+      //   The lesson generalises: when a global term hurts ONE member of a set, check whether that member
+      // has a private term first. Here it did, and the private one was also inert everywhere else.
       // ⚠️ MEASURE THIS IN REV/S, NEVER IN GAUGE FRACTIONS. Both figures were first recorded "per half
       // gauge", and a half gauge was 3.0s at OD_DRAIN 1/6 and is 1.5s at 1/3 — the NUMBER never changed,
       // its UNIT silently did, which is the one kind of staleness re-reading the comment cannot catch.
@@ -5761,7 +5782,7 @@ function drawField(){
   // start describing a circle of matter that is not there. If you touch the eddy orbit, MEASURE the
   // Drifter shell and set this to shell/190.
   //   It can only match ONE species — the shell is v/r and every Dot rides its own speed ceiling, so at
-  // the current orbit a Brute ring sits at 117.5 and a Mini at 160.2 (they were 156.3 and 191.1 at 0.72).
+  // the current orbit a Brute ring sits at 144.6 and a Mini at 160.2 (they were 156.3 and 191.1 at 0.72).
   // Drifter is the right one to track: it is the modal spawn, and the dashes are a cue that says "your
   // ring is whirling", not a hitbox.
   if(P.eddy){
