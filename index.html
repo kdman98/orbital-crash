@@ -869,10 +869,18 @@
 // TEXT HAS TWO AUDIENCES, and only one of them is playing. Everything a player reads is written for a
 // player: names, verbs, and what to do about it. Everything written for US — code identifiers, raw
 // exception text, internal phase names — is diagnostic, and shipping it inside a player-facing screen
-// makes the game look like a tool that leaked. `DEV` is the seam. It is off unless you ask for it:
-//   ?dev=1  (or #dev, so it survives a hash-only reload)
-// A false DEV must never change behaviour, only wording — every gate below picks between two STRINGS.
-const DEV = /[?&]dev=1\b/.test(location.search) || /(^|#)dev\b/.test(location.hash);
+// makes the game look like a tool that leaked.
+//   ⚠️ THERE USED TO BE A `DEV` SEAM HERE — `?dev=1`, or `#dev` so it survived a hash-only reload —
+// which swapped the two diagnostic strings back in. It is gone at publish, and it should not come back
+// IN THIS FORM. A URL flag is a public switch pointed the wrong way: on the web build anyone can type
+// it, and in the iOS shell nobody can, because Capacitor loads capacitor://localhost with no address
+// bar (no `server.url` in capacitor.config.json). It was reachable exactly where it was unwanted and
+// unreachable exactly where a crash report would have needed it.
+//   Nothing diagnostic was lost, only the way in. The raw exception still goes to console.error twice
+// over — in `frame`'s catch and in the window error handler — and `wavePhase` at death is still live at
+// `__orbital.lastDmg.phase`, since the seam at the bottom of this file is assigned unconditionally.
+// If a player-triggerable diagnostic is ever wanted again, it belongs behind something a player cannot
+// stumble into, not behind a query string.
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 // WORLD SCALE. Every length and every speed in this file is in DESIGN UNITS, measured against a
@@ -1175,7 +1183,6 @@ const L={ en:{
   'dead.kicker':'Core Lost',  'dead.best':'New Best!',  'dead.again':'Reforge',
   'dead.time':'Time Survived',  'dead.combo':'Peak Combo',
   'dead.cause':'Lost to {src} · Epoch {r}',
-  'dead.causeDev':'Lost to {src} · Epoch {r} · phase {p}',
   'dead.src':'{name} ({col})',  'dead.srcN':'{name}',   // Neutral wears both colours, so it takes no colour word
 
   // ---- tutorial ----
@@ -1327,7 +1334,6 @@ const L={ en:{
   'dead.kicker':'코어 소실',  'dead.best':'신기록!',  'dead.again':'재시도',
   'dead.time':'생존 시간',  'dead.combo':'최고 콤보',
   'dead.cause':'{src}에 당함 · {n}단계',
-  'dead.causeDev':'{src}에 당함 · {n}단계 · phase {p}',
   'dead.src':'{col} {name}',  'dead.srcN':'{name}',
 
   // ---- tutorial ----
@@ -4931,7 +4937,7 @@ function processKills(){
 // jump in the charge bar has no cause on screen. It is a gain, printed in gold, over the hurt voice.
 // ⚠️ `dot.boss` BELONGS IN L. The Anomaly's body damages you through the Dot-contact path like everything
 // else, so a missing key printed the raw type on the death screen — "Lost to boss (red)" — the same class
-// of internal-identifier leak that put `phase` behind DEV two lines below the receipt.
+// of internal-identifier leak that kept `phase` off the receipt for good.
 //
 // ⚠️ A DAMAGE SOURCE IS A KEY PAIR, NOT A NAME, and that is a save-format rule rather than a rendering
 // one. `die()` writes lastDmg.src straight into store.runs, so while this carried "Brute (cyan)" every
@@ -5425,11 +5431,11 @@ function die(){
   el('deadScore').textContent='0';
   // The death receipt. `phase` is an internal identifier — 'calm'/'build'/'storm'/'boss' — and no
   // player-facing screen has ever taught those words, so it printed lowercase code under a headline.
-  // It is genuinely useful to us (it says WHERE in the beat the run ended), so it moves behind DEV
-  // rather than being deleted. The heading already says "Core Lost"; the line names the killer.
+  // It is genuinely useful to us (it says WHERE in the beat the run ended), so it is still RECORDED on
+  // `lastDmg` and readable at `__orbital.lastDmg.phase` — it is only never rendered. The heading already
+  // says "Core Lost"; the line names the killer.
   el('deadCause').textContent = lastDmg
-    ? T(DEV?'dead.causeDev':'dead.cause',
-        {src:srcName(lastDmg.src), r:roman(lastDmg.act), n:lastDmg.act, p:lastDmg.phase})
+    ? T('dead.cause', {src:srcName(lastDmg.src), r:roman(lastDmg.act), n:lastDmg.act})
     : '';
   el('deadTime').textContent=fmtTime(elapsed);
   el('deadCombo').textContent=peakCombo;
@@ -6676,11 +6682,13 @@ function crashHalt(err){
   d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,8,20,.94);color:#e8ecff;font:600 14px/1.6 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;text-align:center;padding:24px';
   // The exception message is for us, not for the player: it is unlocalised engine text, it names
   // internals, and it cannot be acted on by anyone who is not holding the source. The player gets the
-  // two facts that are actually theirs — it stopped, and the save survived — plus the button. Under
-  // DEV the raw message comes back, because at that point reading it IS the job.
+  // two facts that are actually theirs — it stopped, and the save survived — plus the button.
+  //   `err` is still the parameter and is still not dropped: the `catch` in `frame` console.error's
+  // EVERY fault including this eighth one, before it ever calls here, so the message is already in the
+  // log by the time this screen exists. That is the only place it belongs — one a player never opens
+  // and a developer always can.
   d.innerHTML='<div style="color:#ff3f6c;font-size:18px;letter-spacing:.22em">CORE FAULT</div>'
     +'<div style="opacity:.75;max-width:34em">The simulation hit an error and stopped. Your best score is safe.</div>'
-    +(DEV?'<div style="opacity:.4;font-size:11px;max-width:34em;word-break:break-word">'+String(err&&err.message||err).replace(/[<>&]/g,'')+'</div>':'')
     +'<button id="crashReload" style="margin-top:6px;padding:10px 22px;background:transparent;color:#38e0ff;border:1px solid #38e0ff;border-radius:2px;font:inherit;letter-spacing:.18em;cursor:pointer">RELOAD</button>';
   document.body.appendChild(d);
   el('crashReload').onclick=()=>location.reload();
