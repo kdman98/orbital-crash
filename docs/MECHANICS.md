@@ -1937,13 +1937,34 @@ turns an acknowledgement into a second thing to read and doubles the step.
 otherwise the first travel sample of the new step spans the whole beat and credits a step that has not
 started.
 
-⚠️ **The auto-start must never fire under test, and this failure is silent.** `.oracle.js` and
-`.harness/record.html` drive `startRun()` themselves; a tutorial launching at boot would drop a scripted
-pilot into a mode with the wave clock parked and damage off, and every tape and every fingerprint would
-measure that instead — no error, just the wrong game. **`window.__H` is the gate, and it works because of
-*when* it exists**: `preload.js` is injected ahead of the inline script. `window.__oracle` does **not**
-work and never did — `.oracle.js` is pasted *after* load, so nothing it defines is visible at boot. A gate
-that cannot fire is worse than no gate, because it looks like cover.
+**Nothing launches at boot. The menu always opens, and the tutorial button glows instead** (`8abc493`).
+Author: *"don't show tutorial as soon as game start, just highlight tutorial."* A mode that opens itself
+answers a question the player has not asked — the first thing a new arrival met was a lesson about the
+game rather than the game, on a screen they never chose. `.btn.tut` carries a `fresh` class while the
+profile has never started a run; `refreshTutBeacon()` re-evaluates at boot and in `toMenu()`, the single
+funnel for all three returns, so the pulse stops the moment you have taken the lesson rather than
+persisting until reload. ⚠️ Under `prefers-reduced-motion` it is a **static tint, not a dropped signal** —
+the animation goes and a background wash replaces it.
+
+⚠️ **`tutSeen()` changed predicate with that commit, and the key did not.** `markTutSeen()` used to fire on
+the boot run, so `orbitalcrash_tut` meant *"this profile has loaded the page."* It is now set by the first
+run the player **chooses** to start (any mode — quitting the tutorial into a survival run still counts, or
+abandoning it would re-arm the beacon forever). So it means *"this profile has played something,"* and a
+visitor who opens the page and closes it still gets the nudge next time. **Same key, same name, different
+question** — the kind of change a grep cannot show you.
+
+⚠️ **The boot-time harness hazard is now gone at the source, and that is worth stating rather than just
+deleting.** The old auto-start could drop a scripted pilot into a mode with the wave clock parked and
+damage off, and every tape and fingerprint would have measured that instead — no error, just the wrong
+game. `tutSuppressed` survives and still answers *"is this a harness"* for the beacon, but **it is no
+longer load-bearing for correctness**: there is no boot run to suppress, and deleting it would cost a
+cosmetic pulse on a button no harness clicks.
+
+**Keep the timing lesson it taught, because it outlives its own hazard.** `window.__H` worked because of
+*when* it existed — `.harness/preload.js` is injected ahead of the inline script. `window.__oracle` never
+worked and could not: `.oracle.js` is pasted *after* load, so nothing it defines exists at boot. **A gate
+that cannot fire is worse than no gate, because it looks like cover.** That applies to any future
+boot-time check, and the fact that this particular one is now unnecessary does not retire the rule.
 
 **The copy is the author's.** Only the bracketed device verbs vary, and they must: steps 1, 4 and 5 were
 written as *"Move the mouse"*, *"Click"* and *"Hold shift"*, all three describing a desktop — the exact
@@ -2371,14 +2392,15 @@ viewport can be **0×0**, which makes `94vw` resolve to nothing and every paragr
 collapsed container: one pass here reported 67.5px of overflow that did not exist. Assert
 `innerWidth !== 0` before believing anything.
 
-⚠️ **The first-visit tutorial must never auto-start under a harness, and the failure would be silent.**
-`.oracle.js` and `.harness/record.html` drive `startRun()` themselves; a tutorial launching at boot drops
-a scripted pilot into a mode with the wave clock parked at `phaseT=1e9` and damage off, so every
-fingerprint and every tape measures *that* instead. Nothing throws — it simply measures the wrong game.
-`window.__H` is the gate that works, and it works because of **when** it exists: `preload.js` is injected
-ahead of the inline script, so the harness has announced itself before the boot line runs. A gate on
-anything `.oracle.js` defines **cannot** work — it is pasted after load — which is why the oracle sets
-`orbitalcrash_tut` itself instead. `?tut=0` is the manual escape.
+⚠️ **A boot-time gate must be reachable at boot, and one that is not looks exactly like cover.** The
+first-visit tutorial used to auto-start, which would drop a scripted pilot into a mode with the wave clock
+parked at `phaseT=1e9` and damage off — every fingerprint and every tape measuring *that* instead, with
+nothing thrown. `window.__H` was the gate that worked, and it worked because of **when** it exists:
+`preload.js` is injected ahead of the inline script, so the harness has announced itself before the boot
+line runs. A gate on anything `.oracle.js` defines **cannot** work — it is pasted after load. *(`8abc493`
+removed the auto-start entirely, so this specific hazard is gone at the source and `tutSuppressed` is now
+cosmetic. **The rule is kept because it is about boot-time gates in general**, and the next one will be
+written by someone who did not watch this one nearly go wrong.)*
 
 **`store.mute` is API, not an internal flag.** Every rig in this repo silences the game with
 `store:{mute:true}` or by writing `orbitalcrash_mute`. When the level slider arrived, folding mute into
@@ -2519,6 +2541,24 @@ Anyone reading it would have concluded the ring was *meant* to feel that way and
 the sentence actively defended the bug. **Label every measurement write-up as a diagnosis or a
 specification**, because they are written in identical language and only the author knows which one it
 was. If you cannot tell which you meant, it is a diagnosis.
+
+**A note can be invalidated by the world moving under it, with nobody editing anything — and a grep for
+the changed fact finds nothing, because the changed fact is not in the repository.** `.gitignore` carried
+a comment justifying `docs/SCOPE.md`: *"Removed from tracking rather than from history: the rest of the
+log stays intact."* That was **correct** — while the repo was private, history was a fine place to leave
+the free/paid plan. Making the repo public inverted it into an exposure, and the sentence never changed a
+character, so nothing looked stale. Verified from a clone of the public URL: 7 commits reachable, 317
+lines recoverable, `$2.99 / $3 / $4.99` extractable. *(Accepted by the author — the plan was superseded
+twice over, and purging would rewrite every SHA from 2026-08-04, breaking 2 of the 3 evidence hashes
+printed in the submission plus most of this repo's 110 hash citations.)*
+
+**This is the harder sibling of the entry below.** The usual failure is editing a fact and not re-deriving
+what rested on it, and the defence is to grep the reasoning when you change the number. Here there was no
+number and no edit: the premise was **the audience**, which lives outside the tree entirely. ⚠️ **The
+check is therefore a calendar item, not a diff:** before making any repository public, re-read every note
+that justifies itself with *"it's private"* or *"internal only"* — anything gated on **who can see this**
+rather than on what it says. Those are load-bearing in the opposite direction the instant you flip, and
+they are invisible to every tool that watches the code.
 
 **A correct argument can stand in for a cue, and it will pass every review because it is true.** Two
 mechanics were defended this way and both defences held up under scrutiny while reaching the player not at

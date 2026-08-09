@@ -14,6 +14,47 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-09
 
+### The repository goes public, and a note that was true while it was private stopped being true `4ae4992`
+`kdman98/orbital-crash` is public and Pages is live, so all three links the submission prints resolve —
+play, source and video, measured 200 logged-out. 18 backed-up commits were pushed first, so Pages serves
+current HEAD; verified byte-identical by SHA-256, then loaded and confirmed to boot with no console
+errors. README is cut to a landing page, 167 lines → 33.
+
+⚠️ **`docs/SCOPE.md` is readable in the published history and this was decided, not overlooked.** It left
+the tree at `05f9b5f` but survives in 7 commits; a clone of the public URL recovers 317 lines including
+the price points. Purging would rewrite every SHA from 2026-08-04, breaking **2 of the 3 evidence hashes
+printed in the submission PDF** (`bf2eb84`, `7b68016`; `1a980bb` predates it) and most of this file's 110
+hash citations — against a plan the author says has been superseded twice since. Accepted on that trade.
+
+**The reusable part is how the note went wrong.** `.gitignore` justified the arrangement in its own
+words — *"Removed from tracking rather than from history"* — and that was **correct while the repo was
+private**. Flipping visibility inverted it, and **nobody edited anything, so nothing looked stale**. It is
+the conclusions-outliving-arguments failure with the argument living *outside the tree*: the premise was
+the audience. Filed in *Traps* with the check, which is a calendar item rather than a diff — before making
+any repo public, re-read every note that justifies itself with "it's private".
+
+### The tutorial stops opening itself, and the menu door glows instead `8abc493`
+Author: *"when entering game for the first time, don't show tutorial as soon as game start, just highlight
+tutorial."* A mode that starts itself answers a question the player has not asked — a new arrival met a
+lesson about the game before the game, on a screen they never chose to open. The menu now always opens and
+`.btn.tut` carries a `fresh` class while the profile has never started a run. `refreshTutBeacon()`
+re-evaluates at boot and in `toMenu()`, so the pulse stops on return rather than at the next reload; under
+`prefers-reduced-motion` it becomes a static tint rather than nothing.
+
+Verified on a genuinely fresh profile: flag `null`, state `menu`, menu visible, beacon on — then `'1'` the
+moment a run is chosen.
+
+⚠️ **The boot-time harness hazard is gone at the source, not merely gated.** The old auto-start could drop
+a scripted pilot into a mode with the wave clock parked and damage off, and every tape and fingerprint
+would have measured that silently. `tutSuppressed` is kept for the beacon but is **no longer load-bearing
+for correctness**. The timing lesson it taught is kept anyway, because it outlives its hazard: `__H` works
+because `preload.js` runs first, `__oracle` never could because `.oracle.js` is pasted after load, and **a
+gate that cannot fire is worse than no gate because it looks like cover.**
+
+⚠️ **`tutSeen()` changed predicate and the key did not.** `orbitalcrash_tut` meant *"this profile loaded
+the page"* when `markTutSeen()` fired on the boot run; it now means *"this profile played something,"* set
+by the first run the player chooses. Same key, same name, different question — invisible to a grep.
+
 ### The Brute gets its Overdrive widening back, and the fix was the Brute rather than the ring `24e51c6` `9c3dde2`
 The eddy retune below left heavy Dots with no widening at all: the burning ring is ceiling-limited, the
 Brute had the lowest ceiling, and pulling the orbit in took back everything the ceiling was giving it.
@@ -816,6 +857,10 @@ setting the pace — and it gave a 7-word line the same time as a 14-word one. `
 ~190wpm: slow for prose, right for a line read once while something is moving. Per step,
 instruction / beat: 2.23/2.25, 3.85/2.57, 3.22/2.25, 4.82/2.88, 4.48/2.57. **It also means editing the
 copy cannot silently outrun the pacing.**
+
+⚠️ *The auto-start described below was removed in `8abc493` (2026-08-09) — the menu always opens now and
+the tutorial button glows instead, so this hazard is gone at the source rather than gated. The gate-timing
+lesson survives it and is in* Traps.
 
 ⚠️ **The auto-start must never fire under test, and that failure would have been quiet rather than loud.**
 `.oracle.js` and `.harness/record.html` drive `startRun()` themselves; a tutorial launching at boot would
