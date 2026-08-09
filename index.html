@@ -294,6 +294,32 @@
   .btn.tut{margin-top:13px;background:rgba(56,224,255,.1);color:var(--cyan);
     box-shadow:0 0 0 1.5px rgba(56,224,255,.55) inset;}   /* its glow went with the primary's, same reason */
   .btn.tut:hover{background:rgba(56,224,255,.18);color:#d8f7ff;}
+  /* THE BEACON — first visit only, and it replaces a tutorial that used to LAUNCH ITSELF at boot.
+     Auto-starting answered a question the player had not asked yet: the first thing a new arrival met
+     was not the game but a lesson about it, on a screen they never chose to open, with no way to know
+     they had skipped the menu entirely. Author: "don't show tutorial as soon as game start, just
+     highlight tutorial." So the menu always opens, and the door is made loud instead of opened for you.
+       An EXPANDING RING rather than a colour flash or a wobble: it is the same cue the world uses for
+     "something happened here" (spawnRing), so the vocabulary is one the player will meet again inside
+     the game rather than a chrome idiom that lives only on this screen. It rides the existing inset
+     outline instead of replacing it, so the button never changes shape or size — a menu item that
+     resizes on a timer moves the thing under the cursor.
+       ⚠️ It must NOT be the only signal that this button matters. `.btn.tut` is already the louder of
+     the two doors on its own (see the menu markup); the beacon is a first-visit nudge on top of a
+     button that reads as a door regardless. If the beacon is ever removed, nothing is lost but the
+     nudge. */
+  @keyframes tutbeacon{
+    0%  {box-shadow:0 0 0 1.5px rgba(56,224,255,.55) inset, 0 0 0 0    rgba(56,224,255,.42);}
+    70% {box-shadow:0 0 0 1.5px rgba(56,224,255,.92) inset, 0 0 0 13px rgba(56,224,255,0);}
+    100%{box-shadow:0 0 0 1.5px rgba(56,224,255,.55) inset, 0 0 0 0    rgba(56,224,255,0);}
+  }
+  .btn.tut.fresh{animation:tutbeacon 2.4s ease-out infinite;}
+  /* A pulse that cannot be dismissed is exactly what this setting exists to switch off, and this one
+     runs until the player acts. The static form keeps the emphasis and drops the motion. */
+  @media (prefers-reduced-motion: reduce){
+    .btn.tut.fresh{animation:none;background:rgba(56,224,255,.2);
+      box-shadow:0 0 0 2px rgba(56,224,255,.95) inset;}
+  }
 
   /* MENU SIDE DOORS. Two of these start a run and two open a page over the menu, and until now all
      four were the same ghost pill in one column, told apart by an 8px-vs-12px margin. The shape says
@@ -4761,9 +4787,11 @@ function stepPlayerContact(){
     // and the oracle CANNOT certify this change — see PATCHNOTE. Any future removal of an effect
     // call has the same property; do not read a moved fingerprint here as a regression.
     //   RESTORE POINT for the shield plan (MECHANICS "Open", the Aegis hole at survival -23.5%): the
-    // detection is ten lines and belongs here. Do NOT bring the payout back with it. SCOPE's warning
-    // is the design: pay the LADDER, not the single graze -- 단발은 운, 지속은 실력 -- so a restored
-    // version needs `grazeN` and its 1.5s decay back as well, and a threshold on the count.
+    // detection is ten lines and belongs here. Do NOT bring the payout back with it. The design rule
+    // is four lines up, in this block's own words: pay the LADDER, not the single graze -- 단발은 운,
+    // 지속은 실력 -- so a restored version needs `grazeN` and its 1.5s decay back as well, and a
+    // threshold on the count. (This cited `docs/SCOPE.md` until 2026-08-09, when that file was deleted.
+    // The rule outlived it because the argument for it was always here rather than there.)
     if(d2<rr*rr){
       // same-colour enemies are repelled allies — they pass through the core harmlessly (no UI cue).
       if(e.type!=='neutral' && e.type!=='boss' && e.color===P.polarity) continue;
@@ -6824,6 +6852,7 @@ function toMenu(){
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
   el('menu').classList.remove('hidden');
+  refreshTutBeacon();   // the flag can only have been SET since we left, so this only ever turns it off
 }
 
 function pauseGame(){
@@ -7703,9 +7732,27 @@ function markTutSeen(){ try{ LS.setItem('orbitalcrash_tut','1'); }catch(_){} }
 // separate reasons instead: markTutSeen() fires on the boot run, so a profile can only ever see this
 // once; and the oracle calls start() per seed, which resets tutMode to false before it fingerprints
 // anything. It also sets the flag itself now, so a fresh profile is covered too.
+// ⚠️ NOTHING LAUNCHES AT BOOT ANY MORE, and the whole hazard above went with it. `startRun('tut')` used
+// to run on this line for any profile that had not seen the tutorial, which is why the gate existed:
+// every harness, tape and fingerprint had to be defended against a mode that could start itself. The
+// menu now always opens, so there is no boot run to suppress and no way for a scripted pilot to land in
+// tutMode by accident. The gate is kept because it still answers "is this a harness" for the beacon —
+// but it is no longer load-bearing for correctness, and if it were deleted the worst case is a cosmetic
+// pulse on a button no harness clicks.
+//   ⚠️ THE CONSEQUENCE FOR `tutSeen()` IS REAL AND IS THE POINT. markTutSeen() fired on the boot run, so
+// the flag was set before a player did anything; now it is set by the first run they CHOOSE to start
+// (startRun marks it for any mode). So the beacon lasts exactly until the first deliberate act, and a
+// player who opens the page and closes it still gets the nudge next time.
 const tutSuppressed = !!window.__H || /[?&]tut=0/.test(location.search)
   || location.pathname.indexOf('/.harness/')>=0;
-if(!tutSeen() && !tutSuppressed) startRun('tut');
+// Re-evaluated rather than latched at boot, because the menu is re-entered after every run and the
+// button must stop pulsing the moment the flag flips — a beacon still going after you took the lesson
+// is the menu asking for something you already gave it.
+function refreshTutBeacon(){
+  const b=el('tutBtn'); if(!b) return;
+  b.classList.toggle('fresh', !tutSeen() && !tutSuppressed);
+}
+refreshTutBeacon();
 
 // --- test seam: drive the fixed-step sim deterministically (rAF-independent) ---
 window.__orbital=window.__polaris=window.__flux={
