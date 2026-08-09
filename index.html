@@ -10,6 +10,37 @@
 <meta name="apple-mobile-web-app-title" content="Orbital Crash" />
 <link rel="manifest" href="manifest.webmanifest" />
 <title>ORBITAL CRASH</title>
+<!-- SHARE CARDS. This block is the one part of the page that is STATIC BY NECESSITY. The game picks
+     its language from navigator.language at boot; a scraper has no navigator, because Slack, Discord,
+     KakaoTalk and every crawler READ this file and never run it. So the card is English to match
+     <html lang> and the manifest, and it does not follow the UI the way everything else here does.
+     ⚠️ og:image MUST BE ABSOLUTE. A relative path resolves fine in a browser and nowhere else — most
+     scrapers drop it without complaint and the link renders with no image, which looks like nobody
+     set one rather than like a broken one. Same for og:url. Both point at the Pages origin, and they
+     are inert in the Capacitor shell and under file://, where nothing scrapes anything.
+     ⚠️ THE DIMENSIONS ARE A CLAIM ABOUT THE FILE, NOT A REQUEST. og:image:width/height tell a scraper
+     what it will get so it can reserve the box before fetching; if og-image.png is ever
+     regenerated at another size these two lines go quietly wrong and the preview letterboxes. It is
+     1200x630 (the 1.91:1 standard), rendered from this game's own title lockup at 2x and downsampled.
+     ⚠️ AND IT LIVES AT THE REPO ROOT RATHER THAN IN icons/, WHICH IS DELIBERATE AND NOT TIDINESS.
+     `npm run build` copies four named files plus the whole of icons/ into www/, and www/ is what the
+     Capacitor shell bundles — so a card in icons/ would ride into the iOS app as 292KB that nothing
+     there can ever request. It is also not an icon. The service worker's SHELL list leaves it out for
+     the same reason: no scraper runs a service worker, and no player ever fetches it. -->
+<meta name="description" content="Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Orbital Crash" />
+<meta property="og:title" content="ORBITAL CRASH" />
+<meta property="og:description" content="Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies." />
+<meta property="og:url" content="https://kdman98.github.io/orbital-crash/" />
+<meta property="og:image" content="https://kdman98.github.io/orbital-crash/og-image.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="The ORBITAL CRASH wordmark inside two orbit rings, a red point on one side and a cyan point on the other." />
+<meta property="og:locale" content="en_US" />
+<meta property="og:locale:alternate" content="ko_KR" />
+<meta name="twitter:card" content="summary_large_image" />
 <style>
   :root{
     --bg:#060814; --ink:#eaf2ff; --dim:#68789e;
