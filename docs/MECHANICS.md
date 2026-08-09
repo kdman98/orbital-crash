@@ -2642,6 +2642,14 @@ that it did not is not a fix** — the report is about the screen, so the answer
 distinct failure from the rest of this section: not a stale number, not a broken comparison, but sound
 reasoning occupying the slot where a cue belongs.
 
+**Write a safety guard as a RATIO of the thing it guards, never as an absolute — an absolute stops
+scaling silently the first time someone retunes around it.** The mine box has a density guard that keeps
+the box beat clear of the fuse; it is expressed as `×2.2` on the gap, so when a per-kind tempo multiplier
+was later added the guard moved with it and peak concurrent mines did not budge. **Had it been written as
+"box gap = 7.0s" it would have held the old spacing against a faster tempo, the peak would have risen,
+and nothing anywhere would have failed** — the constant would still read 7.0 and look deliberate. A
+guard that cannot notice the thing it guards against changing is decoration.
+
 **A coefficient is not the quantity it scales, and here the two do not even ORDER the same way.** `orbR`
 is a fraction of `fieldR` and reads exactly like a radius, so every summary of this mechanic has at some
 point quoted the coefficient and meant the shell. At `bee3201` that finally became visibly wrong rather
@@ -2710,6 +2718,27 @@ probe script never runs `frameBody`, so state left over from the test case survi
 **A seeded distance is not the tested distance.** The star chases the pointer and is yanked up to 18.5% of
 the way toward a stale pointer position before contact resolves. Bracket on the separation that actually
 existed at end of frame.
+
+⚠️ **A LONG "BOSS" RUN IS NOT ONE KIND. The wave director keeps running, and `enterBoss()` calls
+`spawnBoss()` again on its own schedule**, so a run that started on a Sentinel is a blend of two or three
+kinds by the end — the object under `boss` is replaced and `updateBoss` simply drives whatever is there
+now. Any per-kind rate measured over a long run is therefore an average across kinds, and the number
+comes out **flattering**, because the arm you are testing gets credit for a kind you never spawned.
+**Cut the sample the frame `boss` stops being the object you started with**, and record `variant` per
+frame rather than trusting the spawn call: the spawn call says what you asked for, and only a per-frame
+record says what was actually running. Same shape as the seam handle captured before `start()` — *the
+setup call is not the treatment.*
+
+⚠️ **And a counter that keeps ticking past the identity break measures the contamination instead of
+excluding it.** The tell there is that the break lands on the *same frame every run*, which is a fixed
+schedule announcing itself; genuinely random deaths would scatter.
+
+⚠️ **A table keyed by the variant string with a `||` default is a silent-failure seam.**
+`HUNT_SPD[b.variant] || HUNT_SPD.emitter` returns the *Emitter's* hunt speed for any kind whose key is
+missing, and `VAR_PAT[variant] || 1` returns "no multiplier at all". Rename a kind, miss one of these
+tables, and there is **no error and no warning** — the kind quietly reverts to a default while the
+constant sits visibly in the file looking applied. **Renaming a variant means grepping every lookup
+keyed by the variant string**, not just the type checks. `Pulsar → Bastion` (`e8c7fa2`) crossed both.
 
 **One trial of a stochastic fight is an anecdote.** Ring size in a live fight swings by an order of
 magnitude between runs. Three trials is still an anecdote; eight is a signal.
