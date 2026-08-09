@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Can this browser record the game?</title>
+<!--
+  Answers "will .record.js work here" without needing a console, a Develop menu, or my guesses.
+  Open it in the browser you actually want to record with. Every row is a real feature test, not a
+  user-agent sniff — a UA string tells you what a browser CALLS itself, which is a different question.
+  The capture row is the only one that needs a click, because getDisplayMedia requires a user gesture.
+-->
+<style>
+  body{font:15px/1.55 -apple-system,BlinkMacSystemFont,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;
+       background:#0d1117;color:#d8dee9}
+  h1{font-size:19px;letter-spacing:.02em}
+  table{border-collapse:collapse;width:100%;margin:18px 0}
+  td,th{padding:7px 10px;border-bottom:1px solid #222b36;text-align:left;vertical-align:top}
+  th{color:#8b98a5;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  .ok{color:#7ee787;font-weight:700} .no{color:#ff7b72;font-weight:700} .maybe{color:#e3b341;font-weight:700}
+  button{font:inherit;background:#1f6feb;color:#fff;border:0;border-radius:6px;padding:9px 16px;cursor:pointer}
+  #verdict{margin-top:22px;padding:14px 16px;border-radius:8px;background:#161b22;border:1px solid #222b36}
+  code{background:#161b22;padding:1px 5px;border-radius:4px;font-size:13px}
+  small{color:#8b98a5}
+</style>
+<h1>Can this browser record ORBITAL CRASH?</h1>
+<p><small>Feature tests, not user-agent sniffing. Run this in the browser you want to record with.</small></p>
+<table id="t"><tr><th>Requirement</th><th>Result</th><th>Why it matters</th></tr></table>
+<p><button id="go">Test screen capture (opens the picker)</button></p>
+<div id="verdict">Click the button above to finish the test.</div>
+<script>
+const T = document.getElementById('t');
+const row = (name, state, note) => {
+  const cls = state === true ? 'ok' : state === false ? 'no' : 'maybe';
+  const txt = state === true ? 'YES' : state === false ? 'NO' : state;
+  T.insertAdjacentHTML('beforeend',
+    `<tr><td>${name}</td><td class="${cls}">${txt}</td><td><small>${note}</small></td></tr>`);
+  return state;
+};
+
+const MR = 'MediaRecorder' in window;
+row('MediaRecorder exists', MR, 'Without this nothing can be recorded at all.');
+
+const mimes = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
+const supported = MR ? mimes.filter(m => MediaRecorder.isTypeSupported(m)) : [];
+row('Container/codec', supported.length ? supported[0] : false,
+    supported.length ? `Supported here: <code>${supported.join('</code>, <code>')}</code>`
+                     : 'No container this recorder knows how to write.');
+
+const gdm = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+row('getDisplayMedia exists', gdm, 'Needed to capture the page including the HUD, which is DOM and not canvas.');
+
+const AC = window.AudioContext || window.webkitAudioContext;
+let msd = false;
+try { const c = new AC(); msd = typeof c.createMediaStreamDestination === 'function'; c.close(); } catch (e) {}
+row('WebAudio stream tap', msd, 'This is how the game’s own sound gets into the file, instead of a microphone.');
+
+row('Blob download', typeof document.createElement('a').download === 'string',
+    'How the finished file reaches your Downloads folder.');
+
+document.getElementById('go').onclick = async () => {
+  const v = document.getElementById('verdict');
+  let stream = null, gotVideo = false, gotAudio = false, err = null;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 60, width: { max: 1920 }, height: { max: 1080 } }, audio: true });
+    gotVideo = stream.getVideoTracks().length > 0;
+    gotAudio = stream.getAudioTracks().length > 0;
+  } catch (e) { err = e.name + ': ' + e.message; }
+
+  let s = null, recOk = false, recErr = null;
+  if (stream) {
+    s = stream.getVideoTracks()[0].getSettings();
+    try { const r = new MediaRecorder(stream, supported.length ? { mimeType: supported[0] } : undefined);
+          r.start(); r.stop(); recOk = true; }
+    catch (e) { recErr = e.name + ': ' + e.message; }
+    stream.getTracks().forEach(t => t.stop());
+  }
+
+  row('Screen capture ran', err ? false : gotVideo, err ? err : `Captured at ${s.width}×${s.height}@${s.frameRate}.`);
+  row('Resolution cap honoured', s ? (s.width <= 1920 && s.height <= 1080) : false,
+      s ? `Asked for max 1920×1080, got ${s.width}×${s.height}. If this is NO the capture is full-res and will be heavy on a fanless Mac.`
+        : 'Not tested — capture did not run.');
+  row('Capture supplied tab audio', gotAudio,
+      'Only a FALLBACK. The recorder prefers the game’s own audio graph, so NO here is fine.');
+  row('MediaRecorder accepted the stream', recOk, recErr || 'It can actually start writing this stream.');
+
+  const core = MR && supported.length && gdm && msd && gotVideo && recOk;
+  v.innerHTML = core
+    ? '<b class="ok">This browser can record the game.</b> Paste <code>.record.js</code> into its console and run <code>__rec.start()</code>.'
+    : '<b class="no">This browser cannot run the recorder as written.</b> Use one that passes every row above — Chrome is known to.';
+};
+</script>
