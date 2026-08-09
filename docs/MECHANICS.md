@@ -1647,7 +1647,9 @@ of the log, because the log stops growing well before a marathon run does. Readi
 a long run quietly under-report how much it was hiding.
 
 **The cause line names species, never internals.** It reads *Lost to* a Dot's display name plus the
-Epoch in Roman, with the phase held behind `DEV` two lines away for the same reason. The Anomaly
+Epoch in Roman, with the phase **recorded but never rendered** — it is on `lastDmg` and reachable at
+`__orbital.lastDmg.phase` for a harness, and reaches no player-facing surface at all. *(It sat behind a
+`DEV` flag until `fbe2bd8` removed that seam; the rule is unchanged, only the mechanism.)* The Anomaly
 damages you through the ordinary Dot-contact path, so it needs a row in `DOTNAME` like everything else;
 without one the receipt printed the raw internal type back at the player.
 
@@ -2125,6 +2127,15 @@ it shipped a half-done CSS rename: `.acv` defined in the stylesheet while the bu
 **Know your changed-line count before you stage, and check it against `git diff --numstat`.** This is a
 comparison, not a review, which is the whole point — "inspect every hunk" is what nobody does under
 time pressure, and a filtered copy costs real effort even when the file is quiet.
+
+⚠️ **ASSERT THE DIFF IS NON-EMPTY BEFORE READING IT AS CLEAN, because a wrong path fails as silence.**
+`git diff -- orbital-crash/index.html` from inside `orbital-crash/` returns nothing — the repo root *is*
+that directory, so the path matches no file. Measured here on a file with real changes: the wrong path
+gives `''` and `--quiet` exits **0**; the right path gives `3 1 docs/MECHANICS.md` and exits **1**.
+**Empty output and exit 0 are exactly what "your tree is clean" looks like**, so the guard that exists to
+catch another session's hunks in your commit reports success *by failing to run*. That is strictly worse
+than skipping it, because skipping it leaves you uncertain and this leaves you confident. Check that the
+command found the file at all — a `git status` line with no matching diff line is the tell.
 
 ⚠️ **Paste the number, never recall it.** Both sessions have now published a numstat in a commit body
 that the terminal never printed — `34 0` against a real `32 0`, `23 0` against `22 0`, `22 insertions,

@@ -1711,7 +1711,8 @@ it. The chime is untouched; its cadence was already right. See law 9.
 
 **Fixed:** the death receipt printed `Lost to boss (red)` — the Anomaly damages you through the
 ordinary Dot-contact path and had no display name in that table, so the raw internal type reached the
-player. The same class of leak as the phase readout that now sits behind `DEV`.
+player. The same class of leak as the phase readout, which was gated behind `DEV` at the time.
+⚠️ *`fbe2bd8` removed that seam entirely; the phase is now recorded on `lastDmg` and never rendered.*
 
 ### Overdrive gets faster instead of only bigger `84d5aee`
 *The diff is in `84d5aee`, whose message is about a documentation pass — it was swept in by a `git add -A`
