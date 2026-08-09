@@ -3508,19 +3508,55 @@ function spawnBoss(forceVariant){
   // would speed the patterns up while the player was standing inside them — the difficulty spike attached
   // to nothing the player did that the cadence comment in updateBoss argues against. The Anomaly you are
   // fighting keeps the pace of the Epoch it arrived in.
+  // ---- PAT: the kind's own attack tempo, on a SEPARATE axis from the Epoch ramp ----
+  // `cad` above is the Epoch's gentleness and it applies to everything the Anomaly does, the hunt
+  // included. `pat` is how fast THIS KIND throws its patterns, and it applies only to the timers that
+  // FIRE. Keeping them apart is the whole design of this pair:
+  //   · fold a kind's tempo into `cad` and you also speed up its hunt — it leaves station and walks onto
+  //     your core more often. That is "the Anomaly crowds me", a different complaint from "its patterns
+  //     are sluggish", and it changes a fight's shape rather than its rhythm.
+  //   · the alternative lever, raising projectile `sp`, is worse here and the table says why: the seeker
+  //     sits at 3.3 precisely because a Star does 6.2, so "the answer is to run, not to juke" holds only
+  //     while it cannot out-run you. Speed it up and that sentence stops being true. Reach would move
+  //     too, since reach is `sp x 60 x life`. Cadence changes the tempo and nothing else.
+  // The Emitter stays at 1: it already alternates a burst with a 4-fan spiral stream AND lunges, which
+  // is why it never read as the slow one. Sentinel and Bastion each do two things on a ~3s beat.
+  // MEASURED at Epoch III, 3 independent sweeps, 363s per arm, boss pinned unkillable:
+  //   Sentinel  seekers/min  44.6 -> 56.5   (+27%)   missiles on screen, mean  1.55 -> 1.94
+  //   Bastion   mines/min    59.0 -> 75.5   (+27%)   missiles on screen, mean  6.28 -> 8.20
+  //   Bastion   novas/min    12.8 -> 15.0   (+18%)
+  // ⚠️ THE NOVA GAINS LESS THAN THE REST, AND THAT IS CORRECT RATHER THAN A SHORTFALL. Its cycle is
+  // `novaT` PLUS a flat 0.9s `novaCharge` wind-up, and that wind-up is the telegraph that says a wall is
+  // coming and buys you the time to find the seam. Only the gap scales, so 1/0.8 arrives as +18% instead
+  // of +25% — predicted 4.50s -> 3.78s per cycle, i.e. +19%, against +18% measured. Shortening the tell
+  // to close that gap would be a fairness change wearing a tempo change's clothes. If the wall ever needs
+  // the full +25%, the honest lever is `novaT`'s own 3.0-4.2 range, never the 0.9.
+  // ⚠️ HOW THIS WAS MEASURED, because the first two rigs were wrong IN THE FLATTERING DIRECTION. The wave
+  // system replaces `boss` on its own schedule about 36.3s in, and `updateBoss` then drives the new
+  // object — so a longer run silently blends two or three KINDS together. The first rig read 28 seekers
+  // against 96 and would have been published as a 3.4x win for a change designed to buy 25%. The counts
+  // themselves were clean, plausible and enormous; nothing about them looked wrong. What caught it was
+  // recording `variant` and `pace.pat` PER FRAME instead of trusting the spawn call. Any sweep here must
+  // assert `__orbital.boss` is the same OBJECT every frame and cut the sample the instant it is not.
+  const VAR_PAT={sentinel:0.8, bastion:0.8};
   const pt = clamp((act-1)/2, 0, 1);
   const pace = { cad: 1.25-0.25*pt,     // MULTIPLIES the gap, so bigger is SLOWER: 1.25 / 1.125 / 1.0
-                 spd: 0.75+0.25*pt };   // MULTIPLIES projectile speed: 0.75 / 0.875 / 1.0
+                 spd: 0.75+0.25*pt,     // MULTIPLIES projectile speed: 0.75 / 0.875 / 1.0
+                 pat: VAR_PAT[variant]||1 };  // MULTIPLIES the gap on FIRING timers only — smaller is faster
+  const pcad = pace.cad*pace.pat;       // the firing gap; updateBoss derives the same product per frame
   boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0, dmg:30, pace,
     x:W/2, y:-60, vx:0, vy:0, dead:false, queued:false, ph:0, hexRot:rand(0,TAU), variant, spiral:null,
     // ⚠️ These are FIRST intervals and they need `pace.cad` as much as the resets in updateBoss do —
     // without it Epoch I's opening shot of every kind still arrives at full speed, which is the one the
-    // slowdown most exists for.
-    fireT:2.2*pace.cad, emitMode:true,        // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
+    // slowdown most exists for. The same applies to `pat`: a kind whose tempo was raised must open on
+    // the raised tempo, or its first beat is the only slow one in the fight and reads as a stutter.
+    //   ⚠️ `huntT` TAKES `pace.cad` AND NOT `pcad`, and that is the line that keeps the two axes apart.
+    // It is the only entry here that schedules MOVEMENT rather than fire.
+    fireT:2.2*pcad, emitMode:true,            // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
     orbA:-Math.PI/2,                          // sentinel: start at the top of its circle
-    novaT:rand(2.4,3.4)*pace.cad, novaCharge:0,        // bastion: telegraphed radial bursts
-    lungeT:rand(4,6)*pace.cad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
-    seedT:rand(2.6,3.8)*pace.cad,              // sentinel: swarmers shed along its orbit
+    novaT:rand(2.4,3.4)*pcad, novaCharge:0,            // bastion: telegraphed radial bursts
+    lungeT:rand(4,6)*pcad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
+    seedT:rand(2.6,3.8)*pcad,                  // sentinel: swarmers shed along its orbit
     hunt:0, huntT:rand(6,10)*pace.cad, huntBreak:0, huntR:undefined };   // every kind: periodically leaves station and walks onto your core
   enemies.push(boss);
   trauma=Math.min(1,trauma+0.45); flash=0.5; flashCol=COL[col];
@@ -3966,7 +4002,8 @@ function bossMove(b,dt){
 }
 function updateBoss(dt){
   const b=boss;
-  // THE CADENCE MULTIPLIER, threaded through the ~12 cadence expressions below. It MULTIPLIES THE GAP, so
+  // THE EPOCH MULTIPLIER. It reaches the firing timers through `pcad` just below and the hunt directly,
+  // and it is the only reader of `b.pace.cad` left in here. It MULTIPLIES THE GAP, so
   // a bigger value is a SLOWER Anomaly. (It was called `fast` while pinned at 1, where the name could not
   // mislead anyone. It can now.)
   //   NOT ON A TIMER, and the ramp it carries does not break that. The objection has always been to an
@@ -3975,6 +4012,11 @@ function updateBoss(dt){
   // pool has always ramped on — so the Anomaly in front of you never changes pace, and the next one is
   // faster only because you survived to reach it. Still true: do not hang a ramp on elapsed fight time.
   const cadence = b.pace ? b.pace.cad : 1;
+  // THE FIRING GAP. Same Epoch multiplier with the KIND's own tempo folded in — see VAR_PAT in
+  // spawnBoss. Every timer that throws something uses this; `cadence` alone is left to the hunt, which
+  // schedules movement. The split is the reason "its patterns are sluggish" can be answered without
+  // also making the Anomaly close on you more often.
+  const pcad = cadence * (b.pace ? b.pace.pat : 1);
   // schedule the hunt BEFORE moving, so the move this frame already reflects it. A hunt never STARTS
   // mid-dash or mid-charge (both are commitments the player has already read and answered), but one
   // already running carries through — a Bastion closing on you while it winds up is the point of it.
@@ -3998,8 +4040,8 @@ function updateBoss(dt){
     // orbit writes itself into the field as a trail you have to run down to keep chasing it.
     // seekers are the most punishing missile in the set (measured 10.5 dps naive / 6.7 dodging, vs 3.2/2.1
     // for volleys), so the Sentinel throws them less often than it threw the old straight pincers
-    b.fireT-=dt; if(b.fireT<=0){ firePincer(b); b.fireT=rand(2.2,3.0)*cadence; }
-    b.seedT-=dt; if(b.seedT<=0){ b.seedT=rand(2.4,3.4)*cadence;
+    b.fireT-=dt; if(b.fireT<=0){ firePincer(b); b.fireT=rand(2.2,3.0)*pcad; }
+    b.seedT-=dt; if(b.seedT<=0){ b.seedT=rand(2.4,3.4)*pcad;
       // the trail leans toward YOUR ammo colour, exactly as ambient spawn already does during a boss.
       // At a flat 50/50 the Sentinel stacks three pressures at once (seekers + swarmers + its orbit) and
       // never lets you go 3.8s untouched, so Integrity regen never starts — 0-for-4 against a bot that
@@ -4021,7 +4063,7 @@ function updateBoss(dt){
   } else if(b.variant==='bastion'){
     // ground denial: the RING says "be in the seam", the MINES say "and not there, or there". Between
     // them you are always being moved, which is the whole point of the kind.
-    if(b.novaCharge>0){ b.novaCharge-=dt; if(b.novaCharge<=0){ bossNovaRing(b); b.novaT=rand(3.0,4.2)*cadence; } }
+    if(b.novaCharge>0){ b.novaCharge-=dt; if(b.novaCharge<=0){ bossNovaRing(b); b.novaT=rand(3.0,4.2)*pcad; } }
     else { b.novaT-=dt; if(b.novaT<=0) b.novaCharge=0.9; } // telegraphed wind-up before the ring
     b.fireT-=dt;
     if(b.fireT<=0){
@@ -4033,7 +4075,16 @@ function updateBoss(dt){
       // deny the arena outright. Every other spawner in the file is capped (`enemies.length>200` for
       // formations, `cap` in doSpawns); the missile array is capped by CADENCE alone, so the cadence has
       // to carry it.
-      b.fireT=rand(2.6,3.6)*cadence*(box?2.2:1);
+      //   ⚠️ AND THE GUARD IS x2.2 ON THE GAP, NOT A FIXED NUMBER OF SECONDS, which is what lets `pcad`
+      // through safely. At pat 0.8 the scatter beat is 2.08-2.88s and the box's is 4.58-6.34s — still
+      // clear of the 3.4s fuse on every roll, so the box can never double up no matter what the tempo
+      // does. Measured at Epoch III, 363s per arm: PEAK concurrent mines is 10 in BOTH arms, unchanged —
+      // 10 is one box plus one scatter, the binding case at either tempo. Mean concurrency is what moves,
+      // 3.07 -> 3.81, which is the intended cost of a faster Bastion and not arena denial.
+      //   Had this guard been written as "box gap = 7.0s" it would have silently stopped scaling here and
+      // the peak WOULD have moved. A guard expressed as a ratio survives a tempo change; one expressed as
+      // a constant does not, and nothing would have failed to say so.
+      b.fireT=rand(2.6,3.6)*pcad*(box?2.2:1);
     }
   } else {   // EMITTER (default / teaching): ALTERNATES a hexagon crossfire BURST and a sweeping spiral
              // STREAM — and from Epoch II it LUNGES too (this absorbed the old separate 'lunger' kind,
@@ -4048,15 +4099,15 @@ function updateBoss(dt){
       // The fan's INTERNAL rhythm takes the slowdown too. It is the densest thing the Emitter does, so
       // leaving it out would have made an Epoch I stream arrive at full rate between slowed bursts —
       // the one place the ramp is most obviously supposed to apply.
-      if(b.spiral.t<=0){ b.spiral.t=0.3*cadence; fireAimedVolley(b,2,0.34);
-        if(--b.spiral.left<=0){ b.spiral=null; b.fireT=rand(2.6,3.4)*cadence; } } }
+      if(b.spiral.t<=0){ b.spiral.t=0.3*pcad; fireAimedVolley(b,2,0.34);
+        if(--b.spiral.left<=0){ b.spiral=null; b.fireT=rand(2.6,3.4)*pcad; } } }
     else {
       b.fireT-=dt; if(b.fireT<=0){ b.emitMode=!b.emitMode;
         if(b.emitMode){ b.spiral={left:4,t:0}; spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*2.2); bossFlash=0.4; sfx.lance(); } // → spiral STREAM
-        else { fireHexVolley(b); b.fireT=rand(2.3,3.1)*cadence; } }                                                             // → hex BURST
+        else { fireHexVolley(b); b.fireT=rand(2.3,3.1)*pcad; } }                                                                // → hex BURST
       // never wind up a dash while hunting: it would already be crowding you, and a dash from 117px is
       // an unreadable hit rather than a telegraph. The hunt is the pressure; the dash is the punctuation.
-      if(canLunge && b.hunt<=0){ b.lungeT-=dt; if(b.lungeT<=0){ aimLunge(b); b.lungeT=rand(3.6,5.2)*cadence; } }
+      if(canLunge && b.hunt<=0){ b.lungeT-=dt; if(b.lungeT<=0){ aimLunge(b); b.lungeT=rand(3.6,5.2)*pcad; } }
     }
   }
   if(bossFlash>0)bossFlash-=dt;
