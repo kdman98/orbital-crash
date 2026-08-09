@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<!-- CONTENT SECURITY POLICY. This game makes NO network requests of any kind — no fetch, XHR,
+     WebSocket, sendBeacon, EventSource, no CDN, no analytics, no @font-face, no image or audio file
+     (the sound bank is procedural WebAudio). That is what makes a policy this tight free: there is
+     nothing legitimate for it to break. Its job is not to stop an injection, it is to make one
+     WORTHLESS — with no outbound channel, script that gets in has nowhere to send anything.
+       `unsafe-inline` is unavoidable and honest about it: the whole game is one inline <script> and
+     the styling is inline too. It buys nothing against XSS; `connect-src` is the clause doing work.
+       ⚠️ connect-src is 'self' RATHER THAN 'none', which is the one place this is looser than the web
+     build needs. The same file loads in the Capacitor WebView from capacitor://localhost, whose
+     injected runtime is not audited here, and a policy that breaks the native app would do it
+     silently. 'self' still blocks every cross-origin destination, which is the entire security value.
+     Tighten to 'none' once an iOS build has been run against it.
+       Not achievable here and deliberately absent: frame-ancestors, report-uri and sandbox are all
+     ignored in a <meta> CSP, and GitHub Pages cannot set response headers — so there is no
+     clickjacking protection available on this host at all. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#060814" />
 <meta name="mobile-web-app-capable" content="yes" />
