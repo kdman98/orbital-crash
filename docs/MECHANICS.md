@@ -2762,6 +2762,36 @@ Same defect, opposite sign, decided by whether you are comparing two arms or min
 loud and a baseline tends to fail silent**, and the thing to ask before trusting a rig is which of the
 two you are actually running.
 
+⚠️ **That silent half then happened for real, on the first use after it was written down.** A run over
+Pages returned six clean suites — and one key read **`boss-pulsar`**, months after the rename, with a
+hash *byte-identical to `boss-emitter`*. `sw.js` had served a **pre-rename `.oracle.js` out of the
+service-worker cache** while the file on disk said `bastion`, so the suite measured an Emitter under a
+dead name and reported it as an ordinary result. **The numbers were perfect; the only tell was a key
+name somebody had to actually read.**
+
+**So assert the harness that is LOADED, not the file on disk.** A `curl` of the served path and an
+`md5` against disk both agree while the page runs something else entirely — the service worker sits
+between them:
+
+```js
+if (!/bastion/.test(window.__suite.toString())) throw new Error('stale oracle');
+```
+
+Abort rather than measure. `caches.delete()` plus `getRegistrations().unregister()` clears it, and a
+`?cb=` on the script URL dodges it.
+
+⚠️ **And the oracle is loaded with a `<script>` tag now, never `fetch` + `eval`.** Since the CSP landed,
+`script-src` has no `'unsafe-eval'` and the old recipe raises `EvalError` — measured. **Do not add
+`'unsafe-eval'` to keep a dev harness working**; the tag was always the better load and needs no
+exception, because `script-src 'self'` already permits a same-origin file:
+
+```js
+const s = document.createElement('script'); s.src = '.oracle.js?cb=' + Date.now(); document.head.appendChild(s);
+```
+
+*(Pasting into a DevTools console still works — console evaluation is not subject to page CSP. It is
+programmatic loading that changed.)*
+
 **One trial of a stochastic fight is an anecdote.** Ring size in a live fight swings by an order of
 magnitude between runs. Three trials is still an anecdote; eight is a signal.
 

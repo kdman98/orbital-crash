@@ -12,6 +12,51 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-10
+
+### The Sentinel and the Bastion throw their patterns on their own clock `9eba98c`
+Author: the two later kinds felt sluggish. `VAR_PAT` gives each kind a firing-gap multiplier at
+**0.8**, folded into a `pcad` that is `pace.cad × pace.pat` — **a separate axis from the Epoch ramp,
+and deliberately not on the hunt.** Speeding up the hunt answers *"the Anomaly crowds me"*, which is a
+different complaint; `huntT` still takes `cadence` alone, verified at both its sites.
+
+Measured, 3 independent sweeps, 363s per arm, Epoch III:
+
+| | control | pat 0.8 | |
+|---|---|---|---|
+| Sentinel seekers/min | 44.6 | 56.5 | **+27%** |
+| Bastion mines/min | 59.0 | 75.5 | **+27%** |
+| Bastion novas/min | 12.8 | 15.0 | **+18%** |
+
+**The nova gains less and that is correct, not a shortfall.** Its cycle is `novaT` *plus* a flat 0.9s
+`novaCharge` wind-up — the telegraph that lets you find the seam — and only the gap scales. Mean cycle
+`3.6 + 0.9 = 4.50s` becomes `2.88 + 0.9 = 3.78s`, so **+19% predicted against +18% measured**.
+Shortening the tell would be a fairness change wearing a tempo change's clothes.
+
+⚠️ **The oracle changing here is the pass, not the failure.** `boss-sentinel` and `boss-bastion` moved;
+`boss-emitter` and all three survival seeds are byte-identical. Those are exactly the two keys in
+`VAR_PAT` and nothing else — **an all-identical suite would have meant the rig was broken, not the
+change safe.**
+
+*Getting there took three rigs.* The first read **3.4×** for a change designed to buy 25%, because a
+long boss run is a blend of kinds (see *Traps*); the second counted the contamination instead of
+excluding it, its tell being that the identity break landed on the same frame every run. Only the third,
+cut at `boss !== b`, gives kind-pure counts.
+
+### Four fixes that cost the game nothing, proven `79f788e`..`e82194d`
+- **`spawnBoss` refuses an unknown variant** (`b9a5073`) — it used to build a *complete Emitter* under
+  the wrong name, silently. See *Traps*.
+- **CSP on both pages** (`7b2f75a`) — `default-src 'self'`, `object-src`/`base-uri`/`form-action` `'none'`.
+  ⚠️ `connect-src` is `'self'` rather than `'none'` **on purpose**: the same file loads in the Capacitor
+  WebView and iOS was not built this session, so tightening it blind would break there silently. It is
+  one word to change once someone runs an iOS build against it. ⚠️ `frame-ancestors`, `report-uri` and
+  `sandbox` are absent because **a `<meta>` CSP ignores all three** and Pages cannot set headers — so
+  there is no clickjacking protection on this host at all. A host limitation, not an omission.
+- **CoreMotion NaN guard** (`e82194d`) — Swift, edited but **not built** this session.
+- **A mine death names itself in Korean**, and the legacy string is escaped at the records sink (`396db20`).
+
+A–D run as their own arm measure **96/96 identical**, so all four are provably play-neutral.
+
 ## 2026-08-09
 
 ### The repository goes public, and a note that was true while it was private stopped being true `4878bdc`
