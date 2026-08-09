@@ -1341,6 +1341,44 @@ the core* cannot reduce how many are standing — the queue is upstream of you. 
 **range** can. That is why the ring shell is the lever that works and why a wider gathering Field is not
 one.
 
+⚠️ **The flipping / never-flipping gap in this table is not a number. It is a STEP FUNCTION in flip
+cadence, and which side you are on decides everything.** Swept paired at n=10, warm-up discarded, then
+spot-confirmed on a second rig:
+
+| cadence | standing | vs never |
+|---|---|---|
+| never | 26.31 | — |
+| every 25f | 27.44 | +1.13 |
+| every 35f | 26.78 | +0.47 |
+| every 40f | 26.24 | −0.07 |
+| **every 47f** | **37.21** | **+10.90** |
+| every 60f | 36.48 | +10.17 |
+| every 100f | 33.40 | +7.09 |
+| every 300f | 29.80 | +3.49 |
+
+**Flat on both sides, an 11-point jump across seven frames between every-40 and every-47.** Variance says
+the same thing: sd **0.77–1.15** below the step, **1.98–3.33** above. A second rig at n=1 per cadence
+reproduces the discontinuity in the same place — every-40f `20.78` against every-47f `27.87`, **+7.09**,
+with every-40f landing on `never` (20.62) exactly as it does above.
+
+**The mechanism is in `flip()`'s own comment:** *"Hold a pole to LOAD your rings, then reverse… Quick taps
+just reverse."* Below the step you are tapping and nothing loads. Above it the hungry flip fires and
+throws matter outward **alive** (`e.flung`), so bodies that would have died at your core stay on screen.
+**That is why slower flipping RAISES standing population** — the counter-intuitive direction this table
+already showed, now with a cause rather than a magnitude.
+
+⚠️ **So the table's `29.4` is not anomalous and must not be "corrected".** Its cadence is unrecorded, and
+at every-300f the sweep gives `+3.49` against this table's `+3.2` — it is consistent with a slow cadence
+and nothing about it needs explaining. ⚠️ **An earlier version of this note called 29.4 an outlier and
+put the gap at 9.** Both were wrong in the same way: **one point on a step function read as a level.**
+The honest statement is that the gap ranges **0 to +10.9 depending purely on cadence.**
+
+⚠️ **`.oracle.js`'s `__pilot` flips at every 47 frames — seven frames past the step, in the high-variance
+regime, effectively sitting on the boundary.** Every standing-population figure the oracle has ever
+produced was taken at the least stable cadence available, and a one-frame change to that constant moves
+the number by 11. **Never measure population dynamics at the pilot's default cadence.** Pick something
+well inside a regime — 25f or 200f — and state which in the result.
+
 **Every departure is a kill.** Splitting departures by whether the object was flagged `dead` gives the
 same number to the decimal in every condition — nothing leaves this field without dying, which is the
 same result as the 300s tracking run in law 8 (1,374 entered, 2 ever left). So "kills per minute" and

@@ -265,7 +265,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   amount wherever they happen; an Epoch purge pays `200×act` and a Bounty `250×act`, the only two
   terms that scale with anything. Five write sites, every one an integer.
   (`onKill`, `KILL_SCORE`, `MOTE_SCORE`)
-- **Ring shell** — the radius your Rings orbit at. Overdrive nearly doubles it. (`P.eddy`, `P.ringMul`)
+- **Ring shell** — the radius your Rings orbit at. Overdrive pushes it out about **1.6×** — measured on
+  ring Drifters, 115.8 resting against 182.7 burning. ⚠️ **Read the settle, never the coefficient**:
+  `orbR` is a spring *target* and the whirl carries the ring well past it. (`P.eddy`, `P.ringMul`)
 - **Achievement** — an in-run feat listed in **Records**. Flavour only; unlocks nothing.
   (`ACHV`, `store.achv`)
 
