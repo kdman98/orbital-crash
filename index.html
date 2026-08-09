@@ -1444,15 +1444,32 @@ function warnSpawn(x,y,type,color,secs){
   warns.push(w);
   return w;
 }
+// ⚠️ A WHOLE FORMATION CAN OWN A MARK TOO, and it has to — the per-body form breaks down at scale in the
+// direction that matters. The Cross puts SIXTY-FOUR bodies on open ground in one frame; sixty-four point
+// marks is not a telegraph, it is a violet wall. Each mark draws its incoming ring at 3r — 78px — against
+// a 44px arm spacing (FORM_STEP), so they would overlap into a solid band and the SHAPE, the only part
+// worth reading, is the one thing you could no longer see. The answer is not to warn a subset: a warn
+// OWNS its spawn, and half-warning a formation is exactly the sign-without-a-body the rule above forbids.
+//   So the mark draws the shape and the mark spawns the shape. Still ONE object holding both halves,
+// still no queue and no second list — the same invariant, at the granularity the pattern actually has.
+function warnForm(secs, draw, spawn){
+  const w={form:true, life:secs||WARN_T, max:secs||WARN_T, draw, spawn};
+  warns.push(w);
+  return w;
+}
 function stepWarns(dt){
   for(let i=warns.length-1;i>=0;i--){
     const w=warns[i];
     w.life-=dt;
     if(w.life<=0){
-      spawnEnemy(w.type, w.color, w.x, w.y);
-      // The arrival is FELT, briefly. A body appearing in silence on ground you were told about is still
-      // a body appearing in silence; this is the one frame where the promise is kept.
-      spawnRing(w.x, w.y, COL.violet, w.r*2.0);
+      // A formation owns its own arrival cue, because it knows where its centre is and a point mark does not.
+      if(w.form){ w.spawn(); }
+      else {
+        spawnEnemy(w.type, w.color, w.x, w.y);
+        // The arrival is FELT, briefly. A body appearing in silence on ground you were told about is still
+        // a body appearing in silence; this is the one frame where the promise is kept.
+        spawnRing(w.x, w.y, COL.violet, w.r*2.0);
+      }
       warns.splice(i,1);
     }
   }
@@ -1765,10 +1782,13 @@ let odFrom=0;                // charge at ignition — only so 'Redline' can tel
 // goes with them.
 const OD_DRAIN=1/3;          // charge per second while burning
 // ARMING FLOOR, and the reason this is a drain and not a button. At 0.25 the cheapest ride is 0.75s,
-// still nearly four times the 0.20s a Drifter shell needs to travel 114.2 -> 183.1px, so even the
+// still nearly four times the 0.22s a Drifter shell needs to travel 114.4 -> 148.1px, so even the
 // smallest spend buys a real shell rather than a wobble. (It ARRIVES as a snap and then relaxes: 95% of
-// the way in 12 frames, overshooting to a peak of 190.0 at frame 17 before easing back by frame ~30.
-// The peak landing on the Field radius is a coincidence, not a clamp — nothing bounds the shell there.)
+// the way in 13 frames, overshooting to a peak of 153.6 at frame 18 before easing back by frame ~30.
+//   These read 114.2 -> 183.1 with the peak at 190.0 until the eddy orbit came in, and that peak
+// landing exactly on the Field radius was called a coincidence rather than a clamp. Pulling the orbit
+// in has now PROVED it was one: nothing was moved to keep them apart, and the peak simply left — it
+// sits 36px short of a rim it turns out never bounded it.)
 // It also means a player who never fills the meter still gets to use the
 // verb — the old Collapse needed a FULL bar, which is why a pilot taking hits fired it 0 times in 8 of 10
 // runs while a clean one fired every few seconds.
@@ -1830,10 +1850,16 @@ function stepOverdrive(dt){
   //      multiplied into the orbit twice over: the shell settled at 214.1px, outside the 190 rim it is
   //      drawn against, and the grind band — the settle radius plus and minus (boss.r + dot.r) — went
   //      with it. Burning to grind harder made grinding several times WORSE inside normal fighting
-  //      range. Pinning the Field brings the shell to 183.1, just inside the rim, where the two bands
-  //      overlap instead of being disjoint. (183.1 is MEASURED. "~181" stood here first and was the
+  //      range. Pinning the Field brought the shell to 183.1, just inside the rim, where the two bands
+  //      overlap instead of being disjoint. (183.1 was MEASURED. "~181" stood here first and was the
   //      prediction from the equilibrium algebra — close enough to look like the measurement, which is
   //      how a predicted number gets quoted as a result. Solve, then measure, then write the measurement.)
+  //      ⚠️ THE SHELL IS 148.1 NOW, not 183.1 — the eddy orbit went 0.72 -> 0.45 on a play note that the
+  //      burning ring sat too far off the base one. The argument above SURVIVES the move and gets
+  //      stronger: the overlap it exists to protect widens from 24.7px to 61.9px, because the OD band
+  //      came down toward the base band rather than away from it. What did NOT survive is the incidental
+  //      "just inside the rim" — the shell is 42px inside it now and the drawn dashes moved with it
+  //      (fieldR*0.96 -> *0.78). The rim was never the constraint; the OVERLAP was.
   //   3. IT INVERTED THE HUNGRY FLIP'S OWN INVARIANT. See PURGE_R0: the fling ceiling is 210 and must
   //      stay past the Field or every Dot it exists to shove is already ring-captured. At 243.2 it was
   //      33px short, and a fully-loaded hungry flip under Overdrive flung exactly ZERO loose Dots
@@ -2549,6 +2575,19 @@ const CROSS_REF=0.38;                   // fraction of the short axis where tang
 //   The second one buys the warning window as a side effect: from mid-quadrant the first arm is an eighth
 // of a revolution away, ~1.7s at a 13.3s turn, which sits right in this file's own actionable band
 // (CHG_WIND 0.9, LUNGE_TEL 1.3). You start safe, and you are told how long that lasts by watching.
+// ⚠️ AND IT IS TELEGRAPHED NOW, because the two guards below are a HEAD START, not a SIGNAL, and the
+// difference is the whole complaint. Player: "this comes in without any signal too." They are right, and
+// the argument above concedes it without noticing: the mid-quadrant solve buys ~1.7s, which is a fact
+// about GEOMETRY that only pays out if you already know the shape rotates, already know which arm is
+// nearest, and were already looking at the middle of the screen when 64 bodies appeared in one frame.
+// Every other on-field arrival in this file gets a mark (see warnSpawn, and the Drift that forced it);
+// the Cross is the *larger* violation of the same rule and was the one relying on an argument instead.
+//   THE SHAPE IS LOCKED WHEN THE WARNING STARTS, which is the Anomaly's dash rule (LUNGE_TEL) applied to
+// a formation: hub, bearing and arm length are all solved HERE, drawn for CROSS_TEL, and the bodies land
+// exactly on the lines that were drawn. Re-solving at spawn would make the sign a suggestion.
+//   The two guards stay, and are now belt-and-braces rather than the whole defence: they still make the
+// OPENING position fair, so the telegraph you are shown is one you already start clear of.
+const CROSS_TEL=1.2;                    // = WARN_T; the band is CHG_WIND 0.9 / LUNGE_TEL 1.3, see warnSpawn
 function formCross(){
   let cx=W/2, cy=H/2;                   // the arena, not the Star — see the note above
   const px=P?P.x:cx, py=P?P.y:cy;
@@ -2568,20 +2607,49 @@ function formCross(){
   const hold=(TAU/Math.abs(va))/60;
   // Solved, not rolled: half a quadrant off the Star's own bearing puts it dead between two arms.
   const a0=Math.atan2(py-cy, px-cx) + Math.PI/CROSS_ARMS;
-  for(let k=0;k<CROSS_ARMS;k++){
-    const arm=a0+k*TAU/CROSS_ARMS;
-    for(let i=0;i<N;i++){
-      const r=CROSS_R0+i*FORM_STEP;
-      // `formAlt` along the arm, so no polarity walks an arm for free (rule 2). Indexed by i+k so
-      // adjacent arms do not start on the same colour and the hub is not four of one charge.
-      const e=holdOrbit(spawnEnemy('drift',formAlt(i+k), cx+Math.cos(arm)*r, cy+Math.sin(arm)*r),
-                        cx,cy,arm,r,0,va,hold);            // vr = 0: RIGID. it turns, it does not close
-      // rmin is per-Dot and equals its own radius, so the `o.r<=6` collapse in the flight branch can
-      // never fire and no two Dots on an arm can converge. With vr=0 this is belt and braces — but the
-      // braces are what stop a future edit to vr from silently recreating failure 2 above.
-      if(e&&e.orb) e.orb.rmin=r;
+  const rEnd=CROSS_R0+(N-1)*FORM_STEP;
+  // ⚠️ THE MARK IS THE CONTACT ENVELOPE, NOT THE HULL — the same law warnSpawn's `r` obeys, and it is the
+  // reason the arms are drawn as BANDS and not as hairlines. What the sweep denies is `drift.r + P.r`
+  // either side of the axis; a 2px line would promise a lane you can stand in and be wrong by 26px on
+  // both sides. The bright axis on top is the readable part, the band is the honest part.
+  const env=(ETYPE.drift.r+(P?P.r:15));
+  const draw=(f)=>{
+    const c=COL.violet;
+    ctx.save(); ctx.lineCap='butt';
+    for(let k=0;k<CROSS_ARMS;k++){
+      const arm=a0+k*TAU/CROSS_ARMS, ca=Math.cos(arm), sa=Math.sin(arm);
+      ctx.strokeStyle=hexA(c,0.05+0.13*f); ctx.lineWidth=env*2;
+      ctx.beginPath(); ctx.moveTo(cx+ca*CROSS_R0, cy+sa*CROSS_R0);
+      ctx.lineTo(cx+ca*rEnd, cy+sa*rEnd); ctx.stroke();
+      ctx.strokeStyle=hexA(c,0.22+0.5*f); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(cx+ca*CROSS_R0, cy+sa*CROSS_R0);
+      ctx.lineTo(cx+ca*rEnd, cy+sa*rEnd); ctx.stroke();
     }
-  }
+    // the hub, which is the part that never moves and therefore the part worth learning
+    ctx.strokeStyle=hexA(c,0.20+0.5*f); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,cy,CROSS_R0+(P?P.r:15),0,TAU); ctx.stroke();
+    ctx.strokeStyle=hexA(c,0.14+0.4*f); ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(cx,cy,(CROSS_R0+(P?P.r:15))*(3-2*f),0,TAU); ctx.stroke();
+    ctx.restore();
+  };
+  const spawn=()=>{
+    for(let k=0;k<CROSS_ARMS;k++){
+      const arm=a0+k*TAU/CROSS_ARMS;
+      for(let i=0;i<N;i++){
+        const r=CROSS_R0+i*FORM_STEP;
+        // `formAlt` along the arm, so no polarity walks an arm for free (rule 2). Indexed by i+k so
+        // adjacent arms do not start on the same colour and the hub is not four of one charge.
+        const e=holdOrbit(spawnEnemy('drift',formAlt(i+k), cx+Math.cos(arm)*r, cy+Math.sin(arm)*r),
+                          cx,cy,arm,r,0,va,hold);          // vr = 0: RIGID. it turns, it does not close
+        // rmin is per-Dot and equals its own radius, so the `o.r<=6` collapse in the flight branch can
+        // never fire and no two Dots on an arm can converge. With vr=0 this is belt and braces — but the
+        // braces are what stop a future edit to vr from silently recreating failure 2 above.
+        if(e&&e.orb) e.orb.rmin=r;
+      }
+    }
+    spawnRing(cx,cy,COL.violet,(CROSS_R0+(P?P.r:15))*2.0);  // one arrival cue for the whole shape, at the hub
+  };
+  warnForm(CROSS_TEL, draw, spawn);
 }
 // THE DRIFT — six Neutrals, scattered, floating. Author: "neutral rings are not ring, just random 6
 // neutrals float around field."
@@ -3669,6 +3737,20 @@ const HUNT_BREAK=1.1;                                          // seconds it rec
 //              the target point's own speed (radial 1.17 + tangential 1.1 ≈ 1.6) or the Dot trails its
 //              own target and never arrives.
 const HUNT_ORB=0.85, HUNT_TANG=1.1, HUNT_STEP=2.0;
+// THE WALK BACK TO STATION, and the reason it needs a ceiling at all: bossMove's default branch serves
+// two completely different distances with one constant. Hovering, the boss is already at station, the
+// gap is the sway's own width, and `dt*1.6` is the gentle drift it was tuned for. Straight out of a
+// dash the gap is ~350px — LUNGE_OVER ends the dash 150px PAST you and station is back up at y=150 —
+// and that same proportional ease is 9.3px/frame aimed back THROUGH you, with no wind-up and no
+// telegraph. Playtest: "lunging twice is really hard." It was not lunging twice. The WITHDRAWAL was
+// moving like a lunge, which is worse, because the second pass is the one you were never warned about.
+//   3.4 is the huntBreak recoil speed — this file's existing pace for "a boss is backing off" — so the
+// return now reads as the same verb the game already has a vocabulary for.
+//   ⚠️ IT IS A FLOOR, NOT THE CAP ITSELF. `W` is the viewport in DESIGN UNITS (W=vw/S), so the sway's
+// own peak speed scales with how wide the window is: 2.2px/frame at 16:9, but 5.1 on a 3440-wide
+// ultrawide, where a fixed 3.4 ceiling would throttle ordinary hovering into a stutter. bossMove takes
+// the larger of this and the sway's own requirement, so the cap can only ever bite on the long return.
+const BOSS_RETURN=3.4;
 // THE DASH is the Emitter's one committed, unavoidable-once-launched move, so its warning has to be
 // information you can act on. THE LANE LOCKS WHEN THE WARNING STARTS, and the warning draws THAT lane —
 // never your live position. Locking on expiry instead makes the line track you and then freeze wherever
@@ -3734,7 +3816,15 @@ function bossMove(b,dt){
   }
   // default: hover near the top with a gentle sway (eases back up here after a lunge or a hunt too)
   const hx=W/2+Math.sin(elapsed*0.55)*W*0.17, hy=150+Math.sin(elapsed*0.9)*12;
-  b.x+=(hx-b.x)*Math.min(1,dt*1.6); b.y+=(hy-b.y)*Math.min(1,dt*1.6); b.vx=b.vy=0;
+  // CAPPED — see BOSS_RETURN for why the withdrawal needed a ceiling the sway does not. The ease stays
+  // PROPORTIONAL, so the hover still tracks softly and eases rather than snapping; the cap only clips
+  // the long returns, which are exactly the motion that was reading as an untelegraphed second lunge.
+  // The floor is raised to the sway's own peak (W*0.17*0.55 units/s) so a wide viewport can never have
+  // its hovering throttled by a constant that was chosen against a 16:9 one.
+  const rx=(hx-b.x)*Math.min(1,dt*1.6), ry=(hy-b.y)*Math.min(1,dt*1.6);
+  const rd=Math.hypot(rx,ry), rcap=Math.max(BOSS_RETURN, W*0.17*0.55/60*1.3);
+  if(rd>rcap){ b.x+=rx*(rcap/rd); b.y+=ry*(rcap/rd); } else { b.x+=rx; b.y+=ry; }
+  b.vx=b.vy=0;
 }
 function updateBoss(dt){
   const b=boss;
@@ -4259,39 +4349,66 @@ function stepEnemyForces(dt){
     if(inField) e.ringGrace=RING_GRACE; else if(e.ringGrace>0) e.ringGrace-=dt;
     if(inField || inGrace){
       const rm=P.ringMul||1;
-      // 0.72 under EDDY, not 0.85. Pilot: "with half a gauge, i could barely spin once" — and they were
-      // exactly right: 0.53 rev/s at 0.85, 0.926 at 0.72. A wider ring is a SLOWER-LOOKING one, because
-      // angular rate is v/r and `v` is PINNED AT ITS CEILING (see the clamp below — a ringed Drifter sits
-      // on `maxsp*RING_CAP*DOTSPD` = 20.74 px/frame exactly, in every condition measured). With v fixed,
-      // radius is the only term left: every px you pull the orbit in is rotation you get back.
+      // 0.45 under EDDY, from 0.72, from 0.85. Play note: the burning ring sat too far off the base one,
+      // so the two shells read as unrelated states rather than one ring opening up. A wider ring is also
+      // a SLOWER-LOOKING one, because angular rate is v/r and `v` is PINNED AT ITS CEILING (see the clamp
+      // below — a ringed Drifter sits on `maxsp*RING_CAP*DOTSPD` = 20.74 px/frame exactly, in every
+      // condition measured). With v fixed, radius is the only term left: every px you pull the orbit in
+      // is rotation you get back, and this move bought 1.101 -> 1.384 rev/s for free. That trade is why
+      // the earlier pilot note — "with half a gauge, i could barely spin once", 0.53 rev/s at 0.85 —
+      // was answered by pulling the orbit IN rather than by touching the spin.
+      //   ⚠️ IT IS NOW BELOW THE BASE COEFFICIENT (0.45 against 0.6), AND THAT IS NOT A TYPO. The eddy
+      // TARGET is tighter than the base target while the eddy SHELL stays 34px wider, because the two
+      // states have completely different overshoots — see the next paragraph. Read the settle, never
+      // the coefficient; the coefficients do not even order the same way the shells do.
       //   ⚠️ `orbR` IS NOT WHERE THE RING SITS. It is the spring's TARGET; the spin drives the shell past
       // it and the two balance out further. Measured settle vs nominal: base 114.2 against 114 (the spin
-      // is gentle, so they agree), EDDY 183.1 against 136.8 — a 34% overshoot. Everything that follows
-      // from the orbit — what the shell looks like, and the grind band, which spans the settle radius
-      // plus and minus (boss.r + dot.r) — keys off the SETTLE radius. Quoting `orbR` understates it by
-      // a third. ⚠️ There is NO SYMBOL for the settle radius, deliberately: it is an equilibrium the sim
+      // is gentle, so they agree), EDDY 148.1 against 85.5 — a 73% overshoot. Everything that follows
+      // from the orbit — what the shell looks like, the drawn eddy dashes, and the grind band, which
+      // spans the settle radius plus and minus (boss.r + dot.r) — keys off the SETTLE radius. Quoting
+      // `orbR` understates it by nearly half.
+      //   ⚠️ THE OVERSHOOT IS NOT A CONSTANT FRACTION, and assuming it was is how this retune nearly
+      // shipped wrong. Pulling the target in RAISES it — 48.6px of overshoot at 0.72, 62.7px at 0.45 —
+      // because v is pinned, so a tighter circle needs more centripetal force and therefore a bigger
+      // standing spring error to hold it. Every closed form tried against this under-predicted the
+      // settle badly. Measured sweep, one build, 6 trials, sweep direction alternated per trial:
+      //     c      0.45   0.50   0.55   0.60   0.72
+      //     shell  148.0  154.6  160.7  167.6  184.5
+      // ⚠️ There is NO SYMBOL for the settle radius, deliberately: it is an equilibrium the sim
       // arrives at, not a value anything stores, so it cannot be read, only measured. `orbR` is the only
       // real name here, and it is the one that is wrong to quote. (Do not write it in backticks — it
       // reads as something you can grep for, and two comments did exactly that.)
-      //   It is also SPECIES-DEPENDENT, for the same v/r reason: under EDDY a Drifter settles at 183.1,
-      // a Mini at 191.1, a Brute at 156.3, because each sits on its OWN speed ceiling. So the band's
+      //   It is also SPECIES-DEPENDENT, for the same v/r reason: under EDDY a Drifter settles at 148.1,
+      // a Mini at 160.2, a Brute at 117.5, because each sits on its OWN speed ceiling. So the band's
       // CENTRE varies by species as well as its WIDTH (which varies by hull radius) — two independent
       // species terms. There is no single shell radius, and a rig that feeds one species measures that
       // species.
+      //   ⚠️ AND THE SPECIES SPREAD IS WHAT THIS RETUNE SPENT. Overdrive's widening is not uniform, it is
+      // v/r, so pulling the target in costs the SLOW species almost everything: measured against each
+      // species' own base shell, the ride now opens a Mini by +51px, a Drifter by +31px, and a Brute by
+      // +1.0px — 116.8 to 117.8, which is no widening at all. At 0.72 a Brute gained +39.9px. The
+      // tutorial line still promises "a wider, faster circle" and for a Brute only the second half is
+      // true now. It was accepted knowingly: Drifters are the modal spawn and the thing the player reads
+      // as "my ring", and closing the gap to the base ring was the point. If heavy Dots need their
+      // widening back, 0.50 buys +7.8 and 0.55 buys +14.8 — at 154.6 and 160.7 on the Drifter, i.e. by
+      // giving back a third to a half of what was just taken off the number this change existed to move.
       // ⚠️ MEASURE THIS IN REV/S, NEVER IN GAUGE FRACTIONS. Both figures were first recorded "per half
       // gauge", and a half gauge was 3.0s at OD_DRAIN 1/6 and is 1.5s at 1/3 — the NUMBER never changed,
       // its UNIT silently did, which is the one kind of staleness re-reading the comment cannot catch.
       // Seconds are invariant under any future repricing; gauge fractions are the right unit for the
-      // METER and the wrong one for RING PHYSICS. Drifter under EDDY: 1.083 rev/s.
+      // METER and the wrong one for RING PHYSICS. Drifter under EDDY: 1.384 rev/s.
       //   ⚠️ ONE FIGURE, ONCE. This used to carry the same quantity three ways — rev/s, seconds/turn,
       // rad/s — as a self-consistency check, and `fbe4d18` moved all three in one edit. The conversions
       // are arithmetic and the reader can do them; stating them tripled the surface without adding a
       // check, because nothing re-derives them. THE UNIT DEFENDS AGAINST A REPRICING, NOT AGAINST A
       // GEOMETRY CHANGE: rev/s did its job when the drain doubled and was helpless when the Field
       // stopped widening. Only deleting a value defends the value.
-      //   Nothing here was retuned when it moved: `orbR` fell from 175.1 to 136.8 purely because it is a
-      // fraction OF `fieldR`, the shell came in from 214.1 to 183.1, and the spin rose 17% for free.
-      // That is the v/r trade above running in the direction that pays.
+      //   Nothing here was retuned when THE FIELD stopped widening: `orbR` fell from 175.1 to 136.8 purely
+      // because it is a fraction OF `fieldR`, the shell came in from 214.1 to 183.1, and the spin rose 17%
+      // for free. That is the v/r trade above running in the direction that pays. (Those four figures are
+      // HISTORY, not the current state — the coefficient has since gone 0.72 -> 0.45 deliberately, and the
+      // live numbers are 85.5 nominal against a 148.1 shell. Kept because the episode is the argument for
+      // why `fieldR` is pinned, and that argument is still load-bearing.)
       // ⚠️ A BALLISTIC BODY TAKES NEITHER THE SPRING NOR THE SPIN. Both are switched off together because
       // they are the two halves of one mechanism — the spring pins a radius and the spin drives around it,
       // and between them they MANUFACTURE a circle. Leaving either one on would defeat the orbit: the
@@ -4310,7 +4427,7 @@ function stepEnemyForces(dt){
         e.vx=-dy/d*vt*sgn; e.vy=dx/d*vt*sgn;
       }
       if(!e.ballistic){
-      const orbR=P.fieldR*(P.eddy?0.72:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
+      const orbR=P.fieldR*(P.eddy?0.45:0.6), toRing=d>orbR?1:-1, err=Math.min(Math.abs(d-orbR),80);
       ax+=(dx/d)*toRing*err*0.03*rm; ay+=(dy/d)*toRing*err*0.03*rm;   // spring onto the ring radius
       // Ring whirl is `spin/(1-bleed)` where the `0.80` bleed below (ordinary matter gets 0.86) is what
       // pins rings to their radius. TUNE THE SPIN, NOT THE BLEED: the bleed is the grip that stops rings
@@ -5299,7 +5416,7 @@ function pushText(x,y,txt,color,life,size){
 //   THERE IS NOW ONE PERSISTENT TEXT CHANNEL, not two. The other was the pickup pill, and it was
 // justified on the grounds that a powerup's EFFECT is the one thing you cannot read off the screen. That
 // argument does not transfer to Overdrive: you pressed it, and your own matter answers — the shell snaps
-// 114 -> 183px inside a fifth of a second and its whirl goes 0.40 -> 1.08 rev/s.
+// 114 -> 148px inside a fifth of a second and its whirl goes 0.40 -> 1.38 rev/s.
 //   ⚠️ That used to read "the field visibly swells", and it was TRUE until the Field stopped widening.
 // The conclusion survived the argument it was resting on, which is the failure mode this file keeps
 // finding: three separate comments justified "no pickup pill" on a halo resize that no longer happens.
@@ -5372,11 +5489,13 @@ function render(){
   }
   // (No Overdrive screen tint. A cyan full-screen wash lived here for the Collapse window — 25.3% of a
   //  strong run spent under a coloured overlay. Overdrive says itself, in the world: the ring snaps from
-  //  114 out to 183px in a fifth of a second, whirls 2.7x faster, the eddy dashes appear on the shell,
+  //  114 out to 148px in a fifth of a second, whirls 3.5x faster, the eddy dashes appear on the shell,
   //  you move 1.4x, and the Capacitor bar runs visibly BACKWARDS — nothing else in the game does that.
   //  ⚠️ The halo used to swell 28% and was listed first here; it does not any more, and "206.7px" was
   //  stale on top of that — a figure from before the eddy orbit went 0.85 -> 0.72, sitting in a comment
-  //  through two separate changes to the number it names.)
+  //  through two separate changes to the number it names. The orbit has since gone 0.72 -> 0.45, which
+  //  is the THIRD, so treat every radius on this line as owned by that constant: if you move it again,
+  //  this sentence and the whirl multiple both move, and neither one announces itself when it goes bad.)
 }
 // (No background lattice, deliberately: a square grid is the visual language of a scoreboard and reads
 // as arcade playfield laid over a nebula. The one job it does — something fixed to judge your own
@@ -5630,17 +5749,25 @@ function drawField(){
   ctx.strokeStyle=hexA(c,0.22); ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.arc(P.x,P.y,P.fieldR,0,TAU); ctx.stroke();
   // EDDY keystone: the spin made visible — slow rotating dashes ON the shell the ring settles into.
-  // 0.96, from 0.88. THE DASHES TRACE THE RING, and that is the whole point of them: at 0.88 against the
-  // OLD widened Field this drew at 214.0px and a Drifter shell settled at 214.1 — 0.1px apart, which is
-  // not luck. Pinning the Field moved the shell to 183.1 and left the dashes at 167.2, floating 16px
-  // inside the matter they exist to describe. 190*0.96 = 182.4 puts them back on it.
-  //   It can only match ONE species — the shell is v/r and every Dot rides its own speed ceiling, so a
-  // Brute ring sits at 156.3 and a Mini at 191.1. Drifter is the right one to track: it is the modal
-  // spawn, and the dashes are a cue that says "your ring is whirling", not a hitbox.
+  // 0.78, from 0.96, from 0.88. THE DASHES TRACE THE RING, and that is the whole point of them: at 0.88
+  // against the OLD widened Field this drew at 214.0px and a Drifter shell settled at 214.1 — 0.1px
+  // apart, which is not luck. Pinning the Field moved the shell to 183.1 and left the dashes at 167.2,
+  // floating 16px inside the matter they exist to describe; 0.96 put them back on it at 182.4.
+  //   ⚠️ THIS COEFFICIENT IS DOWNSTREAM OF THE EDDY ORBIT AND CANNOT DEFEND ITSELF. It has now been
+  // dragged twice by a constant 1300 lines away — the second time when the orbit went 0.72 -> 0.45 and
+  // the shell came in to 148.1, which would have left these dashes 34px OUTSIDE the ring, the same
+  // failure as before with the sign flipped. 190*0.78 = 148.2 puts them back, 0.1px off the shell.
+  // Nothing here breaks, warns or looks wrong in a screenshot when it goes stale — the dashes simply
+  // start describing a circle of matter that is not there. If you touch the eddy orbit, MEASURE the
+  // Drifter shell and set this to shell/190.
+  //   It can only match ONE species — the shell is v/r and every Dot rides its own speed ceiling, so at
+  // the current orbit a Brute ring sits at 117.5 and a Mini at 160.2 (they were 156.3 and 191.1 at 0.72).
+  // Drifter is the right one to track: it is the modal spawn, and the dashes are a cue that says "your
+  // ring is whirling", not a hitbox.
   if(P.eddy){
     ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(elapsed*0.8);
     ctx.strokeStyle=hexA(c,0.3); ctx.lineWidth=2; ctx.setLineDash([14,26]);
-    ctx.beginPath(); ctx.arc(0,0,P.fieldR*0.96,0,TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,P.fieldR*0.78,0,TAU); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
   }
 }
@@ -6137,6 +6264,7 @@ function drawParticles(){
 function drawWarns(){
   for(const w of warns){
     const f=clamp(1-w.life/w.max,0,1);       // 0 at the warning, 1 at the arrival
+    if(w.form){ w.draw(f); continue; }       // a formation draws its own shape — see warnForm
     const c=COL.violet;
     // the footprint, brightening as its occupant approaches
     ctx.strokeStyle=hexA(c,0.18+0.5*f); ctx.lineWidth=2;
