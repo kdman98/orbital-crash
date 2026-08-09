@@ -339,19 +339,20 @@ Verified in-engine on the served file with a new-code marker asserted first: EPO
 1654, FNV `9f659ef7`.
 
 ### The repository becomes publishable: a licence, a play link, and the plan leaves the tree `05f9b5f`
-Prompted by the pending public release, which wants a public repository, a Pages link, and the full source
-with its commit record intact. **All 193 commits audited for secrets first** — every blob ever committed,
+Prompted by a public release that wants a public repository, a Pages link, and the full source with its
+commit record intact. **All 193 commits audited for secrets first** — every blob ever committed,
 against key / token / private-key / provisioning patterns. Zero hits, and no `.env` or certificate has
 ever been in this tree, so nothing below is a redaction.
 
 **`LICENSE` is PolyForm Noncommercial 1.0.0**, fetched verbatim rather than retyped. ⚠️ **Not CC BY-NC-ND**
 — Creative Commons says in its own FAQ not to use CC licences for software, and ND has no clear meaning
 for source code. PolyForm Noncommercial is built for this exact shape: source available, free to read and
-run and modify, commercial use reserved. It does not collide with the terms of that release, which
-leaves ownership with the author and licenses the distributor separately.
+run and modify, commercial use reserved. It also leaves ownership with the author, which is what the
+terms this release goes out under require.
 
 **`docs/SCOPE.md` leaves the tree** — it is the free/paid split, the recommended price, the Steam page
-timing and the revenue expectations, and a reader who came for the craft is the wrong audience for that document.
+timing and the revenue expectations, and a reader who came to look at the craft is the wrong audience
+for that document.
 ⚠️ **Removed from tracking, not from history.** A `filter-repo` purge would rewrite all 193 SHAs and need
 a force-push, and this checkout is shared by parallel sessions that would then be working against a
 rewritten base; the submission rules also ask for the commit record to be kept. The file stays on disk,
