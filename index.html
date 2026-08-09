@@ -1445,11 +1445,17 @@ function warnSpawn(x,y,type,color,secs){
   return w;
 }
 // ⚠️ A WHOLE FORMATION CAN OWN A MARK TOO, and it has to — the per-body form breaks down at scale in the
-// direction that matters. The Cross puts SIXTY-FOUR bodies on open ground in one frame; sixty-four point
+// direction that matters. The Cross puts DOZENS of bodies on open ground in one frame, and that many point
 // marks is not a telegraph, it is a violet wall. Each mark draws its incoming ring at 3r — 78px — against
 // a 44px arm spacing (FORM_STEP), so they would overlap into a solid band and the SHAPE, the only part
 // worth reading, is the one thing you could no longer see. The answer is not to warn a subset: a warn
 // OWNS its spawn, and half-warning a formation is exactly the sign-without-a-body the rule above forbids.
+//   ⚠️ "SIXTY-FOUR" STOOD HERE AS IF IT WERE A CONSTANT, AND IT IS ARENA-DEPENDENT. The arms fill to the
+// furthest padded corner, so the count is whatever the viewport asks for: measured 64 at 800x800, 84 at
+// 1280x800, 92 at 1440x900, 116 at 1920x1080 — and 100 on a 390x844 phone, MORE than a 1440x900 desktop,
+// because the short side sets `S` and a tall viewport is a tall design arena. 64 was measured in the
+// 800x800 box the game falls back to when `innerWidth` is 0, i.e. in a harness artefact rather than in
+// any arena a player sees. The argument above needs "dozens" and never needed the number.
 //   So the mark draws the shape and the mark spawns the shape. Still ONE object holding both halves,
 // still no queue and no second list — the same invariant, at the granularity the pattern actually has.
 function warnForm(secs, draw, spawn){
@@ -2039,9 +2045,15 @@ const ETYPE={
   // Only the Overdrive ring is clamped, so this number reaches that and nothing else.
   //   WHY IT NEEDED FIXING: the eddy orbit went 0.72 -> 0.45 and Overdrive's widening is v/r, so it is
   // not uniform across species — the slowest body has the least momentum to overshoot with and lost the
-  // most. A Brute's ride opened it +39.9px before and +1.0px after, i.e. not at all, while the tutorial
-  // still promised "a wider, faster circle". At 3.2 it opens +25.6px and the whirl goes 1.024 -> 1.326
-  // rev/s. Author: "i want it faster."
+  // most. A Brute's ride opened it +39.9px at the old coefficient and ESSENTIALLY NOTHING after, while
+  // the tutorial still promised "a wider, faster circle". At 3.2 it opens +27.1px and the whirl goes
+  // 1.024 -> 1.326 rev/s. Author: "i want it faster."
+  //   ⚠️ "ESSENTIALLY NOTHING" IS DELIBERATELY NOT A NUMBER. Two independent rigs put that residual at
+  // +1.3px and −2.9px — they do not agree on the SIGN, because the effect is smaller than the spread
+  // between them (burning settles scatter ±2-3% rig-to-rig, while resting shell and the 20.74 speed
+  // ceiling agree to the digit on both). Quoting either figure would be quoting rig noise as a finding.
+  // What both rigs DO agree on is the load-bearing part — no meaningful widening — and the +27.1 below
+  // is an order of magnitude clear of that scatter, so the fix is not in doubt even though the debt is.
   //   ⚠️ 3.2 AND NOT 3.4, AND THE DIFFERENCE IS THE SPECIES. 3.4 is the Drifter's own ceiling and puts
   // the Brute shell at 148.8 against the Drifter's 148.1 — the same circle, turning at the same rate, so
   // the heaviest body in the sky would ring exactly like the modal one. 3.2 lands 144.6 at 1.326: still
@@ -2597,7 +2609,8 @@ const CROSS_REF=0.38;                   // fraction of the short axis where tang
 // difference is the whole complaint. Player: "this comes in without any signal too." They are right, and
 // the argument above concedes it without noticing: the mid-quadrant solve buys ~1.7s, which is a fact
 // about GEOMETRY that only pays out if you already know the shape rotates, already know which arm is
-// nearest, and were already looking at the middle of the screen when 64 bodies appeared in one frame.
+// nearest, and were already looking at the middle of the screen when dozens of bodies appeared in one
+// frame (how many is arena-dependent — 64 to 116 across the viewports measured at warnForm).
 // Every other on-field arrival in this file gets a mark (see warnSpawn, and the Drift that forced it);
 // the Cross is the *larger* violation of the same rule and was the one relying on an argument instead.
 //   THE SHAPE IS LOCKED WHEN THE WARNING STARTS, which is the Anomaly's dash rule (LUNGE_TEL) applied to
@@ -4404,8 +4417,9 @@ function stepEnemyForces(dt){
       //   ⚠️ AND THE SPECIES SPREAD IS WHAT THIS RETUNE SPENT — THEN PAID BACK SOMEWHERE ELSE. Overdrive's
       // widening is not uniform, it is v/r, so pulling the target in costs the SLOW species almost
       // everything. Measured against each species' own base shell, this coefficient alone opened a Mini
-      // by +51px, a Drifter by +31px, and a Brute by +1.0px — 116.8 to 117.8, i.e. not at all, while the
-      // tutorial still promised "a wider, faster circle".
+      // by +51px, a Drifter by +31px, and a Brute by essentially nothing — two rigs disagree on whether
+      // that residual is +1.3 or −2.9, i.e. on its SIGN, which is the honest way to say "no widening"
+      // (see the note at ETYPE.heavy). The tutorial still promised "a wider, faster circle".
       //   ⚠️ THE FIX WENT IN AT THE SPECIES, NOT HERE, and that is the part worth copying. Rolling this
       // coefficient back to 0.50/0.55 would have bought the Brute +7.8/+14.8 by giving back a third to a
       // half of the gap-closing this change exists to produce — paying for one species out of the number
