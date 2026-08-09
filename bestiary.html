@@ -37,8 +37,6 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
     filter:drop-shadow(0 0 26px rgba(80,200,255,.4));}
   .sub{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-top:4px;}
-  .legend{font-size:12.5px;line-height:1.55;color:#aeb8c8;margin:16px auto 18px;max-width:640px;text-align:center;}
-  .legend b{font-weight:700;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:11px;}
   .card{background:#0a0f1c;border:1px solid rgba(120,140,180,.16);border-radius:14px;padding:9px 8px 11px;text-align:center;}
   .card canvas{display:block;margin:0 auto;width:100%;max-width:150px;height:auto;}
@@ -64,8 +62,7 @@
      English lines, and Korean fits the same cards in fewer — it stays, so the grid rows keep aligning. */
   html[lang="ko"] .sub{letter-spacing:.16em;}
   html[lang="ko"] .section{letter-spacing:.12em;}
-  html[lang="ko"] .tag,
-  html[lang="ko"] .legend{word-break:keep-all;line-height:1.6;}
+  html[lang="ko"] .tag{word-break:keep-all;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -74,7 +71,6 @@
       <div class="logo">ORBITAL CRASH</div>
       <div class="sub">Bestiary</div>
     </header>
-    <p class="legend">Every Dot is <b style="color:#ff3f6c">red</b> or <b style="color:#38e0ff">cyan</b>. The <b>opposite</b> colour comes for you and dies the moment it touches you, so it is your danger and your ammunition at the same time. Your <b>own</b> colour is safe, and gathers into your rings. <b style="color:#c7b8ff">Neutral</b> has no charge either way. The colours here are only examples; anything can turn up as either.</p>
     <div class="grid" id="fbGrid"></div>
   </div>
 <script>
@@ -102,7 +98,6 @@
   document.documentElement.lang=LANG;
   const TXT={ en:{
     'page.title':'ORBITAL CRASH · Bestiary',  'page.sub':'Bestiary',
-    'page.legend':'Every Dot is <b style="color:#ff3f6c">red</b> or <b style="color:#38e0ff">cyan</b>. The <b>opposite</b> colour comes for you and dies the moment it touches you, so it is your danger and your ammunition at the same time. Your <b>own</b> colour is safe, and gathers into your rings. <b style="color:#c7b8ff">Neutral</b> has no charge either way. The colours here are only examples; anything can turn up as either.',
     'sec.patterns':'Patterns',  'sec.anomaly':'The Anomaly',  'sec.kinds':'Anomaly kinds',
     'core.nm':'The Star',
     'core.tg':'You. Steer with the mouse, click to flip your colour. That is the whole toolkit.',
@@ -136,14 +131,13 @@
     'anom.emitter.nm':'Emitter',
     'anom.emitter.tg':'Hangs back and shoots. Cross its fire. Never back away in a straight line.',
     'anom.sentinel.nm':'Sentinel',
-    'anom.sentinel.tg':'Keeps the pressure on with movement and shots alike!',
-    'anom.pulsar.nm':'Pulsar',
-    'anom.pulsar.tg':'Throws up a wall of shots with exactly one gap. Be standing in it before the wall goes up!',
+    'anom.sentinel.tg':'Homing shots that never let you stand still.',
+    'anom.bastion.nm':'Bastion',
+    'anom.bastion.tg':'Barrages and projectiles, both attack and pressure.',
     'form.wall.nm':'The Wall',   'form.noose.nm':'The Noose', 'form.pulse.nm':'The Pulse',
     'form.cross.nm':'The Cross', 'form.comet.nm':'The Comet', 'form.drift.nm':'The Drift',
   }, ko:{
     'page.title':'ORBITAL CRASH · 도감',  'page.sub':'도감',
-    'page.legend':'모든 입자는 <b style="color:#ff3f6c">빨간색</b> 아니면 <b style="color:#38e0ff">청록색</b>입니다. <b>반대</b> 색은 나를 향해 오고, 닿는 순간 사라집니다. 위험이자 탄약이라는 뜻이에요. <b>같은</b> 색은 안전하고, 모여서 링이 됩니다. <b style="color:#c7b8ff">중립 입자</b>는 어느 쪽 전하도 없습니다. 여기 색은 예시일 뿐이고, 무엇이든 둘 중 어느 쪽으로도 나타납니다.',
     'sec.patterns':'패턴',  'sec.anomaly':'변이체',  'sec.kinds':'변이체 종류',
     'core.nm':'별',
     'core.tg':'나 자신입니다. 마우스로 조종하고, 클릭으로 색을 뒤집습니다. 도구는 이게 전부예요.',
@@ -168,9 +162,9 @@
     'anom.emitter.nm':'방출체',
     'anom.emitter.tg':'뒤에서 쏩니다. 탄막을 가로질러 가세요. 일직선으로 물러나면 안 됩니다.',
     'anom.sentinel.nm':'감시자',
-    'anom.sentinel.tg':'움직임과 탄환으로 지속적인 압박을 가합니다!',
-    'anom.pulsar.nm':'맥동체',
-    'anom.pulsar.tg':'틈이 딱 하나 있는 탄막 벽을 두릅니다. 벽이 서기 전에 그 자리를 잡으세요!',
+    'anom.sentinel.tg':'추적형 탄환으로 지속적인 움직임을 강제합니다.',
+    'anom.bastion.nm':'바스티온',
+    'anom.bastion.tg':'탄막과 투사체 위주의 공격 및 압박을 가합니다.',
     'form.wall.nm':'장벽',   'form.noose.nm':'올가미', 'form.pulse.nm':'파동',
     'form.cross.nm':'십자',  'form.comet.nm':'혜성',   'form.drift.nm':'표류',
   } };
@@ -179,7 +173,6 @@
 
   document.title=T('page.title');
   document.querySelector('.sub').textContent=T('page.sub');
-  document.querySelector('.legend').innerHTML=T('page.legend');
 
   // COPY RULE FOR THIS PAGE: a card is for someone who has not played yet. Say what the thing does and
   // what to do about it, in about the length of a spoken sentence. No stats, no numbers, no tuning
@@ -202,7 +195,7 @@
   const ANOMS=[
     {kind:'anom',key:'emitter', col:'cyan'},
     {kind:'anom',key:'sentinel',col:'cyan'},
-    {kind:'anom',key:'pulsar',  col:'red'},
+    {kind:'anom',key:'bastion',  col:'red'},
   ];
   // The six shapes, in Pattern Lab key order (1-6). Four are true Patterns — irregular waves that
   // arrive between the drizzle from ~0:42 onward — and two, the Comet and the Drift, are EVENTS on their
@@ -421,7 +414,7 @@
   // The per-kind silhouette, mirroring bossBody() in index.html. Each shape IS the mechanic:
   //   emitter  — a faceted HEXAGON that turns (the crossfire pattern it throws)
   //   sentinel — a hollow RING with two opposed pincer wings on its firing axis
-  //   pulsar   — a dense core inside a crown of RAYS (the nova wind-up, made of body)
+  //   bastion   — a dense core inside a crown of RAYS (the nova wind-up, made of body)
   function anomBody(ctx,x,y,R,key,c,oc,t){
     if(key==='sentinel'){
       const rot=t*0.9;
@@ -437,7 +430,7 @@
       ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(x,y,R*0.25,0,TAU); ctx.fill();
       return;
     }
-    if(key==='pulsar'){
+    if(key==='bastion'){
       const ch=0.5+0.5*Math.sin(t*1.9);                         // breathe the wind-up
       const n=14, inner=R*0.54, outer=R*(1.02+0.44*ch);
       ctx.strokeStyle=hexA(oc,0.5+0.45*ch); ctx.lineWidth=3;
@@ -482,7 +475,7 @@
         ctx.fillStyle=hexA(i%2?COL.red:COL.cyan,0.5-i*0.07); ctx.beginPath(); ctx.arc(tx2,ty2,2.4,0,TAU); ctx.fill(); }
       const lx=x+Math.cos(ma)*(r+22), ly=y+Math.sin(ma)*(r+22);
       ctx.fillStyle=hexA(lc,0.95); ctx.beginPath(); ctx.arc(lx,ly,4,0,TAU); ctx.fill();
-    } else if(s.key==='pulsar'){                              // charge ring collapsing in, then a burst out
+    } else if(s.key==='bastion'){                              // charge ring collapsing in, then a burst out
       const prog=(t*0.6)%1;
       ctx.strokeStyle=hexA(lc,0.2+0.6*(1-prog)); ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,r+6+(1-prog)*26,0,TAU); ctx.stroke();
       for(let i=0;i<10;i++){ const a=i/10*TAU, rr=r+8+prog*30, lx=x+Math.cos(a)*rr, ly=y+Math.sin(a)*rr;

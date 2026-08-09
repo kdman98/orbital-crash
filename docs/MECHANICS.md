@@ -1005,11 +1005,11 @@ restated again** — see *Traps*.
 |---|---|
 | **Emitter** | hovers and alternates a hexagon **burst** (one arm leads you, the other five close your escape angles) with a sweeping **stream** of leading fans. From Epoch II it also **dashes** |
 | **Sentinel** | circles the arena firing pincers **and sheds swarmers as it goes**, so its orbit writes a **trail** you have to run down |
-| **Pulsar** | telegraphs a collapsing charge-ring, then erupts a **radial wall with one seam** — be in the seam. Between rings it lobs **mines** onto the ground around *you*. Carries less HP: the kind that moves you rather than out-damaging you |
+| **Bastion** | telegraphs a collapsing charge-ring, then erupts a **radial wall with one seam** — be in the seam. Between rings it lobs **mines** onto the ground around *you*. Carries less HP: the kind that moves you rather than out-damaging you |
 
 The first Anomaly of a run is always the **Emitter**, whose opening hex burst teaches the loop. Each
 kind draws a different body and **the shape is the mechanic** — the Emitter's hexagon turns on the same
-value that aims its crossfire; the Pulsar's rays lengthen as the nova winds up. Drawn `source-over`
+value that aims its crossfire; the Bastion's rays lengthen as the nova winds up. Drawn `source-over`
 inside the additive pass (law 12).
 
 **Its size is its hitbox** (law 4). Everything follows the one number: the star's contact envelope, the
@@ -1063,7 +1063,7 @@ regardless of your polarity**: you dodge a missile, you never match it.
 | **Mine** | lobbed at the ground around *you*, arms, then detonates; it draws its exact blast — leave |
 | **Spear** | telegraphs a line and tracks you along it, then fires — leave the line |
 
-**Mines come two ways, and the second is the Pulsar's Epoch III escalation.** The **scatter** lays 2–3 at
+**Mines come two ways, and the second is the Bastion's Epoch III escalation.** The **scatter** lays 2–3 at
 stratified bearings on a jittered 140–190px ring around you; **the Box** (`fireMineSquare`) lays eight
 stations on a square, one omitted as the door. Every dimension of the Box is *derived from the blast*
 rather than chosen — 165px spacing so the perimeter is a single continuous denied band (≤ one blast
@@ -1138,7 +1138,7 @@ removed it (law 15). An Epoch I missile now covers three-quarters the ground of 
 it is three-quarters as fast for the same seconds of life.
 
 **The fear the old text named was real, and it was real for exactly one of the five kinds.** It predicted
-patterns that stop *arriving* rather than arrive later — the Pulsar's ring falling short of you, the
+patterns that stop *arriving* rather than arrive later — the Bastion's ring falling short of you, the
 Emitter's fan dying before the end of its lane. Straight flyers clear the arena at 0.75 speed with room to
 spare and were untouched. The **seeker** was not: it spends `seekFor` turning onto you before it commits,
 so its path is far longer than the distance it closes, and it has to buy the arc as well as the approach.
@@ -1273,7 +1273,7 @@ described play. The four rigs that preceded this one all returned zero — see *
 
 **No per-kind bonus, and the obvious one is backwards.** A bonus for the kind you have to *chase* looks
 right and measures wrong: closing on the **Sentinel** is the **cheapest** of the three, because its orbit
-carries it away rather than parking on you and firing, while the Emitter and Pulsar sit still and shoot
+carries it away rather than parking on you and firing, while the Emitter and Bastion sit still and shoot
 you point-blank. **Hard to catch and dangerous to stand next to are different axes**, and the grind is
 priced on the second. `GRIND_MULT` is an empty table on purpose — the signpost that stops this being
 rebuilt.
@@ -1302,13 +1302,13 @@ and the same reason `RING_GRIND_DMG` is protected from being halved.
 *The ceiling that was once rejected is now the fix* — and the rejection turns out to have been invalid
 from the start, which is a sharper lesson than the one recorded here before.
 
-The current value was argued down for one-shotting an **Epoch I Pulsar**. That fight does not exist and
-never has: `pickAnomalyVariant` gates the Pulsar behind `act>=2` in the repo's first commit and every
+The current value was argued down for one-shotting an **Epoch I Bastion**. That fight does not exist and
+never has: `pickAnomalyVariant` gates the Bastion behind `act>=2` in the repo's first commit and every
 one since, `bossN===0` is unconditionally the Emitter, and Boss Rush pins `act=2`. The 11 HP figure the
 rejection used needs `act=1`, which is reachable only by calling `spawnBoss` directly from a harness.
 
-At the lowest Pulsar the game can actually spawn, the value being rejected **never one-shot anything** —
-it left that Pulsar alive on 3 HP. So the constraint was not a constraint, the ceiling was not a
+At the lowest Bastion the game can actually spawn, the value being rejected **never one-shot anything** —
+it left that Bastion alive on 3 HP. So the constraint was not a constraint, the ceiling was not a
 ceiling, and the number spent months excluded on the strength of a fight nobody could be in.
 
 ⚠️ **A constraint derived from a state the game cannot reach is not a constraint.** It is the same
@@ -1332,12 +1332,12 @@ the meter, which makes it the fallback when you have been stripped of everything
 *only* fallback, which is why halving it is not a free move.
 
 *No softlock:* the Volley closes all three kinds unaided — measured 53.1s Emitter, 39.8s Sentinel,
-33.4s Pulsar. Grind alone takes the Sentinel and the Pulsar but **not** the Emitter, which is the kind
+33.4s Bastion. Grind alone takes the Sentinel and the Bastion but **not** the Emitter, which is the kind
 that hovers and shoots you point-blank; holding an orbit against it is the thing that does not work.
 
 ⚠️ *Those four results predate the pool buff and none has been re-run against it.* The pool doubled at
 Epoch I, so the three times are floors rather than estimates, and **whether grind-alone still closes the
-Sentinel and the Pulsar is now an open question, not a recorded fact.** No-softlock is the safety
+Sentinel and the Bastion is now an open question, not a recorded fact.** No-softlock is the safety
 property of this whole section; treat it as unverified at current numbers until someone re-runs it.
 
 **Purge** — destroying the boss; the word means only this. Pays score scaled by Epoch, an Integrity heal,
@@ -2459,8 +2459,8 @@ is visible before believing any geometry read off it.
 
 **A rig state the game cannot reach produces numbers that look exactly like findings.** Two of these
 landed on the same day from opposite directions. The value now in `CHARGE_DMG` was rejected for one-shotting an 11 HP
-Pulsar — a fight requiring `act=1`, which the variant gate has forbidden since the first commit; at the
-lowest Pulsar the game can spawn it never one-shot anything. And four grind rigs read a clean zero,
+Bastion — a fight requiring `act=1`, which the variant gate has forbidden since the first commit; at the
+lowest Bastion the game can spawn it never one-shot anything. And four grind rigs read a clean zero,
 which looked like *grinding does nothing* and was really the rig: rings capture **like** charge while
 chipping needs a colour **differing** from the boss, so usable ammunition requires polarity opposite the
 boss — and pointer coordinates are client space while the boss was pinned in world space, putting the
@@ -2481,14 +2481,14 @@ measuring your instrument.** This one had a second layer, because the finding wa
 identity it "confirmed" was quoted three sections away as a reason no re-measurement would ever be needed.
 
 **And the sibling failure, from the same week: a metric that lumps a mechanic in with its own failure
-mode describes neither.** The Pulsar was reported as fizzling 15–18% of its shots on screen, flagged to
+mode describes neither.** The Bastion was reported as fizzling 15–18% of its shots on screen, flagged to
 the author as possibly needing investigation. Counted by kind, **16 of its 20 expiries were mines
 detonating exactly as designed** — the mine's `life` is a fuse — and genuine fizzle was 2 of 84 rings. The
 aggregate was a real count of a category that does not mean anything. Before quoting a rate, check that
 every member of the numerator is the thing the rate is named after.
 
 **A harness that can force a state is a harness that can invent one**, and that is exactly how the 11 HP
-figure was born: a verification run called `spawnBoss` for a Pulsar at Epoch I, printed a pool the
+figure was born: a verification run called `spawnBoss` for a Bastion at Epoch I, printed a pool the
 roster cannot produce, and the number was copied into a sentence about what a player meets. The seam
 answers every question you ask it, including the ones with no answer. **A formula is defined at every
 Epoch; the roster is not** — so price a variant against the first Epoch its gate lets it appear in.
@@ -2831,9 +2831,9 @@ opposite directions — and neither was a wrong number. Both numbers were correc
   wrong population.
 - A Sentinel reach of **1030** was quoted in a table headed *Epoch III*. It is the **Epoch I** figure —
   0.754 of 1366, which is the pace multiplier. Right number, wrong epoch.
-- The table written to correct *that* quoted the Pulsar's mine-inclusive **17.9%** in its measured column
+- The table written to correct *that* quoted the Bastion's mine-inclusive **17.9%** in its measured column
   while scrupulously stripping mines from its reach column. Right number, wrong population again — and
-  the Pulsar is the only variant carrying a fuse, so again the only row of its kind.
+  the Bastion is the only variant carrying a fuse, so again the only row of its kind.
 
 - A fifth, and the sharpest: **"the Harrier was sixth-fastest" was challenged as fifth, by me, using
   `seek × CRUISE_K` on all eight species.** Seven of them share the 0.86 bleed, so that product is their
@@ -2918,7 +2918,7 @@ disagreement is the finding. Both of these were caught exactly that way and by n
 
 **`spawnRing` collapses inward by default, so anything you add called a "shockwave" will implode.**
 `drawParticles` sizes a ring as `p.R*a` with `a` running 1 → 0 over its life, which starts at full
-radius and closes to a point. That is right for a **telegraph** — a Pulsar winding up, an Overdrive
+radius and closes to a point. That is right for a **telegraph** — a Bastion winding up, an Overdrive
 ignition — where the statement is at full radius and the convergence says *this is where it lands*. It
 is exactly backwards for a **blast**, which the Bomber detonation was doing unnoticed until someone
 looked. Pass `out` for the outward curve. Nothing about the call site announces which one you got, and
@@ -2933,7 +2933,7 @@ so forcing a long run is legitimate for a **mix census** and illegitimate for an
 streak, where an immortal pilot is measuring a state the game cannot produce.
 
 **A comment that quotes a derived number needs deriving, not re-reading.** Three comments survived the
-Anomaly buff still pricing a bait at half a bar, still calling an Epoch I Pulsar 11 HP, and still
+Anomaly buff still pricing a bait at half a bar, still calling an Epoch I Bastion 11 HP, and still
 warning that the pool had *dropped below* a line it was now at double — and one of them contradicted
 another comment in the same file about the same number. Eyes do not catch this; the numbers look
 plausible because they once were. **Parse the constants out of the served document, recompute the
@@ -2982,8 +2982,8 @@ a run distorted* is a weight question, and a design change usually turns on the 
 
 **A rejection is as perishable as a measurement, and nothing in this process re-checks it.** The current
 `CHARGE_DMG` was once rejected in its own comment block, on the grounds that it would one-shot an Epoch
-I Pulsar. The pool later doubled, and that same value became the one that *preserves* what the rejection
-was protecting — two baits, exactly what the old number took against the old Pulsar. **The rejection was
+I Bastion. The pool later doubled, and that same value became the one that *preserves* what the rejection
+was protecting — two baits, exactly what the old number took against the old Bastion. **The rejection was
 never wrong; the thing it was measured against moved.** Measurements here get re-run as a matter of
 course. Rejected candidates get filed with their reason and never looked at again, which makes them the
 stalest thing in the file. When a premise moves, re-derive what it ruled out.
@@ -3051,7 +3051,7 @@ the pool has held since. Still *argued*, not *tested*.
 
 ⚠️ *Two framings retired with the cliff, because both were it wearing other words:* the **trigger /
 defect** split, and any sentence comparing the current pool to 18. If a future entry reaches for either,
-it has reintroduced the threshold model. Price the Pulsar against **Epoch II**, the first Epoch its
+it has reintroduced the threshold model. Price the Bastion against **Epoch II**, the first Epoch its
 variant gate lets it appear in — see *Traps*.
 
 *What is superseded:* an immortal bot orbiting close, never firing a volley and never spending the
@@ -3218,7 +3218,7 @@ item already says; it is worth saying *which* of the two the numbers are.
 Both of those need retiring, and the second is the real result.
 
 **13.3% is not admissible.** It is a pre-`9fd8dcb` culled-by-`life` rate with **mines counted in it**, and
-`9fd8dcb` took exactly that class of number apart: of the Pulsar's 20 expiries, **16 were mines detonating
+`9fd8dcb` took exactly that class of number apart: of the Bastion's 20 expiries, **16 were mines detonating
 as designed.** A mine's `life` is a fuse and its 184 units are not a reach — law 15 exempts it by
 construction, so the model never claimed to predict it. Quoting it here reintroduced the trap recorded
 four sections down, one commit after that trap was written.
@@ -3236,20 +3236,20 @@ basis from the rest of the table.** The Sentinel fires nothing but seekers, and 
 headed Epoch III. Nor was it ever "the shortest reach in the game": the ring is 1159 and the mine 184.
 
 ⚠️ **And the table that corrected it carried the same defect a third time, in the other column.** The
-Pulsar's 17.9% is the mine-inclusive rate — the very figure being stripped from the argument two
+Bastion's 17.9% is the mine-inclusive rate — the very figure being stripped from the argument two
 paragraphs above, quoted unstripped in the measured column while the reach column was carefully cleaned.
-**The Pulsar is the only variant with a fuse-bearing kind in its kit**, so it is the only row whose
+**The Bastion is the only variant with a fuse-bearing kind in its kit**, so it is the only row whose
 measured value is a different kind of thing from its neighbours. Same tell, third firing.
 
-Stripped, reconstructing the Pulsar's shot mix from its cadences: the nova throws 12 ring lances every
+Stripped, reconstructing the Bastion's shot mix from its cadences: the nova throws 12 ring lances every
 ~4.5s against a mine volley every ~3.1s, putting mines at **~27%** of what it fires. Of 20 expiries, 16
 were mines, so ~4 non-mine expiries against ~82 non-mine shots — **~4.9%**. For 17.9% to have survived
-stripping, mines would have to be **80%** of everything the Pulsar fires; the ring alone throws twelve at
+stripping, mines would have to be **80%** of everything the Bastion fires; the ring alone throws twelve at
 a time.
 
 | Epoch III, pre-raise | kit | shortest non-mine reach | measured, one basis |
 |---|---|---|---|
-| **Pulsar** | ring, mine | 1159 — shortest | **~4.9%** *(reconstructed)* |
+| **Bastion** | ring, mine | 1159 — shortest | **~4.9%** *(reconstructed)* |
 | **Emitter** | volley, spear | 1361 — *above* full width | **11.8%** |
 | **Sentinel** | seeker | 1366 — longest | **0%** |
 

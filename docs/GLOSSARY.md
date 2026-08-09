@@ -163,7 +163,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   back. (`formWall`)
 - **The Noose** — a ring shutting on where you stand, seam rotating, locking as a cage while strands
   carry on. (`formNoose`, `NOOSE_MIN_R`, `NOOSE_BITE`)
-- **Seam** — the Noose's one wide gap, or the one opening in a Pulsar's ring missile. The way out.
+- **Seam** — the Noose's one wide gap, or the one opening in a Bastion's ring missile. The way out.
 - **Bite** — the Noose strands that leave the cage and land on your core. (`NOOSE_BITE_R`)
 - **Cage** — the Noose at its locked radius, holding shut. (`NOOSE_CAGE`)
 - **The Pulse** — nested single-colour arcs washing outward over you; answered by matching, not dodging.
@@ -197,7 +197,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   Epoch II. (`b.emitMode`, `fireHexVolley`)
 - **Sentinel** *(chase)* — circles the arena firing pincers and shedding swarmers, leaving a trail.
   (`orbA`, `seedT`)
-- **Pulsar** *(ground denial)* — erupts radial rings with one seam, and lobs mines around you.
+- **Bastion** *(ground denial)* — erupts radial rings with one seam, and lobs mines around you.
   (`novaCharge`, `fireMines`)
 - **The Hunt** — an Anomaly leaving station and *walking* onto your core, landing one hit and breaking
   off. (`b.hunt`, `HUNT_SPD`, `HUNT_BREAK`)
@@ -216,7 +216,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Seeker** — turns onto you, then commits. Out-turns you, cannot out-run you.
 - **Ring** *(missile)* — an expanding wall with one seam.
 - **Mine** — lobbed at the ground around you; arms, draws its exact blast, detonates. (`mineBlast()`)
-- **The Box** — the Pulsar's Epoch III mine pattern: eight stations on a square around you, one omitted
+- **The Box** — the Bastion's Epoch III mine pattern: eight stations on a square around you, one omitted
   as the door, every dimension derived from the blast rather than chosen. (`fireMineSquare`,
   `MINE_SQ_HALF`)
 - **Spear** — telegraphs a line, tracks you along it, then fires. (`SPEAR_N`, `fireSpear()`)
@@ -327,7 +327,9 @@ playing, the Bestiary holds the species, and Records holds the achievements it u
 facts it was argued to be the last home of are gone too — two the tutorial demonstrates, one contradicted
 `flip()`, and one Records had already made untrue.
 
-**Older:** **Eddy** → Overdrive's ring behaviour · **body** (meaning an enemy) → Dot ·
+**Older:** **Pulsar** → Bastion (the code key stays `pulsar`, so PATCHNOTE entries before 2026-08-09
+and every identifier still read the old name) · **Eddy** → Overdrive's ring behaviour ·
+**body** (meaning an enemy) → Dot ·
 **Flare** → missile · **World** → Star · **Purge** (of matter) → Fling; *purge* now means destroying an
 Anomaly and nothing else · **Anomaly Arena** → Boss Rush · **Lunger**, **Seeder**, **Spiral** → folded
 into Emitter and Sentinel · **Corona**, **Cryo**, **Singularity** → removed powerups ·

@@ -86,7 +86,7 @@
   window.__suite = function () {
     const out = {};
     for (const seed of [101, 202, 303]) out['survival-' + seed] = window.__pilot(seed, 2400);
-    for (const v of ['emitter', 'sentinel', 'pulsar']) out['boss-' + v] = window.__pilot(4242, 1500, { boss: v });
+    for (const v of ['emitter', 'sentinel', 'bastion']) out['boss-' + v] = window.__pilot(4242, 1500, { boss: v });
     return out;
   };
   return 'harness ready';

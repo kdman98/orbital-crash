@@ -1274,7 +1274,7 @@ const L={ en:{
   'anom.emitter.tip' :'EMITTER · BARRAGE · CROSS IT',
   'anom.emitter.tip3':'EMITTER · DASH · DODGE',
   'anom.sentinel.tip':'SENTINEL · SEEKERS · CHASE',
-  'anom.pulsar.tip'  :'PULSAR · WALL · THE SEAM',
+  'anom.bastion.tip'  :'BASTION · WALL · THE SEAM',
   'achv.firstBoss.nm':'Purge an Anomaly',  'achv.firstBoss.ds':'Defeat an Anomaly',
   'achv.combo60.nm' :'Chain Reactor',      'achv.combo60.ds' :'Land a 60-chain',
   'achv.act3.nm'    :'Deep Field',         'achv.act3.ds'    :'Reach Epoch III',
@@ -1431,7 +1431,7 @@ const L={ en:{
   'anom.emitter.tip' :'방출체 · 탄막 · 횡단',
   'anom.emitter.tip3':'방출체 · 돌진 · 회피',
   'anom.sentinel.tip':'감시자 · 추적탄 · 추격',
-  'anom.pulsar.tip'  :'맥동체 · 탄막벽 · 틈새',
+  'anom.bastion.tip'  :'바스티온 · 탄막벽 · 틈새',
   'achv.firstBoss.nm':'변이체 소멸',  'achv.firstBoss.ds':'변이체를 쓰러뜨린다',
   'achv.combo60.nm' :'콤보 반응',     'achv.combo60.ds' :'60콤보를 달성한다',
   'achv.act3.nm'    :'심층',          'achv.act3.ds'    :'3단계에 도달한다',
@@ -1746,25 +1746,25 @@ const RING_GRIND_DMG=1;
 // for difficulty and the bait should not undo that — it should stay the answer a stripped player has, not
 // become the fast way past the fight.
 //   ⚠️⚠️ 12 WAS EXCLUDED FOR MONTHS BY AN ARGUMENT THAT WAS NEVER VALID, not by one the pool later
-// invalidated. The rejection was "12 would one-shot an Epoch I Pulsar with 11 hp" — and an Epoch I Pulsar
+// invalidated. The rejection was "12 would one-shot an Epoch I Bastion with 11 hp" — and an Epoch I Bastion
 // has never been reachable in any commit of this repo. `pickAnomalyVariant` returns the Emitter
-// unconditionally while `bossN===0` and gates the Pulsar behind `act>=2`; Boss Rush pins `act=2`. Both
-// gates are in e21eda6, the first commit. Under the old pool the weakest Pulsar a player could actually
+// unconditionally while `bossN===0` and gates the Bastion behind `act>=2`; Boss Rush pins `act=2`. Both
+// gates are in e21eda6, the first commit. Under the old pool the weakest Bastion a player could actually
 // meet was the EPOCH II one at 15 hp, which 12 leaves alive at 3. It never one-shot anything.
 //   An earlier version of this note called that "the pool moving, not the argument being wrong". That was
 // the generous reading and it was false: the argument was wrong when written, and the pool moving is
 // irrelevant to it. Recorded rather than quietly replaced, because the failure is the interesting part —
 // a constraint computed from a state the game cannot produce reads exactly like a finished argument, and
 // gets obeyed for months. Nothing fails; the number is simply never revisited.
-//   Today: the weakest reachable Pulsar is the Epoch II one at 23 hp. One bait leaves 11, two finish it.
-// The Epoch I arithmetic of 19 is a seam artefact — spawnBoss('pulsar') will build it, play will not.
+//   Today: the weakest reachable Bastion is the Epoch II one at 23 hp. One bait leaves 11, two finish it.
+// The Epoch I arithmetic of 19 is a seam artefact — spawnBoss('bastion') will build it, play will not.
 //   PRICE A VARIANT AGAINST THE EPOCH IT CAN FIRST APPEAR IN, NOT AGAINST THE FORMULA. The formula is
 // defined for every Epoch; the roster is not. Check the gate before quoting a row.
 const CHARGE_DMG=12;
 // EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
 // Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
 // CHEAPEST of the three, costing -27 HP for 5s of contact (you regenerate; its orbit carries it away)
-// against 82 for the Emitter and 66 for the Pulsar, which sit still and shoot you point-blank. Hard to
+// against 82 for the Emitter and 66 for the Bastion, which sit still and shoot you point-blank. Hard to
 // CATCH and dangerous to STAND NEXT TO are different axes; the grind is priced on the second.
 const GRIND_MULT={};
 // THE VOLLEY — the boss fight's erosion path. With an Anomaly alive, a hungry flip does not merely
@@ -3191,16 +3191,16 @@ const ANOM={
   // out along its orbit. Movement and adds now reinforce each other: chasing it means running down the
   // trail it just laid, instead of the old Seeder's tidy pile dropped at a stationary point.
   sentinel:{tip:'anom.sentinel.tip'},
-  // PULSAR — the dodge boss. A radial wall of 13 with one seam, plus mines lobbed onto the ground
+  // BASTION — the dodge boss. A radial wall of 13 with one seam, plus mines lobbed onto the ground
   // around you. It carries 25% less HP because it is the kind that MOVES you rather than out-damaging
   // you: its answer is footwork, so it should not also be the longest fight.
-  pulsar: {tip:'anom.pulsar.tip'},
+  bastion: {tip:'anom.bastion.tip'},
 };
 let lastVariant=null;
 function pickAnomalyVariant(){
   if(bossN===0) return 'emitter';             // the first Anomaly always teaches the loop (its tip names the Volley)
   const pool=['emitter','sentinel'];
-  if(act>=2) pool.push('pulsar');             // Epoch II+: the bullet-hell kind joins
+  if(act>=2) pool.push('bastion');             // Epoch II+: the bullet-hell kind joins
   let v=pool[irand(0,pool.length-1)];         // Epoch II+ escalation now lives INSIDE the Emitter (it lunges)
   if(v===lastVariant && pool.length>1) v=pool[(pool.indexOf(v)+1)%pool.length]; // avoid back-to-back repeats
   lastVariant=v; return v;
@@ -3208,7 +3208,7 @@ function pickAnomalyVariant(){
 // ---- BOSS RUSH: a testing ground where Anomalies come one after another over a LIVE ambient field
 //      (dots still spawn, like a real Epoch fight). Cycle on kill; 1-3 jump to a kind. Real damage. ----
 let testMode=false, lastWasTest=false, testIdx=0;
-const TEST_ORDER=['emitter','sentinel','pulsar'];
+const TEST_ORDER=['emitter','sentinel','bastion'];
 function beginTestRun(){
   act=2; boss=null; bossTime=0; testIdx=0; wavePhase='boss';
   palCur.bg1=hx(ACTS[2].bg1); palCur.bg2=hx(ACTS[2].bg2); palCur.tint=hx(ACTS[2].tint);
@@ -3460,7 +3460,7 @@ function spawnBoss(forceVariant){
   // Early Anomalies still take the brunt, which is where the complaint was. anomLog on the run summary is
   // the readout for whether it landed: it prices each fight in HP the fight actually cost you.
   let hp=20+act*5;
-  if(variant==='pulsar') hp=Math.round(hp*0.75); // the kind that moves you rather than out-damaging you — footwork is its answer, so it should not also be the longest fight
+  if(variant==='bastion') hp=Math.round(hp*0.75); // the kind that moves you rather than out-damaging you — footwork is its answer, so it should not also be the longest fight
   bossN++;
   anomLog.push(0);   // opens this fight's tab — see the two `boss &&` accumulators in the damage paths
   // ⚠️ `r` IS THE HULL *AND* THE COLLIDER — never split them into a draw scale over a separate hitbox.
@@ -3490,7 +3490,7 @@ function spawnBoss(forceVariant){
     // slowdown most exists for.
     fireT:2.2*pace.cad, emitMode:true,        // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
     orbA:-Math.PI/2,                          // sentinel: start at the top of its circle
-    novaT:rand(2.4,3.4)*pace.cad, novaCharge:0,        // pulsar: telegraphed radial bursts
+    novaT:rand(2.4,3.4)*pace.cad, novaCharge:0,        // bastion: telegraphed radial bursts
     lungeT:rand(4,6)*pace.cad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
     seedT:rand(2.6,3.8)*pace.cad,              // sentinel: swarmers shed along its orbit
     hunt:0, huntT:rand(6,10)*pace.cad, huntBreak:0, huntR:undefined };   // every kind: periodically leaves station and walks onto your core
@@ -3540,7 +3540,7 @@ const MSL={
   // A mine is SUPPOSED to run out on screen — that is how it detonates (`mineBlast` on the life<=0
   // path). Scaling it with the rest would push its blast later and thin the minefield. It stays at 3.4.
   //   That distinction cost a wrong report: an earlier sweep counted mines expiring as "fizzles" and
-  // made the Pulsar look 15-18% broken when 16 of its 20 expiries were mines going off exactly as
+  // made the Bastion look 15-18% broken when 16 of its 20 expiries were mines going off exactly as
   // designed. Count by kind, or the metric describes the wrong mechanic.
   volley:{sp:5.4, r:9,  life:6.0},
   // seeker turn radius is v/w = 3.3/0.055 = 60px — it out-TURNS you easily, but at 3.3px/frame it cannot
@@ -3587,7 +3587,7 @@ function fireMissile(b,a,kind,spOverride){
   //   ⚠️ `life` HARDLY EVER BINDS at the harness viewport, which is what makes this safe there. After the
   // 9fd8dcb raise: ZERO non-mine mid-arena expiries, all three variants, both Epochs. (An earlier draft
   // cited "13.3% at Epoch III" here. DO NOT PUT IT BACK — that is a culled-by-`life` rate with MINES in
-  // it, and mines are supposed to hit life<=0; 16 of the Pulsar's 20 expiries were mines detonating as
+  // it, and mines are supposed to hit life<=0; 16 of the Bastion's 20 expiries were mines detonating as
   // designed. A rate whose numerator holds a working mechanic describes neither it nor the fault.)
   //   ⚠️ AND ARENA SIZE IS NOT WHAT DECIDES THIS — BOSS BEHAVIOUR IS. Reach is fixed while the arena is
   // not (`resize()` sets `W = vw/S`, `S` clamped at 1, so in design units the field IS the viewport on
@@ -3602,7 +3602,7 @@ function fireMissile(b,a,kind,spOverride){
   // counted BY KIND. If it bites, the lever is the table, not a return to the per-shot correction — that
   // is what hid the seeker's deficit to begin with.
   //   THIS USED TO DIVIDE `life` BY `ps` TO HOLD REACH CONSTANT, and the comment here called that "not
-  // optional bookkeeping" — the Pulsar's ring would stop reaching you, the Emitter's fan would die
+  // optional bookkeeping" — the Bastion's ring would stop reaching you, the Emitter's fan would die
   // short. Measured with `act` held fixed and only `pace` varying, compensated and uncompensated were
   // INDISTINGUISHABLE: 3.02 mean lances on screen, 80 fired, 0% life-culled, both arms. The
   // compensation was dormant at every value that ships.
@@ -3676,8 +3676,8 @@ function fireSpear(b){                                         // EMITTER (Epoch
 // — a one-term model of a two-phase flight is the failure, not the constant.
 //   ⚠️ AND FIXING THE MODEL EXPOSED THAT THE CEILING WAS SET AGAINST THE WRONG ONE. `MINE_SPMAX` was 13
 // because 13*26.3 = 342 "looked like" a sensible reach under the old arithmetic; the true reach at 13 is
-// 35.6*13*spd, and with the honest solve in place the Pulsar could only cover a fraction of the field.
-// Measured on an 800x894 arena with the Pulsar at its hover (y~150):
+// 35.6*13*spd, and with the honest solve in place the Bastion could only cover a fraction of the field.
+// Measured on an 800x894 arena with the Bastion at its hover (y~150):
 //     SPMAX 13 -> the full 8-station box is layable from 24.8% of player positions
 //     SPMAX 16 -> 46.3%      18 -> 57.9%      20 -> 68.4%      24 -> 88.2%
 // 16 is the pick, and the bound on it is a READ rather than a coverage target: launch speed is `sp`, and
@@ -3699,7 +3699,7 @@ function layMine(b,tx,ty){
 // rho >= 120 (n=3). At 120 the jitter budget is exactly zero. 140 is the first radius that separates
 // three mines AND leaves room to vary them.
 const MINE_RHO0=140, MINE_RHO1=190;
-function fireMines(b,n){                                       // PULSAR: ground denial between rings
+function fireMines(b,n){                                       // BASTION: ground denial between rings
   // Mines have to arm on ground you might actually WANT, so they are lobbed at scattered points around
   // the Star, not sprinkled around the Anomaly — denying territory nobody is standing in denies nothing
   // (dropped at the boss they arm ~270px from anyone and measure 12 damage across a 40s fight).
@@ -3716,11 +3716,11 @@ function fireMines(b,n){                                       // PULSAR: ground
   // `MSL.mine.blast` or the band above. (n=3 at rho=140 gives +/-0.21 rad; n=2 gives +/-0.73.)
   const jit=Math.max(0, Math.PI/n - Math.asin(clamp(MSL.mine.blast/rho,0,1)));
   // ⚠️ DROP THE STATIONS IT CANNOT REACH — PER MINE, NOT PER VOLLEY. `MINE_SPMAX` caps the throw, so a
-  // Pulsar further from a station than `mineReach` lands that mine on the rail: short, boss-side, in the
+  // Bastion further from a station than `mineReach` lands that mine on the rail: short, boss-side, in the
   // empty middle of the arena. That is exactly the "denying territory nobody is standing in denies
   // nothing" failure this function opens by naming, and aiming the target inward only relocates it.
   //   ⚠️ BUT AN ALL-OR-NOTHING VOLLEY GUARD IS WORSE THAN THE BUG. Measured: reach is
-  // 35.6*13*pace.spd, which is 347px at Epoch I, and the Pulsar hovers at y~150 while the Star ranges
+  // 35.6*13*pace.spd, which is 347px at Epoch I, and the Bastion hovers at y~150 while the Star ranges
   // over the whole arena — so requiring every station to be in range silenced the kind's entire second
   // verb across most of the play field. Dropping the FAR stations instead degrades to "it cannot reach
   // past you", which is legible, true, and leaves the near-side denial doing its job. The bearing
@@ -3737,7 +3737,7 @@ function fireMines(b,n){                                       // PULSAR: ground
   if(!laid) return;                     // nothing fired: no flash, no sound, no lie about a volley
   bossFlash=0.25; sfx.buy();
 }
-// THE BOX — the Pulsar's Epoch III escalation, and the author's "square-lineup mine spawn". Eight
+// THE BOX — the Bastion's Epoch III escalation, and the author's "square-lineup mine spawn". Eight
 // stations on an axis-aligned square around the Star, one omitted as the door.
 //   EVERY NUMBER HERE IS DERIVED FROM THE BLAST, because a mine's danger is an AREA and not a contact
 // radius, so eyeballing the side length would be guessing at the only thing that matters:
@@ -3776,7 +3776,7 @@ function fireMineSquare(b){
   }
   bossFlash=0.4; trauma=Math.min(1,trauma+0.10); sfx.buy();
 }
-function bossNovaRing(b){                                      // PULSAR: a wall with ONE seam to stand in
+function bossNovaRing(b){                                      // BASTION: a wall with ONE seam to stand in
   const n=13, base=rand(0,TAU), gap=irand(0,n-1);
   for(let i=0;i<n;i++){ if(i===gap) continue; fireMissile(b, base+i/n*TAU, 'ring'); }
   spawnRing(b.x,b.y,'#fff',b.r*2.0); spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*3.2);
@@ -3831,9 +3831,9 @@ function mineBlast(L){
 // A standoff costs twice over. It makes the Hunt a non-event you can ignore, and any halt distance near
 // the ring radius (`fieldR*0.6` = 114) parks the boss inside your own grinder for free.
 // px/frame, sized so a hunt from a real ~400px station arrives in ~5s — still a walk you can stroll away
-// from. Slower than this and the Pulsar runs out of hunt window without reaching the core, which makes
+// from. Slower than this and the Bastion runs out of hunt window without reaching the core, which makes
 // the whole approach a bluff.
-const HUNT_SPD={emitter:1.15, sentinel:1.3, pulsar:1.05};
+const HUNT_SPD={emitter:1.15, sentinel:1.3, bastion:1.05};
 const HUNT_BREAK=1.1;                                          // seconds it recoils after landing its hit
 // The Sentinel spirals rather than walks, and a spiral has two ways to move much faster than the walk
 // the Hunt is supposed to be. Both are capped here, in px/frame rather than in rates:
@@ -3917,7 +3917,7 @@ function bossMove(b,dt){
     // Slower than the other kinds on purpose. A moving target is far harder to line a straight radial
     // shot on than a hovering one, and the Sentinel already stacks seekers (the most punishing missile)
     // with a swarmer trail that denies your regen window. At 0.55 it measured 0-for-8 while the Emitter
-    // and Pulsar sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
+    // and Bastion sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
     // Its identity is that you must chase it, not that it cannot be hit.
     b.orbA += dt*0.40;
     const cx=W/2, cy=H*0.42, R=Math.min(W,H)*0.34;
@@ -3949,7 +3949,7 @@ function updateBoss(dt){
   const cadence = b.pace ? b.pace.cad : 1;
   // schedule the hunt BEFORE moving, so the move this frame already reflects it. A hunt never STARTS
   // mid-dash or mid-charge (both are commitments the player has already read and answered), but one
-  // already running carries through — a Pulsar closing on you while it winds up is the point of it.
+  // already running carries through — a Bastion closing on you while it winds up is the point of it.
   if(b.huntBreak>0) b.huntBreak-=dt;
   if(b.hunt>0) b.hunt-=dt;
   else {
@@ -3990,7 +3990,7 @@ function updateBoss(dt){
         spawnEnemy(kinds[irand(0,kinds.length-1)], col, b.x+Math.cos(a)*34, b.y+Math.sin(a)*34); }
       spawnRing(b.x,b.y,'#fff',b.r*1.7); sfx.buy();
     }
-  } else if(b.variant==='pulsar'){
+  } else if(b.variant==='bastion'){
     // ground denial: the RING says "be in the seam", the MINES say "and not there, or there". Between
     // them you are always being moved, which is the whole point of the kind.
     if(b.novaCharge>0){ b.novaCharge-=dt; if(b.novaCharge<=0){ bossNovaRing(b); b.novaT=rand(3.0,4.2)*cadence; } }
@@ -5509,7 +5509,7 @@ function spawnBurst(x,y,color,n,spd,hx,hy){
   }
 }
 // ⚠️ RINGS COLLAPSE INWARD BY DEFAULT, and that is not a bug — see drawParticles. Every ring in the
-// game starts at R and shrinks to a point, which is right for a telegraph (the Pulsar's charge-up, the
+// game starts at R and shrinks to a point, which is right for a telegraph (the Bastion's charge-up, the
 // Overdrive ignition drawing IN to the core) and wrong for a blast, which is the one thing that should
 // travel outward. `out` flips it, and it defaults FALSE so all 18 existing call sites are untouched.
 function spawnRing(x,y,color,R,out){
@@ -5737,7 +5737,7 @@ function drawNebula(c){
 //              shell you watch rotating is literally the volley it is about to throw.
 //   SENTINEL — a hollow RING with two opposed pincer wings sitting on its firing axis. Never solid: it
 //              reads as something on an orbit, which is exactly what it is.
-//   PULSAR   — a dense core inside a crown of RAYS that lengthen as the nova winds up. The body is the
+//   BASTION   — a dense core inside a crown of RAYS that lengthen as the nova winds up. The body is the
 //              telegraph, so the one kind you cannot bait announces itself with its own outline.
 function bossBody(b,R,c,oc){
   if(b.variant==='sentinel'){
@@ -5755,7 +5755,7 @@ function bossBody(b,R,c,oc){
     ctx.beginPath(); ctx.arc(b.x,b.y,R*0.25,0,TAU); ctx.fill();
     return;
   }
-  if(b.variant==='pulsar'){
+  if(b.variant==='bastion'){
     const ch=b.novaCharge>0 ? 1-b.novaCharge/0.9 : 0;                        // rays extend as it winds up
     const n=14, inner=R*0.54, outer=R*(1.02+0.44*ch);
     ctx.strokeStyle=hexA(oc,0.5+0.45*ch); ctx.lineWidth=3;
@@ -5800,8 +5800,8 @@ function drawBoss(){
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.3+0.5*Math.sin(elapsed*22)),0,TAU); ctx.stroke();
     ctx.restore();
   }
-  // PULSAR telegraph: a bright ring collapses inward as the radial burst charges
-  if(b.variant==='pulsar' && b.novaCharge>0){
+  // BASTION telegraph: a bright ring collapses inward as the radial burst charges
+  if(b.variant==='bastion' && b.novaCharge>0){
     const g=1-b.novaCharge/0.9;                         // 0→1 as it charges
     ctx.save(); ctx.globalCompositeOperation='lighter';
     ctx.strokeStyle=hexA(oc,0.35+0.55*g); ctx.lineWidth=2+3*g;
@@ -6519,7 +6519,7 @@ function drawReady(){
 }
 // SIX-DIGIT HEX ONLY. '#fff' parses to 4095 and comes out rgb(0,15,255) — saturated blue, silently, with
 // no error. Three boss strokes shipped that way (the Sentinel's rings, the Emitter's hex outline, the
-// Pulsar's telegraph) and painted blue for weeks while the bestiary drew the same shapes white.
+// Bastion's telegraph) and painted blue for weeks while the bestiary drew the same shapes white.
 function hexA(hex,a){
   const n=parseInt(hex.slice(1),16);
   return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
@@ -7741,7 +7741,7 @@ const sfx={
   dead(){ beep(300,0.7,'sawtooth',0.25,70); noise(0.6,0.2); },
   // A CLOSING WINDOW — the mirror of inhale(): where that sweeps 55→220 and 200→1800 to say "pressure
   // building", this falls in octave-paired voices to say "your moment is going". Falling+noise is this
-  // game's grammar for loss (hurt, dead). Shared by the Charger wind-up and the Pulsar's
+  // game's grammar for loss (hurt, dead). Shared by the Charger wind-up and the Bastion's
   // station break.
   closing(){ beep(330,0.85,'sine',0.11,88); beep(99,0.85,'triangle',0.075,50); noise(0.3,0.07); },
   // ...and it lets go. Short, low, no rise anywhere in it.
@@ -7867,7 +7867,7 @@ window.__orbital=window.__polaris=window.__flux={
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
   spawnBoss, fireLanceVolley, get store(){return store;},
-  // The mine layer, exposed because its geometry is the only part of the Pulsar's kit that cannot be
+  // The mine layer, exposed because its geometry is the only part of the Bastion's kit that cannot be
   // read off a screenshot: where a mine LANDS is a two-phase flight solved at launch, and the reach
   // constant was wrong by 35% for months precisely because nothing could measure it from outside.
   fireMines, fireMineSquare, MINE_TRAVEL, MINE_SPMAX, MINE_SQ_HALF, mineReach,
