@@ -544,22 +544,55 @@ halved (`P.chargeGain`), so a meter is twice as slow to earn and buys half as lo
 you spend on a moment rather than a mode you live in.
 
 **What it does is reach, and speed.** `P.eddy` moves the ring orbit outward and spins it harder,
-`P.ringMul` raises capacity, `P.moveMult` speeds the star. Measured on a Drifter, the shell settles at
-**183px** against a base 114px and gets most of the way there inside a fifth of a second — it arrives as
-a snap, not a drift — and turns at **6.80 rad/s against a base 2.52**, one revolution every **0.92s**. A
-**full** meter buys **3.25 revolutions**.
+`P.ringMul` raises capacity, `P.moveMult` speeds the star. Measured on a Drifter at `79beadb`: the shell
+settles at **145.0px** against a base **114.2**, and it turns at **1.367 rev/s against a base 0.401**. A
+**full** meter is a **3.02s** ride (measured, not divided) and buys **4.12 revolutions**.
+
+*Regime, because these are equilibria and not readings:* star pinned, one body, damage off, mean over 300
+frames after a 900-frame warm-up. The settle is an **attractor** — identical to 0.1px across entry radii
+60→340px, six start angles, warm-ups of 300→3600 frames, and whether the star is stationary or circling.
+Star motion adds **wobble without moving the mean** (spread 0 → 31px at base as the star swings; the mean
+holds at 145.0). So the shell is one number, and the radius at any given instant is not.
+
+⚠️ **Overdrive does not widen every ring, and for one species it TIGHTENS.** The base ring is
+**spin-limited** — every species sits at 4.8 px/frame, well under its own ceiling — while the burning ring
+is **ceiling-limited**, each species riding its own `maxsp*RING_CAP*DOTSPD`. That is the whole mechanism,
+and it is why the species spread exists only while burning:
+
+| | base shell | burning | Δ | ceiling while burning |
+|---|---|---|---|---|
+| Mini | 108.0 | 163.7 | **+55.7** | 26.00 px/f |
+| Drifter | 114.2 | 145.0 | **+30.8** | 20.74 px/f |
+| Brute | 116.4 | 113.5 | **−2.9** | 12.20 px/f |
+
+**The tutorial promises "a wider, faster circle" and for a Brute only the second half is true** — its ring
+comes *in* by 2.9px. Held across 12 conditions (four entry radii × three angles), sign never flipping.
+This was the price of the retune and it was paid knowingly: Drifters are the modal spawn and the thing a
+player reads as "my ring".
+
+⚠️ **The code comment at the ring-capture block disagrees with this table, and the disagreement is
+recorded rather than resolved.** It reads Drifter 148.1, Mini 160.2, Brute 117.5, and calls the Brute
+`+1.0px`. The two rigs agree **exactly** on everything that is not a burning settle — base 114.2 to the
+decimal, the 20.74 ceiling to the decimal — and scatter −2.1% / +2.2% / −3.4% on the burning settle, with
+no consistent sign. Two candidate causes were tested and **both refuted**: it is not a global scale term
+(the signs differ), and it is not star motion (the mean is invariant). Until someone reconciles the two
+harnesses, trust the direction and the mechanism, not the third digit — **and note that the one
+qualitative claim in the gap, whether a Brute's ring widens or narrows, is a difference in sign.**
 
 ⚠️ **`P.fieldR` is no longer one of the levers.** The Field is `BASE_FIELDR` in every state; Overdrive
 used to widen it too and stopped in `fbe4d18`, because a shell bulging past the rim read as unexpected
 reach rather than as a faster sweep. **Nothing about the ring was retuned** — `orbR` is a fraction *of*
-`fieldR`, so it fell on its own, the shell came in from 214px, and **the spin rose 17% for free**. That
-is the v/r trade below running in the direction that pays: ring speed is pinned at a ceiling, so pulling
-the orbit in returns the difference as rotation.
+`fieldR`, so it fell on its own, the shell came in **from 214px to 183px**, and **the spin rose 17% for
+free**. That is the v/r trade below running in the direction that pays: ring speed is pinned at a ceiling,
+so pulling the orbit in returns the difference as rotation. *(Both figures are history. The coefficient
+has since gone `0.72 → 0.45` deliberately and the shell is 145.0 today — this episode is kept because it
+is the argument for why `fieldR` is pinned, and that argument is still load-bearing.)*
 
-⚠️ *Two older restatements of the revolutions figure, both now superseded.* It read **2.78** until the
-Field change, and before that it read "half a meter" when the drain was half what it is. Neither the
-geometry nor the drain is what moved this time. **Any figure here quoted per *half* gauge is a figure per
-*full* gauge today, and any 2.78 predates `fbe4d18`.**
+⚠️ *Three older restatements of the revolutions figure, all superseded.* It read **3.25** until the
+coefficient change, **2.78** before the Field change, and before that "half a meter" when the drain was
+half what it is. **Any figure quoted per *half* gauge is a figure per *full* gauge today; any 2.78
+predates `fbe4d18`; any 3.25 predates `79beadb`.** Note what moved it each time: the drain, then the
+geometry, then the geometry again — **the number has never once been changed by editing the number.**
 
 **Three constants own that, and they only work together.** The eddy orbit, the eddy spin, and the
 ringed-matter speed ceiling `RING_CAP`. Widening the shell and spinning it faster *fight each other* —
@@ -774,6 +807,28 @@ and if you happen to be standing on it, the hub slides off *you* rather than the
 so the shape never deforms to accommodate where you are. The arms reach past the furthest padded corner,
 which is the Noose's measurement and is there for the Noose's reason: there must be no *outside the
 Cross* to walk to. The answer is a quadrant, chosen early.
+
+**It is telegraphed for `CROSS_TEL` = 1.2s, and until `79beadb` it was not.** The author reported it
+arriving with no signal and was right. The defence in the code was the solved bearing — the arms are
+rotated half a sector off your own bearing, so you always start mid-quadrant, about 1.7s from the nearest
+arm. ⚠️ **That is a head start, not a signal**, and the difference is the whole entry below in *Traps*:
+it only pays if you already know the shape rotates, know which arm is nearest, and happened to be looking
+at mid-screen when the bodies appeared in a single frame.
+
+**`warnSpawn` could not be used per body, so `warnForm` lets one mark own a whole formation.** Dozens of
+point marks each drawing an incoming ring at 3r = 78px against 44px arm spacing (`FORM_STEP`) overlap into
+a violet wall, and the *shape* — the only part worth reading — is the one thing you could no longer see.
+Warning a subset is worse still: a warn owns its spawn, and half-warning a formation is exactly the
+sign-without-a-body the danger-sign law forbids. **So the mark draws the shape and the mark spawns the
+shape** — still one object holding both halves, still no second list that can disagree, which is the
+invariant `warnSpawn` was built around, applied at the granularity the pattern actually has.
+
+Verified at HEAD: nothing spawns on the call (one `form` warn, zero bodies), bodies land at **frame 72 =
+1.200s exactly**, on **four** distinct bearings at 45/135/225/315°, **0.0000px** off-axis, with the hub
+**65px** off the star = `CROSS_R0 + P.r + 20` to the pixel. ⚠️ *The body count is arena-dependent* — the
+arms fill to the far corner, so it is 84 in a 1280×800 box where the code comment says 64. **The argument
+that count defeats per-body marks does not depend on which number you get**, but do not quote either as
+if it were a constant.
 
 ### The Drift
 
@@ -1140,9 +1195,15 @@ written here in words rather than backticks. Only `orbR`, the target it overshoo
 
 ⚠️ **The settle radius, not `orbR` — and this doc said `orbR` for two commits, which was wrong.** `orbR` is only
 the spring's *target*; the tangential spin drives the shell past it and the two balance out further
-along. At rest they agree, but while burning the shell settles about a third beyond the target. Quoting
-`orbR` understates every consequence of the orbit by that much. The correction is in `index.html` at the
-ring-capture block, with the measurement.
+along. At rest they very nearly agree — 114.2 against a nominal 114 — but while burning the shell settles
+**70% beyond** the target, 145.0 against a nominal 85.5. Quoting `orbR` understates every consequence of
+the orbit by that much. The correction is in `index.html` at the ring-capture block, with the measurement.
+
+⚠️ **The overshoot is not a constant fraction, and it moves the OPPOSITE way to the target.** It was 34%
+when the coefficient was 0.72 and is 70% at 0.45: pulling the target *in* makes the overshoot *bigger*,
+because the body's speed is pinned at its ceiling, so a tighter circle needs more centripetal force and
+therefore a larger standing spring error to hold it. **Anyone who scales the old overshoot by the new
+coefficient gets the wrong shell**, which is why this doc quotes two measured pairs rather than a ratio.
 
 **Centred on where the shell actually sits, with a width that does not contain the radius at all.** So
 Overdrive **shifts the band outward and cannot widen it** — retune the orbit and the width provably does
@@ -1170,6 +1231,13 @@ everything the base ring could reach. With the Field pinned they now **overlap**
 holds anyway, on the measurement rather than on the geometry: close in, grinding is still several times
 worse while burning. **A conclusion that outlives the argument it was built on has to be re-derived, not
 re-asserted** — this one was checked and kept; it could as easily have gone the other way.
+
+*And the overlap has since doubled, so the re-derivation held twice.* Against a Drifter the band is
+`2 × (boss.r 37 + dot.r 11)` = **96px** wide, and the two shells sit **30.8px** apart at `79beadb` where
+they sat 68.9 apart at the old coefficient and 99.9 before `fbe4d18`. So the bands went **disjoint → 28%
+overlapped → 68% overlapped** across two changes that were about something else entirely. The conclusion
+is unchanged and its margin is not: burning and base now cover nearly the same ground, which makes
+*"burn to grind harder"* wrong for a nearer reason than it used to be.
 
 **The mechanism is why this is a finding and not a table.** Grind throughput is **feed-limited, not
 speed-limited**: usable ring Dots run *inverse* to damage dealt, because the grind eats its own supply on
@@ -1340,6 +1408,29 @@ The reason is structural: matter that reaches you already dies, so an effect tha
 the core* cannot reduce how many are standing — the queue is upstream of you. Only something acting at
 **range** can. That is why the ring shell is the lever that works and why a wider gathering Field is not
 one.
+
+**The lever survived having its shell pulled in.** When the eddy coefficient went `0.72 → 0.45` at `79beadb`
+the suppression was re-measured in this table's own regime — *flipping every 47 frames, damage off, star
+stationary, 120s runs, paired on seed, n=16*:
+
+| | avg standing | Δ vs baseline | 95% CI | *t* |
+|---|---|---|---|---|
+| baseline, flipping | 35.47 | — | — | — |
+| Overdrive, old coefficient | 32.05 | −3.42 | [−5.04, −1.80] | −4.15 |
+| Overdrive, new coefficient | 31.79 | **−3.67** | [−5.21, −2.14] | **−4.69** |
+| baseline, never flipping | 26.31 | — | — | — |
+
+**Fully retained** — nominally 107%, comfortably inside noise, so call it unchanged. Pulling the shell in
+cost nothing because the spin rose to meet it and the ring sweeps more area per second. ⚠️ **Do not
+rewrite this paragraph around rotation.** The mechanism is still *acting at range*, at a shorter range;
+revolutions are what compensated, not what explains it.
+
+⚠️ **That result's first version was measured in the wrong regime, and this section's own step-function
+table is what exposed it.** The harness never called `flip()` once, so a *never-flipping* arm was being
+compared against *flipping* rows — which halved the effect being measured, −1.64/−1.56 instead of
+−3.42/−3.67. ⚠️ **The excuse arrived before the check did:** *"different rig, so I certify the delta and
+not the absolutes"* reads as rigour and was a 2.4× disagreement being rationalised rather than chased.
+**A number that misses a documented one by more than a factor of two is a finding, not a caveat.**
 
 ⚠️ **The flipping / never-flipping gap in this table is not a number. It is a STEP FUNCTION in flip
 cadence, and which side you are on decides everything.** Swept paired at n=10, warm-up discarded, then
@@ -2407,6 +2498,38 @@ the sentence actively defended the bug. **Label every measurement write-up as a 
 specification**, because they are written in identical language and only the author knows which one it
 was. If you cannot tell which you meant, it is a diagnosis.
 
+**A correct argument can stand in for a cue, and it will pass every review because it is true.** Two
+mechanics were defended this way and both defences held up under scrutiny while reaching the player not at
+all. The Cross's arrival was answered with *"you start mid-quadrant"* — true, solved geometry, about 1.7s
+of head start. The Anomaly's post-dash withdrawal was answered with *"it is only the station drift, not a
+lunge"* — also true, also checkable. **Neither is a signal.** A head start is only worth something to
+someone who already knows the shape rotates and which arm is nearest; a reassurance about intent is only
+worth something to someone who has read the code that forms the intent.
+
+**The tell is that the defence can only be verified by reading the source.** A cue is something the screen
+does. An argument is something the file contains. They feel identical when you are the one holding the
+file, which is exactly why the author kept reporting these as unsignalled and the answer kept being a
+correct explanation of why they were fine. ⚠️ **When a play report says "it came from nowhere", a proof
+that it did not is not a fix** — the report is about the screen, so the answer has to be too. This is a
+distinct failure from the rest of this section: not a stale number, not a broken comparison, but sound
+reasoning occupying the slot where a cue belongs.
+
+**A coefficient is not the quantity it scales, and here the two do not even ORDER the same way.** `orbR`
+is a fraction of `fieldR` and reads exactly like a radius, so every summary of this mechanic has at some
+point quoted the coefficient and meant the shell. At `79beadb` that finally became visibly wrong rather
+than merely imprecise: the burning coefficient is **0.45 against a resting 0.6** — *lower* — while the
+burning shell is **145.0 against 114.2** — *30.8px wider*. Read the coefficients and Overdrive tightens
+your ring. It does the opposite.
+
+**The reason the two orders come apart is that the overshoot is not a constant fraction**: 2% at rest, 70%
+while burning, and it grows as the target shrinks, because the body's speed is pinned at a ceiling and a
+tighter circle needs a bigger standing spring error to hold it. **So the coefficient is not even a
+monotone proxy.** Anything downstream — the drawn dashes, the grind band, the contact geometry — keys off
+the settle, and the settle has no symbol on purpose: it is an equilibrium the sim arrives at, not a value
+anything stores, so it can only be measured. ⚠️ **The tell that you are about to make this mistake is that
+you are computing rather than measuring.** A scaled coefficient always produces a plausible number, and
+this one would have been wrong by 60px in the direction that reads as reassuring.
+
 **A constant sitting exactly on a clamp has no authority, and changing it reads as a no-op rather than as
 a mistake.** Under Overdrive a ringed Drifter sat on its speed ceiling *exactly* — 12.03 px/frame against
 a cap of 12.03 — so raising the spin 1.4× moved the measured result from 1.59 revolutions to 1.61. The
@@ -2419,7 +2542,23 @@ from the output alone.
 driven only from the frame loop reads as absent. `titleOrbit` and `render()` both need driving by hand
 through the debug seam.
 
-**`innerWidth`/`innerHeight` are 0** in the harness context. Define them and dispatch a resize.
+**`innerWidth`/`innerHeight` are 0** in the harness context. Define them and dispatch a resize. ⚠️ Until
+you do, the canvas is at the HTML default **300×150** and every arena-relative quantity is measured in a
+box the game never runs in.
+
+⚠️ **`__orbital.P` captured BEFORE `start()` is a dead object, and it accepts writes.** `startRun()`
+replaces the binding; the getter then hands out a different object. A handle taken beforehand keeps
+working in the only sense that matters to a rig — you can set `charge = 1` and read `1` straight back —
+while the live star reads `0`. **Re-read `O.P` after every `start()`, never across one.**
+
+**Its failure mode is the whole reason it is here.** A rig that pinned the star and ignited Overdrive
+through the stale handle produced: `ok: true`, every precondition green, spread 0, six start angles
+agreeing to the decimal, and shells **identical to the base arm** — a flawless measurement that Overdrive
+does nothing. Nothing in it looked wrong, because nothing *was* wrong except which object was being
+written to. **The check that caught it was recording `P.eddy` per sampled frame as an output**, so the
+run could assert it had been in the regime it claimed. ⚠️ **Assert the treatment, not just the result.**
+A rig that never verifies the independent variable was applied cannot distinguish "no effect" from "no
+treatment", and those two answers are the same string.
 
 **Mute before any test loop** — a headless loop fires the whole sound bank at once.
 

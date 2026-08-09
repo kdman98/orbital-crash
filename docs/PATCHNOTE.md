@@ -12,6 +12,52 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-09
+
+### The Cross is telegraphed, because "you start mid-quadrant" was an argument and not a signal `79beadb`
+Four arms landing on open ground in one frame, with nothing before them. The defence in the file was
+real — the arms are rotated half a sector off your own bearing, so you always begin mid-quadrant, about
+1.7s from the nearest arm — and it is also **something only a reader of the source can collect**. The
+author reported the Cross arriving with no warning and was right; a head start is not a cue.
+
+`warnSpawn` could not do it per body. Each mark draws its incoming ring at 3r = 78px against 44px arm
+spacing, so the marks would overlap into a violet wall and hide the shape, which is the only part worth
+reading — and warning a subset is the sign-without-a-body the danger-sign law forbids. So `warnForm`
+lets **one mark own a whole formation**: it draws the shape and then spawns the shape, from the same
+closure over the same geometry, keeping the invariant that there is no second list to disagree.
+
+Verified: nothing spawns on the call, bodies land at **frame 72 = 1.200s** exactly, four bearings at
+45/135/225/315°, **0.0000px** off-axis, hub **65px** off the star = `CROSS_R0 + P.r + 20`.
+
+### The burning ring is pulled in toward the resting one, and the coefficient now points the wrong way `79beadb`
+`P.eddy`'s orbit fraction goes **0.72 → 0.45** on a play note: the burning shell sat so far off the
+resting one that the two read as unrelated states rather than as one ring opening up. Measured at HEAD
+on a Drifter, star pinned, damage off: the shell settles at **145.0** against a resting **114.2**, and
+turns **1.367 rev/s** against **0.401**. A full meter is a 3.02s ride and buys **4.12 revolutions**.
+
+⚠️ **The coefficient is now BELOW the resting one (0.45 against 0.6) while the shell stays 30.8px
+wider.** They no longer even order the same way, because the overshoot is not a constant fraction — 2%
+at rest, 70% while burning, and it *grows* as the target shrinks, since the body's speed is pinned at
+its ceiling and a tighter circle needs a bigger standing spring error to hold it. Anything computed by
+scaling the old overshoot lands about 60px wrong, in the reassuring direction.
+
+**What it cost: the species spread.** The resting ring is spin-limited and every species sits at
+4.8px/frame; the burning ring is ceiling-limited and each species rides its own. So burning opens a
+Mini by **+55.7px**, a Drifter by **+30.8px**, and **narrows a Brute by 2.9px** — held across 12
+conditions with the sign never flipping. The tutorial promises "a wider, faster circle" and for a Brute
+only the second half is true. Accepted knowingly: Drifters are the modal spawn.
+
+**What it did not cost: the lever.** Re-measured in the standing-population regime — *flipping every 47
+frames, damage off, star stationary, 120s, paired on seed, n=16* — suppression is **−3.67** against the
+old coefficient's −3.42 (95% CI [−5.21, −2.14], *t* = −4.69). Nominally 107% retained, inside noise,
+so call it unchanged: the spin rose to meet the shorter reach and the ring sweeps the same area.
+
+⚠️ **The code comment and the docs disagree on the third digit and on one sign.** The comment reads
+Drifter 148.1 / Mini 160.2 / Brute 117.5 and calls the Brute `+1.0px`. The two rigs agree *exactly* on
+everything that is not a burning settle — resting 114.2, the 20.74px/frame ceiling — and scatter ±2–3%
+with no consistent sign on the settle itself. Two candidate causes were tested and refuted (not a
+global scale term, not star motion). Unresolved, and recorded as unresolved.
+
 ## 2026-08-08
 
 ### The sky is painted once instead of sixty times, and the GPU number is not measurable from here `fccd00b`

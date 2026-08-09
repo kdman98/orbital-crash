@@ -182,6 +182,11 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   game drawn on bare ground away from a body. (`warns`, `warnSpawn()`, `WARN_T`, `drawWarns()`)
 - **Telegraphed spawn** — a warn *owns* the body it advertises: type, colour and position live in the mark,
   so the sign and the spawn cannot disagree. The file's only scheduled spawn. (`stepWarns()`)
+- **Formation sign** *(a form warn)* — one mark owning a whole shape instead of one body: it *draws* the
+  shape and then *spawns* the shape, from the same closure over the same geometry. Dozens of point marks
+  would overlap into a violet wall and hide the only thing worth reading, which is the shape. Same
+  one-object invariant as a Danger sign, at the granularity a pattern actually has. (`warnForm()`,
+  `w.form`, `CROSS_TEL`)
 
 ## The Anomaly
 
@@ -265,9 +270,12 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   amount wherever they happen; an Epoch purge pays `200×act` and a Bounty `250×act`, the only two
   terms that scale with anything. Five write sites, every one an integer.
   (`onKill`, `KILL_SCORE`, `MOTE_SCORE`)
-- **Ring shell** — the radius your Rings orbit at. Overdrive pushes it out about **1.6×** — measured on
-  ring Drifters, 115.8 resting against 182.7 burning. ⚠️ **Read the settle, never the coefficient**:
-  `orbR` is a spring *target* and the whirl carries the ring well past it. (`P.eddy`, `P.ringMul`)
+- **Ring shell** — the radius your Rings orbit at. Overdrive pushes it out about **1.27×** — measured on
+  ring Drifters at `79beadb`, 114.2 resting against 145.0 burning. ⚠️ **Read the settle, never the
+  coefficient**: `orbR` is a spring *target* and the whirl carries the ring well past it — and the two do
+  not order the same way, since the burning coefficient is *lower* (0.45 against 0.6) while the burning
+  shell is wider. ⚠️ **There is no single shell**: each species rides its own speed ceiling, so burning
+  opens a Mini by +55.7px, a Drifter by +30.8px, and **narrows a Brute by 2.9px**. (`P.eddy`, `P.ringMul`)
 - **Achievement** — an in-run feat listed in **Records**. Flavour only; unlocks nothing.
   (`ACHV`, `store.achv`)
 
