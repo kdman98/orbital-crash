@@ -317,6 +317,15 @@ rewritten base; the submission rules also ask for the commit record to be kept. 
 gitignored, and still being written. **Its one inbound link, a README row, went with it** — `.gitignore`
 is now the only place the string `SCOPE` appears anywhere in the repository.
 
+⚠️ *Two corrections, both dated 2026-08-09.* **That last sentence was false when written** — `SCOPE`
+also appeared in a MECHANICS paragraph and in the graze restore-point comment, neither of which a
+README-row search would surface. It is the same shape as the sweep that reported *"did this commit touch
+`index.html`"* as *"did the game change"*: **the claim was broader than the check behind it.** And **the
+file is now deleted from disk too**, at the author's call, once every live item in it had migrated into
+MECHANICS or into a code comment — the two inbound citations were repointed at those, and `build_pdfs.py`
+now derives the document count and names from its own list, so the submission can no longer print the
+name of a document that is not there.
+
 README gains the three things a first-time visitor needs — the play link, the control table, and what
 actually kills you — above the developer material, which stays because the source is itself part of the
 submission. `.nojekyll` because Pages runs Jekyll by default; `index.html` has no Liquid syntax (0 hits

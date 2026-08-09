@@ -3028,7 +3028,7 @@ so the best runs are gone rather than the average one being worse.
 for cutting it fine is what lets you keep cutting it fine. It has to fill that measured hole. ⚠️ **The
 graze system it was going to be built on has since been removed**, so this now needs its own detection —
 about ten lines, and the restore point is marked in `stepPlayerContact`. **That is a smaller loss than it
-looks and arguably a clarification:** SCOPE's design note already said not to pay a *single* graze
+looks and arguably a clarification:** the restore-point comment already says not to pay a *single* graze
 (*"grazes are luck as often as skill"* — the game's own words), so the plan always needed the **ladder**
 with a threshold on it, 단발은 운 지속은 실력, and never the crumb that was deleted. What it does cost is
 `grazeN` and its 1.5s decay, which have to come back with the detection. The old shield-block shape is
