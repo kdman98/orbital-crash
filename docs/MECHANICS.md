@@ -2740,6 +2740,28 @@ tables, and there is **no error and no warning** — the kind quietly reverts to
 constant sits visibly in the file looking applied. **Renaming a variant means grepping every lookup
 keyed by the variant string**, not just the type checks. `Pulsar → Bastion` (`e8c7fa2`) crossed both.
 
+**`spawnBoss` does not validate the variant either, and what an unknown one becomes is the surprising
+part.** `updateBoss` is `if sentinel` → `else if bastion` → **`else` EMITTER**, so an unrecognised string
+does not produce an inert object: it produces a *complete, correct Emitter*. Measured on the shipped
+build, 900 frames, star pinned — `emitter`, `pulsar` and `zzz` all give maxHp **25** and peak lances
+**8**, identical; `bastion` gives 19 and 14, `sentinel` 25 and 3. **A typo spawns a real boss of the
+wrong kind**, which is far harder to notice than a broken one.
+
+⚠️ **And which way that fails depends entirely on how the instrument is being used — this is the
+refinement the rest of this section needs.** Had the rename missed `.oracle.js`, so that the harness
+asked for a kind the game no longer knew:
+
+- **As an A/B**, arm A asks `pulsar` and gets a Pulsar, arm B asks `pulsar` and gets an Emitter. The
+  arms differ, the oracle reports a diff, and it reads as *your change broke behaviour* — **a false
+  positive, which is the direction that gets investigated within minutes.**
+- **As a banked baseline**, you record a flawless, reproducible Emitter under the key `boss-pulsar` and
+  every later build agrees with it forever. **Silent, and permanently mislabelled.**
+
+Same defect, opposite sign, decided by whether you are comparing two arms or minting a reference. So
+"broken checks fail flatteringly" is too strong as stated elsewhere here: **a comparison tends to fail
+loud and a baseline tends to fail silent**, and the thing to ask before trusting a rig is which of the
+two you are actually running.
+
 **One trial of a stochastic fight is an anecdote.** Ring size in a live fight swings by an order of
 magnitude between runs. Three trials is still an anecdote; eight is a signal.
 
