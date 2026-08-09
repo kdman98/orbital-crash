@@ -3461,6 +3461,18 @@ function testPick(i){                          // 1-3 → jump to a specific kin
 function spawnBoss(forceVariant){
   const col=Math.random()<0.5?'red':'cyan';
   const variant = forceVariant || pickAnomalyVariant();
+  // ⚠️ AN UNKNOWN KIND DOES NOT FAIL — IT SILENTLY BECOMES A FULL-HP EMITTER, which is why this guard
+  // is a throw and not a fallback. Every branch keyed on the variant is either an equality test or a
+  // `||`-defaulted lookup: the 0.75 HP cut below misses, HUNT_SPD[b.variant]||HUNT_SPD.emitter takes
+  // the default, and updateBoss is `if sentinel / else if bastion / ELSE EMITTER`, so the stranger
+  // falls into the last arm and runs the whole Emitter routine. Measured: emitter, pulsar and zzz
+  // return byte-identical fingerprints over 900 frames; only bastion differs.
+  //   In PLAY this cannot fire — all six call sites pass a literal from TEST_ORDER or
+  // pickAnomalyVariant, and no variant string is ever written to localStorage, so no saved profile
+  // can carry a stale one. That is exactly the point: the only place a typo survives is a HARNESS,
+  // where it does not look like a bug. It looks like a clean reproducible baseline of a real boss
+  // fight, filed under the wrong kind's name, and every later run agrees with it.
+  if(!(variant in HUNT_SPD)) throw new Error('spawnBoss: unknown variant '+variant);
   // 25 / 30 / 35 / 40 / 45 across Epochs, +5 per Epoch. THIS POOL AND THE EROSION PRICES ARE ONE NUMBER
   // IN TWO PLACES — price it in CONNECTING BODIES against VOLLEY_DMG (8.3 at Epoch I, 11.7 at Epoch III),
   // never in raw HP, and reprice the charge with it. The Anomaly has no clock and no second win
