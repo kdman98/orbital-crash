@@ -15,6 +15,15 @@
 //    `__orbital.bus().comp` is the post-compressor mix — bit-for-bit what the speakers are being sent,
 //    with no resampling, no device round-trip, and no dependency on the user remembering to tick
 //    "Also share tab audio" in the picker. The display track is kept as a FALLBACK only.
+//  - IT CAPS CAPTURE AT 1080p BY DEFAULT, AND THAT IS THE WHOLE POINT ON THIS MACHINE. The complaint
+//    that started this was "it was kinda laggy when i'm capturing the video of game" — on a 15" M2 Air
+//    (`Mac14,15`, FANLESS) with a 2880x1864 panel, an uncapped capture is 5.4 Mpx/frame rendered AND
+//    THEN ENCODED, sustained, with no fan to carry it. `getDisplayMedia` takes width/height and the
+//    downscale happens in the CAPTURE pipeline rather than in the encoder, so capping costs the game
+//    nothing: 1920x1080 is 2.6x less pixel work and the player keeps playing at a comfortable window
+//    size. Before this file existed the only lever was shrinking the window.
+//    ⚠️ It also fixes the bitrate. 12 Mbps at 2880x1864 is a TIGHT budget the encoder strains to hit;
+//    at 1080p the same number is generous. The cap improves quality and load in the same move.
 //  - IT STOPS ON THE BROWSER'S OWN "Stop sharing" BUTTON. No stop control is drawn on the page,
 //    because anything drawn on the page is in the recording. `track.onended` is the signal.
 //  - MUTE IS CHECKED AND REFUSED, LOUDLY. `.oracle.js` leaves `store.mute` persisted true for every
@@ -43,10 +52,14 @@
   };
 
   window.__rec = {
-    // opts: {fps=60, mbps=12, audio='graph'|'display'|'both'}
+    // opts: {fps=60, mbps=12, w=1920, h=1080, audio='graph'|'display'|'both'}
+    //   w/h cap the CAPTURE, not the window. Pass w:0 to record at native panel resolution — expect
+    //   the capture itself to cost frames on a fanless machine. 60fps is kept because a fast arcade
+    //   game at 30 is a visible downgrade; resolution is the cheaper thing to spend.
     async start(opts = {}) {
       if (rec) return 'already recording — __rec.stop()';
       const fps = opts.fps || 60, mbps = opts.mbps || 12, want = opts.audio || 'graph';
+      const w = opts.w === undefined ? 1920 : opts.w, h = opts.h === undefined ? 1080 : opts.h;
 
       // ---- refuse to record silence -------------------------------------------------
       const bus = g.bus && g.bus();
@@ -61,12 +74,14 @@
 
       // ---- video: the composited surface, so the DOM HUD is in it --------------------
       try {
+        const video = { frameRate: fps };
+        if (w && h) { video.width = { max: w }; video.height = { max: h }; }
         disp = await navigator.mediaDevices.getDisplayMedia({
-          video: { frameRate: fps },
+          video,
           audio: true,          // fallback track only; the graph tap is preferred below
         });
       } catch (e) {
-        return 'ERROR: screen capture was cancelled or blocked (' + e.name + '). Pick the TAB (not the whole screen) for the sharpest result.';
+        return 'ERROR: screen capture was cancelled or blocked (' + e.name + '). Pick the TAB, not the whole screen — it is both sharper AND cheaper to encode, which matters on a fanless machine.';
       }
 
       // ---- audio: post-compressor, straight off the graph ----------------------------
@@ -122,7 +137,9 @@
         if (rec) console.log(`[rec] ${((performance.now() - started) / 1000).toFixed(0)}s`);
       }, 15000);
 
-      return `RECORDING. audio = ${audioSrc}; codec = ${rec.mimeType || 'browser default'}; ${fps}fps @ ${mbps}Mbps.
+      const s = disp.getVideoTracks()[0].getSettings();
+      return `RECORDING at ${s.width}x${s.height}@${s.frameRate || fps} (cap ${w && h ? w + 'x' + h : 'none'}).
+audio = ${audioSrc}; codec = ${rec.mimeType || 'browser default'}; ${mbps}Mbps.
 Play now. Stop with the browser's "Stop sharing" button, or __rec.stop(). The file downloads itself.`;
     },
 
