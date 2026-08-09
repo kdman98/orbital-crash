@@ -274,8 +274,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   ring Drifters at `79beadb`, 114.2 resting against 145.0 burning. ⚠️ **Read the settle, never the
   coefficient**: `orbR` is a spring *target* and the whirl carries the ring well past it — and the two do
   not order the same way, since the burning coefficient is *lower* (0.45 against 0.6) while the burning
-  shell is wider. ⚠️ **There is no single shell**: each species rides its own speed ceiling, so burning
-  opens a Mini by +55.7px, a Drifter by +30.8px, and **narrows a Brute by 2.9px**. (`P.eddy`, `P.ringMul`)
+  shell is wider. ⚠️ **There is no single shell**: the resting ring is spin-limited and every species sits
+  at 4.8 px/frame, while the burning ring is ceiling-limited and each species rides its own — so burning
+  opens a Mini by +55.7px, a Drifter by +30.8px and a Brute by +24.7px. (`P.eddy`, `P.ringMul`, `maxsp`)
 - **Achievement** — an in-run feat listed in **Records**. Flavour only; unlocks nothing.
   (`ACHV`, `store.achv`)
 

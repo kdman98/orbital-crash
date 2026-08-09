@@ -14,6 +14,31 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-09
 
+### The Brute gets its Overdrive widening back, and the fix was the Brute rather than the ring `24e51c6` `9c3dde2`
+The eddy retune below left heavy Dots with no widening at all: the burning ring is ceiling-limited, the
+Brute had the lowest ceiling, and pulling the orbit in took back everything the ceiling was giving it.
+`heavy.maxsp` goes **2.0 → 3.2** and the orbit is untouched — the ring was never where the fault was.
+
+Measured: the repair moves the Brute's burning shell by **+27.6px**, so Overdrive now opens its ring by
+**+24.7px** against a resting 116.4, where before the gain was too small to have a reliable sign.
+**The resting shell is 116.4 before and after** — a 60% raise of a number that reads like a speed moves it
+by nothing, which is the prediction the spin-limited/ceiling-limited split makes and the reason this edit
+is inert everywhere except the one regime that reads a ceiling. ⚠️ **The Brute is not faster in play:**
+`maxsp` is a ceiling, pace is `seek × 6.1429`, and cruise is **0.921 before and after**. Ring ordering is
+unchanged too — Mini 26.00, Drifter 20.74, Brute 19.52.
+
+⚠️ **The pre-fix residual is quoted nowhere on purpose.** Two rigs measured it at **−2.9px** and
+**+1.3px** — opposite signs, both effectively zero, and *smaller than the standing 2–3% disagreement
+between the rigs*. The repair itself measures **+27.6px** against **+27.1px**, inside 2%. **A delta from
+two rigs that disagree on level is trustworthy; a level is not.** An effect smaller than the disagreement
+about it is not a finding, however many decimals it has.
+
+⚠️ **"Sixty-four bodies" in the Cross note was a measurement of the harness.** `resize()` early-returns on
+a zero viewport, so `W`/`H` keep their seeded `REF_SHORT` and the design arena stays a plausible-looking
+**800×800 square**. Real counts, reproduced on both rigs: **64 / 84 / 92 / 116** at 800×800 / 1280×800 /
+1440×900 / 1920×1080, and **100 on a 390×844 phone** — more than a 1440×900 desktop, because the short
+side sets the scale so a tall viewport is a tall arena. A wrong arena does not look wrong; it looks square.
+
 ### The Cross is telegraphed, because "you start mid-quadrant" was an argument and not a signal `79beadb`
 Four arms landing on open ground in one frame, with nothing before them. The defence in the file was
 real — the arms are rotated half a sector off your own bearing, so you always begin mid-quadrant, about
@@ -43,9 +68,12 @@ scaling the old overshoot lands about 60px wrong, in the reassuring direction.
 
 **What it cost: the species spread.** The resting ring is spin-limited and every species sits at
 4.8px/frame; the burning ring is ceiling-limited and each species rides its own. So burning opens a
-Mini by **+55.7px**, a Drifter by **+30.8px**, and **narrows a Brute by 2.9px** — held across 12
-conditions with the sign never flipping. The tutorial promises "a wider, faster circle" and for a Brute
-only the second half is true. Accepted knowingly: Drifters are the modal spawn.
+Mini by **+55.7px**, a Drifter by **+30.8px**, and left a Brute with **nothing measurable** — the
+tutorial promises "a wider, faster circle" and for a Brute only the second half was true. Accepted
+knowingly at the time: Drifters are the modal spawn. ⚠️ **Superseded the same day by `24e51c6` above**,
+which gave the Brute its widening back through `heavy.maxsp` instead of through the orbit. *(This entry
+first reported the Brute residual as −2.9px. That figure is withdrawn: the other rig read +1.3px, and
+the effect was smaller than the disagreement about it.)*
 
 **What it did not cost: the lever.** Re-measured in the standing-population regime — *flipping every 47
 frames, damage off, star stationary, 120s, paired on seed, n=16* — suppression is **−3.67** against the

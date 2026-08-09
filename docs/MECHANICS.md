@@ -554,30 +554,37 @@ frames after a 900-frame warm-up. The settle is an **attractor** — identical t
 Star motion adds **wobble without moving the mean** (spread 0 → 31px at base as the star swings; the mean
 holds at 145.0). So the shell is one number, and the radius at any given instant is not.
 
-⚠️ **Overdrive does not widen every ring, and for one species it TIGHTENS.** The base ring is
+⚠️ **How much Overdrive widens your ring depends entirely on what is in it.** The resting ring is
 **spin-limited** — every species sits at 4.8 px/frame, well under its own ceiling — while the burning ring
 is **ceiling-limited**, each species riding its own `maxsp*RING_CAP*DOTSPD`. That is the whole mechanism,
-and it is why the species spread exists only while burning:
+and it is why the species spread exists **only** while burning:
 
-| | base shell | burning | Δ | ceiling while burning |
+| | resting shell | burning | Δ | ceiling while burning |
 |---|---|---|---|---|
 | Mini | 108.0 | 163.7 | **+55.7** | 26.00 px/f |
 | Drifter | 114.2 | 145.0 | **+30.8** | 20.74 px/f |
-| Brute | 116.4 | 113.5 | **−2.9** | 12.20 px/f |
+| Brute | 116.4 | 141.1 | **+24.7** | 19.52 px/f |
 
-**The tutorial promises "a wider, faster circle" and for a Brute only the second half is true** — its ring
-comes *in* by 2.9px. Held across 12 conditions (four entry radii × three angles), sign never flipping.
-This was the price of the retune and it was paid knowingly: Drifters are the modal spawn and the thing a
-player reads as "my ring".
+**The Brute row is a repair, and the shape of the repair is the useful part.** At `79beadb` the retune left
+the Brute with no widening at all — it was the slowest species, so pulling the target in took back
+everything the ceiling was giving it. The fix in `24e51c6` raised `heavy.maxsp` 2.0 → 3.2 rather than
+touching the orbit, **because the ring is not where the fault was**: the same edit is inert at rest and
+inert in free flight, and only bites in the one regime that reads a speed ceiling. ⚠️ **It did not make
+the Brute faster** — `maxsp` is a ceiling and pace is `seek × 6.1429`, so cruise is **0.921 before and
+after**, exactly as the *Cruise* entry in the glossary insists. The measurement says the same thing from
+the other side: the resting Brute shell is **116.4 before and after**, unmoved by a 60% raise of a number
+that reads like a speed. **The ordering survives** — Mini 26.00, Drifter 20.74, Brute 19.52 — so the Brute
+is still the slowest ring, it is simply no longer slow enough to lose the whole effect.
 
-⚠️ **The code comment at the ring-capture block disagrees with this table, and the disagreement is
-recorded rather than resolved.** It reads Drifter 148.1, Mini 160.2, Brute 117.5, and calls the Brute
-`+1.0px`. The two rigs agree **exactly** on everything that is not a burning settle — base 114.2 to the
-decimal, the 20.74 ceiling to the decimal — and scatter −2.1% / +2.2% / −3.4% on the burning settle, with
-no consistent sign. Two candidate causes were tested and **both refuted**: it is not a global scale term
-(the signs differ), and it is not star motion (the mean is invariant). Until someone reconciles the two
-harnesses, trust the direction and the mechanism, not the third digit — **and note that the one
-qualitative claim in the gap, whether a Brute's ring widens or narrows, is a difference in sign.**
+⚠️ **Two rigs still disagree about this table's levels, and the way they disagree is the finding.** They
+agree to the decimal on everything that is not a burning settle — resting 114.2, the 20.74 ceiling — and
+scatter ±2–3% with no consistent sign on burning settles. Two candidate causes were tested and **both
+refuted**: not a global scale term (the signs differ), not star motion (the mean is invariant).
+**But they agree on the change**: the Brute repair measures **+27.6px** here against **+27.1px** there,
+inside 2%. So a *delta* from two rigs that disagree on level is trustworthy and a *level* is not — which
+is why the pre-repair Brute residual is quoted nowhere. It was −2.9px on this rig and +1.3px on the other,
+and **an effect smaller than the disagreement about it is not a finding.** Quote the direction, the
+mechanism, and the change; do not quote the third digit of a level.
 
 ⚠️ **`P.fieldR` is no longer one of the levers.** The Field is `BASE_FIELDR` in every state; Overdrive
 used to widen it too and stopped in `fbe4d18`, because a shell bulging past the rim read as unexpected
@@ -825,10 +832,25 @@ invariant `warnSpawn` was built around, applied at the granularity the pattern a
 
 Verified at HEAD: nothing spawns on the call (one `form` warn, zero bodies), bodies land at **frame 72 =
 1.200s exactly**, on **four** distinct bearings at 45/135/225/315°, **0.0000px** off-axis, with the hub
-**65px** off the star = `CROSS_R0 + P.r + 20` to the pixel. ⚠️ *The body count is arena-dependent* — the
-arms fill to the far corner, so it is 84 in a 1280×800 box where the code comment says 64. **The argument
-that count defeats per-body marks does not depend on which number you get**, but do not quote either as
-if it were a constant.
+**65px** off the star = `CROSS_R0 + P.r + 20` to the pixel.
+
+⚠️ **The body count is not a constant — it is a function of the viewport**, because the arms fill to the
+far corner. Reproduced independently on two rigs, to the body:
+
+| viewport | 800×800 | 1280×800 | 1440×900 | 1920×1080 | 390×844 *(phone)* |
+|---|---|---|---|---|---|
+| bodies | 64 | 84 | 92 | 116 | **100** |
+
+**A phone gets more of the Cross than a 1440×900 desktop.** `S` is set by the *short* side, so a tall
+narrow viewport is a tall design arena, and the vertical arms have further to fill. Anything that scales
+per body — spawn cost, annihilation load, the argument below about marks — is heaviest on the smallest
+screen.
+
+⚠️ **And "sixty-four" was a measurement of the harness, not of the game.** `resize()` early-returns on a
+zero viewport (`index.html:848`, deliberately — a 0 there would put `NaN` into `W` and poison the run),
+so `W`/`H` keep their seeded `REF_SHORT` and the design arena stays a perfectly plausible-looking
+**800×800 square**. That is the number a hidden pane hands you, and it is the low end of the real range.
+**A wrong arena does not look wrong**; it looks square.
 
 ### The Drift
 
@@ -2542,9 +2564,12 @@ from the output alone.
 driven only from the frame loop reads as absent. `titleOrbit` and `render()` both need driving by hand
 through the debug seam.
 
-**`innerWidth`/`innerHeight` are 0** in the harness context. Define them and dispatch a resize. ⚠️ Until
-you do, the canvas is at the HTML default **300×150** and every arena-relative quantity is measured in a
-box the game never runs in.
+**`innerWidth`/`innerHeight` are 0** in the harness context. Define them and dispatch a resize. ⚠️ **This
+one does not announce itself, because the fallback is plausible.** `resize()` early-returns on a zero
+viewport, so the canvas stays at the HTML default 300×150 *and the design arena stays at its seeded
+`REF_SHORT`* — a tidy **800×800 square**. Nothing errors, nothing renders visibly wrong, and every
+arena-relative quantity is measured in a box the game never runs in. It cost a published body count: the
+Cross's "sixty-four" is the 800×800 figure, against 84–116 on real desktops and 100 on a phone.
 
 ⚠️ **`__orbital.P` captured BEFORE `start()` is a dead object, and it accepts writes.** `startRun()`
 replaces the binding; the getter then hands out a different object. A handle taken beforehand keeps
