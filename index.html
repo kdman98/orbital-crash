@@ -7242,6 +7242,7 @@ updateMotionBtn();
 //  AUDIO (procedural, WebAudio)
 // =====================================================================
 let AC=null, master=null, ambGain=null, ambFilter=null, ambReady=false, ambNoteT=0;
+let compOut=null;                      // the compressor, held for the seam — see where it is built
 function audioInit(){
   if(AC){ if(AC.state==='suspended') AC.resume(); return; } // heal a context left suspended (e.g. quit from pause)
   try{
@@ -7261,6 +7262,11 @@ function audioInit(){
     comp.threshold.value=-14; comp.knee.value=12; comp.ratio.value=6;
     comp.attack.value=0.003; comp.release.value=0.18;
     master.connect(comp); comp.connect(AC.destination);
+    // Kept on a binding only so the debug seam can hand it out. `.record.js` taps HERE and not at
+    // `master`, because this node is doing real work at the measured peak — tapping upstream would
+    // record a different mix from the one that ships, and the duplicate-the-settings alternative
+    // would put the compressor's numbers in two files.
+    compOut=comp;
     buildAmbient();
   }catch(e){ AC=null; }
 }
@@ -7570,7 +7576,7 @@ window.__orbital=window.__polaris=window.__flux={
   audio(dt){ const d=dt||1/60;
     if(AC){ updateAmbient((state==='play')?intensity:0.08, d); updateHeart(d); }
     return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), stormT:+stormT.toFixed(3), gain:gainNow()}; },
-  bus(){ return AC?{ctx:AC, master, panMax:PAN_MAX, stormAt:STORM_AT, hpLow:HP_LOW}:null; },
+  bus(){ return AC?{ctx:AC, master, comp:compOut, panMax:PAN_MAX, stormAt:STORM_AT, hpLow:HP_LOW}:null; },
   sfx,
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
