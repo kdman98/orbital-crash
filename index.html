@@ -3812,7 +3812,7 @@ function mineBlast(L){
   spawnBurst(L.x,L.y,COL[L.color],18,4.4);
   trauma=Math.min(1,trauma+0.18);
   if(typeof sfx!=='undefined') sfx.lance();
-  if(P && Math.hypot(L.x-P.x,L.y-P.y) < L.blast+P.r) coreHit(20,'Anomaly Mine');
+  if(P && Math.hypot(L.x-P.x,L.y-P.y) < L.blast+P.r) coreHit(20,{m:'mine'});
   // The blast touches YOU and nothing else. A mine is a missile, and missiles do not interact with
   // matter — see stepLances. A blast that deletes or even shoves the swarm is still the Anomaly's fire
   // reaching into the matter economy. Dots standing in a detonation are simply unaffected.
@@ -4984,6 +4984,13 @@ function srcName(s){
   const nm=T('dot.'+s.t);
   return s.c==='neutral' ? T('dead.srcN',{name:nm}) : T('dead.src',{name:nm, col:T('col.'+s.c)});
 }
+// ⚠️ ESCAPING BELONGS AT THE SINK, NOT IN srcName, because srcName has TWO consumers that want
+// opposite things. The death receipt writes `deadCause.textContent`, where an escape would surface a
+// literal `&amp;`; the Records table interpolates into `.innerHTML`. Only the second needs this.
+//   It exists for the legacy STRING branch above — every key-shaped source resolves through T() and
+// the tables carry no markup in the msl/dot/col/dead.src families. A row saved by an old build is the
+// one value here that never passed through a table, so it is the one that gets escaped.
+const escHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lastDmg=null; // {src, act, phase} — death receipt
 function breakStreak(src){
   lastDmg={src, act, phase:wavePhase};
@@ -7020,7 +7027,7 @@ function openRecords(){
     const isBest = r.s===store.best && r.s>0;
     return `<div class="r">
       <div class="c n${isBest?' best':''}">${fmtN(r.s)}</div>
-      <div class="c d">${srcName(r.d)}</div>
+      <div class="c d">${escHtml(srcName(r.d))}</div>
       <div class="c">${fmtTime(r.t)}</div>
       <div class="c">${T('rc.epochVal',{r:roman(r.e), n:r.e})}</div>
       <div class="c">${r.c}</div></div>`;
