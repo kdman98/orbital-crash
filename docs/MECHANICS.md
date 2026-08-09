@@ -2243,6 +2243,36 @@ gets it.** Noise is what makes us look twice, so the failures that survive revie
 that produce cleaner results than the truth — a broken comparison does not return a wrong answer, it
 returns a *perfect* one, because agreeing with itself is the only thing it can do.
 
+⚠️ **THE SIGN OF THE ERROR DECIDES WHETHER IT SURVIVES, and two same-day specimens from two rigs make
+the point better than the rule does.** Both were broken checks; only one nearly shipped.
+
+| | the check | what it returned | outcome |
+|---|---|---|---|
+| toward reassurance | `git cat-file -e <old-sha>` after a history rewrite | **zero dead citations, all six files clean** | passed review, and was meaningless |
+| toward alarm | `grep -cE "P.eddy?0.45:0.6"` | **0 matches for a string that is present** | investigated within a minute |
+
+The second is a plain mistake — `?` is a quantifier in ERE, so the pattern never sought the literal, and
+`grep -F` is the fix. It was caught immediately **because a zero where you expect a hit is frightening.**
+The first was caught only by noticing the result was *too clean given that 32 commits had just been
+invalidated*. **Neither reviewer was more careful than the other; the errors simply pointed in different
+directions.** So the usable technique is to ask what a *correct* run should have found before reading
+what this one did: **if you have just broken N things and the sweep reports zero, the sweep is the
+suspect, not the news.**
+
+⚠️ **And a check can be right until the ground moves under it.** `git cat-file -e` asks *does this object
+exist*, which is the correct question in ordinary operation and becomes the wrong one the instant you
+rewrite history — `refs/original` deliberately keeps the old graph alive, so every stale hash still
+resolves and the check *cannot* fail. The question after a rewrite is *is this reachable from the branch*
+(`git merge-base --is-ancestor`), which immediately found six orphaned citations the first form had
+cleared. **The check did not rot. Its premise did** — the same shape as the note that went false with
+nobody editing it, elsewhere in this section.
+
+⚠️ **Scope a history-wide text replacement to named files, never the whole tree.** A three-letter string
+being replaced across every file also rewrites base64 `integrity` hashes in `package-lock.json`, which
+contain such substrings by coincidence. That corruption has no error, no test that notices, and lands in
+every rewritten commit at once. Confirm the untouched files by checksum afterwards rather than assuming
+the filter was narrow.
+
 ⚠️ **A comment asserting what a line GUARANTEES is a claim to test, not a fact to copy. The code says
 what it does; the comment says what someone thought it did.** This file is dense with comments precisely
 because the reasoning matters — which is exactly what makes a wrong one durable, since it will be
