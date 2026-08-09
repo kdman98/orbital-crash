@@ -51,6 +51,13 @@ class MotionBridgeViewController: CAPBridgeViewController {
             // are holding at the start of a run and only ever reads differences from it.
             let beta = d.attitude.pitch * 180.0 / Double.pi
             let gamma = d.attitude.roll * 180.0 / Double.pi
+            // A non-finite attitude has to be dropped BEFORE it is formatted, because %.3f renders
+            // .nan and .infinity as the bare words `nan` and `inf` — which are not JS numbers but
+            // undeclared identifiers, so the eval throws a ReferenceError sixty times a second
+            // instead of passing a bad number the JS side could clamp. Nothing to sanitise here in
+            // the injection sense: both values are Doubles straight from CoreMotion and cannot carry
+            // syntax. Dropping the sample is correct — the game keeps steering on the last good one.
+            guard beta.isFinite, gamma.isFinite else { return }
             // Guarded on the JS side existing, so updates arriving before the page has parsed — or on
             // a build without the receiver — are a no-op rather than a console error per frame.
             self.bridge?.eval(js: String(
