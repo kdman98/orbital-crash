@@ -291,8 +291,14 @@
      cyan pills stacked would be two primary actions, and there is only one. This reads as the second
      thing on the screen instead of the fourth, which is what a ghost pill under a glowing button gets
      you. margin-top is on the class, since it only ever sits under the primary. */
-  .btn.tut{margin-top:13px;background:rgba(56,224,255,.1);color:var(--cyan);
+  /* ⚠️ THE GAP MOVED WHEN THE ORDER DID. This margin used to live here and the comment said so —
+     "margin-top is on the class, since it only ever sits under the primary" — which was true and stopped
+     being true the moment the tutorial went ABOVE it. A gap belongs to whichever button is SECOND, not
+     to a particular button, so it is on #startBtn now. If the order is ever swapped back, move it back:
+     leaving it on both gives a double gap, leaving it on neither butts the two pills together. */
+  .btn.tut{background:rgba(56,224,255,.1);color:var(--cyan);
     box-shadow:0 0 0 1.5px rgba(56,224,255,.55) inset;}   /* its glow went with the primary's, same reason */
+  #startBtn{margin-top:13px;}
   .btn.tut:hover{background:rgba(56,224,255,.18);color:#d8f7ff;}
   /* THE BEACON — first visit only, and it replaces a tutorial that used to LAUNCH ITSELF at boot.
      Auto-starting answered a question the player had not asked yet: the first thing a new arrival met
@@ -498,7 +504,8 @@
     /* The menu paragraph this branch used to reflow is gone; what needs the height back now is the
        tutorial door, which is a button and buys it by shrinking rather than by rewrapping. */
     .titlewrap{margin-bottom:20px;}   /* the rings shrink with the type here, so the clearance can too */
-    .btn.tut{margin-top:8px;padding:9px 24px;font-size:14px;}
+    .btn.tut{padding:9px 24px;font-size:14px;}
+    #startBtn{margin-top:8px;}   /* the gap follows the SECOND button — see the base rule */
     .doors{margin-top:7px;}
     .door{padding:8px 10px 9px;}
     .doornote{margin-top:4px;}
@@ -700,9 +707,18 @@
        a long time, telling every phone that ever opened this page to "Click to flip".
          The two buttons are the entire menu now. `.btn.tut` is louder than the ghost pill it replaces
        because on a public link the tutorial is the more useful of the two doors for most arrivals, and
-       a first-time player should not have to notice a faint outline to find it. -->
-  <button class="btn" id="startBtn" data-t="menu.start">Enter the field</button>
+       a first-time player should not have to notice a faint outline to find it.
+         ⚠️ THE TUTORIAL IS FIRST IN THE MARKUP AND SECOND IN WEIGHT, AND BOTH HALVES ARE DELIBERATE.
+       Reading order is top-down, so a first arrival meets the lesson before the door; visual weight is
+       not, so the filled pill still says which one is the ordinary action. The two orders disagree ON
+       PURPOSE — a newcomer scanning downward finds the tutorial first, and a returning player's eye
+       goes to the solid button regardless of where it sits. Swapping the STYLES as well would say the
+       tutorial is what you came for, which is false for everyone after the first visit.
+         This is the same argument the beacon makes (see .btn.tut.fresh), one layer up: position is a
+       permanent nudge for arrivals, the beacon is a temporary one that ends at the first run. Neither
+       is load-bearing alone, which is why removing either leaves a menu that still reads correctly. -->
   <button class="btn sm tut" id="tutBtn" data-t="menu.tut">How to play</button>
+  <button class="btn" id="startBtn" data-t="menu.start">Enter the field</button>
   <!-- No glyph prefixes and no em-dash explainers. Four ghost buttons each carrying a different
        decorative mark read as a menu assembled by something that had never seen a menu.
          They then sat as four IDENTICAL ghost pills in one column, which was the same mistake with the
