@@ -544,7 +544,7 @@ halved (`P.chargeGain`), so a meter is twice as slow to earn and buys half as lo
 you spend on a moment rather than a mode you live in.
 
 **What it does is reach, and speed.** `P.eddy` moves the ring orbit outward and spins it harder,
-`P.ringMul` raises capacity, `P.moveMult` speeds the star. Measured on a Drifter at `79beadb`: the shell
+`P.ringMul` raises capacity, `P.moveMult` speeds the star. Measured on a Drifter at `bee3201`: the shell
 settles at **145.0px** against a base **114.2**, and it turns at **1.367 rev/s against a base 0.401**. A
 **full** meter is a **3.02s** ride (measured, not divided) and buys **4.12 revolutions**.
 
@@ -565,9 +565,9 @@ and it is why the species spread exists **only** while burning:
 | Drifter | 114.2 | 145.0 | **+30.8** | 20.74 px/f |
 | Brute | 116.4 | 141.1 | **+24.7** | 19.52 px/f |
 
-**The Brute row is a repair, and the shape of the repair is the useful part.** At `79beadb` the retune left
+**The Brute row is a repair, and the shape of the repair is the useful part.** At `bee3201` the retune left
 the Brute with no widening at all — it was the slowest species, so pulling the target in took back
-everything the ceiling was giving it. The fix in `24e51c6` raised `heavy.maxsp` 2.0 → 3.2 rather than
+everything the ceiling was giving it. The fix in `ecfbdf2` raised `heavy.maxsp` 2.0 → 3.2 rather than
 touching the orbit, **because the ring is not where the fault was**: the same edit is inert at rest and
 inert in free flight, and only bites in the one regime that reads a speed ceiling. ⚠️ **It did not make
 the Brute faster** — `maxsp` is a ceiling and pace is `seek × 6.1429`, so cruise is **0.921 before and
@@ -598,7 +598,7 @@ is the argument for why `fieldR` is pinned, and that argument is still load-bear
 ⚠️ *Three older restatements of the revolutions figure, all superseded.* It read **3.25** until the
 coefficient change, **2.78** before the Field change, and before that "half a meter" when the drain was
 half what it is. **Any figure quoted per *half* gauge is a figure per *full* gauge today; any 2.78
-predates `fbe4d18`; any 3.25 predates `79beadb`.** Note what moved it each time: the drain, then the
+predates `fbe4d18`; any 3.25 predates `bee3201`.** Note what moved it each time: the drain, then the
 geometry, then the geometry again — **the number has never once been changed by editing the number.**
 
 **Three constants own that, and they only work together.** The eddy orbit, the eddy spin, and the
@@ -815,7 +815,7 @@ so the shape never deforms to accommodate where you are. The arms reach past the
 which is the Noose's measurement and is there for the Noose's reason: there must be no *outside the
 Cross* to walk to. The answer is a quadrant, chosen early.
 
-**It is telegraphed for `CROSS_TEL` = 1.2s, and until `79beadb` it was not.** The author reported it
+**It is telegraphed for `CROSS_TEL` = 1.2s, and until `bee3201` it was not.** The author reported it
 arriving with no signal and was right. The defence in the code was the solved bearing — the arms are
 rotated half a sector off your own bearing, so you always start mid-quadrant, about 1.7s from the nearest
 arm. ⚠️ **That is a head start, not a signal**, and the difference is the whole entry below in *Traps*:
@@ -1255,7 +1255,7 @@ worse while burning. **A conclusion that outlives the argument it was built on h
 re-asserted** — this one was checked and kept; it could as easily have gone the other way.
 
 *And the overlap has since doubled, so the re-derivation held twice.* Against a Drifter the band is
-`2 × (boss.r 37 + dot.r 11)` = **96px** wide, and the two shells sit **30.8px** apart at `79beadb` where
+`2 × (boss.r 37 + dot.r 11)` = **96px** wide, and the two shells sit **30.8px** apart at `bee3201` where
 they sat 68.9 apart at the old coefficient and 99.9 before `fbe4d18`. So the bands went **disjoint → 28%
 overlapped → 68% overlapped** across two changes that were about something else entirely. The conclusion
 is unchanged and its margin is not: burning and base now cover nearly the same ground, which makes
@@ -1431,7 +1431,7 @@ the core* cannot reduce how many are standing — the queue is upstream of you. 
 **range** can. That is why the ring shell is the lever that works and why a wider gathering Field is not
 one.
 
-**The lever survived having its shell pulled in.** When the eddy coefficient went `0.72 → 0.45` at `79beadb`
+**The lever survived having its shell pulled in.** When the eddy coefficient went `0.72 → 0.45` at `bee3201`
 the suppression was re-measured in this table's own regime — *flipping every 47 frames, damage off, star
 stationary, 120s runs, paired on seed, n=16*:
 
@@ -1937,7 +1937,7 @@ turns an acknowledgement into a second thing to read and doubles the step.
 otherwise the first travel sample of the new step spans the whole beat and credits a step that has not
 started.
 
-**Nothing launches at boot. The menu always opens, and the tutorial button glows instead** (`8abc493`).
+**Nothing launches at boot. The menu always opens, and the tutorial button glows instead** (`f122816`).
 Author: *"don't show tutorial as soon as game start, just highlight tutorial."* A mode that opens itself
 answers a question the player has not asked — the first thing a new arrival met was a lesson about the
 game rather than the game, on a screen they never chose. `.btn.tut` carries a `fresh` class while the
@@ -2272,7 +2272,7 @@ about whether behaviour was preserved. **Effect calls are the trap, because they
 code.** `spawnBurst(x, y, col, 3, spd)` draws four `rand()` per particle — twelve for that call — and it
 reads as decoration.
 
-*Worked example, `7e09392`.* Removing the graze moved the suite from len 1654 / FNV `9f659ef7` to len
+*Worked example, `9f5d7fd`.* Removing the graze moved the suite from len 1654 / FNV `9f659ef7` to len
 1651 / `e9cc1d16`. **The move was predicted, and the reason given was wrong** — *"graze feeds `score`, so
 the fingerprint should move."* ⚠️ **The prediction coming true is what nearly let it through**, because a
 confirmed prediction reads as an understood mechanism. What broke it was reading the numbers underneath:
@@ -2281,13 +2281,13 @@ removing a points source cannot do that. The score story was incidental; the `sp
 mechanism.
 
 **So when the fingerprint moves, first ask whether your diff changed the entropy budget** — and if it
-did, the oracle is silent rather than negative, and you owe the change a different proof. For `7e09392`
+did, the oracle is silent rather than negative, and you owe the change a different proof. For `9f5d7fd`
 that was: enumerate every write site of the affected quantity statically (scoring came to five, all
 integers), reproduce the *baseline* off a gitignored copy of HEAD before trusting the rig, assert the new
 build's markers in source **and** seam before measuring, and drive the touched function for 5,400 frames
 watching for throws.
 
-**The contrast case is the same day's `fccd00b`, and it is what makes the rule usable rather than
+**The contrast case is the same day's `262d334`, and it is what makes the rule usable rather than
 paralysing.** A render-layer change certified cleanly at len 1651 / `e9cc1d16` on both sides — because it
 provably spent no entropy: added lines matching `Math.random|rand(|rnd(` came to **0**, and lines added
 or removed matching `spawnBurst|spawnRing|pushText|sfx.|queueKill` came to **0**. ⚠️ **Run that grep as
@@ -2397,7 +2397,7 @@ first-visit tutorial used to auto-start, which would drop a scripted pilot into 
 parked at `phaseT=1e9` and damage off — every fingerprint and every tape measuring *that* instead, with
 nothing thrown. `window.__H` was the gate that worked, and it worked because of **when** it exists:
 `preload.js` is injected ahead of the inline script, so the harness has announced itself before the boot
-line runs. A gate on anything `.oracle.js` defines **cannot** work — it is pasted after load. *(`8abc493`
+line runs. A gate on anything `.oracle.js` defines **cannot** work — it is pasted after load. *(`f122816`
 removed the auto-start entirely, so this specific hazard is gone at the source and `tutSuppressed` is now
 cosmetic. **The rule is kept because it is about boot-time gates in general**, and the next one will be
 written by someone who did not watch this one nearly go wrong.)*
@@ -2603,7 +2603,7 @@ reasoning occupying the slot where a cue belongs.
 
 **A coefficient is not the quantity it scales, and here the two do not even ORDER the same way.** `orbR`
 is a fraction of `fieldR` and reads exactly like a radius, so every summary of this mechanic has at some
-point quoted the coefficient and meant the shell. At `79beadb` that finally became visibly wrong rather
+point quoted the coefficient and meant the shell. At `bee3201` that finally became visibly wrong rather
 than merely imprecise: the burning coefficient is **0.45 against a resting 0.6** — *lower* — while the
 burning shell is **145.0 against 114.2** — *30.8px wider*. Read the coefficients and Overdrive tightens
 your ring. It does the opposite.

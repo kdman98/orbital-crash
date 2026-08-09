@@ -14,14 +14,14 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-09
 
-### The repository goes public, and a note that was true while it was private stopped being true `4ae4992`
+### The repository goes public, and a note that was true while it was private stopped being true `4878bdc`
 `kdman98/orbital-crash` is public and Pages is live, so all three links the submission prints resolve —
 play, source and video, measured 200 logged-out. 18 backed-up commits were pushed first, so Pages serves
 current HEAD; verified byte-identical by SHA-256, then loaded and confirmed to boot with no console
 errors. README is cut to a landing page, 167 lines → 33.
 
 ⚠️ **`docs/SCOPE.md` is readable in the published history and this was decided, not overlooked.** It left
-the tree at `05f9b5f` but survives in 7 commits; a clone of the public URL recovers 317 lines including
+the tree at `f2eae31` but survives in 7 commits; a clone of the public URL recovers 317 lines including
 the price points. Purging would rewrite every SHA from 2026-08-04, breaking **2 of the 3 evidence hashes
 printed in the submission PDF** (`bf2eb84`, `7b68016`; `1a980bb` predates it) and most of this file's 110
 hash citations — against a plan the author says has been superseded twice since. Accepted on that trade.
@@ -33,7 +33,7 @@ the conclusions-outliving-arguments failure with the argument living *outside th
 the audience. Filed in *Traps* with the check, which is a calendar item rather than a diff — before making
 any repo public, re-read every note that justifies itself with "it's private".
 
-### The tutorial stops opening itself, and the menu door glows instead `8abc493`
+### The tutorial stops opening itself, and the menu door glows instead `f122816`
 Author: *"when entering game for the first time, don't show tutorial as soon as game start, just highlight
 tutorial."* A mode that starts itself answers a question the player has not asked — a new arrival met a
 lesson about the game before the game, on a screen they never chose to open. The menu now always opens and
@@ -55,7 +55,7 @@ gate that cannot fire is worse than no gate because it looks like cover.**
 the page"* when `markTutSeen()` fired on the boot run; it now means *"this profile played something,"* set
 by the first run the player chooses. Same key, same name, different question — invisible to a grep.
 
-### The Brute gets its Overdrive widening back, and the fix was the Brute rather than the ring `24e51c6` `9c3dde2`
+### The Brute gets its Overdrive widening back, and the fix was the Brute rather than the ring `ecfbdf2` `130797e`
 The eddy retune below left heavy Dots with no widening at all: the burning ring is ceiling-limited, the
 Brute had the lowest ceiling, and pulling the orbit in took back everything the ceiling was giving it.
 `heavy.maxsp` goes **2.0 → 3.2** and the orbit is untouched — the ring was never where the fault was.
@@ -80,7 +80,7 @@ a zero viewport, so `W`/`H` keep their seeded `REF_SHORT` and the design arena s
 1440×900 / 1920×1080, and **100 on a 390×844 phone** — more than a 1440×900 desktop, because the short
 side sets the scale so a tall viewport is a tall arena. A wrong arena does not look wrong; it looks square.
 
-### The Cross is telegraphed, because "you start mid-quadrant" was an argument and not a signal `79beadb`
+### The Cross is telegraphed, because "you start mid-quadrant" was an argument and not a signal `bee3201`
 Four arms landing on open ground in one frame, with nothing before them. The defence in the file was
 real — the arms are rotated half a sector off your own bearing, so you always begin mid-quadrant, about
 1.7s from the nearest arm — and it is also **something only a reader of the source can collect**. The
@@ -95,7 +95,7 @@ closure over the same geometry, keeping the invariant that there is no second li
 Verified: nothing spawns on the call, bodies land at **frame 72 = 1.200s** exactly, four bearings at
 45/135/225/315°, **0.0000px** off-axis, hub **65px** off the star = `CROSS_R0 + P.r + 20`.
 
-### The burning ring is pulled in toward the resting one, and the coefficient now points the wrong way `79beadb`
+### The burning ring is pulled in toward the resting one, and the coefficient now points the wrong way `bee3201`
 `P.eddy`'s orbit fraction goes **0.72 → 0.45** on a play note: the burning shell sat so far off the
 resting one that the two read as unrelated states rather than as one ring opening up. Measured at HEAD
 on a Drifter, star pinned, damage off: the shell settles at **145.0** against a resting **114.2**, and
@@ -111,7 +111,7 @@ scaling the old overshoot lands about 60px wrong, in the reassuring direction.
 4.8px/frame; the burning ring is ceiling-limited and each species rides its own. So burning opens a
 Mini by **+55.7px**, a Drifter by **+30.8px**, and left a Brute with **nothing measurable** — the
 tutorial promises "a wider, faster circle" and for a Brute only the second half was true. Accepted
-knowingly at the time: Drifters are the modal spawn. ⚠️ **Superseded the same day by `24e51c6` above**,
+knowingly at the time: Drifters are the modal spawn. ⚠️ **Superseded the same day by `ecfbdf2` above**,
 which gave the Brute its widening back through `heavy.maxsp` instead of through the orbit. *(This entry
 first reported the Brute residual as −2.9px. That figure is withdrawn: the other rig read +1.3px, and
 the effect was smaller than the disagreement about it.)*
@@ -129,7 +129,7 @@ global scale term, not star motion). Unresolved, and recorded as unresolved.
 
 ## 2026-08-08
 
-### The sky is painted once instead of sixty times, and the GPU number is not measurable from here `fccd00b`
+### The sky is painted once instead of sixty times, and the GPU number is not measurable from here `262d334`
 One full-screen radial gradient plus five nebula clouds, repainted from scratch sixty times a second —
 for a picture that moves **half a device pixel per frame**. It is now painted into an offscreen canvas
 and blitted, rebuilt every eighth frame — **except while the palette is easing after an Epoch flip,
@@ -177,12 +177,12 @@ frame" falling from 81.7ms at batch 1 to 1.36ms at batch 90, because it is one ~
 divided by *M*. **The honest status is: a measured win in software rasterisation, unverified on GPU, and
 the real test is a frame counter on the iOS build.**
 
-**Sim untouched, verified independently on both sides:** oracle len 1651 / FNV `e9cc1d16` at `fccd00b`,
-identical to the reading at `7e09392`, re-run with the URL guard and two build assertions (`blitSky`
+**Sim untouched, verified independently on both sides:** oracle len 1651 / FNV `e9cc1d16` at `262d334`,
+identical to the reading at `9f5d7fd`, re-run with the URL guard and two build assertions (`blitSky`
 present, `GRAZE_SCORE` absent) *before* measuring — because a silently-failing navigate is what produced
 the retracted number in the first place.
 
-### The graze is removed, and it was never a dodge `7e09392`
+### The graze is removed, and it was never a dodge `9f5d7fd`
 Author: *"i'd like to remove graze system, dead score mult. is graze point-blank dodge, right?"*
 
 **No — and that is the argument for cutting it.** A dangerous Dot entering `P.r+e.r+16` and leaving past
@@ -217,7 +217,7 @@ of HEAD *before* the rig was trusted; the new build asserted free of `GRAZE_SCOR
 before measuring; 5,400 frames of `tick()` driving `stepPlayerContact` every frame with zero errors and
 zero `console.error`; viewport forced to 1280×900 first, because `innerWidth` reads 0 in that harness.
 
-### The streak label stops fighting the Epoch label for the same row `0a0f2f4`
+### The streak label stops fighting the Epoch label for the same row `b241f77`
 `{n} no-hit streak` → `{n} streak`, `{n}콤보` → `{n} 콤보`. `#combo` is right-aligned on the same line as
 the centred Epoch label, and the English string was 16 characters against Korean's 5 — **which is the
 whole reason English overlapped at every phone width and Korean at none.**
@@ -239,14 +239,14 @@ HUD never taught it anyway; the mechanic is taught by the counter dropping to ze
 Korean takes the space deliberately: `23콤보` reads as one token, `23 콤보` reads as a count, and in the
 HUD it is a count.
 
-### The Run section pointed at a directory layout that exists only on one machine `72afe64`
+### The Run section pointed at a directory layout that exists only on one machine `bbd1a61`
 `git clone` gives you a directory called `orbital-crash`. There is no `ddd-games` root on anyone else's
 disk, so *"from the ddd-games root"* plus `localhost:8755/orbital-crash/index.html` was **a 404 for every
 visitor who followed it** — paths written from inside a parent that is not part of this repository and
 never gets cloned with it. Now: serve the repository root, and the game is at the root of the server.
 Kept rather than deleted, because it answers the first question a repository gets.
 
-### The Epochs become celestial, and Meteor Shower earns its name instead of just wearing it `094c982`
+### The Epochs become celestial, and Meteor Shower earns its name instead of just wearing it `7044f56`
 Nebula / Aurora / Eclipse / Meteor Shower, 성운 / 극광 / 월식 / 유성우. **Why the old four felt
 arbitrary: no shared domain.** 표류 is motion, 잔불 is fire, 개화 is botany, 밀물 is ocean — each fine
 alone, together generating nothing. One idea has to produce all four.
@@ -270,7 +270,7 @@ walking Epoch 1→8 purging on sight: **17 comet bodies at IV and 11 at VIII, ze
 Epochs** — including V immediately after, which is the exit re-arm working.
 
 **The palette was re-solved with it**, because a tint is a claim about what you are looking at and a warm
-sand sky for an *aurora* is simply wrong. Same floor and same chroma ceiling as `1e1f8aa` below, new
+sand sky for an *aurora* is simply wrong. Same floor and same chroma ceiling as `ffebcfe` below, new
 arcs — and **the L\* ladder is the point**: hue is capped at chroma 22, so the Epochs carry identity in
 lightness instead, Eclipse 46 the darkest sky in the game and Meteor Shower 74 the brightest. That is the
 one channel polarity does not own.
@@ -294,7 +294,7 @@ The fix belongs on that string and it is a copy call, so it is open rather than 
 Oracle byte-identical, len 1654 / FNV `9f659ef7` — the pilots run 40s and the comet gate is
 `elapsed>42`, so no pilot ever reaches a shower and the suite could not have caught a regression here.
 
-### The Epoch palette stops spending polarity's colours, and Epoch XIII stops calling itself I `1e1f8aa`
+### The Epoch palette stops spending polarity's colours, and Epoch XIII stops calling itself I `ffebcfe`
 **Drift's tint was `#38e0ff` — `COL.cyan` character for character.** Not "close to"; the same six digits,
 and `git log -S` puts both hexes in the same first commit, so nobody chose it. One blue got typed twice.
 Bloom sat ΔE 13.3 from `COL.violet`, the event flash, so a violet cue fired against a violet sky. Ember
@@ -313,7 +313,7 @@ at the closest, nearest claimed colour 32.4. **Adding a fifth mood means re-solv
 `bg1`/`bg2` untouched on purpose — at L\* 1–7 they are black with a hint, and the measured sky medians sit
 ΔE 85–96 from both poles. They were never what was competing.
 
-⚠️ **The four tints this commit chose no longer exist — the constraint it discovered does.** `094c982`
+⚠️ **The four tints this commit chose no longer exist — the constraint it discovered does.** `7044f56`
 re-solved inside the same floor and the same chroma ceiling and replaced every hex, so `#709bbb`
 `#c3a685` `#a97f99` `#83b6a0` return **zero hits** at HEAD, and the ladder above reads L\* 46–74 there
 rather than 58–70. **The order is the part worth keeping**: the chroma-22 wall was proven here and only
@@ -338,7 +338,7 @@ Verified in-engine on the served file with a new-code marker asserted first: EPO
 / XXXIX, Korean 13/20/39단계, Records XIII against 13 for one 13-Epoch row. Oracle byte-identical, len
 1654, FNV `9f659ef7`.
 
-### The repository becomes publishable: a licence, a play link, and the plan leaves the tree `05f9b5f`
+### The repository becomes publishable: a licence, a play link, and the plan leaves the tree `f2eae31`
 Prompted by a public release that wants a public repository, a Pages link, and the full source with its
 commit record intact. **All 193 commits audited for secrets first** — every blob ever committed,
 against key / token / private-key / provisioning patterns. Zero hits, and no `.env` or certificate has
@@ -859,7 +859,7 @@ setting the pace — and it gave a 7-word line the same time as a 14-word one. `
 instruction / beat: 2.23/2.25, 3.85/2.57, 3.22/2.25, 4.82/2.88, 4.48/2.57. **It also means editing the
 copy cannot silently outrun the pacing.**
 
-⚠️ *The auto-start described below was removed in `8abc493` (2026-08-09) — the menu always opens now and
+⚠️ *The auto-start described below was removed in `f122816` (2026-08-09) — the menu always opens now and
 the tutorial button glows instead, so this hazard is gone at the source rather than gated. The gate-timing
 lesson survives it and is in* Traps.
 

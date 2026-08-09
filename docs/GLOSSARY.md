@@ -271,7 +271,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   terms that scale with anything. Five write sites, every one an integer.
   (`onKill`, `KILL_SCORE`, `MOTE_SCORE`)
 - **Ring shell** — the radius your Rings orbit at. Overdrive pushes it out about **1.27×** — measured on
-  ring Drifters at `79beadb`, 114.2 resting against 145.0 burning. ⚠️ **Read the settle, never the
+  ring Drifters at `bee3201`, 114.2 resting against 145.0 burning. ⚠️ **Read the settle, never the
   coefficient**: `orbR` is a spring *target* and the whirl carries the ring well past it — and the two do
   not order the same way, since the burning coefficient is *lower* (0.45 against 0.6) while the burning
   shell is wider. ⚠️ **There is no single shell**: the resting ring is spin-limited and every species sits
