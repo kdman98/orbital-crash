@@ -327,8 +327,10 @@ playing, the Bestiary holds the species, and Records holds the achievements it u
 facts it was argued to be the last home of are gone too — two the tutorial demonstrates, one contradicted
 `flip()`, and one Records had already made untrue.
 
-**Older:** **Pulsar** → Bastion (the code key stays `pulsar`, so PATCHNOTE entries before 2026-08-09
-and every identifier still read the old name) · **Eddy** → Overdrive's ring behaviour ·
+**Older:** **Pulsar** → Bastion — display name *and* code key, renamed together in `e8c7fa2` and proved
+behaviour-preserving on all 96 fingerprints. **PATCHNOTE entries before 2026-08-09 still read the old
+name and are meant to**, because a dated log records what a thing was called at the time; `legacy/` is
+superseded wholesale and is not maintained · **Eddy** → Overdrive's ring behaviour ·
 **body** (meaning an enemy) → Dot ·
 **Flare** → missile · **World** → Star · **Purge** (of matter) → Fling; *purge* now means destroying an
 Anomaly and nothing else · **Anomaly Arena** → Boss Rush · **Lunger**, **Seeder**, **Spiral** → folded
