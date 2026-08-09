@@ -2554,11 +2554,36 @@ printed in the submission plus most of this repo's 110 hash citations.)*
 
 **This is the harder sibling of the entry below.** The usual failure is editing a fact and not re-deriving
 what rested on it, and the defence is to grep the reasoning when you change the number. Here there was no
-number and no edit: the premise was **the audience**, which lives outside the tree entirely. ⚠️ **The
-check is therefore a calendar item, not a diff:** before making any repository public, re-read every note
-that justifies itself with *"it's private"* or *"internal only"* — anything gated on **who can see this**
-rather than on what it says. Those are load-bearing in the opposite direction the instant you flip, and
-they are invisible to every tool that watches the code.
+number and no edit: the premise was **the audience**, which lives outside the tree entirely. The check is
+therefore a calendar item, not a diff — and it has three parts, because the first one alone has a blind
+spot that took a second session to find.
+
+1. **Note-side.** Re-read every note justified by *audience* rather than content — `.gitignore` comments,
+   "internal only" headers, anything gated on **who can see this** instead of what it says.
+2. ⚠️ **Content-side, and this is the half that matters more.** Step 1 is keyed to the *note*, so **it
+   finds the conscientious decisions and misses the careless ones** — `.gitignore:23` was findable
+   precisely because someone had documented it. Paths nobody wrote a sentence about are invisible to it by
+   construction. Enumerate them from the content instead:
+
+   ```bash
+   git log --all --diff-filter=D --name-only --pretty=format: | sort -u   # deleted, still reachable
+   ```
+
+   On this repo that returns **four** paths, and only one of them (`docs/SCOPE.md`) had a note. `FACTS.md`
+   (204 lines) and `TITLE.md` (114) appear nowhere in `.gitignore` — no justification to grep for. Both
+   scanned clean, **which is the content being harmless, not the method working.** Run the same check per
+   `.gitignore` entry: **ignored is not absent**, and that gap is the entire failure.
+3. **The trigger is wider than "going public."** It is *any change to who can read it* — adding a
+   collaborator, a fork, a Pages deploy serving a directory, an artifact upload. "Is the repo public" is a
+   proxy for the real premise, which is the audience.
+
+⚠️ **Sampling a deleted file's content needs `--diff-filter=AM`, and getting it wrong returns a clean
+bill of health.** `git log --format=%H -- <path> | head -1` on a deleted path resolves to the **deletion
+commit**, where the file does not exist, so `git show` yields nothing and the scan reports **0 bytes, 0
+lines, 0 indicators — a flawless all-clear produced by reading a commit with the content already gone.**
+Measured here: `head -1` gives 0 bytes for `FACTS.md`, `--diff-filter=AM` gives 10,267. **The tell was
+three different files reporting *identically* zero**, which is the shape from *"a check that reports you
+are finished"* below — a security sweep whose failure mode is silent approval.
 
 **A correct argument can stand in for a cue, and it will pass every review because it is true.** Two
 mechanics were defended this way and both defences held up under scrutiny while reaching the player not at
