@@ -4,6 +4,18 @@
 # index.html — got committed once because an `rm -f` ran from the wrong directory and reported success.
 .tmp-*
 
+# ⚠️ SAME HAZARD, SECOND NAMING CONVENTION, AND THE PATTERN ABOVE DID NOT COVER IT. Measuring anything
+# in this game means serving a modified copy of index.html — a sweepable constant, a runtime hook, a
+# build captured off HEAD — and a session that names those `.probe-*` instead of `.tmp-*` writes 500KB+
+# duplicates that `.tmp-*` never sees. They were cleaned up by hand every time, which is a habit and not
+# a guard: one `git add -A` before the `rm` and a stale copy of the whole game is in history for good.
+#   The lesson is not "remember to delete them" — it is that a scratch-file rule keyed to ONE prefix is
+# one rename away from being no rule at all. If you invent a third convention, add it here first.
+.probe-*
+# ...except this one, which is committed on purpose: the recorder's browser-support check, small and
+# meant to be opened from a link rather than built.
+!.probe-record.html
+
 # Capacitor / npm
 node_modules/
 www/
