@@ -1658,9 +1658,37 @@ including the ones that move standing population the most.
   no meta economy. Nothing counts the rows, so adding or retiring one is a single line.
 
 ### Progression
-**There is none, and that is the design.** No meta-progression, no pickups, no upgrades — the Capacitor
-is the only thing that accumulates and it empties every time you use it. What improves across a run is
-your position and your hoard, both of which you can lose in a second.
+**No progression of POWER, and that is the design.** No pickups, no upgrades, no stat that carries — the
+Capacitor is the only thing that accumulates inside a run and it empties every time you use it. What
+improves across a run is your position and your hoard, both of which you can lose in a second.
+`freshRun()` returns the same star on your first run and your thousandth.
+
+⚠️ **This section used to open "There is none, and that is the design", and that sentence is now false as
+written.** Something *does* cross the boundary: **the Epoch start**. Score thresholds unlock beginning at
+Epoch II–V, and the selection persists. The rule that survived the change is the one that was actually
+load-bearing, so state it as the rule rather than as an absence:
+
+> **Unlocks may grant ACCESS. They may never grant POWER.**
+
+A deep start moves where the Director begins counting and changes nothing about the star — same 100 pool,
+same field, same two verbs. It is priced as a trade rather than a reward: you give up the early Epochs'
+easy score, and you buy `200×act` purges and `250×act` Bounties from the first minute, at a difficulty
+that kills faster. Whether that trade pays is a bet on your own skill, which is the only kind of
+progression this game is willing to sell. **Anything proposed here later gets held against that one line**
+— and the POLARIS fork stripped an XP/level/keystone/shop economy precisely because it failed it.
+
+**Thresholds: 8,000 · 18,000 · 28,000 · 38,000**, anchored on the one human reference tape (Epoch V at
+39,105) and **not** on the bot, which reaches the same depth at 475s with ~69,000 — 1.75× the time for
+1.76× the score, and would have set every gate about twice too high. Retune after a playtest.
+
+**`startActMax` is a high-water mark, not a derivation from `best`.** Erase Records zeroes `best`, and an
+unlock the player earned must survive that button, exactly as achievements do.
+
+**A deep start begins with the full late roster.** The ambient table is keyed on `elapsed`, not `act`, so
+without this a cold Epoch-V start would serve the `t<20` teaching band at Epoch-V damage. `introT()`
+warps only the intro *gates* — never `elapsed` — so Time Survived stays the honest number and the sim
+keeps one clock. Reach-style achievements (`act3` today) carry a cold-start guard, because "reach Epoch
+III" has to mean you travelled there.
 
 **What now *degrades* across a run is Integrity, and it is the only thing in the game that cannot be
 rebuilt.** Removing passive regeneration turned health from a per-encounter resource into a run-long

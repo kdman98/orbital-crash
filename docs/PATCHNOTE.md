@@ -14,6 +14,35 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### You can begin at a deeper Epoch, once you have earned it `v2`
+Score unlocks a starting Epoch — **8,000 · 18,000 · 28,000 · 38,000** for II through V. A deep start
+skips the early Epochs' easy score and buys `200×act` purges and `250×act` Bounties from the first
+minute, at a difficulty that kills faster. **It grants no power**: `freshRun()` is byte-identical either
+way. The menu selector is *absent*, not disabled, until Epoch II is unlocked.
+
+**Thresholds are anchored on the one human tape, not on the bot.** The 271s tape reaches Epoch V with
+39,105; an immortal pilot reaches it at 475s with ~69,000 — 1.75× the time for 1.76× the score, which
+would have set every gate about twice too high.
+
+**The real work was the `elapsed`-keyed gates.** The ambient table, the formation clock and the Neutral
+Drift are all keyed on elapsed rather than act, so a cold Epoch-V start would have served the `t<20`
+all-Drifter teaching band at Epoch-V damage. `introT()` warps the intro *gates* only and never `elapsed`
+itself, so Time Survived stays honest and the sim keeps one clock. Verified: a cold start sees `drift`
+alone in its first 15s, a deep start sees seven species.
+
+**Proven inert for existing play:** cold-start fingerprints are **bit-identical** to the previous build
+across three seeds, while the same seeds started deep differ on all three. `startActMax` is a high-water
+mark so Erase Records cannot revoke it, and `act3` gained a cold-start guard — measured both ways, the
+grant fires on a cold run and is withheld on a deep one that cleared the same Anomaly.
+
+**Two latent bugs surfaced, neither of them new.** The sky cache repaints on `palMoving` or every
+`SKY.every` frames, and `beginRun` *jumps* `palCur` rather than easing it — so a start landed exactly
+between the two conditions and served the previous sky for up to 8 frames. Invisible while every run
+began at Epoch I and both were the same colour; a deep start is the first thing that can open in a
+different sky. Boss Rush had the identical defect. And `epochGlyph` was written as a `const` arrow while
+`applyLang()` calls into it *from above* during boot — a temporal-dead-zone `ReferenceError` that
+aborted the rest of `applyLang` silently. Both found by looking at the screen, not by reading the diff.
+
 ### Every Dot hits for 2 less, and the death census says where that lands `v2`
 A flat **−2** on all eight `ETYPE` rows: Dart 8→**6**, Drifter 10→**8**, Bomber 10→**8**, Harrier
 12→**10**, Neutral 15→**13**, Charger 16→**14**, Planet 20→**18**, Brute 22→**20**. Dots only — the

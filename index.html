@@ -428,6 +428,16 @@
   /* Sits under the boxes and above a gap, so there is now exactly one group it can be read against.
      Hung between the two pairs, it could have been captioning either. */
   .doornote{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;}
+  /* THE DEPTH SELECTOR borrows the doornote's label treatment on purpose: it is the same KIND of thing,
+     a quiet line qualifying the loud button above it, and giving it a voice of its own would make the
+     menu read as having two headline controls instead of one. */
+  .depth{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:11px;flex-wrap:wrap;}
+  .depthlab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;}
+  .depthpills{display:flex;gap:5px;}
+  .dp{font:inherit;font-size:12px;letter-spacing:.06em;color:var(--dim);background:transparent;
+      border:1px solid rgba(255,255,255,.14);border-radius:5px;padding:2px 9px;cursor:pointer;min-width:32px;}
+  .dp:hover{border-color:rgba(255,255,255,.32);}
+  .dp.on{color:var(--ink);border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);}
   /* gap 16, set when this was four links: at 28 they totalled 373px against 331px of usable width on a
      375px phone and wrapped Settings onto a line of its own. Three links now — 278.5px at this gap — so
      the value is no longer load-bearing, but it is what the row was measured at and there is no reason
@@ -813,6 +823,14 @@
        is load-bearing alone, which is why removing either leaves a menu that still reads correctly. -->
   <button class="btn sm tut" id="tutBtn" data-t="menu.tut">How to play</button>
   <button class="btn" id="startBtn" data-t="menu.start">Enter the field</button>
+  <!-- THE DEPTH SELECTOR, and it is ABSENT rather than disabled until Epoch II is unlocked. A row of
+       locked pills would advertise a system a first-time player can neither use nor yet understand, and
+       it would put a wall in front of the one button the menu wants pressed. Hidden, the menu is
+       byte-identical to the one that shipped before this existed. -->
+  <div class="depth hidden" id="depthSel">
+    <span class="depthlab" data-t="menu.depth">Begin at</span>
+    <span class="depthpills" id="depthPills"></span>
+  </div>
   <!-- No glyph prefixes and no em-dash explainers. Four ghost buttons each carrying a different
        decorative mark read as a menu assembled by something that had never seen a menu.
          They then sat as four IDENTICAL ghost pills in one column, which was the same mistake with the
@@ -1141,6 +1159,18 @@ const LS=(()=>{
 })();
 const num=(k,fb)=>{ const v=parseFloat(LS.getItem(k)); return Number.isFinite(v)?v:fb; };
 const list=k=>{ try{ const v=JSON.parse(LS.getItem(k)); return Array.isArray(v)?v:[]; }catch(e){ return []; } }; // corrupt data must not brick boot
+// EPOCH START — the only unlock in this game, and it grants ACCESS, never power. `freshRun()` is
+// byte-identical whichever Epoch you begin at: nothing about the star changes, only where the Director
+// starts counting. What a deep start costs is the easy early score; what it buys is arriving at
+// `200*act` purges and `250*act` Bounties immediately, on a fresh pool. That is a bet on your own skill
+// and it is meant to be one — deep Epochs kill faster, so the trade only pays if you can hold them.
+//   ⚠️ THE THRESHOLDS ARE ANCHORED ON THE ONE HUMAN TAPE, NOT ON THE BOT, because the bot cannot price
+// this: an immortal pilot reaches Epoch V at 475s with ~69,000, where the 271s reference tape reaches
+// the same depth with 39,105 — 1.75x the time for 1.76x the score. A curve that inflated would set
+// every gate about twice too high. Retune these after a human playtest, not after another bot run.
+const START_ACT_CAP=5;
+const START_ACT_REQ=[0,0,8000,18000,28000,38000];   // index IS the act; [1] is 0, the free cold start
+const startActFor=best=>{ let n=1; for(let a=2;a<=START_ACT_CAP;a++) if(best>=START_ACT_REQ[a]) n=a; return n; };
 const store={
   // ⚠️ KEY BUMPED to _best2. Deleting the Collapse tally removed ~71% of a run's score, so every score
   // recorded under the old key is unreachable now — a best you cannot beat is not a target, it is a wall.
@@ -1178,6 +1208,12 @@ const store={
   runs:list('orbitalcrash_runs'),
   totals:(()=>{ try{ const o=JSON.parse(LS.getItem('orbitalcrash_totals'));
                      return (o&&typeof o==='object') ? o : {}; }catch(e){ return {}; } })(),
+  // ---- UNLOCKS ----
+  // ⚠️ A HIGH-WATER MARK, NOT A DERIVATION FROM `best`. Deriving it would be one field fewer and it
+  // would be wrong: Erase Records sets `best` to 0, and revoking an unlock the player already earned is
+  // not what that button promises. `achv` survives the wipe for exactly this reason; so does this.
+  startActMax:clamp(num('orbitalcrash_startact',1),1,START_ACT_CAP),
+  startAct:clamp(num('orbitalcrash_startsel',1),1,START_ACT_CAP),   // the player's current selection
 };
 const RUNS_KEPT=10;
 function save(){
@@ -1191,6 +1227,8 @@ function save(){
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
     LS.setItem('orbitalcrash_cb',store.cb?'1':'0');
     LS.setItem('orbitalcrash_lang',store.lang);
+    LS.setItem('orbitalcrash_startact',store.startActMax);
+    LS.setItem('orbitalcrash_startsel',store.startAct);
   }catch(e){}                                               // losing the save beats crashing mid-run
 }
 
@@ -1265,6 +1303,7 @@ const L={ en:{
   'menu.tut':'How to play',
   'menu.rush':'Boss Rush',  'menu.lab':'Pattern Lab',
   'menu.note':'Practice only · neither can set your best',
+  'menu.depth':'Begin at',
   'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',
   'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
   'menu.contact':'Contact',
@@ -1405,6 +1444,7 @@ const L={ en:{
   'menu.tut':'튜토리얼',
   'menu.rush':'보스 러시',  'menu.lab':'패턴 실험실',
   'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
+  'menu.depth':'시작 시대',
   'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',
   'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
   'menu.contact':'문의',
@@ -2120,6 +2160,18 @@ const RN=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'
           [10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
 function roman(n){ let s='', v=Math.max(1,Math.round(n)); for(const [k,r] of RN){ while(v>=k){ s+=r; v-=k; } } return s; }
 let act=1, wavePhase='calm', phaseT=6, intensity=0.14, intensityTarget=0.14;
+// THE EPOCH THIS RUN BEGAN AT. 1 is a cold start, and everything keyed on it below is a no-op at 1.
+let runStartAct=1;
+// A deep start has GRADUATED the teaching bands, so it opens with the full late mix and live formation
+// clocks. This warps only the intro GATES and never `elapsed` itself — so Time Survived on the death
+// card stays the honest number, a records row stays comparable to a cold-start row, and the sim keeps
+// exactly one clock. Warping `elapsed` instead would have been fewer characters and would have lied to
+// three screens at once.
+//   ⚠️ 155, not 130: it has to clear the LATEST intro gate, which is the Neutral Drift's 150 and not
+// the spawn table's 125. Boss Rush reads the same constant and cannot tell the difference, since 130
+// and 155 both land in the final band.
+const INTRO_DONE=155;
+const introT=()=>runStartAct>1 ? Math.max(INTRO_DONE, elapsed) : elapsed;
 let boss=null, bossFlash=0, bossTime=0;
 let bossN=0;  // Anomalies faced this run — the first always fires the teaching hexagon
 // WHAT EACH ANOMALY COST YOU, one entry per encounter. The window is the whole fight, not just damage the
@@ -2440,9 +2492,21 @@ function biasedColor(){ return Math.random()<0.74 ? spawnBias : (spawnBias==='re
 
 // ---- pacing: each act is calm → build → storm → boss, then release into the next act ----
 function beginRun(){
-  act=1; boss=null; bossTime=0;
-  palCur.bg1=hx(ACTS[0].bg1); palCur.bg2=hx(ACTS[0].bg2); palCur.tint=hx(ACTS[0].tint);
-  enterCalm(true);
+  act=runStartAct; boss=null; bossTime=0;
+  // ⚠️ actInfo(), not ACTS[0]. A deep start begins in its OWN Epoch's sky; seeding the boot frame from
+  // Epoch I would paint one frame of Nebula over an Eclipse start and then ease across to the real one,
+  // which is the same class of bug the palCur declaration above already records once.
+  const A=actInfo();
+  palCur.bg1=hx(A.bg1); palCur.bg2=hx(A.bg2); palCur.tint=hx(A.tint);
+  skyInvalidate();   // a jump, not an ease — the cache cannot see it otherwise
+  // The comet clock is armed at the Epoch BOUNDARY, in onBossCleared — which a deep start never crosses.
+  // Without this, starting inside a Meteor Shower gives an Epoch named for a shower that never came.
+  // Same rand(3,7) the boundary uses, for the same reason: the shower has to start promptly or the name
+  // is a promise the first thirty seconds break.
+  if(runStartAct>1 && isShower(act)) cometT=rand(3,7);
+  // `first` is Epoch I's abbreviated 5s teaching calm. A deep start has been taught; it gets its own
+  // Epoch's real clock, which at Epoch V is 8s — LONGER, not shorter.
+  enterCalm(runStartAct===1);
 }
 function enterCalm(first){
   wavePhase='calm'; phaseT=first?5:Math.max(6,10-act*0.4); intensityTarget=0.12;
@@ -3046,7 +3110,10 @@ function advancePhase(){
 function onBossCleared(){
   act++;
   const info=actInfo();
-  if(act>=3) grantAchv('act3');
+  // ⚠️ COLD START ONLY. "Reach Epoch III" has to mean you travelled there; starting at Epoch V would
+  // otherwise grant it before the first Dot arrives. Every reach-style achievement added later needs
+  // this same guard, and the guard belongs on the grant rather than on the unlock.
+  if(act>=3 && runStartAct===1) grantAchv('act3');
   if(P) P.charge=Math.min(1,P.charge+0.15); // clearing an Epoch tops the Capacitor a little
   // ⚠️ RE-ARM THE COMET CLOCK ON THE BOUNDARY, not only where it fires. `cometT` is a countdown that
   // SURVIVES the Epoch change, so re-rolling it at the fire site alone is not enough in either
@@ -3076,7 +3143,7 @@ function director(dt){
   if(biasTimer<=0){ biasTimer=rand(3.2,5.5); spawnBias = spawnBias==='red'?'cyan':'red'; }
   // an irregular FORMATION now and then — only once the drizzle has established a rhythm worth
   // breaking, and never during a boss (the Anomaly is already the thing demanding your attention)
-  if(elapsed>42 && wavePhase!=='boss' && !labMode){   // in the Lab nothing arrives unless you press for it
+  if(introT()>42 && wavePhase!=='boss' && !labMode){   // in the Lab nothing arrives unless you press for it
     formT-=dt;
     if(formT<=0){ formT=rand(30,46); spawnFormation(); }
     // The comet on its own, much longer clock, tuned to ~1 per 10 minutes. NOTE THIS TIMER ONLY ADVANCES
@@ -3096,7 +3163,7 @@ function director(dt){
     // FIRST Neutral — six at once, of the one body no polarity answers, before the game has taught that
     // with a single one. 150 leaves a couple of minutes of meeting them one at a time first. Same
     // advances-only-outside-a-boss caveat as the comet above: the wall-clock gap is about double.
-    if(elapsed>150){
+    if(introT()>150){
       ndriftT-=dt;
       if(ndriftT<=0){ ndriftT=rand(210,300); formNeutralDrift(); }
     }
@@ -3187,7 +3254,7 @@ function doSpawns(dt){
   if(spawnTimer<=0 && enemies.length<cap){
     spawnTimer=interval;
     const count=1 + Math.floor(intensity*2.4) + Math.floor(act/2);
-    const t=testMode?130:elapsed; let table;   // Boss Rush skips the slow drift-only intro — jump to the full mid-game mix
+    const t=testMode?INTRO_DONE:introT(); let table;   // Boss Rush and a deep start both skip the drift-only intro
     if(t<20) table=[['drift',100]];
     else if(t<45) table=[['drift',64],['fast',36]];
     // ⚠️ THE WEIGHTS BELOW ARE RELATIVE AND `wchoice` NORMALISES, so pulling `orbiter` and `split` out
@@ -3325,11 +3392,12 @@ function pickAnomalyVariant(){
 }
 // ---- BOSS RUSH: a testing ground where Anomalies come one after another over a LIVE ambient field
 //      (dots still spawn, like a real Epoch fight). Cycle on kill; 1-3 jump to a kind. Real damage. ----
-let testMode=false, lastWasTest=false, testIdx=0;
+let testMode=false, lastWasTest=false, lastStartAct=1, testIdx=0;
 const TEST_ORDER=['emitter','sentinel','bastion'];
 function beginTestRun(){
   act=2; boss=null; bossTime=0; testIdx=0; wavePhase='boss';
   palCur.bg1=hx(ACTS[2].bg1); palCur.bg2=hx(ACTS[2].bg2); palCur.tint=hx(ACTS[2].tint);
+  skyInvalidate();
   spawnBoss(TEST_ORDER[0]);
 }
 // ---- PATTERN LAB: the shapes on demand, with nothing else competing for your attention.
@@ -5696,7 +5764,12 @@ function die(){
   // so either would flood the list with runs that are not comparable to a survival run. One condition,
   // two consumers — if a fourth mode is ever added, both are wrong together or right together.
   if(!testMode && !labMode && !tutMode){
-    store.runs.unshift({s:score, t:+elapsed.toFixed(1), e:act, c:peakCombo, d:lastDmg?lastDmg.src:null});
+    // `a0` only when it is not 1. The Epoch column would otherwise read the same for a run that
+    // TRAVELLED to VII and one that STARTED at V and moved two — same glyph, different achievement.
+    // Omitted at 1 so ten thousand cold-start rows do not each carry a field saying "normal".
+    const row={s:score, t:+elapsed.toFixed(1), e:act, c:peakCombo, d:lastDmg?lastDmg.src:null};
+    if(runStartAct>1) row.a0=runStartAct;
+    store.runs.unshift(row);
     store.runs.length=Math.min(store.runs.length,RUNS_KEPT);
     // `Tt`, not `T`. Block scope saves this one by a hair — `T` is the translator and the death receipt
     // fourteen lines below calls it — but a name that is only safe because of where its braces happen
@@ -5704,6 +5777,10 @@ function die(){
     const Tt=store.totals;
     Tt.runs=(Tt.runs||0)+1; Tt.time=+((Tt.time||0)+elapsed).toFixed(1);
     Tt.combo=Math.max(Tt.combo||0,peakCombo); Tt.anom=(Tt.anom||0)+bossN;
+    // THE UNLOCK LADDER ONLY EVER CLIMBS. Computed from `best` (already updated above) rather than from
+    // this run's score, so the two can never disagree; `Math.max` because the ladder is a high-water
+    // mark that Erase Records must not be able to walk back.
+    store.startActMax=Math.max(store.startActMax, startActFor(store.best));
   }
   save();
   el('deadScore').textContent='0';
@@ -5933,6 +6010,15 @@ function easePalette(){
 // launches. **The shipped value is 8 and nothing in the game ever writes to it.**
 const SKY={every:8};
 let skyCv=null, skyCx=null, skyAge=1e9;
+// ⚠️ CALL THIS WHENEVER `palCur` IS JUMPED RATHER THAN EASED. blitSky repaints on `palMoving` or every
+// SKY.every frames, and `palMoving` is only true while easePalette is CROSSING to a target — so a site
+// that assigns palCur directly lands exactly between the two conditions and the cache serves the
+// previous sky for up to SKY.every frames.
+//   It was invisible while every run began at Epoch I, because the stale cache and the new palette were
+// the same colour. A deep start is the first thing in this game that can begin in a DIFFERENT sky from
+// the one last rendered, and it turns that into a visible wrong-colour flash on the opening frames.
+// Boss Rush jumps to ACTS[2] the same way and had the same latent defect.
+function skyInvalidate(){ skyAge=1e9; }
 function paintSky(c){
   const g=c.createRadialGradient(W/2,H*0.42,0,W/2,H*0.42,Math.max(W,H)*0.78);
   g.addColorStop(0,rgbStr(palCur.bg1,1)); g.addColorStop(1,rgbStr(palCur.bg2,1));
@@ -7118,13 +7204,18 @@ function showRunLogs(pfx,live){
 // `mode`: falsy = a normal run · 'boss' = Boss Rush · 'lab' = Pattern Lab.
 // It was a boolean; a third testing mode is worth one string compare, and every existing caller
 // (including the debug seam's start() and start('boss')) keeps working unchanged.
-function startRun(mode){
+function startRun(mode, startAct){
   audioInit();
   labMode = (mode==='lab');
   tutMode = (mode==='tut');
   // ⚠️ testMode is "some mode that is not survival and not the Lab", so a third string would have fallen
   // into it silently and run the tutorial as Boss Rush. Both exclusions, explicitly.
   testMode = !!mode && !labMode && !tutMode; lastWasTest=testMode;
+  // ONLY SURVIVAL HONOURS A DEEP START. Boss Rush pins `act` to 2 and the Lab parks the wave clock, so
+  // handing either one a start Epoch would be a silent no-op that reads like a feature. Clamped against
+  // the stored unlock as well as the cap, so a tampered save cannot open Epoch XX from the console.
+  runStartAct = (!mode && startAct) ? clamp(Math.round(startAct), 1, Math.min(store.startActMax, START_ACT_CAP)) : 1;
+  lastStartAct = runStartAct;   // Reforge retries the run you were actually playing, depth included
   el('tutBar').classList.add('hidden'); el('tutDone').classList.add('hidden');
   markTutSeen();   // ANY run counts as having met the game, or quitting the tutorial re-arms it forever
   enemies=[];parts=[];texts=[];killQ=[];
@@ -7161,6 +7252,7 @@ function toMenu(){
   el('pause').classList.add('hidden');
   el('menu').classList.remove('hidden');
   refreshTutBeacon();   // the flag can only have been SET since we left, so this only ever turns it off
+  refreshDepth();       // and the run that just ended is the one thing that can have moved the ladder
 }
 
 function pauseGame(){
@@ -7180,13 +7272,13 @@ function resumeGame(){
 }
 function togglePause(){ if(state==='play')pauseGame(); else if(state==='paused')resumeGame(); }
 
-el('startBtn').onclick=()=>startRun(false);
+el('startBtn').onclick=()=>startRun(false, store.startAct);
 el('tutBtn').onclick=()=>startRun('tut');              // ✦ How to play — the six steps
 el('tutPlayBtn').onclick=()=>{ el('tutDone').classList.add('hidden'); startRun(false); };
 el('tutMenuBtn').onclick=()=>{ el('tutDone').classList.add('hidden'); toMenu(); };
 el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anomalies back to back
 el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-6 to fire a shape
-el('againBtn').onclick=()=>{ startRun(lastWasTest); }; // Reforge = instant retry, in the same mode you were in
+el('againBtn').onclick=()=>{ startRun(lastWasTest, lastStartAct); }; // Reforge = instant retry, same mode AND same depth
 el('deadMenuBtn').onclick=()=>{ toMenu(); };
 // The touch control is HELD like every other Overdrive input, so it is pointerdown/up rather than click —
 // a click only exists after the release, which is the moment the ride would have to end.
@@ -7361,6 +7453,9 @@ function applyLang(){
   // Korean player who never opened this panel had a pill sitting on the wrong word until they did.
   // The menu selector shows BOTH labels always; only which one is lit changes.
   for(const b of el('langSel').children) b.classList.toggle('on', b.dataset.lang===store.lang);
+  // The depth pills carry NUMERALS, not a data-t string, so the loops above cannot reach them — and the
+  // numeral system itself is what changes with the language (Roman in English, Arabic in Korean).
+  refreshDepth();
   // (paintTouchCtl() stood here. Every row of the touch legend is `data-th` now and the loop above
   //  already repainted all three — the steering row stopped being a special case when tilt did.)
   if(P) updateHUD();
@@ -8150,11 +8245,47 @@ function refreshTutBeacon(){
   b.classList.toggle('fresh', !tutSeen() && !tutSuppressed);
 }
 refreshTutBeacon();
+// Rebuilt on the same schedule and for the same reason as the beacon: the menu is re-entered after
+// every run, and the run that just ended is exactly what can have moved the ladder.
+//   ⚠️ EPOCH NUMBERS ARE ROMAN IN ENGLISH AND ARABIC IN KOREAN — the same split `dead.cause` makes by
+// passing both {r} and {n} to the template. A pill row of Roman numerals in a Korean menu would be the
+// only place in the game that disagreed with the HUD beside it.
+//   ⚠️ A `function`, NOT a `const` arrow, and that is load-bearing rather than style. `applyLang()`
+// runs during boot from ABOVE this line and calls refreshDepth(); a const arrow is in its temporal dead
+// zone at that moment, so it threw an uncaught ReferenceError that aborted the rest of applyLang. The
+// visible symptom was the label rendering with no pills under it — the failure was silent everywhere
+// else, because everything applyLang does after that point simply did not happen.
+function epochGlyph(a){ return store.lang==='ko' ? String(a) : roman(a); }
+function refreshDepth(){
+  const wrap=el('depthSel'); if(!wrap) return;
+  const max=Math.min(store.startActMax, START_ACT_CAP);
+  wrap.classList.toggle('hidden', max<2);
+  if(max<2){ store.startAct=1; return; }
+  if(store.startAct>max) store.startAct=max;          // a cap cut in a later build must not strand it
+  const host=el('depthPills'); host.innerHTML='';
+  for(let a=1;a<=max;a++){
+    const b=document.createElement('button');
+    b.className='dp'+(a===store.startAct?' on':'');
+    b.type='button';
+    b.textContent=epochGlyph(a);
+    b.onclick=()=>{ store.startAct=a; save(); refreshDepth(); };
+    host.appendChild(b);
+  }
+}
+refreshDepth();
 
 // --- test seam: drive the fixed-step sim deterministically (rAF-independent) ---
 window.__orbital=window.__polaris=window.__flux={
-  start:startRun,
+  start:startRun,                       // start(mode, startAct) — survival honours the second argument
   tick(n){ for(let i=0;i<(n||1);i++) step(); return this.diag(); },
+  // EPOCH START. `startAct` is the depth THIS run began at, which is the one thing a records row and a
+  // reach-style achievement both have to consult; `introT` is exposed because a deep start's whole
+  // observable difference is which intro gates it has already cleared, and a test that cannot read it
+  // has to infer it from spawn composition.
+  get startAct(){ return runStartAct; },
+  get introT(){ return introT(); },
+  START_ACT_CAP, START_ACT_REQ, startActFor,
+  refreshDepth,
   // Draw one frame on demand. The harness runs in a HIDDEN tab, where the browser never fires
   // requestAnimationFrame — so without this the canvas stays blank forever and no visual change can be
   // verified at all (every pixel sample this session read pure black until it was added).
