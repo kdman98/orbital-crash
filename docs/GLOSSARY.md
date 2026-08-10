@@ -280,7 +280,8 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   shell is wider. ⚠️ **There is no single shell**: the resting ring is spin-limited and every species sits
   at 4.8 px/frame, while the burning ring is ceiling-limited and each species rides its own — so burning
   opens a Mini by +55.7px, a Drifter by +30.8px and a Brute by +24.7px. (`P.eddy`, `P.ringMul`, `maxsp`)
-- **Achievement** — an in-run feat listed in **Records**. Flavour only; unlocks nothing.
+- **Achievement** — an in-run feat listed in **Records**. Sixteen rows, two hidden. Earned in Survival
+  only. The count gates the skin ladder, so they no longer "unlock nothing".
   (`ACHV`, `store.achv`)
 
 ## Feel

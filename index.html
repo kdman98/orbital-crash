@@ -558,6 +558,9 @@
   .acvL{margin:0 0 20px;}
   .acv{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.7;color:#c3ccdb;}
   .acv .st{width:18px;flex:0 0 auto;} .acv.got .st{color:var(--lime);} .acv .rw{color:var(--dim);font-size:11.5px;}
+  /* The punchline, and it is deliberately the quietest text on the panel: it is the only line here that
+     carries no information, so it must not compete with the row it is hanging off. */
+  .acv .acvfl{color:var(--dim);font-size:11.5px;font-style:italic;line-height:1.5;opacity:.85;}
   /* The run's event logs — Overdrive rides and Anomaly fights — on both the pause and death panels.
      Four rows can stack here, so the bottom margin is tight on purpose: at 22px the death panel pushed
      Reforge off a short phone screen. Wrapping is what keeps a 12-chip row honest at 375px. */
@@ -1392,6 +1395,28 @@ const L={ en:{
   'achv.act3.nm'    :'Deep Field',         'achv.act3.ds'    :'Reach Epoch III',
   'achv.redline.nm' :'Redline',            'achv.redline.ds' :'Burn a full Capacitor down to nothing in one Overdrive',
   'achv.lancegild.nm':'Skeet Shooter',     'achv.lancegild.ds':'Volley your Gilded Bounty into an Anomaly',
+  'achv.turret.nm'      :'Turret',          'achv.turret.ds'      :'Hold one spot for 60 seconds',
+  'achv.turret.fl'      :'Thought this was tower defense?',
+  'achv.flappystar.nm'  :'Flappy Star',     'achv.flappystar.ds'  :'Reverse polarity 40 times in one Epoch',
+  'achv.flappystar.fl'  :'Was it… necessary?',
+  'achv.untouched.nm'   :'Untouched',       'achv.untouched.ds'   :'Purge an Anomaly without taking a hit',
+  'achv.untouched.fl'   :'GG EZ',
+  'achv.bountyhunter.nm':'Bounty Hunter',   'achv.bountyhunter.ds':'Cash four Gilded Bounties in one run',
+  'achv.bountyhunter.fl':'Howdy, Sheriff!',
+  'achv.headbutt.nm'    :'Headbutt',        'achv.headbutt.ds'    :'Collect a Gilded Bounty by running into it',
+  'achv.headbutt.fl'    :"Couldn't resist",
+  'achv.wombo.nm'       :'Wombo Combo',     'achv.wombo.ds'       :'Land a 250-chain',
+  'achv.wombo.fl'       :'Might shock the world',
+  'achv.makeawish.nm'   :'Make a Wish!',    'achv.makeawish.ds'   :'Reach a Meteor Shower Epoch',
+  'achv.makeawish.fl'   :"Everything's beautiful from a distance",
+  'achv.kameha.nm'      :'Ka-me-ha!',       'achv.kameha.ds'      :'Purge a full-health Anomaly inside one Overdrive',
+  'achv.kameha.fl'      :'Take this!',
+  'achv.friendlyfire.nm':'Friendly Fire',   'achv.friendlyfire.ds':"Land a Charger's dash on an Anomaly",
+  'achv.friendlyfire.fl':"It's not my fault anyway",
+  'achv.demolition.nm'  :'Demolition',      'achv.demolition.ds'  :'Erase 15 Dots with one Planet blast',
+  'achv.demolition.fl'  :'It was going to blow anyway',
+  'achv.speedrunner.nm' :'Speedrunner',     'achv.speedrunner.ds' :'Lose the core within 30 seconds',
+  'achv.speedrunner.fl' :'It was fast though',
 
 }, ko:{
   // RE-AUTHORED, NOT TRANSLATED. The English voice is terse, cold and fond of the em dash, and carrying
@@ -1545,6 +1570,28 @@ const L={ en:{
   'achv.act3.nm'    :'심층',          'achv.act3.ds'    :'3단계에 도달한다',
   'achv.redline.nm' :'레드라인',      'achv.redline.ds' :'가득 찬 축전기를 오버드라이브 한 번에 다 태운다',
   'achv.lancegild.nm':'클레이 사격',  'achv.lancegild.ds':'황금 현상금을 변이체에 쏴 맞힌다',
+  'achv.turret.nm'      :'포탑',            'achv.turret.ds'      :'60초 동안 한자리를 지킨다',
+  'achv.turret.fl'      :'여기가 타워 디펜스인 줄 아셨어요?',
+  'achv.flappystar.nm'  :'파닥이는 별',      'achv.flappystar.ds'  :'한 시대에 색을 40번 반전한다',
+  'achv.flappystar.fl'  :'필요한 일이었나요…?',
+  'achv.untouched.nm'   :'무피격',          'achv.untouched.ds'   :'한 대도 맞지 않고 변이체를 소멸시킨다',
+  'achv.untouched.fl'   :'쉽다 쉬워',
+  'achv.bountyhunter.nm':'현상금 사냥꾼',    'achv.bountyhunter.ds':'한 판에 황금 현상금을 네 번 챙긴다',
+  'achv.bountyhunter.fl':'보안관님, 욕보십쇼.',
+  'achv.headbutt.nm'    :'박치기',          'achv.headbutt.ds'    :'황금 현상금에 직접 부딪혀 챙긴다',
+  'achv.headbutt.fl'    :'이건 못 참지',
+  'achv.wombo.nm'       :'웜보 콤보',        'achv.wombo.ds'       :'250콤보를 달성한다',
+  'achv.wombo.fl'       :'세계를 충격에 빠트릴 콤보',
+  'achv.makeawish.nm'   :'소원을 빌어요!',   'achv.makeawish.ds'   :'유성우 시대에 진입한다',
+  'achv.makeawish.fl'   :'뭐든 멀리에서 보면 희극이죠',
+  'achv.kameha.nm'      :'카메하!',         'achv.kameha.ds'      :'오버드라이브 한 번에 온전한 변이체를 소멸시킨다',
+  'achv.kameha.fl'      :'이거나 먹어라!',
+  'achv.friendlyfire.nm':'아군 오사',        'achv.friendlyfire.ds':'돌격체의 돌진을 변이체에 맞힌다',
+  'achv.friendlyfire.fl':'내 잘못은 아닌 듯 함..',
+  'achv.demolition.nm'  :'발파',            'achv.demolition.ds'  :'행성 폭발 한 번으로 15개를 지운다',
+  'achv.demolition.fl'  :'어차피 터질 운명이었어요',
+  'achv.speedrunner.nm' :'스피드러너',       'achv.speedrunner.ds' :'시작 30초 안에 핵을 잃는다',
+  'achv.speedrunner.fl' :'하지만 빨랐죠?',
 } };
 
 // Falls back to English before falling back to the key itself, so a half-translated table renders a
@@ -1554,19 +1601,64 @@ function T(k,v){
   return v ? String(s).replace(/\{(\w+)\}/g,(m,n)=>(n in v ? v[n] : m)) : s;
 }
 
-// ---------- achievements (flavour only — they unlock nothing; there is no meta economy) ----------
-// Name and description live in L under `achv.<id>.nm` / `.ds`; what stays here is the id and whether
-// the feat is hidden, which is the only part of a row that is not language.
+// ---------- achievements ----------
+// Name, trigger and flavour live in L under `achv.<id>.nm` / `.ds` / `.fl`; what stays here is the id
+// and whether the feat is hidden, which is the only part of a row that is not language.
+//   `.ds` says what to DO and `.fl` is the joke. They are separate fields because they have opposite
+// jobs: a row you have not earned has to be legible as a goal, and a row you have has earned its
+// punchline. Records shows `.fl` only once the row is ticked, so the joke lands as a reward rather than
+// as an instruction you have to read past.
+//   ⚠️ THEY NO LONGER UNLOCK NOTHING. The count gates the skin ladder, so a row is a currency now and
+// every property below that used to be harmless has teeth: see the mode guard in grantAchv, and the
+// cold-start guard on any row phrased as "reach".
 const ACHV=[
   {id:'firstBoss'},
   {id:'combo60'},
   {id:'act3'},
   {id:'redline'},
-  // hidden feats — discovered, never assigned. They pay nothing either; `hid:true` only means the row
-  // renders as "???" in Records until it is earned.
+  {id:'turret'},
+  {id:'flappystar'},
+  {id:'untouched'},
+  {id:'bountyhunter'},
+  {id:'headbutt'},
+  {id:'wombo'},
+  {id:'makeawish'},
+  {id:'kameha'},
+  {id:'friendlyfire'},
+  {id:'demolition'},
+  // hidden feats — discovered, never assigned. `hid:true` only means the row renders as "???" in
+  // Records until it is earned.
   {id:'lancegild', hid:true},
+  {id:'speedrunner', hid:true},
 ];
+// PER-RUN COUNTERS THAT EXIST ONLY TO SERVE THE ROWS ABOVE. One object with one reset, because the
+// alternative is a dozen loose `let`s cleared by hand in startRun — which is a dozen chances to add a
+// thirteenth and forget it, and a stale counter grants a row you did not earn on the NEXT run.
+const TURRET_R=40, TURRET_T=60;   // design units, seconds
+//   ⚠️ NOT `AC`. That name is the AudioContext (`let AC=null`, down in the sound section), and both
+// live at the top level of the same script — so `const AC` here is a duplicate declaration and a
+// SyntaxError that takes the WHOLE FILE down, not a shadowing bug that degrades one feature. In a
+// single-file game every new top-level name is in one shared namespace with ~8,500 lines of others.
+const FEAT={ still:0, stillX:0, stillY:0, epochFlips:0, bounties:0, odFullBoss:false };
+function resetAchvCounters(){
+  FEAT.still=0; FEAT.stillX=0; FEAT.stillY=0; FEAT.epochFlips=0; FEAT.bounties=0; FEAT.odFullBoss=false;
+}
+// "Stayed inside a TURRET_R circle for TURRET_T seconds." Re-anchors the moment you leave it, so this
+// is genuinely continuous rather than an average that a slow drift could satisfy.
+function stepStillness(dt){
+  if(!P) return;
+  if(FEAT.still<=0){ FEAT.stillX=P.x; FEAT.stillY=P.y; }
+  if(Math.hypot(P.x-FEAT.stillX, P.y-FEAT.stillY) > TURRET_R){ FEAT.still=0; FEAT.stillX=P.x; FEAT.stillY=P.y; return; }
+  FEAT.still+=dt;
+  if(FEAT.still>=TURRET_T) grantAchv('turret');
+}
 function grantAchv(id){
+  // ⚠️ SURVIVAL ONLY, AND THIS GUARD IS NEW. Boss Rush hands you an endless supply of Anomalies and the
+  // Lab spawns shapes on demand, so both could farm rows that the skin ladder now counts — `firstBoss`,
+  // `combo60`, `redline` and `lancegild` were all reachable there. It is the same condition the best
+  // score and the records list already share: one condition, now three consumers, wrong together or
+  // right together.
+  if(testMode||labMode||tutMode) return;
   if(store.achv.has(id))return;
   store.achv.add(id);
   const ac=ACHV.find(x=>x.id===id);
@@ -2087,6 +2179,9 @@ function overdrive(){
   if(odCd>0) return;                    // still cooling — see OD_CD
   if(P.charge<OD_MIN) return;
   odOn=true; odFrom=P.charge; odT=0;
+  // Snapshot for Ka-me-ha!: was the Anomaly untouched at the moment you lit this ride? Only read while
+  // `odOn`, so it needs no clearing — a stale `true` is unreachable once the ride ends.
+  FEAT.odFullBoss = !!(boss && !boss.dead && boss.hp>=boss.maxHp);
   // the ignition ring lands ON the rim, not past it — the Field no longer swells, so a ring drawn wider
   // than `fieldR` would be a promise about reach the physics stopped making
   spawnRing(P.x,P.y,OD_COL,BASE_FIELDR); spawnRing(P.x,P.y,'#fff',P.r+18);
@@ -3109,6 +3204,10 @@ function advancePhase(){
 }
 function onBossCleared(){
   act++;
+  // "Advance INTO a shower", not "be in one" — so a deep start cannot own it at t=0, and an Epoch-V
+  // starter earns it at VIII like everyone else. Same reason act3 is cold-start only, one step milder.
+  if(isShower(act)) grantAchv('makeawish');
+  FEAT.epochFlips=0;   // Flappy Star is per-Epoch, so the Epoch boundary is where it resets
   const info=actInfo();
   // ⚠️ COLD START ONLY. "Reach Epoch III" has to mean you travelled there; starting at Epoch V would
   // otherwise grant it before the first Dot arrives. Every reach-style achievement added later needs
@@ -4435,6 +4534,11 @@ function killBoss(b){
   slowmo(0.35,0.7);
   sfx.purge();
   grantAchv('firstBoss');
+  // `anomLog`'s last entry IS this fight's damage tab — opened at spawnBoss and fed by both damage
+  // funnels — so Untouched needs no counter of its own. Reusing it also means it counts the whole
+  // fight the way the receipt does: the Dots that punish you while you are busy are part of the price.
+  if(anomLog.length && anomLog[anomLog.length-1]<=0) grantAchv('untouched');
+  if(odOn && FEAT.odFullBoss) grantAchv('kameha');
   // The purge used to also shed a guaranteed powerup orb. With the roster gone, the reward is the
   // +30 Integrity and +40% Capacitor above — and 40% is now spendable on Overdrive, so the purge
   // still hands you a tool, not just a number.
@@ -4482,6 +4586,7 @@ function step(){
   }
 
   stepRunTimers(dt);
+  stepStillness(dt);
   stepDecay(dt);
 }
 
@@ -4991,6 +5096,9 @@ function stepAnnihilation(){
               const d = X.vdmg ? VOLLEY_DMG
                       : (charging ? CHARGE_DMG
                       : (X.ring ? RING_GRIND_DMG*(GRIND_MULT[B.variant]||1) : 0));
+              // Friendly Fire rides the SAME `charging` the damage does, so the row can never disagree
+              // with the channel it is celebrating — it is the least-known of the three ways in.
+              if(charging) grantAchv('friendlyfire');
               // the grind pays a half, so the readout has to survive a fraction without printing "-0.5000000001"
               // ⚠️ WHITE, NOT THE DOT'S POLARITY COLOUR — and this is the one collision in the whole text
               // channel that a glyph cannot fix. This line used to print `COL[X.color]`, so a red ring Dot
@@ -5169,6 +5277,10 @@ function stepPlayerContact(){
         // Only reachable once a contact has actually resolved — same-colour matter `continue`s far above,
         // and a fatal hit returns out at `die()` without being consumed, so it stays drawn on its own.
         contactGhost={...e}; ghostT=GHOST_HOLD;
+        // HEADBUTT — the bounty cashes in onKill wherever the kill came from, but only HERE do we know
+        // it was your own hull that did it. Unreachable without eating the hit: same-colour matter
+        // `continue`s far above, and a fatal contact returns at die() before this line.
+        if(e.gild>0) grantAchv('headbutt');
         queueKill(e);                       // boss is not consumed on contact
       }
       else if(e.hunt>0 || e.huntBreak>0){
@@ -5325,6 +5437,7 @@ function onKill(e){
   // scoring / combo
   combo++; if(combo>peakCombo)peakCombo=combo;
   if(combo>=60) grantAchv('combo60');
+  if(combo>=250) grantAchv('wombo');   // 0 of 25 blind-pilot runs ever reached 90; this is the hard row
   // streak milestones: ranks in colour, big capacitor chunks, escalating fanfare
   //   (`MCOL` stood here — the tier palette, used only to colour the milestone text. The HUD streak line
   //    has always carried its OWN copy of that palette inline in updateHUD, so deleting the text left one
@@ -5364,6 +5477,7 @@ function onKill(e){
     pushText(e.x,e.y-30,T('fx.bounty',{n:rew}),COL.gold,1.4,17);
     spawnRing(e.x,e.y,COL.gold,90); trauma=Math.min(1,trauma+0.2);
     sfx.streakMile(2);
+    if(++FEAT.bounties>=4) grantAchv('bountyhunter');
   }
   // charge — KILL INCOME IS SUPPRESSED WHILE OVERDRIVE BURNS, so it cannot pay for itself out of the
   // kills it is helping you get. Same for the Mote pickup. Measured: 20 kills mid-burn move the meter by
@@ -5491,6 +5605,7 @@ function planetBlast(e){
   trauma=Math.min(1,trauma+0.55); hitstop=Math.max(hitstop,0.10);
   flash=Math.max(flash,0.28); flashCol='#fff';
   if(typeof sfx!=='undefined') sfx.streakMile(3);
+  let n=0;
   for(const o of enemies){
     if(o===e || o.dead || o.queued) continue;
     if(o.type==='boss') continue;          // never. see the scoping note above
@@ -5498,7 +5613,9 @@ function planetBlast(e){
     if(o.color===e.color) continue;        // your own charge is the hoard, not a target
     o.dead=true;                           // `dead`, never queueKill: pays nothing, by construction
     spawnBurst(o.x,o.y,col,5,2.6);
+    n++;
   }
+  if(n>=15) grantAchv('demolition');
   e.dead=true;
 }
 function bomberBlast(e){
@@ -5561,6 +5678,7 @@ function flip(){
   P.polarity = P.polarity==='cyan'?'red':'cyan';
   P.flipCd=0.28; P.holdT=0;         // holding a polarity ends on flip
   tutFlips++;                       // the tutorial's flip step; inert outside it
+  if(++FEAT.epochFlips>=40) grantAchv('flappystar');
   flash=0.05+hc*0.13; flashCol=COL[P.polarity]; // flipping is constant — a full-screen wash every flip was the #1 dizziness source; feedback lives in the ring + core colour now
   sfx.flip(hc);
   // THE HUNGRY FLIP — the one answer to a closing sky. Hold a pole to LOAD your rings, then reverse:
@@ -5781,6 +5899,9 @@ function die(){
     // this run's score, so the two can never disagree; `Math.max` because the ladder is a high-water
     // mark that Erase Records must not be able to walk back.
     store.startActMax=Math.max(store.startActMax, startActFor(store.best));
+    // COLD START ONLY, or a deep start would hand it over for free at Epoch V difficulty. Hidden,
+    // because a visible row telling you to die badly is an instruction rather than a joke.
+    if(runStartAct===1 && elapsed<=30) grantAchv('speedrunner');
   }
   save();
   el('deadScore').textContent='0';
@@ -7224,6 +7345,7 @@ function startRun(mode, startAct){
   warns.length=0;
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
+  resetAchvCounters();   // one call; see the note on AC for why they are not a dozen loose lets
   gildTimer=14;lastDmg=null;
   motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   chargeReady=false;deathRevealT=0;deadCountT=0;
@@ -7357,7 +7479,14 @@ function openRecords(){
   const achRows=ACHV.map(a=>{
     const got=store.achv.has(a.id);
     if(a.hid && !got) return `<div class="acv"><span class="st">○</span><span><b>???</b> · ${T('rc.secret')}</span></div>`;
-    return `<div class="acv${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${T('achv.'+a.id+'.nm')}</b> · ${T('achv.'+a.id+'.ds')}${a.hid?` <span class="rw">· ${T('rc.secretTag')}</span>`:''}</span></div>`;
+    // THE FLAVOUR LINE IS A PUNCHLINE, SO IT ONLY APPEARS ONCE THE ROW IS EARNED. Unearned, a row has
+    // one job — be legible as a goal — and a joke sitting where the instruction goes competes with it.
+    //   Presence-tested against the EN table rather than assumed: `T()` falls back to the KEY when a
+    // string is missing, so an un-guarded lookup would print `achv.firstBoss.fl` in the panel for the
+    // four original rows, which have no flavour written for them.
+    const fk='achv.'+a.id+'.fl';
+    const fl=(got && L.en[fk]!=null) ? `<div class="acvfl">${T(fk)}</div>` : '';
+    return `<div class="acv${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${T('achv.'+a.id+'.nm')}</b> · ${T('achv.'+a.id+'.ds')}${a.hid?` <span class="rw">· ${T('rc.secretTag')}</span>`:''}${fl}</span></div>`;
   }).join('');
   const rows = R.map(r=>{
     // `best` is the STANDING best, so at most one row can wear the mark, and only while it survives in
@@ -8286,6 +8415,11 @@ window.__orbital=window.__polaris=window.__flux={
   get introT(){ return introT(); },
   START_ACT_CAP, START_ACT_REQ, startActFor,
   refreshDepth,
+  // ACHIEVEMENTS. Until now the seam exposed no way to reach a grant at all — `store.achv` could be
+  // read and written, which tests the STORAGE and never the TRIGGER. These expose the counters the new
+  // rows are computed from, plus grantAchv itself so a test can prove the mode guard rather than the
+  // side effect. `ACHV` is here because the skin ladder counts rows and a test needs the denominator.
+  ACHV, grantAchv, get feat(){ return FEAT; }, TURRET_R, TURRET_T,
   // Draw one frame on demand. The harness runs in a HIDDEN tab, where the browser never fires
   // requestAnimationFrame — so without this the canvas stays blank forever and no visual change can be
   // verified at all (every pixel sample this session read pure black until it was added).

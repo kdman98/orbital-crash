@@ -1654,8 +1654,25 @@ including the ones that move standing population the most.
   Only ever a Drifter or a Dart, never a big Dot. Its dashed gold ring is drawn at exactly `e.r + P.r`,
   so it is simultaneously the bounty cue *and* the true contact edge (law 3). Affordable only because it
   is rare and unique — forty of these would be a HUD rather than a cue.
-- **Achievement** — an in-run feat listed in Records. **Flavour only; they unlock nothing.** There is
-  no meta economy. Nothing counts the rows, so adding or retiring one is a single line.
+- **Achievement** — an in-run feat listed in Records. Sixteen rows, two hidden. Each carries a name, a
+  **trigger** (`.ds`, what to do) and a **flavour** line (`.fl`, the joke). Records shows the flavour
+  **only once the row is earned**: unearned, a row's one job is to be legible as a goal, and a punchline
+  where the instruction goes competes with it.
+
+  ⚠️ **"Flavour only; they unlock nothing" and "nothing counts the rows" were both true and are both
+  now false.** The count gates the skin ladder, so a row is a currency and every property that used to
+  be harmless has teeth:
+  - **Grants are survival-only.** `grantAchv` carries the same `!testMode && !labMode && !tutMode`
+    condition as the best score and the records list — one condition, three consumers, wrong together
+    or right together. Before this, Boss Rush could farm `firstBoss`, `combo60`, `redline` and
+    `lancegild` from an endless supply of Anomalies.
+  - **Anything phrased as "reach" needs the cold-start guard**, or a deep start hands it over at t=0.
+    `act3` and `speedrunner` carry it; `makeawish` gets the same effect for free by keying on the
+    *advance* rather than on the Epoch you are in.
+  - **Adding or retiring a row is no longer a single line** — it moves the ladder's denominator.
+  - Per-run counters live in one `FEAT` object with one reset, because a stale counter grants a row on
+    the *next* run. ⚠️ It is not called `AC`: that name is the AudioContext, and both are top-level in
+    the same script, so the collision would be a SyntaxError taking the whole file down.
 
 ### Progression
 **No progression of POWER, and that is the design.** No pickups, no upgrades, no stat that carries — the

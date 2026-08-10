@@ -14,6 +14,36 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### Twelve more achievements, and they stopped being harmless `v2`
+Roster 5 → **16**, two hidden. Each row now carries a **trigger** and a **flavour** line, and Records
+shows the flavour only once the row is earned — unearned, a row has to read as a goal, and a punchline
+where the instruction goes competes with it. Korean flavour is authored, not translated.
+
+**The count gates the skin ladder, so a row is a currency now.** Three consequences that were harmless
+while achievements paid nothing:
+- **`grantAchv` gained a survival-only guard.** It had none. Boss Rush hands out Anomalies from an
+  endless supply and could farm `firstBoss`, `combo60`, `redline` and `lancegild`; the Lab spawns shapes
+  on demand. Same condition the best score and records list already share.
+- **Reach-style rows need the cold-start guard** or a deep start grants them at t=0. `speedrunner`
+  carries it; `makeawish` keys on the *advance* into a Shower rather than the Epoch you are in, which
+  gets the same protection for free.
+- **Adding or retiring a row is no longer a single line** — it moves the ladder's denominator.
+
+**All twelve verified through their real code paths**, not by writing to `store.achv`: Turret at 61.7s
+of measured stillness, Flappy Star at 40 spaced flips, Untouched + Ka-me-ha on a clean full-health
+Overdrive purge, Headbutt by putting a gilded Dot on the core, Bounty Hunter through four `onKill`s,
+Wombo Combo at a real 255-chain, Demolition through `planetBlast`, Friendly Fire on a committed Charger
+dash, Make a Wish on an actual advance into Epoch IV, Speedrunner granted on a cold start at 14.4s and
+**withheld on a deep start that died at 10.2s**. The mode guard was proven in all four modes.
+
+⚠️ **`speedrunner`'s 30s is not reachable by accident.** Across the 16-seed census the fastest natural
+bot death was 31.1s. It is a deliberate act, which is what a hidden joke row wants.
+
+⚠️ **The counters are `FEAT`, not `AC`.** `AC` is the AudioContext and both are top-level in the same
+script — the collision is a SyntaxError that takes the entire file down, not a shadowing bug that
+degrades one feature. Caught before it shipped; recorded because a single-file game has one namespace
+and ~8,500 lines of neighbours.
+
 ### You can begin at a deeper Epoch, once you have earned it `v2`
 Score unlocks a starting Epoch — **8,000 · 18,000 · 28,000 · 38,000** for II through V. A deep start
 skips the early Epochs' easy score and buys `200×act` purges and `250×act` Bounties from the first
