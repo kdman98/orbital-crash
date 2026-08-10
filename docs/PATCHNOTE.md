@@ -14,6 +14,27 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### Dot damage is −20%, not −2 `v2`
+The flat −2 is re-derived as **20% off each original value, rounded to an integer**: Dart 6, Drifter 8,
+Bomber 8, Harrier 10, **Neutral 12**, **Charger 13**, **Planet 16**, **Brute 18**. Four moved; the four
+small ones already landed on −20% by coincidence, which is why Drifter felt right. Actual cuts run
+16.7%–25% because rounding integers is the point — no decimals in a damage table.
+
+**The Brute figures move with it:** from **Epoch X** one contact costs **31.0**, more than an entire
+Epoch's income, and at **Epoch LVIII** it is **100.1** and one-shots a full pool.
+
+⚠️ **It produced a byte-identical death census** — same 37.7s median, same 31.1–53.2 range, same
+7/4/4/1 killer split. That is not the change failing; it is the *instrument* failing, and finding out
+which was the whole job:
+
+> **Only 2 of 16 runs ever had a Brute or Charger on the field, and none ever saw a Neutral or Planet.**
+> Brute and Charger enter the ambient table at `t≥45`, Neutral and Planet at `t≥125`, and the pilot's
+> median death is 37.7s. It dies inside the first two bands.
+
+The flat −2 *appeared* to work only because it touched Drifter and Dart, which are the early table. Any
+tuning of the mid or late roster is unmeasurable by this bot **by construction**, and a green suite will
+report "no change" whether the change is inert or enormous. Recorded in MECHANICS as a standing limit.
+
 ### A run you can hand to somebody `v2`
 A **1080×1350** card built from the run that just ended — score, Epoch, killer, time, peak combo, the
 Overdrive and Anomaly strips, and your star in the skin it was wearing. Share sits beside Menu, *below*
