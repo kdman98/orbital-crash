@@ -1611,15 +1611,24 @@ const L={ en:{
   // `dead.cause`), never 시대. Core is 코어 (`hud.hp`), never 핵. A flip is 색을 뒤집다 (the tutorial's
   // own words). A run is 판 (`rc.runs`). Anything else invents a second name for a thing the player has
   // already been taught.
+  //   ⚠️ EVERY SPECIES NOUN COMES FROM `dot.*` BELOW. READ THE TABLE; DO NOT TRANSLATE THE ENGLISH ONE.
+  // This line is here because all three of the first drafts got it wrong in the same direction — the
+  // Charger became 돌격체, which is not merely absent from the table but one of the FOUR NAMES THE
+  // ⚠️ ABOVE THAT TABLE RECORDS AS REJECTED (폭격체·돌격체·중성체·추격체, thrown out as a -체 suffix
+  // pile). It is 쐐기, and `fx.poked` already prints 쐐기 명중! on the very event this row grants for.
+  // The Gilded Bounty likewise became 황금 현상금 by carrying "Gilded" across; the game has only ever
+  // called it 현상금 (`fx.bounty`), and 황금 appears in Korean nowhere but a sentence about the colour
+  // of a ring. A name invented here does not read as wrong — it reads as a SECOND name, which is worse,
+  // because the player cannot tell it is the same thing.
   'achv.turret.nm'      :'포탑',            'achv.turret.ds'      :'한자리에서 60초 버티기',
   'achv.turret.fl'      :'여기가 타워 디펜스인 줄 아셨어요?',
   'achv.flappystar.nm'  :'촐싹대는 별',      'achv.flappystar.ds'  :'한 단계에서 색 40번 뒤집기',
   'achv.flappystar.fl'  :'필요한 일이었나요…?',
   'achv.untouched.nm'   :'손도 못 대는',     'achv.untouched.ds'   :'한 대도 안 맞고 변이체 잡기',
   'achv.untouched.fl'   :'쉽다 쉬워',
-  'achv.bountyhunter.nm':'현상금 사냥꾼',    'achv.bountyhunter.ds':'한 판에 황금 현상금 4번 먹기',
+  'achv.bountyhunter.nm':'현상금 사냥꾼',    'achv.bountyhunter.ds':'한 판에 현상금 4번 먹기',
   'achv.bountyhunter.fl':'보안관님, 욕보십쇼.',
-  'achv.headbutt.nm'    :'박치기',          'achv.headbutt.ds'    :'황금 현상금을 몸으로 들이받아 먹기',
+  'achv.headbutt.nm'    :'박치기',          'achv.headbutt.ds'    :'현상금을 몸으로 들이받아 먹기',
   'achv.headbutt.fl'    :'이건 못 참지',
   'achv.wombo.nm'       :'웜보 콤보',        'achv.wombo.ds'       :'250콤보 찍기',
   'achv.wombo.fl'       :'세계를 충격에 빠트릴 콤보',
@@ -1627,7 +1636,7 @@ const L={ en:{
   'achv.makeawish.fl'   :'뭐든 멀리에서 보면 희극이죠',
   'achv.kameha.nm'      :'카메하!',         'achv.kameha.ds'      :'오버드라이브 한 번에 멀쩡한 변이체 잡기',
   'achv.kameha.fl'      :'이거나 먹어라!',
-  'achv.friendlyfire.nm':'오인 사격',        'achv.friendlyfire.ds':'돌격체 돌진을 변이체에 맞히기',
+  'achv.friendlyfire.nm':'오인 사격',        'achv.friendlyfire.ds':'쐐기 돌진을 변이체에 맞히기',
   'achv.friendlyfire.fl':'내 잘못은 아닌 듯 함..',
   'achv.demolition.nm'  :'발파',            'achv.demolition.ds'  :'행성 폭발 한 방으로 15개 지우기',
   'achv.demolition.fl'  :'귀 막아!',
