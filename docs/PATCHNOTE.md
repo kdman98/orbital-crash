@@ -14,6 +14,31 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### The five original achievements are gone `v2`
+Roster **16 → 11, one hidden**. Deleted: `firstBoss`, `combo60`, `act3`, `redline`, `lancegild`.
+
+**They were written when a row paid nothing, and it showed.** Most asked for a *number* rather than a
+decision, and each is now either trivial beside what replaced it or said twice: `combo60` sat under
+`wombo`'s 250 on the same line of code; `act3` measured depth, which the Epoch-start ladder now owns and
+prices properly instead of paying one tick for; `firstBoss` fired on the first purge every player makes,
+so it certified nothing.
+
+**`odFrom` went with `redline`.** Charge-at-ignition had exactly one consumer, and a field kept alive for
+a deleted reader is how `P.blastR` became a tombstone in this file already. The trap its comment carried
+— that `odT` is accumulated and must never be derived from charge spent, because milestones and the
+purge both pay *through* a burn — is a property of the economy rather than of the field, so it was
+rephrased and kept.
+
+**Old saves keep the dead ids and that is harmless.** Records renders from `ACHV`, so an id with no row
+is invisible, and nothing counts the set. No migration: one that runs on every player's save to delete
+five strings nobody can see is more risk than the strings are worth. Verified against a save holding
+`firstBoss` and `redline` — eleven rows, no ghosts, skin unlock unaffected.
+
+⚠️ **Fingerprints are identical across the deletion**, on three seeds, one of which was earning
+`combo60` mid-run and now is not. Worth checking rather than assuming: this project's own notes warn
+that sound draws from the same `Math.random` stream as the simulation, and removing grants removes
+`sfx.level()` calls.
+
 ### Skins, and one to earn `v2`
 A skin system with one category (`star`) and two faces: **Core** and **Redoubt**, the second gated on
 the Turret achievement. Chosen in **Settings** rather than a room of its own — *one question per

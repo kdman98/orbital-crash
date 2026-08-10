@@ -1654,7 +1654,7 @@ including the ones that move standing population the most.
   Only ever a Drifter or a Dart, never a big Dot. Its dashed gold ring is drawn at exactly `e.r + P.r`,
   so it is simultaneously the bounty cue *and* the true contact edge (law 3). Affordable only because it
   is rare and unique — forty of these would be a HUD rather than a cue.
-- **Achievement** — an in-run feat listed in Records. Sixteen rows, two hidden. Each carries a name, a
+- **Achievement** — an in-run feat listed in Records. **Eleven rows, one hidden.** Each carries a name, a
   **trigger** (`.ds`, what to do) and a **flavour** line (`.fl`, the joke). Records shows the flavour
   **only once the row is earned**: unearned, a row's one job is to be legible as a goal, and a punchline
   where the instruction goes competes with it.
@@ -1670,8 +1670,18 @@ including the ones that move standing population the most.
   ladder that is not there.
   - **Grants are survival-only.** `grantAchv` carries the same `!testMode && !labMode && !tutMode`
     condition as the best score and the records list — one condition, three consumers, wrong together
-    or right together. Before this, Boss Rush could farm `firstBoss`, `combo60`, `redline` and
-    `lancegild` from an endless supply of Anomalies.
+    or right together. Before it existed, four of the five original rows were farmable in Boss Rush
+    from an endless supply of Anomalies.
+
+  ⚠️ **The five original rows were deleted** — `firstBoss`, `combo60`, `act3`, `redline`, `lancegild`.
+  They were written when a row paid nothing and it showed: most asked for a *number* rather than a
+  decision, and each is now either trivial beside what replaced it or said twice — `combo60` sat under
+  `wombo`'s 250 on the same line of code, `act3` measured depth that the Epoch-start ladder now owns and
+  prices properly, `firstBoss` fired on the first purge every player makes. `odFrom` (charge at
+  ignition) went with `redline`, its only consumer. **Old saves keep the dead ids and that is harmless**
+  — Records renders from `ACHV`, so an id with no row is invisible, and nothing counts the set. No
+  migration, deliberately. Measured: cold-start fingerprints are **identical** across the deletion on
+  three seeds, including one that had been earning `combo60` mid-run.
   - **Anything phrased as "reach" needs the cold-start guard**, or a deep start hands it over at t=0.
     `act3` and `speedrunner` carry it; `makeawish` gets the same effect for free by keying on the
     *advance* rather than on the Epoch you are in.

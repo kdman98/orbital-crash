@@ -980,9 +980,9 @@
     <div class="ds"><div class="k" data-t="dead.time">Time Survived</div><div class="v" id="deadTime">0:00</div></div>
     <div class="ds"><div class="k" data-t="dead.combo">Peak Combo</div><div class="v" id="deadCombo">0</div></div>
   </div>
-  <!-- The receipt is a LOG, not a scoreboard. Four sips and a redline is a different run from two full
-       burns and they total the same, so the rides are listed one by one; likewise each Anomaly fight is
-       priced separately. Both rows hide themselves when the run had none of that event. -->
+  <!-- The receipt is a LOG, not a scoreboard. Four sips and one long burn is a different run from two
+       medium ones and they total the same, so the rides are listed one by one; likewise each Anomaly
+       fight is priced separately. Both rows hide themselves when the run had none of that event. -->
   <div id="deadOdLogLab" class="loglab hidden"><span data-t="log.od">Overdrive · </span><span id="deadOdLogSum"></span></div>
   <div id="deadOdLog" class="chiplog"></div>
   <div id="deadAnomLogLab" class="loglab hidden"><span data-t="log.anom">Anomalies · </span><span id="deadAnomLogSum"></span></div>
@@ -1416,11 +1416,6 @@ const L={ en:{
   'anom.emitter.tip3':'EMITTER · DASH · DODGE',
   'anom.sentinel.tip':'SENTINEL · SEEKERS · CHASE',
   'anom.bastion.tip'  :'BASTION · WALL · THE SEAM',
-  'achv.firstBoss.nm':'Purge an Anomaly',  'achv.firstBoss.ds':'Defeat an Anomaly',
-  'achv.combo60.nm' :'Chain Reactor',      'achv.combo60.ds' :'Land a 60-chain',
-  'achv.act3.nm'    :'Deep Field',         'achv.act3.ds'    :'Reach Epoch III',
-  'achv.redline.nm' :'Redline',            'achv.redline.ds' :'Burn a full Capacitor down to nothing in one Overdrive',
-  'achv.lancegild.nm':'Skeet Shooter',     'achv.lancegild.ds':'Volley your Gilded Bounty into an Anomaly',
   'achv.turret.nm'      :'Turret',          'achv.turret.ds'      :'Hold one spot for 60 seconds',
   'achv.turret.fl'      :'Thought this was tower defense?',
   'achv.flappystar.nm'  :'Flappy Star',     'achv.flappystar.ds'  :'Reverse polarity 40 times in one Epoch',
@@ -1596,11 +1591,6 @@ const L={ en:{
   'anom.emitter.tip3':'방출체 · 돌진 · 회피',
   'anom.sentinel.tip':'감시자 · 추적탄 · 추격',
   'anom.bastion.tip'  :'바스티온 · 탄막벽 · 틈새',
-  'achv.firstBoss.nm':'변이체 소멸',  'achv.firstBoss.ds':'변이체를 쓰러뜨린다',
-  'achv.combo60.nm' :'콤보 반응',     'achv.combo60.ds' :'60콤보를 달성한다',
-  'achv.act3.nm'    :'심층',          'achv.act3.ds'    :'3단계에 도달한다',
-  'achv.redline.nm' :'레드라인',      'achv.redline.ds' :'가득 찬 축전기를 오버드라이브 한 번에 다 태운다',
-  'achv.lancegild.nm':'클레이 사격',  'achv.lancegild.ds':'황금 현상금을 변이체에 쏴 맞힌다',
   'achv.turret.nm'      :'포탑',            'achv.turret.ds'      :'60초 동안 한자리를 지킨다',
   'achv.turret.fl'      :'여기가 타워 디펜스인 줄 아셨어요?',
   'achv.flappystar.nm'  :'촐싹대는 별',      'achv.flappystar.ds'  :'한 시대에 색을 40번 반전한다',
@@ -1642,11 +1632,17 @@ function T(k,v){
 //   ⚠️ THEY NO LONGER UNLOCK NOTHING. The count gates the skin ladder, so a row is a currency now and
 // every property below that used to be harmless has teeth: see the mode guard in grantAchv, and the
 // cold-start guard on any row phrased as "reach".
+// ⚠️ THE FIVE ORIGINAL ROWS ARE GONE — firstBoss, combo60, act3, redline, lancegild. They were written
+// when a row paid nothing, and it showed: four of them asked for a number ("land a 60-chain", "reach
+// Epoch III") rather than for a decision, and every one is now either trivial beside what replaced it
+// or said twice. `combo60` sat under `wombo`'s 250 on the same line of code; `act3` measures depth,
+// which the Epoch-start ladder now owns and prices properly; `firstBoss` fired on the first purge every
+// player makes, so it certified nothing.
+//   Old saves keep the dead ids in `store.achv` and that is harmless: Records renders from ACHV, so an
+// id with no row is invisible, and nothing counts the set. No migration, deliberately — a migration
+// that runs once on every player's save to delete five strings nobody can see is more risk than the
+// strings are worth.
 const ACHV=[
-  {id:'firstBoss'},
-  {id:'combo60'},
-  {id:'act3'},
-  {id:'redline'},
   {id:'turret'},
   {id:'flappystar'},
   {id:'untouched'},
@@ -1659,7 +1655,6 @@ const ACHV=[
   {id:'demolition'},
   // hidden feats — discovered, never assigned. `hid:true` only means the row renders as "???" in
   // Records until it is earned.
-  {id:'lancegild', hid:true},
   {id:'speedrunner', hid:true},
 ];
 // PER-RUN COUNTERS THAT EXIST ONLY TO SERVE THE ROWS ABOVE. One object with one reset, because the
@@ -1685,8 +1680,8 @@ function stepStillness(dt){
 }
 function grantAchv(id){
   // ⚠️ SURVIVAL ONLY, AND THIS GUARD IS NEW. Boss Rush hands you an endless supply of Anomalies and the
-  // Lab spawns shapes on demand, so both could farm rows that the skin ladder now counts — `firstBoss`,
-  // `combo60`, `redline` and `lancegild` were all reachable there. It is the same condition the best
+  // Lab spawns shapes on demand, so both could farm rows a skin is gated on — of the five original
+  // rows, four were reachable in Boss Rush. It is the same condition the best
   // score and the records list already share: one condition, now three consumers, wrong together or
   // right together.
   if(testMode||labMode||tutMode) return;
@@ -2127,7 +2122,6 @@ const RING_CAP=5.0;
 //  that crowding is already the reason Collapse had no identity.
 // =====================================================================
 let odOn=false;              // is Overdrive burning right now
-let odFrom=0;                // charge at ignition — only so 'Redline' can tell a full burn from a sip
 // A FULL METER BUYS EXACTLY 3.0s. It bought 6.0s — the Overdrive orb's old free duration — until the
 // meter was repriced: drain doubled here and income halved at P.chargeGain, which COMPOUNDS to roughly
 // 4x less Overdrive per minute of play, not 2x. Both halves are deliberate and they are the two numbers
@@ -2149,10 +2143,13 @@ const OD_MIN=0.25;
 const OD_COL='#ffe36b';      // the Overdrive orb's gold, kept so the cue vocabulary did not change
 // THE RIDE LOG. The run summary records the rides INDIVIDUALLY ("3.0s 1.5s 2.0s 0.7s" — the first is a
 // FULL meter at today's drain, which is what makes this example readable; reprice and it stops being),
-// because the shape of the list is the interesting part: four sips and a redline is a different run from
-// two full burns, and both sum the same. `odT` is ACCUMULATED, never derived from `odFrom - P.charge` —
-// streak milestones (onKill/MCHG) and the purge reward (killBoss) both still pay THROUGH a burn, so charge
-// does not fall monotonically while it runs.
+// because the shape of the list is the interesting part: four sips and one long burn is a different run
+// from two medium ones, and both sum the same. ⚠️ `odT` is ACCUMULATED, never derived from the charge
+// SPENT across a ride — streak milestones (onKill/MCHG) and the purge reward (killBoss) both still pay
+// THROUGH a burn, so charge does not fall monotonically while it runs and the delta is not the duration.
+// (This warning used to name `odFrom`, the charge-at-ignition field. That field is gone with the
+//  'Redline' row it existed for; the trap it describes is a property of the ECONOMY, not of the field,
+//  so it outlives it.)
 // COOLDOWN, so a release is a decision and not a comma. Hold-to-burn made the meter a dead-man's switch,
 // which fixed forgetting — but it also made TAPPING free: with no cooldown you could feather the trigger
 // and hold the Overdrive physics on a duty cycle, paying the drain only while pressed and re-igniting the
@@ -2238,7 +2235,7 @@ function overdrive(){
   if(odOn) return;                      // already burning: a repeat press is not a second ignition
   if(odCd>0) return;                    // still cooling — see OD_CD
   if(P.charge<OD_MIN) return;
-  odOn=true; odFrom=P.charge; odT=0;
+  odOn=true; odT=0;
   // Snapshot for Ka-me-ha!: was the Anomaly untouched at the moment you lit this ride? Only read while
   // `odOn`, so it needs no clearing — a stale `true` is unreachable once the ride ends.
   FEAT.odFullBoss = !!(boss && !boss.dead && boss.hp>=boss.maxHp);
@@ -2257,10 +2254,10 @@ function overdrive(){
 function endOverdrive(){
   if(!odOn) return;
   odOn=false;
-  // Redline is still "ignited FULL and rode it to nothing". Banking at 0.4 must not grant it and neither
-  // must dying mid-ride, so the empty test stays — this grant MOVED here out of stepOverdrive's zero
-  // branch rather than being copied, or the rule would live in two places and drift.
-  if(P && P.charge<=0 && odFrom>=0.99) grantAchv('redline');
+  // ('Redline' was granted here — ignited FULL and rode it to nothing, tested as
+  //  `P.charge<=0 && odFrom>=0.99` so that banking at 0.4 and dying mid-ride both failed it. The row is
+  //  gone, and `odFrom` went with it: charge-at-ignition had exactly one consumer and keeping a field
+  //  alive for a deleted reader is how `P.blastR` became a tombstone in this file already.)
   if(odT>=0.1){ odCount++; odTotal+=odT; if(odLog.length<40) odLog.push(odT); }
   odT=0;                     // under 0.1s is a double-tap, not a ride — logging it would be noise
   odCd=OD_CD;                // ⚠️ EVERY end path cools, including the 0.1s double-tap that logs nothing
@@ -3269,10 +3266,12 @@ function onBossCleared(){
   if(isShower(act)) grantAchv('makeawish');
   FEAT.epochFlips=0;   // Flappy Star is per-Epoch, so the Epoch boundary is where it resets
   const info=actInfo();
-  // ⚠️ COLD START ONLY. "Reach Epoch III" has to mean you travelled there; starting at Epoch V would
-  // otherwise grant it before the first Dot arrives. Every reach-style achievement added later needs
-  // this same guard, and the guard belongs on the grant rather than on the unlock.
-  if(act>=3 && runStartAct===1) grantAchv('act3');
+  // (`act3` — "Reach Epoch III" — stood here with a `runStartAct===1` guard on it, because starting at
+  //  Epoch V would otherwise have granted it before the first Dot arrived. The row is gone: depth is
+  //  what the Epoch-start ladder measures now, and it prices it properly instead of handing out one
+  //  tick for it. ⚠️ THE GUARD IS NOT GONE AS A RULE — any row phrased as "reach" needs it, and
+  //  `speedrunner` in die() is the one that carries it today. `makeawish` just above earns the same
+  //  protection for free by keying on the ADVANCE rather than on the Epoch you happen to be standing in.)
   if(P) P.charge=Math.min(1,P.charge+0.15); // clearing an Epoch tops the Capacitor a little
   // ⚠️ RE-ARM THE COMET CLOCK ON THE BOUNDARY, not only where it fires. `cometT` is a countdown that
   // SURVIVES the Epoch change, so re-rolling it at the fire site alone is not enough in either
@@ -4593,7 +4592,6 @@ function killBoss(b){
   trauma=1; flash=0.8; flashCol='#fff'; hitstop=0.28;
   slowmo(0.35,0.7);
   sfx.purge();
-  grantAchv('firstBoss');
   // `anomLog`'s last entry IS this fight's damage tab — opened at spawnBoss and fed by both damage
   // funnels — so Untouched needs no counter of its own. Reusing it also means it counts the whole
   // fight the way the receipt does: the Dots that punish you while you are busy are part of the price.
@@ -5211,9 +5209,9 @@ function stepAnnihilation(){
                   pushText(B.x,B.y-B.r-34,T('fx.poked'),COL.gold,1.15,22);
                   if(typeof sfx!=='undefined') sfx.baited();
                 }
-                // 'Skeet Shooter' — you fired your Gilded Bounty as ammunition and it connected. The
-                // jackpot itself still pays out in onKill.
-                if(X.gild>0 && X.vdmg) grantAchv('lancegild');
+                // ('Skeet Shooter' was granted here for volleying a Gilded Bounty into the Anomaly. The
+                //  row is gone; the jackpot itself still pays out in onKill exactly as before, so the
+                //  play is unchanged and only the tick for it is missing.)
                 queueKill(X); }
               else {
                 // Drift-in pays nothing, so it must not be CONSUMED either — that is pure theft, the
@@ -5496,7 +5494,6 @@ function onKill(e){
   //  and no amount of retuning its POPULATION addresses that. Ask what the player DOES about it first.)
   // scoring / combo
   combo++; if(combo>peakCombo)peakCombo=combo;
-  if(combo>=60) grantAchv('combo60');
   if(combo>=250) grantAchv('wombo');   // 0 of 25 blind-pilot runs ever reached 90; this is the hard row
   // streak milestones: ranks in colour, big capacitor chunks, escalating fanfare
   //   (`MCOL` stood here — the tier palette, used only to colour the milestone text. The HUD streak line
@@ -7580,9 +7577,12 @@ function openRecords(){
     if(a.hid && !got) return `<div class="acv"><span class="st">○</span><span><b>???</b> · ${T('rc.secret')}</span></div>`;
     // THE FLAVOUR LINE IS A PUNCHLINE, SO IT ONLY APPEARS ONCE THE ROW IS EARNED. Unearned, a row has
     // one job — be legible as a goal — and a joke sitting where the instruction goes competes with it.
-    //   Presence-tested against the EN table rather than assumed: `T()` falls back to the KEY when a
-    // string is missing, so an un-guarded lookup would print `achv.firstBoss.fl` in the panel for the
-    // four original rows, which have no flavour written for them.
+    //   ⚠️ PRESENCE-TESTED AGAINST THE EN TABLE RATHER THAN ASSUMED, and the guard stays even though
+    // every shipping row now has a flavour line. `T()` falls back to the KEY when a string is missing,
+    // so the failure mode of dropping this is a row that prints `achv.<id>.fl` at the player — and the
+    // next row added is exactly when a `.fl` gets forgotten. It cost a `!=null`.
+    //   (It was justified here by the four original rows, which had no flavour written for them. Those
+    //  rows are gone; the guard outlives its example.)
     const fk='achv.'+a.id+'.fl';
     const fl=(got && L.en[fk]!=null) ? `<div class="acvfl">${T(fk)}</div>` : '';
     return `<div class="acv${got?' got':''}"><span class="st">${got?'✓':'○'}</span><span><b>${T('achv.'+a.id+'.nm')}</b> · ${T('achv.'+a.id+'.ds')}${a.hid?` <span class="rw">· ${T('rc.secretTag')}</span>`:''}${fl}</span></div>`;
