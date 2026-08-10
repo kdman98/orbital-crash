@@ -14,6 +14,32 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### Reforge was below the fold on the device, and so were Quit and Settings `v2`
+At the shipping WebView viewport (**874×402**) the death screen measured **515px against 382 available**
+and the pause panel **523**. Past the fold: **Reforge**, and on pause **Quit** and **Settings**. Both
+overlays scroll, so nothing was strictly unreachable — but the menu branch already states the rule that
+a primary action behind an undiscoverable scroll has failed at its job. The menu got that fix when the
+landscape lock went in; these two never did.
+
+⚠️ **The death screen got worse the better you played.** The overflow *is* the two run logs, so more
+Overdrive rides and more Anomaly fights push Reforge further down — and a good run is exactly when you
+most want to go again. It cannot be reproduced by dying early, which is why walking the tutorial on the
+device never showed it: a tutorial death routes to `tutFinish` and has no logs. On pause, **Resume
+survived and the other two did not**, so the panel looked fine.
+
+Fixed by the method the wordmark established — find the block taking a quarter of the screen and shrink
+*that*: the score (116px) on the death card, the `❚❚` glyph (84px) on pause. Both now clear a **21px**
+bottom safe-area inset with every control reachable, in Korean, with a new best, and a full receipt.
+Chip rows are bounded (`CHIP_SHOW` 12 + one overflow), so a longer run cannot undo it.
+
+⚠️ **Five inline styles moved into CSS first** — an inline style outranks a media query, so the branch
+could not reach them. Verified layout-neutral at 1280×800 with the branch inactive: every moved property
+computes to the value it had inline.
+
+*Caught by a bad test first.* The initial check used `class="chip"`; the real class is `bchip`, so the
+mock rendered one chip row where the real receipt wraps to two, and it reported a comfortable fit that
+did not exist. The numbers above are all from `.bchip`.
+
 ### Dot damage is −20%, not −2 `v2`
 The flat −2 is re-derived as **20% off each original value, rounded to an integer**: Dart 6, Drifter 8,
 Bomber 8, Harrier 10, **Neutral 12**, **Charger 13**, **Planet 16**, **Brute 18**. Four moved; the four

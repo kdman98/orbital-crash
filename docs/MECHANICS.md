@@ -513,6 +513,29 @@ every device gets a world exactly `REF_SHORT` **tall** — that is the definitio
 — by **1731 to 1739 across, an 8-unit spread of 0.46%**. Tune for one and you have tuned for all of them.
 Against desktop the *area* barely moves either (1.39M vs 2.07M square units).
 
+**402px of height is the constraint every overlay has to answer, and three of them failed it.** The
+menu was fixed when the lock went in; the death screen and the pause panel were not, and both were
+found overflowing at the shipping viewport — death at **515px against 402**, pause at **523**. What was
+past the fold: **Reforge** on the death screen, and **Quit** and **Settings** on the pause panel.
+
+- **Both scroll, so nothing was strictly unreachable — and that is not a defence.** The rule the menu
+  branch already states is that a primary action behind an undiscoverable scroll has failed at its job.
+- ⚠️ **The death screen got worse the better you played.** The overflow *is* the two run logs, so more
+  Overdrive rides and more Anomaly fights push Reforge further down — and a good run is exactly when you
+  most want to go again. It cannot be reproduced by dying early, which is why walking the tutorial on
+  the device never showed it: a tutorial death routes to `tutFinish` and has no logs at all.
+- **On pause, Resume survived and the other two did not**, which is the trap in miniature — the control
+  you reach for by reflex worked, so the panel looked fine.
+
+The fix is the method the wordmark established: **find the one block taking a quarter of the screen and
+shrink that**, rather than shaving every margin evenly. It was the score (116px) on the death card and
+the `❚❚` glyph (84px) on pause. Both now clear a **21px** bottom safe-area inset — a real landscape home
+indicator — with every control reachable, in Korean, with a new best, and with a full receipt.
+
+⚠️ **Five inline styles had to move into CSS first**, because an inline style outranks a media query and
+the short-viewport branch could not reach them. Verified layout-neutral: at 1280×800 with the branch
+inactive, every moved property computes to the value it had inline.
+
 The web manifest's `orientation` is advisory and applies only to an installed PWA; `Info.plist` is the
 enforcement, and the two must agree. Both landscape variants are allowed so the notch can sit on either
 hand — which is also why the touch partition is left/right rather than handed.

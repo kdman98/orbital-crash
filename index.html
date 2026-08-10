@@ -578,6 +578,15 @@
   .final{font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);margin-bottom:2px;}
   .finalv{font-size:clamp(54px,15vw,116px);font-weight:900;letter-spacing:-.03em;line-height:.9;font-variant-numeric:tabular-nums;
     background:linear-gradient(180deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  /* Was four inline properties on the element. Moved here so the short-viewport branch can reach its
+     margin at all — an inline style outranks a media query, and the alternative was an !important. */
+  #deadCause{font-size:13px;color:var(--dim);margin:6px 0 2px;letter-spacing:.04em;}
+  /* The pause panel's own layout, off the elements for the same reason: an inline style outranks a
+     media query, and the short-viewport branch has to be able to reach every one of these. */
+  #pause h2{font-size:clamp(40px,11vw,84px);font-weight:900;letter-spacing:.06em;margin:6px 0 22px;}
+  #pause .deadstats{margin:0 0 18px;}
+  #quitBtn{margin-top:14px;}
+  #pause .refs{margin-top:15px;}
   .deadstats{display:flex;gap:30px;margin:20px 0 26px;flex-wrap:wrap;justify-content:center;}
   .deadstats .ds{display:flex;flex-direction:column;gap:5px;}
   .deadstats .ds .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);}
@@ -622,6 +631,56 @@
     .refs{margin-top:8px;}
     /* .btn keeps its size. It is the primary action and 44px is Apple's minimum touch target;
        buying 5px here would be the one saving that costs someone a missed tap. */
+
+    /* THE DEATH SCREEN HAD THE SAME DEFECT AS THE MENU AND WAS NEVER GIVEN THE SAME FIX. Measured at
+       874x402 — the shipping WebView — its content came to 498px against 382 available: 116px of
+       overflow, with REFORGE at y=397 on a 402px screen and Share/Menu entirely past the fold. The
+       overlay scrolls, so nothing was unreachable, but by the argument three rules up a primary action
+       behind an undiscoverable scroll has failed at its job.
+         ⚠️ AND IT GOT WORSE THE BETTER YOU PLAYED, which is the part that makes it a bug rather than a
+       tight fit: the overflow is the two run logs, so more Overdrive rides and more Anomaly fights push
+       Reforge further down — and a good run is exactly when you most want to go again. It cannot be
+       reproduced by dying early, which is why walking the tutorial on the device never showed it.
+         Same method as the wordmark above: find the thing taking a quarter of the screen and shrink
+       THAT, rather than shaving every margin evenly and hoping. The score was 116px of a 402px screen.
+       At 11vh it is still by far the biggest thing here — it just stops being a third of the view.
+         The chip rows are BOUNDED, so these numbers cannot be undone by a longer run: CHIP_SHOW is 12
+       plus one overflow chip, so two rows is the worst case that exists and it is what was measured. */
+    .finalv{font-size:clamp(36px,11vh,56px);}
+    .final{font-size:11px;}
+    .newbest{font-size:12px;margin-top:3px;}
+    #deadCause{margin:3px 0 1px;}
+    .deadstats{gap:24px;margin:6px 0 8px;}
+    .deadstats .ds{gap:3px;}
+    .deadstats .ds .v{font-size:19px;}
+    .loglab{margin-bottom:3px;}
+    .chiplog{margin-bottom:7px;}
+    .deadrow{margin-top:8px;}
+    /* The chips are the last block worth taking, and taking it here pays THREE times over: a full
+       receipt is two Overdrive rows plus one Anomaly row, so 5px off a chip is 15px off the screen.
+         It buys the safety margin this branch actually needs. `.overlay` pads its bottom with
+       `max(10px, env(safe-area-inset-bottom))`, and a notched phone in landscape reports around 21px
+       there — so the headroom measured in a desktop browser at this viewport is about 11px MORE than
+       the device will have. Without this rule the worst case (Korean, new best, a full receipt) landed
+       at 12px of headroom, which the inset alone would have eaten.
+         This reaches the pause panel too, which draws the same two logs into the same short screen. */
+    .bchip{padding:4px 9px;font-size:11px;}
+
+    /* THE PAUSE PANEL HAS IT WORSE THAN THE DEATH SCREEN, because it carries the same two logs plus its
+       own stats and three controls: 523px against 402, with QUIT, SETTINGS and the hint all past the
+       fold. Resume survived, which is the whole trap — the one control you reach for by reflex worked,
+       so the panel looked fine and the two you reach for deliberately were gone.
+         Same method a third time. The biggest block was the ❚❚ glyph at 84px — a decorative mark taking
+       a third of the screen, which is exactly what the wordmark was doing on the menu and the score was
+       doing on the death card. It shrinks; nothing else about the panel moves. */
+    #pause h2{font-size:clamp(28px,7vh,44px);margin:2px 0 8px;}
+    #pause .deadstats{margin:0 0 8px;}
+    #quitBtn{margin-top:8px;}
+    #pause .refs{margin-top:8px;}
+    /* On a touch device this is already hidden — it advertises keys that are not there. On a SHORT
+       screen it goes for a different reason: it repeats what the Resume button directly above it says,
+       and it is the only line here that costs height while carrying nothing the panel does not. */
+    #pause .hint{display:none;}
   }
   /* The keyboard legend on a touchscreen is not merely wasted height — it is a lie. It advertises
      mouse, R-click and shift to a device that has none of them. Gone on coarse pointers at any
@@ -954,8 +1013,8 @@
 <!-- PAUSE -->
 <div class="overlay hidden" id="pause">
   <div class="final" data-t="pause.kicker" style="letter-spacing:.4em;">Paused</div>
-  <h2 style="font-size:clamp(40px,11vw,84px);font-weight:900;letter-spacing:.06em;margin:6px 0 22px;">❚❚</h2>
-  <div class="deadstats" style="margin:0 0 18px;">
+  <h2>❚❚</h2>
+  <div class="deadstats">
     <div class="ds"><div class="k" data-t="hud.score">Score</div><div class="v" id="pScore">0</div></div>
     <div class="ds"><div class="k" data-t="hud.time">Time</div><div class="v" id="pTime">0:00</div></div>
   </div>
@@ -964,10 +1023,10 @@
   <div id="pAnomLogLab" class="loglab hidden"><span data-t="log.anom">Anomalies · </span><span id="pAnomLogSum"></span></div>
   <div id="pAnomLog" class="chiplog"></div>
   <button class="btn" id="resumeBtn" data-t="pause.resume">Resume</button>
-  <button class="btn sm ghost" id="quitBtn" data-t="pause.quit" style="margin-top:14px;">Quit to menu</button>
+  <button class="btn sm ghost" id="quitBtn" data-t="pause.quit">Quit to menu</button>
   <!-- Settings without leaving the run. See the note on the settings overlay: the reason to open it is
        usually that steering is not working, and quitting to fix that costs you the run you were fixing. -->
-  <div class="refs" style="margin-top:15px;"><button class="ref" id="pSettingsBtn" data-t="ref.settings">Settings</button></div>
+  <div class="refs"><button class="ref" id="pSettingsBtn" data-t="ref.settings">Settings</button></div>
   <div class="hint" data-th="pause.hint"><kbd>P</kbd> or <kbd>Esc</kbd> to resume</div>
 </div>
 
@@ -975,7 +1034,7 @@
 <div class="overlay hidden" id="dead">
   <div class="final" data-t="dead.kicker">Core Lost</div>
   <div class="finalv" id="deadScore">0</div>
-  <div id="deadCause" style="font-size:13px;color:var(--dim);margin:6px 0 2px;letter-spacing:.04em;"></div>
+  <div id="deadCause"></div>
   <div id="deadBest" class="newbest hidden" data-t="dead.best">New Best!</div>
   <div class="deadstats">
     <div class="ds"><div class="k" data-t="dead.time">Time Survived</div><div class="v" id="deadTime">0:00</div></div>
