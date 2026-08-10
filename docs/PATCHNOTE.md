@@ -14,7 +14,77 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
-### The Sentinel and the Bastion throw their patterns on their own clock `9eba98c`
+### Touch is three zones now, and tilt stops steering `b0ed967`
+Author: *"three touching point for control (move half, overdrive quart, flip quart)"* — v2's feature, on
+the `v2` branch. The canvas partitions by geometry: **move on the left half, Overdrive on the top-right
+quarter, flip on the bottom-right quarter**, decided by `zoneOf(x,y)` in CSS pixels.
+
+**Overdrive sits above flip because the two have to work at the same time.** Overdrive is held for
+seconds and you keep flipping through the ride, so they cannot share a thumb; top-right is where a
+landscape grip already rests an index finger. Verified with three fingers down at once — stick at full
+deflection, a flip landing mid-burn, and the burn surviving it.
+
+**Flip fires on PRESS, and that is the change with the most feel in it.** Under the intent-split scheme
+it could not: until you lifted there was no way to know a press was not the start of a drag, so flip
+carried up to `TAP_TIME` **300ms** of latency a player could neither see nor shorten — on a *timing*
+verb. `TAP_SLOP`, `TAP_TIME` and `tapMoved` go with it. So does `TOUCH_LIFT`, which was a correction for
+a problem the old scheme created: absolute steering put the finger over the whole arena, so the star had
+to be drawn 55px above the fingertip to stay readable. A stick does not park your thumb on the star.
+
+**The move zone is a virtual stick with a floating origin**, and `STICK.speed` is **the one tuned number
+inherited intact from tilt** — 14 units/frame, set against the game (Charger dash 9.5) rather than
+against a sensor. Measured on the seam: **exactly 14.00/frame idle, 19.60 under Overdrive** (14 × 1.4).
+The origin follows past full deflection — shoved 200px from a 100px origin it lands on exactly 236 —
+because otherwise a thumb going down near the left edge runs out of zone before it runs out of stick.
+
+⚠️ **One dead zone on the magnitude, not one per axis.** Per-axis is right for tilt, where the axes are
+two readings; a stick has one offset, and dead-zoning components independently **notches the diagonals**.
+Verified un-notched: (5,5) gives both components 0.013 rather than both zero.
+
+**Selected by the event, not the device.** `isTouch(e)` decides per event — the third selector this file
+has had and the first that cannot be wrong about the hardware, because it makes no claim about it. The
+two it replaced were guesses (`pointer: coarse`, then a stored preference) and both stranded real players.
+
+**Tilt is retired as a steering path.** `stepTilt`, `touchSteers`, `refreshTouchSteer`, `#tiltDiag`,
+`TILT_STALE_MS` and the tutorial's third device case are gone. ⚠️ **The bridge is kept intact and
+unwired** — `MotionBridgeViewController.swift` still feeds `__nativeTilt` at 60Hz and `tiltVec` is still
+maintained and readable from the seam; what no longer exists is a consumer. The stale-feed warning went
+because a silent sensor is no longer a fault the player can be hurt by: touch cannot stop working.
+
+⚠️ **The utility cluster had to move.** `#muteBtn`/`#motionBtn`/`#pauseBtn` were stacked up the right edge
+**inside the flip zone** — three holes in the quarter a thumb taps most. Mute and Reduced motion duplicate
+Settings rows and are hidden on coarse pointers; Pause moves to the top-right corner.
+
+⚠️ **What is NOT verified is whether it fits a hand.** Partition, dead zone, ramp, origin-follow,
+diagonals and all three verbs concurrently are measured on the seam at 874×402 with zero console errors.
+Ergonomics are argued. The median scripted pilot has no thumbs.
+
+### MECHANICS said "portrait" for five days after the code said landscape `b0ed967`
+Found while building the zones on the landscape geometry. `c6b59b5` moved `Info.plist` and the manifest
+to `LandscapeLeft`/`LandscapeRight` **and refuted the fairness argument that had justified the portrait
+lock** — `S` keys on the short side, so rotating is area- and spawn-radius-neutral (1.391M and 1044 both
+ways). MECHANICS kept making the refuted argument anyway, under the heading *"Portrait is enforced
+natively, and it is a fairness rule"*.
+
+**The fact was changed and the reasoning resting on it was not grepped** — this file's own recurring
+failure, and it would have told a reader that the new touch layout was built on the wrong axis. Corrected
+in place with the retirement recorded rather than quietly overwritten. ⚠️ Note which side stayed right:
+the **plist comment** tracked the change and the **prose two directories away** did not, so the hazard is
+not the language boundary — it is that a restated fact has two owners and only one of them edits.
+
+### The iOS shell builds, and the CoreMotion NaN guard has now been compiled `(no code change)`
+`e82194d` shipped a Swift guard against a non-finite attitude reaching `%.3f` — where `.nan` renders as
+the bare word `nan`, an undeclared identifier that throws a ReferenceError 60×/second — and PATCHNOTE
+recorded it as *"edited but **not built** this session"*. It builds: `** BUILD SUCCEEDED **`, one warning,
+`App.app` produced against iPhone 17 / Xcode 26.6.
+
+⚠️ **`pod install` on this machine dies for an unrelated reason worth writing down**, because the
+backtrace names only ruby and cocoapods files and reads like a broken install. The shell locale is
+`LC_CTYPE=C`, so `Dir.pwd` is ASCII-8BIT and CocoaPods 1.17.0 calls `String#unicode_normalize` on it:
+`Encoding::CompatibilityError`. `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` fixes it, verified both ways, and
+`npm run sync` shells out to `pod install` so it belongs in package.json rather than in someone's memory.
+
+
 Author: the two later kinds felt sluggish. `VAR_PAT` gives each kind a firing-gap multiplier at
 **0.8**, folded into a `pcad` that is `pace.cad × pace.pat` — **a separate axis from the Epoch ramp,
 and deliberately not on the hunt.** Speeding up the hunt answers *"the Anomaly crowds me"*, which is a

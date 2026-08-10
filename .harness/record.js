@@ -1,10 +1,15 @@
 // ORBITAL CRASH — input recorder. Runs inside the game window, after preload.js.
 //
 // Records raw INPUT EVENTS, never outcomes. A tape says "pointerdown happened in the gap before frame
-// 412", not "a flip happened" — so on replay the game's own guards re-run: flipCd, and the whole touch
-// intent-split machine (TAP_SLOP / TAP_TIME / tapMoved) that turns one pointerup into either a flip or
-// nothing. A tape of outcomes would replay a flip that already happened and could therefore never fail,
-// which makes it worthless as a proof of anything.
+// 412", not "a flip happened" — so on replay the game's own guards re-run: flipCd, and the zone lookup
+// that turns one pointerdown into a stick grab, an Overdrive ignition or a flip depending only on WHERE
+// it landed. A tape of outcomes would replay a flip that already happened and could therefore never
+// fail, which makes it worthless as a proof of anything.
+//   ⚠️ THIS IS ALSO WHY TAPES SURVIVED THE CONTROL REWRITE AND THEIR OUTCOMES DID NOT. The scheme this
+// described was an intent split (TAP_SLOP / TAP_TIME / tapMoved) reading one pointerUP as a flip; it is
+// now a partition reading pointerDOWN. Every recorded event still replays, but a tape cut under the old
+// scheme does not necessarily produce the same run — which is correct behaviour for a tape of inputs,
+// and would have been a silent lie from a tape of outcomes.
 //
 // One simplification falls out of preload owning the clock: the game's performance.now() returns H.now,
 // the CURRENT frame's timestamp, so a handler firing between frames reads the previous frame's time no

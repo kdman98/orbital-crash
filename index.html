@@ -213,6 +213,22 @@
     align-items:center;justify-content:center;z-index:2;}
   #muteBtn{bottom:16px;} #motionBtn{bottom:58px;font-size:15px;} #pauseBtn{bottom:100px;font-size:12px;letter-spacing:1px;}
   #motionBtn.on{color:var(--gold);border-color:rgba(255,207,77,.5);}
+  /* THE UTILITY CLUSTER vs THE TOUCH ZONES. Under a partition every pixel belongs to a verb, so these
+     three cannot sit "outside" the control — they can only sit in the zone that minds them least.
+       ⚠️ STACKED UP THE RIGHT EDGE AT bottom 16/58/100 THEY ARE IN THE FLIP ZONE, which is the worst of
+     the three. Flip is the verb this game asks for most, and that layout puts three 34px holes in the
+     quarter a thumb taps constantly — each one pausing or muting instead of flipping.
+       Mute and Reduced motion are DUPLICATES: both are rows in Settings, one press away through Pause.
+     So on a touchscreen they are hidden rather than relocated, which is also the honest reading of what
+     they were — shortcuts for a device that has a keyboard for the same two things (M, and the ✺ toggle).
+       Pause is not a duplicate and cannot go. It moves to the top-right CORNER, into the Overdrive zone,
+     for two reasons: that zone is pressed a small fraction as often as the flip zone, and a HELD press
+     lands in the middle of a quarter rather than on its extreme corner. ⚠️ This is the one part of the
+     scheme argued from ergonomics rather than measured — it wants a real thumb on a real phone. */
+  @media (pointer:coarse){
+    #muteBtn,#motionBtn{display:none;}
+    #pauseBtn{top:16px;bottom:auto;}
+  }
 
   /* ---- ONE persistent feedback channel now. No centre banner: the world announces itself by DOING it.
      #achv (top centre, gold) — a feat was recorded.
@@ -590,9 +606,9 @@
      in Korean, so the shortage it answered no longer exists. Put it back if a fourth link ever does. */
   /* Same corner, same type, same opacity as #controls — it IS #controls for a device with fingers, and
      anything that made it look like a different kind of object would be saying something untrue.
-     Hidden at every fine pointer; the media query below is the only thing that reveals it, and the
-     STEERING line inside it is written from `touchSteers` because that one line differs between a web
-     phone (drag) and the native app (lean). */
+     Hidden at every fine pointer; the media query below is the only thing that reveals it. All three
+     rows are static now — the steering line used to be written from `touchSteers`, because a web phone
+     dragged and the native app leaned, and one touch scheme on every device retired the branch. */
   /* bottom:56px, NOT 16px like #controls. The bars in #bottom sit at 765-792 on a 812px phone and this
      legend is 53px tall, so at 16px it printed straight across Core Integrity and Capacitor. */
   #touchCtl{position:absolute;left:16px;bottom:56px;display:none;flex-direction:column;gap:7px;opacity:.72;
@@ -717,12 +733,13 @@
        mouse, Shift and right-click to a device with none of them; for a while nothing replaced it,
        which was defensible only while tilt was the sole touch control and there was nothing to say.
        Touch steers again on every phone browser, so there is.
-         The first line is filled by paintTouchCtl() rather than written here: a web phone drags, the
-       native app leans, and those are the same screen with a different verb. -->
+         All three rows say WHERE, because the control is a map now: the left half steers, the top right
+       burns, the bottom right flips. The first row used to be filled by paintTouchCtl() instead of being
+       written here, back when a web phone dragged and the native app leaned. -->
   <div id="touchCtl">
-    <div class="cr" id="tcSteer"></div>
-    <div class="cr" data-th="tc.tap"><b>Tap</b> Reverse poles</div>
-    <div class="cr" data-th="tc.second"><b>Second finger</b> Hold: Overdrive</div>
+    <div class="cr" data-th="tc.move"><b>Left half</b> Steer star</div>
+    <div class="cr" data-th="tc.od"><b>Top right</b> Hold: Overdrive</div>
+    <div class="cr" data-th="tc.flip"><b>Bottom right</b> Reverse poles</div>
   </div>
   <!-- THE TUTORIAL'S ONE INSTRUCTION, in the HUD rather than in an overlay, because every step is
        something you do WHILE reading it. An overlay would mean read-then-dismiss-then-try, which is the
@@ -955,6 +972,12 @@ const ctx = canvas.getContext('2d');
 // Desktop is unchanged by construction rather than by hope — the oracle's fingerprints still match.
 const REF_SHORT=800;
 let W=REF_SHORT,H=REF_SHORT,DPR=1,S=1;   // seeded finite: a 0-viewport at boot must still leave a world
+// THE TOUCH ZONE SEAMS, IN CSS PIXELS — the one geometry in this file that is not in design units,
+// because pointer events are not either. Cached here rather than read off innerWidth per event, and
+// seeded finite for the same reason W and H are: a harness that reports innerWidth 0 would otherwise
+// put both seams at 0 and drop EVERY touch into the same zone, which is a control scheme that looks
+// like it is working right up until nothing steers. See `zoneOf`.
+const ZONE={x:REF_SHORT/2,y:REF_SHORT/2};
 function resize(){
   const vw=window.innerWidth, vh=window.innerHeight;   // the real viewport, in CSS pixels
   // A DEGENERATE VIEWPORT MUST NOT REACH THE DIVIDE. A phone reports 0x0 transiently — mid orientation
@@ -967,6 +990,7 @@ function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);
   S=Math.min(1, Math.min(vw,vh)/REF_SHORT);
   W=vw/S; H=vh/S;                                      // the same viewport, in design units
+  ZONE.x=vw*0.5; ZONE.y=vh*0.5;                        // ...and the touch partition, still in CSS px
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
   ctx.setTransform(S*DPR,0,0,S*DPR,0,0);               // one transform carries both scales
@@ -1198,13 +1222,16 @@ const L={ en:{
   'ctl.flip':'<kbd>Space</kbd><kbd>Click</kbd> Reverse poles',
   'ctl.od':'<kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute',
-  'tc.drag':'<b>Drag</b> Steer &mdash; the star sits above your finger so it is never hidden',
-  'tc.lean':'<b>Lean</b> Steer star',
-  'tc.tap':'<b>Tap</b> Reverse poles',
-  'tc.second':'<b>Second finger</b> Hold: Overdrive',
+  // THE THREE ZONES, NAMED BY WHERE THEY ARE. The legend the player gets is a map, so it says the place
+  // and not the gesture — "left half", not "drag". Under the intent-split scheme the place was
+  // meaningless (any finger anywhere could be any verb) and these rows had to name gestures instead.
+  //   `tc.drag` also carried a clause explaining that the star rides above your fingertip, which was a
+  // legend apologising for a layout: TOUCH_LIFT existed because absolute steering parked your thumb on
+  // the star. The stick does not, so there is nothing to explain.
+  'tc.move':'<b>Left half</b> Steer star',
+  'tc.od':'<b>Top right</b> Hold: Overdrive',
+  'tc.flip':'<b>Bottom right</b> Reverse poles',
   'btn.motion':'Reduces the shaking and flashing effects.',
-  'tilt.stale':'Motion data stopped.',
-  'tilt.ok':'TILT ✓  x {x}   y {y}   ({n} events)',
 
   // ---- canvas text ----
   'fx.ready':'GET READY',  'fx.skip':'tap to skip',
@@ -1255,8 +1282,7 @@ const L={ en:{
   'tut.doneH':'Shall we play the real game now?',
   'tut.play':'Enter the field',
   'tut.1.desktop':'Move the mouse',
-  'tut.1.touch':'Drag',
-  'tut.1.tilt':'Lean the phone',
+  'tut.1.touch':'Drag the left half',
   'tut.1.ok':"That's how you move!",
   'tut.2':'Look at your current colour, and get close to the same-coloured dots!',
   'tut.2.note':'{n} / 4 gathered',
@@ -1265,12 +1291,10 @@ const L={ en:{
   'tut.3.note':'{n} / 5 cleared',
   'tut.3.ok':'That is how you clear Dots out.',
   'tut.4.desktop':'Click to flip your colour.',
-  'tut.4.touch':'Tap to flip your colour.',
-  'tut.4.tilt':'Tap to flip your colour.',
+  'tut.4.touch':'Press the bottom right to flip your colour.',
   'tut.4.ok':'Focus — friend and foe have just swapped colours!',
   'tut.5.desktop':'Hold Shift to enter Overdrive and sweep Dots in a wider, faster circle.',
-  'tut.5.touch':'Hold a second finger to enter Overdrive and sweep Dots in a wider, faster circle.',
-  'tut.5.tilt':'Hold a second finger to enter Overdrive and sweep Dots in a wider, faster circle.',
+  'tut.5.touch':'Hold the top right to enter Overdrive and sweep Dots in a wider, faster circle.',
   'tut.5.noteOn':'burning',
   'tut.5.noteOff':'The Overdrive is charged!',
   'tut.5.noteSpent':'The Overdrive is spent!',
@@ -1343,15 +1367,11 @@ const L={ en:{
   'ctl.flip':'<kbd>Space</kbd><kbd>클릭</kbd> 색 반전',
   'ctl.od':'<kbd>Shift</kbd><kbd>우클릭</kbd> 유지: 오버드라이브',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> 일시정지 &nbsp;·&nbsp; <kbd>M</kbd> 음소거',
-  // TOUCH_LIFT = 55px. The star is drawn well ABOVE the finger so a thumb does not cover the one
-  // object you have to watch, and a player who is not told reads that offset as loose controls.
-  'tc.drag':'<b>드래그</b> 조종 &mdash; 손가락에 가리지 않게 별이 살짝 위에 붙어요',
-  'tc.lean':'<b>기울이기</b> 별 조종',
-  'tc.tap':'<b>탭</b> 색 반전',
-  'tc.second':'<b>두 번째 손가락</b> 유지: 오버드라이브',
+  // 세 구역을 위치로 부릅니다. 동작이 아니라 자리를 말하는 편이 지도에 가깝고, 화면을 보면 바로 확인됩니다.
+  'tc.move':'<b>왼쪽 절반</b> 별 조종',
+  'tc.od':'<b>오른쪽 위</b> 유지: 오버드라이브',
+  'tc.flip':'<b>오른쪽 아래</b> 색 반전',
   'btn.motion':'흔들리거나 번쩍거리는 효과를 줄입니다.',
-  'tilt.stale':'모션 데이터가 끊겼습니다.',
-  'tilt.ok':'TILT ✓  x {x}   y {y}   ({n}회)',
 
   // ---- canvas text ----
   'fx.ready':'준비',  'fx.skip':'탭하면 건너뜁니다',
@@ -1403,8 +1423,7 @@ const L={ en:{
   'tut.doneH':'이제 본 게임을 해볼까요?',
   'tut.play':'게임 시작',
   'tut.1.desktop':'마우스를 움직여 보세요',
-  'tut.1.touch':'드래그해 보세요',
-  'tut.1.tilt':'폰을 기울여 보세요',
+  'tut.1.touch':'왼쪽 절반을 드래그해 보세요',
   'tut.1.ok':'그렇게 움직이시면 돼요!',
   'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
   'tut.2.note':'{n} / 4 수집',
@@ -1413,12 +1432,10 @@ const L={ en:{
   'tut.3.note':'{n} / 5 제거',
   'tut.3.ok':'이렇게 입자들을 제거할 수 있어요.',
   'tut.4.desktop':'클릭해서 색을 뒤집으세요.',
-  'tut.4.touch':'탭해서 색을 뒤집으세요.',
-  'tut.4.tilt':'탭해서 색을 뒤집으세요.',
+  'tut.4.touch':'오른쪽 아래를 눌러 색을 뒤집으세요.',
   'tut.4.ok':'집중하세요, 적과 아군은 이제 반대 색상이니까요!',
   'tut.5.desktop':'Shift를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
-  'tut.5.touch':'두 번째 손가락을 대고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
-  'tut.5.tilt':'두 번째 손가락을 대고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
+  'tut.5.touch':'오른쪽 위를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
   'tut.5.noteOn':'연소 중',
   'tut.5.noteOff':'오버드라이브는 충전되어 있어요!',
   'tut.5.noteSpent':'충전된 양을 다 사용했네요!',
@@ -3353,17 +3370,19 @@ let tutBeat=0, tutBarCache='';
 // that is not the tutorial at all.
 function tutSafe(){ return tutMode && tutStep<TUT_STEPS.length-1; }
 
-// Copy differs by how you actually steer, which is three cases and not two: a desktop pointer, a finger,
-// and the native app's tilt. `touchSteers` is false on tilt and true on a web phone, so the coarse test
-// has to come first and then split. Never a bare "click" — that was the menu's own bug on touch.
-//   It returns the CASE, not the words. It used to hand back three verbs that got substituted into a
-// shared frame, which is a shape only English can hold — see the tutorial keys in L for why Korean
-// cannot take a noun in that slot.
-const tutDev=()=>{
-  const coarse=matchMedia('(pointer: coarse)').matches;
-  if(!coarse) return 'desktop';
-  return touchSteers ? 'touch' : 'tilt';
-};
+// Copy differs by how you actually steer, which is TWO cases: a desktop pointer and a finger. It was
+// three — the native app leaned — and the tilt case went with the control it described. Never a bare
+// "click"; that was the menu's own bug on touch.
+//   ⚠️ `pointer: coarse` IS A LEGITIMATE TEST HERE, in a way it explicitly was not for choosing a
+// control. This picks WORDS. The worst a wrong answer can do is name the wrong verb on a hybrid
+// machine, and the player can see the real control on the screen in front of them. The same query
+// picking the ENGINE's input path is what left phone browsers tilt-steered with no sensor and no way to
+// move the star — see the input block. One of those failures is a typo; the other is an unplayable
+// game. Do not read this line as the query being rehabilitated.
+//   It returns the CASE, not the words. It used to hand back verbs that got substituted into a shared
+// frame, which is a shape only English can hold — see the tutorial keys in L for why Korean cannot take
+// a noun in that slot.
+const tutDev=()=>matchMedia('(pointer: coarse)').matches ? 'touch' : 'desktop';
 // `note` is the counter made visible, and it exists for the same complaint as the beat: a step whose
 // progress is invisible cannot be understood as progress. "5 gathered" is a thing you watch happen;
 // reaching four with no readout is a sentence that vanishes for no stated reason.
@@ -4314,7 +4333,9 @@ function step(){
   stepOverdrive(dt);  // Overdrive state → physics flags, and the drain (before physics reads them)
   director(dt);
 
-  stepTilt(dt);       // adds velocity straight to P; stepPlayer's clamp and P.dx bookkeeping then cover it
+  stepStick();        // adds velocity straight to P; stepPlayer's clamp and P.dx bookkeeping then cover it
+                      // (no dt: like the tilt step it replaces, its speed is per-frame against this fixed
+                      //  60Hz tick, which is also why the constant transfers without rescaling)
   stepPlayer(dt);
   stepTutorial(dt);   // inert unless tutMode; reads P after the move, which is what the travel test wants
 
@@ -5372,7 +5393,12 @@ function bomberBlast(e){
 function beginReady(){ resumeT=READY_DUR; state='ready'; lastT=performance.now(); acc=0; }
 // Neutral is re-taken at the start of every run, so however you happen to be holding the phone when the
 // field opens becomes level. Sitting up between runs should not cost you a drift.
-function endReady(){ state='play'; acc=0; reanchorPointer(); tiltCalibrate(); }
+// ⚠️ `tiltCalibrate()` RAN HERE AND NO LONGER DOES. It re-zeroed the sensor to however the phone was
+// being held as the run started, which was load-bearing while tilt steered and is now calibrating
+// something nothing reads. The stick's equivalent is the line that replaced it: zero the VECTOR but
+// keep the finger's origin, so a run resuming under a thumb that never lifted stops the star instead of
+// cashing whatever deflection was frozen across the pause. The next pointermove re-establishes it.
+function endReady(){ state='play'; acc=0; reanchorPointer(); stickVec.x=stickVec.y=0; }
 function skipReady(){ if(state==='ready'){ resumeT=0; endReady(); } }
 
 // =====================================================================
@@ -6744,33 +6770,23 @@ function updateHUD(){
 }
 const TOUCH_CTL_S=6;
 
-// A FAULT IS ALWAYS SHOWN; A HEALTHY READOUT ONLY ON THE MENU. During a run a working tilt needs no
-// narration and the band is better empty, but a BROKEN one has to speak everywhere, because on a tilt
-// device touch does not steer and the player is holding something that does nothing.
-// On the menu the live vector is shown instead, so the sign convention can be checked by hand —
-// tilt right, watch x go positive — which is the one thing about tilt that cannot be tested off-device.
+// THIS PANEL IS RETIRED, AND THE REASON IS THE POINT: THERE IS NO LONGER A FAULT TO REPORT.
 //
-// ⚠️ THE ONE FAILURE LEFT IS THE FEED STOPPING, and it is the only one this panel can still report.
-// The four permission faults it used to name are unreachable now: `tiltDevice` is set BY a delivered
-// reading, so on any device that reads this branch the sensor has already spoken at least once. What
-// remains is CoreMotion going quiet mid-run — an app resumed from background before
-// `MotionBridgeViewController` restarts updates, say — which shows up as a gap in time and nothing else.
-// STALE_MS is 120 native frames at the bridge's 60Hz: long enough that a scheduling hiccup cannot trip
-// it, short enough that a player notices the message before they finish wondering.
-const TILT_STALE_MS=2000;
+// It existed because tilt could leave a player holding a device that did nothing. STRICT TILT-ONLY meant
+// a tilt device did not steer by touch at all, so a dead feed was not a degraded control — it was an
+// unplayable game, and silence would have been cruel. It showed the stale-feed warning everywhere and,
+// on the menu, the live vector, so the sign convention could be checked by hand on a device with no
+// console attached.
+//   ⚠️ WHAT KILLED IT IS THE ZONE SCHEME, NOT A TIDY-UP. Touch now steers on every device, selected per
+// event, and it cannot stop working — there is no sensor in the path to go quiet. The one failure this
+// panel still knew how to name, CoreMotion going silent after a resume, is now worth exactly nothing to
+// the player: the star keeps moving. Warning about it would be reporting a fault in a component nothing
+// depends on, which trains people to ignore the band this game keeps clear for real news.
+//   `TILT_STALE_MS`, `tilt.stale` and `tilt.ok` go with it. `tiltLastT` stays — it is what the seam
+// reports staleness off, and a bridge that has stopped is still worth being able to SEE while nobody is
+// being told about it. See the `stepTilt` tombstone for what else survives unwired.
 function updateTiltDiag(){
   const d=el('tiltDiag'); if(!d) return;
-  if(tiltDevice && tiltLastT && performance.now()-tiltLastT>TILT_STALE_MS){
-    d.textContent=T('tilt.stale'); d.classList.remove('ok','hidden'); return;
-  }
-  // `!touchSteers` rather than `tiltOn`, and the distinction still matters: `tiltOn` means "a reading
-  // arrived", `touchSteers` means "this device answers to the pointer". They are derived from the same
-  // event now, but reading the one the ENGINE branches on is what stops this panel ever describing a
-  // state the game is not in.
-  if(state==='menu' && tiltOn && !touchSteers){
-    d.textContent=T('tilt.ok',{x:tiltVec.x.toFixed(2), y:tiltVec.y.toFixed(2), n:tiltEvents});
-    d.classList.add('ok'); d.classList.remove('hidden'); return;
-  }
   d.classList.add('hidden');
 }
 
@@ -7248,7 +7264,8 @@ function applyLang(){
   // Korean player who never opened this panel had a pill sitting on the wrong word until they did.
   // The menu selector shows BOTH labels always; only which one is lit changes.
   for(const b of el('langSel').children) b.classList.toggle('on', b.dataset.lang===store.lang);
-  paintTouchCtl();
+  // (paintTouchCtl() stood here. Every row of the touch legend is `data-th` now and the loop above
+  //  already repainted all three — the steering row stopped being a special case when tilt did.)
   if(P) updateHUD();
   if(!el('settings').classList.contains('hidden')) paintSettings();
   if(!el('records' ).classList.contains('hidden')) openRecords();
@@ -7320,64 +7337,155 @@ function setPointer(x,y){ pointer.x=x/S; pointer.y=y/S; pointer.has=true; }
 // the (possibly far) cursor glides smoothly rather than snapping/teleporting
 function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; }
 
-// TOUCH. A mouse reports a position without being pressed; a finger does not. So on touch, steering and
-// flipping arrive through the SAME gesture, and firing flip() on pointerdown reverses your poles every
-// time you reach for the stick — the first touch of a drag flips cyan→red.
-//   They are split by intent instead. A finger that MOVES is steering and never flips. A finger that
-// presses and lifts without travelling is a tap, and taps flip. A tap deliberately does NOT move the
-// steer target: you flip constantly in this game, and having every flip also yank the core toward your
-// fingertip would make the two mechanics fight each other.
-const TAP_SLOP=12;     // CSS px of travel still counted as "held still" — a finger is never truly still
-const TAP_TIME=300;    // ms; hold longer than this and you meant to steer, even having not moved
-// The core is 15 design units ≈ 7 CSS px on a phone, and a fingertip covers ~40. Parked under your own
-// thumb you cannot read the colour arriving at the core, which is the one thing the whole game asks you
-// to read. So the target rides above the contact point. The core clamps to the arena, so pushing this
-// off the top of the screen still reaches the top edge.
-const TOUCH_LIFT=55;   // CSS px
-// STRICT TILT-ONLY. On a device that uses tilt, touch does not steer AT ALL — not "unless tilt happens
-// to be on", but never. Falling back to touch when tilt dies was rejected on purpose: that is precisely
-// how the first tilt bug hid. The game stayed playable, so nothing looked broken, and tilt was simply
-// dead for an entire build. Now the core does not move and #tiltDiag names the reason.
-//   ⚠️ THAT RULE IS ONLY SAFE BECAUSE OF WHAT NOW SETS IT. It used to combine with a coarse-pointer
-// default, so every phone BROWSER was tilt-only before a single reading had arrived — and if none ever
-// did, the star could not be moved. Only the native bridge flips this now (see the TILT block), so a
-// device is tilt-only exactly when a sensor has already proven it is feeding us.
-//   Cached rather than recomputed per event, because pointermove fires 60+ times a second. Seeded
-// `true` and corrected by refreshTouchSteer() once the tilt block has loaded: `tiltDevice` is declared
-// further down and reading it here would be a temporal-dead-zone ReferenceError — the exact class of
-// bug `node --check` does not catch.
-let touchSteers=true;
-let touchId=null, tapX=0, tapY=0, tapT=0, tapMoved=false;
-let odTouchId=null;   // the finger currently HOLDING Overdrive, so its release can be told from any other
+// TOUCH — THREE ZONES, AND WHICH ONE YOU LANDED IN IS THE WHOLE DECISION.
+//
+// What this replaces split touch by INTENT: a finger that travelled was steering, a finger that pressed
+// and lifted inside 300ms was a tap and taps flipped, and a second finger anywhere held Overdrive. It
+// worked. It cost two things a zone scheme does not.
+//   ⚠️ FLIP HAD TO WAIT FOR THE RELEASE, because until you lift there is no way to know a press was not
+// the start of a drag. Flip is a TIMING verb — it is how you turn a wall into a doorway with matter
+// already on you — and under intent-splitting it carried up to TAP_TIME of latency that the player had
+// no way to see and no way to shorten. A zone answers on contact. **Flip now fires on PRESS**, and that
+// is the change with the most feel in it.
+//   And STEERING WAS ABSOLUTE — the target was the finger, so the finger had to be able to reach every
+// part of the arena, which means it had to cover the arena. TOUCH_LIFT=55 existed to hold the star clear
+// of the thumb that was now parked on top of it: a correction for a problem the scheme created. Both are
+// gone with it.
+//
+// THE PARTITION. The app is landscape-locked (UISupportedInterfaceOrientations is LandscapeLeft/Right on
+// phone and iPad), so left/right and top/bottom mean the same thing in every session and the split can be
+// geometry rather than a guess about how the device is being held:
+//
+//     +---------------------------+--------------+
+//     |                           |  OVERDRIVE   |  hold to burn
+//     |           MOVE            +--------------+
+//     |      a virtual stick      |     FLIP     |  press to reverse poles
+//     +---------------------------+--------------+
+//              one half              one quarter each
+//
+// MOVE is the half because it is the only CONTINUOUS verb; the other two are instants, and an instant
+// wants a target rather than a field. OVERDRIVE sits ABOVE flip because the two must be usable at the
+// same time — Overdrive is held for seconds and you keep flipping straight through the ride, so they
+// cannot share a thumb. Top-right is where a landscape grip already rests an index finger, which makes
+// it the shoulder button this layout does not otherwise have.
+//   ⚠️ THE ZONE IS READ ON CONTACT AND NEVER AGAIN. A steering finger that wanders into the right half
+// keeps steering, and an Overdrive finger that slides down does not become a flip. Re-testing per move
+// would mean the control changes under you while you are using it, which is the one thing a control may
+// not do.
+//
+// SELECTED BY THE EVENT, NOT BY THE DEVICE. `isTouch(e)` decides, per event, so a mouse is never
+// affected and a finger always gets zones — on a phone, on a tablet, on a touchscreen laptop that also
+// has a trackpad. No media query, no stored preference, no sensor. That matters here because the two
+// schemes this file has already retired were both chosen by a GUESS about the hardware: `pointer:coarse`
+// picked tilt for phone browsers that had no working sensor, and the stored `orbitalcrash_tilt` outlived
+// the switch that could undo it. A scheme chosen by the event that is currently being handled cannot be
+// wrong about the device, because it is not making a claim about the device.
+const STICK={
+  dead : 6,     // CSS px of slop around the origin. TAP_SLOP was 12 for a different job — telling a tap
+                // from a drag — and nothing has to make that distinction any more, so this can be
+                // tighter and the stick can answer sooner.
+  full : 64,    // CSS px of deflection for full speed. A thumb pivots through about this much without
+                // the hand leaving its grip; past it the ORIGIN follows, so the player never runs out
+                // of stick before they run out of zone.
+  speed: 14,    // design units per frame at full deflection, before moveMult.
+                //   THE SAME NUMBER TILT USED, AND FOR THE SAME REASON — this is the one tuned figure
+                // that transfers intact from the control being retired, because it was set against the
+                // GAME rather than against the sensor: the fastest thing that hunts you is the Charger
+                // dash at CHG_SPD 9.5, Volley shots travel 8.4 and Comets 7.6, so 14 clears the Charger
+                // by ~47%. Multiplied by P.moveMult, so Overdrive lifts it to 19.6 exactly as it lifts
+                // every other kind of movement.
+};
+// ⚠️ NO LOW-PASS, AND THAT IS NOT AN OMISSION. Tilt smoothed because an accelerometer reading is noisy,
+// and the tilt block argues at length that the smoothing had to be a time constant rather than a
+// per-event fraction or the feel would be welded to the sample rate. A touch offset has none of that
+// problem: it is two integers the compositor has already resolved, exact on arrival. Filtering it would
+// buy nothing and cost lag — and lag is what this whole block exists to give back.
+let stickId=null;              // the finger steering, so its release can be told from any other
+let stickOX=0, stickOY=0;      // the FLOATING origin: wherever this finger went down, and it moves
+const stickVec={x:0,y:0};      // unit direction x ramped magnitude, each component in [-1,1]
+let odTouchId=null;            // the finger HOLDING Overdrive, so its release can be told from any other
 const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
+
+// ZONE BOUNDS ARE IN CSS PIXELS, because pointer events are. Every other length in this file is in
+// design units and the single divide in setPointer() is what keeps that honest — this is the one input
+// that never converts, so it compares against the cached viewport halves and NOT against W/2 and H/2.
+// Those are design units: on a phone S is about 0.5, so W/2 is roughly the full screen width and every
+// touch on the device would resolve to 'move'.
+function zoneOf(x,y){
+  if(x<ZONE.x) return 'move';
+  return y<ZONE.y ? 'od' : 'flip';
+}
+
+function stickSet(x,y){
+  let dx=x-stickOX, dy=y-stickOY;
+  const m=Math.hypot(dx,dy);
+  // THE ORIGIN FOLLOWS PAST FULL DEFLECTION. Without it a thumb that goes down near the left edge runs
+  // out of zone before it runs out of stick, so full speed is unreachable in that direction — a control
+  // that is quietly weaker one way for a reason the player cannot see. Dragging the origin along keeps
+  // the whole range available from anywhere in the half, and lets you walk the stick across the zone the
+  // way a real one lets you hold a heading.
+  if(m>STICK.full){
+    const k=(m-STICK.full)/m;
+    stickOX+=dx*k; stickOY+=dy*k;
+    dx-=dx*k; dy-=dy*k;
+  }
+  const mm=Math.min(m,STICK.full);
+  // ⚠️ ONE DEAD ZONE ON THE MAGNITUDE, NOT ONE PER AXIS. Per-axis is what tiltCurve does and it is right
+  // for tilt, where the two axes really are two separate readings. A stick has ONE offset, and
+  // dead-zoning its components independently notches the diagonals: push at 45 degrees just past the
+  // threshold and both components are still individually suppressed, so the star does not move at all in
+  // the exact direction you are pointing.
+  if(mm<=STICK.dead){ stickVec.x=stickVec.y=0; return; }
+  const r=(mm-STICK.dead)/(STICK.full-STICK.dead);   // linear past the dead zone; mm is already clamped
+  stickVec.x=dx/mm*r; stickVec.y=dy/mm*r;
+}
+function stickClear(){ stickId=null; stickVec.x=stickVec.y=0; }
+
+// THE MOVE ZONE IS A RATE, NOT A POSITION, and the argument is the one the tilt block made at length —
+// it outlives tilt because it was never about the sensor. An offset from where you put your thumb down
+// means "keep going this way", not "be there". Feeding a rate through stepPlayer's position chase means
+// picking an offset whose chase velocity equals the speed you wanted, which silently welds this control
+// to that 0.185 coefficient: retune the chase for the mouse and touch changes speed for reasons nobody
+// would think to look for. So the stick adds velocity to P directly, exactly as the keyboard nudge does,
+// and stepPlayer's clamp and P.dx bookkeeping cover it on the very next line.
+function stepStick(){
+  if(stickId===null || !P) return;
+  pointer.has=false;                                 // the stick drives; the chase must let go
+  const sp=STICK.speed*P.moveMult;
+  P.x+=stickVec.x*sp; P.y+=stickVec.y*sp;            // stepPlayer clamps to the arena right after
+}
 
 canvas.addEventListener('pointermove',e=>{
   if(!isTouch(e)){ setPointer(e.clientX,e.clientY); return; }
-  if(e.pointerId!==touchId) return;                       // ignore every finger but the steering one
-  if(!tapMoved && Math.hypot(e.clientX-tapX,e.clientY-tapY)>TAP_SLOP) tapMoved=true;
-  // The travel test still runs even where a drag cannot steer, because `tapMoved` is also what stops a
-  // drag being counted as a flip on release. Losing that would make every swipe reverse your poles.
-  if(tapMoved && touchSteers) setPointer(e.clientX,e.clientY-TOUCH_LIFT);
+  if(e.pointerId!==stickId) return;                       // ignore every finger but the steering one
+  stickSet(e.clientX,e.clientY);
 });
 canvas.addEventListener('pointerdown',e=>{
-  audioInit();   // tilt is armed by a document-level capture listener in the TILT block, not from here:
-                 // the first gesture of a session lands on an HTML button, which never reaches the canvas
-  if(isTouch(e)){
-    if(touchId===null){ touchId=e.pointerId; tapX=e.clientX; tapY=e.clientY; tapT=performance.now(); tapMoved=false; }
-    else if(state==='play'){ odTouchId=e.pointerId; overdrive(); }  // a second finger while steering: HOLD it for Overdrive
-    if(state==='ready') skipReady();
-    return;                                               // touch decides on RELEASE, not on press
+  audioInit();   // the first gesture of a session lands on an HTML button, which never reaches the
+                 // canvas, so this is the second chance rather than the only one
+  if(!isTouch(e)){
+    setPointer(e.clientX,e.clientY);
+    if(state==='ready'){ skipReady(); return; }
+    if(e.button===2){ overdrive(); return; }              // held — released by the window handler below
+    if(state==='play') flip();                            // a pure tap — reverse poles
+    return;
   }
-  setPointer(e.clientX,e.clientY);
   if(state==='ready'){ skipReady(); return; }
-  if(e.button===2){ overdrive(); return; }                // held — released by the window handler below
-  if(state==='play') flip(); // a pure tap — reverse poles
+  // ⚠️ ZONES ARE A PLAY CONTROL AND NOTHING ELSE. Every other screen in this game is HTML on top of the
+  // canvas with its own buttons, so a canvas touch outside a run has nothing to mean — and a flip zone
+  // that answered on the death screen would fire under the thumb reaching for Reforge.
+  if(state!=='play') return;
+  switch(zoneOf(e.clientX,e.clientY)){
+    // First finger into the half owns the stick. A second one there is ignored rather than stealing it:
+    // a palm or a resting knuckle must not take the steering away from the thumb that is using it.
+    case 'move': if(stickId===null){ stickId=e.pointerId; stickOX=e.clientX; stickOY=e.clientY; stickVec.x=stickVec.y=0; } break;
+    case 'od':   if(odTouchId===null){ odTouchId=e.pointerId; overdrive(); } break;
+    default:     flip();                                  // ON PRESS — see the top of this block
+  }
 });
 function endTouch(e){
-  if(e.pointerId===odTouchId){ odTouchId=null; endOverdrive(); return; }  // the Overdrive finger lifted
-  if(e.pointerId!==touchId) return;
-  touchId=null;
-  if(!tapMoved && performance.now()-tapT<TAP_TIME && state==='play') flip();
+  if(e.pointerId===stickId){ stickClear(); return; }
+  if(e.pointerId===odTouchId){ odTouchId=null; endOverdrive(); }   // the Overdrive finger lifted
 }
 canvas.addEventListener('pointerup',endTouch);
 canvas.addEventListener('pointercancel',endTouch);
@@ -7488,19 +7596,25 @@ function onTilt(e){
   tiltVec.y+=(ty-tiltVec.y)*k;
 }
 
-// ⚠️ GATED ON `touchSteers` TOO, NOT JUST `tiltOn`. Those two can disagree: `tiltOn` means the sensor
-// is attached, `touchSteers` means this device steers by pointer — and a device that once attached tilt
-// keeps `tiltOn` true forever. Without this second test, turning tilt back off left `tiltOn` set, so
-// `pointer.has=false` ran every frame and killed pointer steering while contributing nothing to replace
-// it: a frozen core and no error, on a machine with a perfectly good mouse. Found by measurement — the
-// desktop leg of the input test moved the core 0 units. Testing both makes the two inputs mutually
-// exclusive by construction rather than by everyone remembering to keep them in step.
-function stepTilt(dt){
-  if(!tiltOn || touchSteers || !P) return;
-  pointer.has=false;                                           // tilt drives; the chase must let go
-  const sp=TILT.speed*P.moveMult;
-  P.x+=tiltVec.x*sp; P.y+=tiltVec.y*sp;                        // stepPlayer clamps to the arena right after
-}
+// TOMBSTONE — `stepTilt` IS GONE, AND WITH IT THE ONLY THING THAT EVER MOVED THE STAR BY TILT.
+//
+// It read `if(!tiltOn || touchSteers || !P) return;` and then added `tiltVec * TILT.speed * P.moveMult`
+// to P. The three-zone touch control replaced it (see the input block): the move half is a virtual stick
+// and `stepStick` now occupies its slot in `step()`, by the same route and for the same reason — a rate
+// added to P directly rather than a target fed through the position chase.
+//   ⚠️ EVERYTHING ABOVE THIS LINE STILL RUNS. The CoreMotion bridge still calls `__nativeTilt`, `onTilt`
+// still calibrates and smooths, and `tiltVec` is still maintained and still readable from the seam. What
+// no longer exists is a consumer. That is deliberate: the bridge is ~40 lines of verified Swift and the
+// smoothing below it is a tau that took two passes and a measurement to get right, so it is kept intact
+// and unwired rather than deleted and re-derived if tilt is ever wanted again.
+//   ⚠️ SO `tiltVec` IS NOW AN OBSERVATION, NOT A CONTROL. Anything that reads it is reading a sensor,
+// not the input the player is using. Do not reintroduce a consumer without deciding what happens when
+// both it and a finger ask for the star at once — the old answer was STRICT TILT-ONLY, and that answer
+// went with the control.
+//
+// `touchSteers` and `refreshTouchSteer()` are gone for the same reason. They existed to make tilt and
+// touch mutually exclusive, and there is nothing left to be exclusive of: touch is selected per event by
+// `isTouch(e)`, so a mouse and a finger no longer have to agree about what kind of device this is.
 
 // TOMBSTONE — WHY THERE IS NO `requestPermission` CALL ANYWHERE IN THIS FILE.
 // The web sensor was tried properly and measured on a real phone, and it does not work on the stack
@@ -7551,28 +7665,19 @@ window.__nativeTilt=(beta,gamma)=>{
   if(!tiltDevice){
     tiltDevice=true; tiltReady=true; tiltVerdict='native';
     tiltCalibrate();                                        // re-zero: this is a new sensor's frame
-    refreshTouchSteer();                                    // and the finger stops steering from here
   }
   onTilt({beta,gamma});
 };
+// ⚠️ IT NO LONGER CHANGES HOW THE GAME IS STEERED. This used to call `refreshTouchSteer()` on the first
+// reading, and that one line was the whole takeover: the finger stopped steering ~33ms into the session
+// and the player never saw it happen. Both are gone. `tiltDevice` now records only that a bridge exists,
+// which is a fact about the shell and not a decision about the control.
 
-// Whether touch may steer is the exact inverse of whether this device is on tilt, and it is cached in
-// the input block above (pointermove cannot afford this test per event, and it fires 60+ times a second).
-// `window.__nativeTilt` is the only thing that can change the answer, and it calls this.
-function refreshTouchSteer(){ touchSteers=!tiltDevice; paintTouchCtl(); }
-
-// The one line of the touch legend that is not the same on both kinds of touch device. Repainted from
-// refreshTouchSteer rather than written once at boot, because a native shell starts as a touch device
-// and BECOMES a tilt device ~33ms later, when the bridge makes its first call — a legend written at
-// load would spend the whole session telling an iOS player to drag.
-//   TOUCH_LIFT is worth a word. The star tracks 55px ABOVE the finger on purpose, and a player who does
-// not know that reads the offset as the controls being loose rather than as the thing that stops their
-// own thumb hiding the one object they have to watch.
-function paintTouchCtl(){
-  const s=el('tcSteer'); if(!s) return;
-  s.innerHTML = T(touchSteers ? 'tc.drag' : 'tc.lean');
-}
-refreshTouchSteer();
+// THE TOUCH LEGEND IS STATIC NOW, so there is no paintTouchCtl(). It had one job — the steering line was
+// the single row that differed between a web phone (drag) and the native app (lean), and it had to be
+// REPAINTED rather than written at boot because a native shell starts as a touch device and became a
+// tilt device a frame or two later. With one touch scheme on every device, all three rows are the same
+// three rows everywhere and the HTML can just say them.
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
 // press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
 canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); });
@@ -7997,12 +8102,20 @@ window.__orbital=window.__polaris=window.__flux={
                   // What the smoothing actually costs you, in ms, rather than as a coefficient to
                   // reason about. 63% is the honest "it responded" figure; 95% is "it has arrived".
                   lagMs:{to63:Math.round(TILT.tau*1000), to95:Math.round(TILT.tau*3000)},
-                  touchSteers, staleMs:tiltLastT?Math.round(performance.now()-tiltLastT):null,
-                  maxUnitsPerFrame:TILT.speed*(P?P.moveMult:1), TILT:{...TILT}}; },
-  // `__nativeTilt` is the only way to reach a tilt-steered state now, so it is also the only way to TEST
-  // one off-device: call it once and this build behaves exactly as the iOS shell does.
-  TILT, tiltCalibrate, stepTilt, refreshTouchSteer,
-  get touchSteers(){return touchSteers;},
+                  staleMs:tiltLastT?Math.round(performance.now()-tiltLastT):null,
+                  // ⚠️ `steers:false` IS THE WHOLE STATUS OF THIS OBJECT. Everything above is a live
+                  // sensor reading that moves nothing — see the `stepTilt` tombstone. It is reported so
+                  // the bridge can still be checked on a real phone, not because the game reads it.
+                  steers:false, TILT:{...TILT}}; },
+  TILT, tiltCalibrate,
+  // THE TOUCH ZONES, EXPOSED BECAUSE A SIMULATOR CANNOT PINCH AND A DESKTOP BROWSER HAS NO FINGERS.
+  // `zoneOf` takes CSS px and answers 'move' | 'od' | 'flip', which is the one function a harness needs
+  // to assert the partition without synthesising a single event. `stick()` reports the live vector and
+  // its floating origin, so a recorded drag can be checked against the speed it was supposed to ask for.
+  zoneOf, STICK, get ZONE(){return {...ZONE};},
+  stick(){ return {id:stickId, ox:stickOX, oy:stickOY,
+                   vec:{x:+stickVec.x.toFixed(3), y:+stickVec.y.toFixed(3)},
+                   maxUnitsPerFrame:STICK.speed*(P?P.moveMult:1)}; },
   // ⚠️ overdrive() is PRESS, not toggle. A harness that calls it twice ignites once and never releases;
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},

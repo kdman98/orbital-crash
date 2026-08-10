@@ -379,81 +379,142 @@ invisible because it was buried under the four other cues a hit used to fire.
 
 ### Touch
 
-**Steering is offset, not direct.** The target sits `TOUCH_LIFT` above the contact point, because a
-thumb on the star covers the one thing the game asks you to read — the colour arriving at your core. The
-core still clamps to the arena, so pushing the target off the top of the screen reaches the top edge
-rather than stalling short of it.
+**Three zones, and which one you landed in is the whole decision.** The canvas is partitioned by
+geometry — `zoneOf(x,y)` in CSS pixels against the cached viewport halves:
 
-**A tap flips; a drag steers.** Both `TAP_SLOP` and `TAP_TIME` have to hold for a press to count as a
-tap, and a tap never moves the star — it would otherwise yank the core to wherever your finger landed,
-which is the opposite of aiming. Under tilt a drag must not steer either: `stepTilt` clears the pointer
-every frame, so writing a target there buys a one-frame twitch and nothing else.
+|  |  |
+|---|---|
+| **left half** | MOVE — a virtual stick |
+| **top-right quarter** | OVERDRIVE — hold to burn |
+| **bottom-right quarter** | FLIP — press to reverse poles |
 
-**Tilt is a rate, and its smoothing is a time constant.** An angle means *keep going this way*, not *be
-there*, so `stepTilt` adds velocity to the star directly rather than naming a target for the position
-chase to follow — feeding a rate through that chase would weld tilt's speed to the chase coefficient,
-and retuning the mouse would change tilt for reasons nobody would think to look for. The low-pass on the
-reading is `TILT.tau`, in **seconds**, integrated against the real gap between samples. It has to be time
-and not a per-sample fraction, because the bridge's rate is a tuning knob and has already moved once
-(30Hz → 60Hz, to halve how stale a reading is against a 16ms step); see the trap on that below, which is
-what it cost to learn the smoothing must not depend on it. `tilt().lagMs`
-reports the resulting delay in milliseconds, which is the number to put in front of a human — nobody can
-feel a coefficient.
+Move is the half because it is the only *continuous* verb; the other two are instants, and an instant
+wants a target rather than a field. **Overdrive sits above flip because the two must be usable at once** —
+Overdrive is held for seconds and you keep flipping through the ride, so they cannot share a thumb.
+Verified: three fingers down simultaneously, the star moving at 19.6 units/frame while burning, a flip
+landing mid-burn, and the burn surviving it.
 
-**Tilt is native-only, and delivery is the only thing that selects it.** `tiltDevice` is false everywhere
-until `window.__nativeTilt` hands over a reading, and nothing else can set it. Web and desktop steer by
-pointer from boot; the iOS shell is on tilt from its first bridge callback, ~33ms in.
+⚠️ **The zone is read on contact and never again.** A steering finger that wanders into the right half
+keeps steering; an Overdrive finger that slides down does not become a flip. Re-testing per move would
+mean the control changes under you while you are using it.
 
-⚠️ **The old default and the Settings switch were one mechanism, and they had to be removed together.**
-Tilt used to be selected by `matchMedia('(pointer: coarse)')`, which combines with the strict-tilt-only
-rule above into a phone **browser** that boots tilt-steered before any reading has arrived — and if none
-ever does (an iOS Safari player who dismisses the motion prompt, an insecure context), the star cannot be
-moved at all. The Settings switch was the sole escape, which is why every string in the deleted
-`tiltFault()` ended *"Turn Tilt off in Settings to steer by touch"*. Removing the switch without moving
-the default would have stranded exactly those players. **A control scheme selected by a guess about the
-device needs an escape hatch; one selected by proof of a working sensor does not.**
+**Selected by the event, not by the device.** `isTouch(e)` decides per event, so a mouse is never
+affected and a finger always gets zones — phone, tablet, touchscreen laptop alike. This is the third
+selector this file has had and the first that cannot be wrong about the hardware, **because it makes no
+claim about the hardware**: the two it replaced were both guesses (`pointer: coarse`, then a stored
+preference), and both stranded real players. See the tilt tombstone below.
 
-⚠️ `orbitalcrash_tilt` **is deliberately not read.** Anyone who ever switched tilt on in a phone browser
-still has `'1'` in localStorage, and honouring it now would strand them with no switch left. The key is
-inert, not migrated. There is a regression test for this: plant the key, reload, confirm a drag still
-steers — a fresh profile cannot show you that one.
+**Flip fires on PRESS.** Under the retired intent-split scheme it could not: until you lifted, there was
+no way to know a press was not the start of a drag, so flip carried up to `TAP_TIME` (300ms) of latency
+the player could neither see nor shorten. Flip is a *timing* verb. This is the change with the most feel
+in it, and it is why `TAP_SLOP`, `TAP_TIME` and `tapMoved` are gone.
 
-⚠️ **There is no `requestPermission` call anywhere in the file, and adding one back needs a switch.** The
-web sensor path was measured and abandoned: on Android Chrome `requestPermission` does not exist, so
-arming attached the listener and readings simply flowed — which under a no-switch build hands an Android
-web player a tilt-steered game with nothing to press. Inside the Capacitor WebView the promise rejects
-outright even though Capacitor's `WKUIDelegate` answers the real permission with `.grant`; the JS
-permission API and the native sensor gate are two different doors, and the JS one is nailed shut.
+**`TOUCH_LIFT` is gone too, and it was a correction for a problem the old scheme created.** Absolute
+steering meant the finger had to reach every part of the arena, so it covered the arena, so the star had
+to be drawn 55px above the fingertip to stay readable. A stick does not park your thumb on the star.
 
-**The one failure left is the feed stopping.** The four permission faults are unreachable — `tiltDevice`
-is set *by* a delivered reading, so any device reading that branch has already heard from the sensor at
-least once. What remains is CoreMotion going quiet mid-run (an app resumed from background before
-`MotionBridgeViewController` restarts updates), which is a question about time: `#tiltDiag` reports it
-off `tiltLastT` past `TILT_STALE_MS`.
+**The stick is a rate, with a floating origin.** Touch-down sets the origin; the offset from it is a
+direction and a magnitude, fed to P as velocity. `STICK.dead` 6px, `STICK.full` 64px, `STICK.speed` 14
+design units/frame before `moveMult` — **the one tuned number inherited intact from tilt**, because it
+was set against the game rather than against a sensor (Charger dash 9.5, Volley 8.4, Comet 7.6; 14 clears
+the Charger by ~47%). Measured at exactly 14.00/frame idle and 19.60 under Overdrive.
 
-**None of this reaches mouse play.** The lift is applied only inside the `isTouch(e)` branch — pointer
-input takes an early return with the raw coordinates — which is also what made the port measurable:
-the on-device drag landing within half a point of `TOUCH_LIFT`'s prediction could not have happened
-unless the touch path were live.
+⚠️ **The origin follows past full deflection.** Without it a thumb going down near the left edge runs out
+of zone before it runs out of stick, and full speed is unreachable in that direction for a reason the
+player cannot see. Verified: shoved 200px from a 100px origin, the origin lands on exactly 236.
 
-**Portrait is enforced natively, and it is a fairness rule rather than a taste one.** `S` is
-`min(1, min(vw,vh)/REF_SHORT)`, so the *short* side fixes the scale and the *long* side decides how much
-arena you get. Landscape would hand the player a wider field at an unchanged spawn rate — an easier run
-scored on the same table. The web manifest's `orientation` is advisory and applies only to an installed
-PWA; `Info.plist` is the enforcement.
+⚠️ **One dead zone on the magnitude, not one per axis.** Per-axis is right for tilt, where the two axes
+are genuinely two readings. A stick has one offset, and dead-zoning components independently **notches
+the diagonals** — push at 45° just past the threshold and both components are still individually
+suppressed, so the star does not move at all in the direction you are pointing. Verified un-notched at
+(5,5): both components 0.013.
+
+**No low-pass, and that is not an omission.** Tilt smoothed because an accelerometer reading is noisy. A
+touch offset is two integers the compositor already resolved. Filtering would buy nothing and cost lag.
+
+⚠️ **The utility cluster moved because the partition left it nowhere neutral.** `#muteBtn`, `#motionBtn`
+and `#pauseBtn` were stacked up the right edge at `bottom` 16/58/100 — which is **inside the flip zone**,
+the quarter a thumb taps most, so each was a hole that paused or muted instead of flipping. Mute and
+Reduced motion are duplicates of Settings rows and are hidden on coarse pointers; Pause is not a
+duplicate and moves to the top-right corner, into the less-pressed zone and onto its extreme corner.
+**This is the one part of the scheme argued from ergonomics rather than measured** — it wants a real
+thumb on a real phone.
+
+### Tilt, retired
+
+**Tilt no longer steers anything, on any device.** `stepTilt` is deleted; the three-zone touch control
+above replaced it, and `stepStick` occupies its slot in `step()` by the same route — a rate added to P
+directly rather than a target fed through the position chase.
+
+⚠️ **The bridge is kept intact and unwired, not deleted.** `MotionBridgeViewController.swift` still reads
+CoreMotion at 60Hz and still calls `window.__nativeTilt`; `onTilt` still calibrates, remaps and smooths;
+`tiltVec` is still maintained and still readable from the seam. What no longer exists is a **consumer**.
+That is deliberate — the bridge is ~40 lines of verified Swift and `TILT.tau` took two passes and a
+measurement to settle, so it is worth keeping whole rather than re-derived.
+
+⚠️ **So `tiltVec` is now an observation, not a control.** Anything reading it is reading a sensor, not
+the input the player is using. Do not reintroduce a consumer without deciding what happens when it and a
+finger both ask for the star — the old answer was STRICT TILT-ONLY, and that answer went with the control.
+
+**What went with it, and why each one had to.** `touchSteers` and `refreshTouchSteer()` existed to make
+tilt and touch mutually exclusive, and there is nothing left to be exclusive of. `#tiltDiag`,
+`TILT_STALE_MS`, `tilt.stale` and `tilt.ok` existed because a dead feed meant an **unplayable game** —
+strict tilt-only meant a tilt device did not steer by touch at all. Touch cannot stop working now, so
+warning about a silent sensor would be reporting a fault in a component nothing depends on, which trains
+players to ignore the band this game keeps clear for real news. The tutorial's third device case
+(`tut.*.tilt`) went the same way.
+
+**The rate argument outlived the sensor and is now the stick's.** An offset means *keep going this way*,
+not *be there*; feeding a rate through the 18.5%-of-the-gap chase would weld the control's speed to that
+coefficient, so retuning the mouse would silently change touch. See *Touch* above.
+
+⚠️ **`orbitalcrash_tilt` is still deliberately not read**, and there is now nothing that could read it.
+The key is inert, not migrated.
+
+⚠️ **There is still no `requestPermission` call anywhere in the file, and the reason has not changed.**
+The web sensor path was measured and abandoned: on Android Chrome `requestPermission` does not exist, so
+arming attached the listener and readings simply flowed. Inside the Capacitor WebView the promise rejects
+outright even though Capacitor's `WKUIDelegate` answers the real permission with `.grant` — the JS
+permission API and the native sensor gate are two different doors, and the JS one is nailed shut. **This
+is why the bridge was native in the first place**, and it stays true whether or not anything consumes it.
+
+**LANDSCAPE is enforced natively, both ways round.** ⚠️ **This section said "portrait" until 2026-08-10,
+five days after the code stopped agreeing with it** — `c6b59b5` moved the plist and the manifest to
+`LandscapeLeft`/`LandscapeRight` and refuted the argument that had justified the lock, and this paragraph
+kept making that argument anyway. It is recorded rather than quietly corrected because the failure is the
+one this file warns about elsewhere: **the fact was changed and the reasoning resting on it was not
+grepped.** The three-zone touch control is built on the landscape geometry, so a reader trusting this
+paragraph would have called the layout wrong.
+
+*The retired argument, and why it was false.* The lock was justified as fairness — that landscape hands
+the player a wider field at an unchanged spawn rate. It does not. `S = min(1, min(vw,vh)/REF_SHORT)` keys
+on the **short** side, so rotating trades width for height one for one:
+
+| iPhone 17 Pro | viewport | S | world | area | spawnR |
+|---|---|---|---|---|---|
+| portrait | 402×874 | 0.502 | 800 × 1739 | 1.391M | 1044 |
+| landscape | 874×402 | 0.502 | 1739 × 800 | 1.391M | 1044 |
+
+Area-neutral and spawn-radius-neutral. **Landscape is in fact the truer shape**: aspect 2.17 against the
+1.78 of the desktop window every constant here was tuned in, where portrait's 0.46 was 3.9× off.
 
 **The scale is why one tuning pass covers the lineup.** Across iPhone 17 Pro / 17 Pro Max / 17e / Air,
-every device gets a world exactly `REF_SHORT` across — that is the definition of `S`, not a measurement
-— by **1731 to 1739 tall, an 8-unit spread of 0.46%**. Tune for one and
-you have tuned for all of them. Against desktop the *area* barely moves either (1.39M vs 2.07M square
-units). What moves is **shape**: aspect 0.46 against 1.78, a 3.9× difference, and that is the part no
-bot can sign off on.
+every device gets a world exactly `REF_SHORT` **tall** — that is the definition of `S`, not a measurement
+— by **1731 to 1739 across, an 8-unit spread of 0.46%**. Tune for one and you have tuned for all of them.
+Against desktop the *area* barely moves either (1.39M vs 2.07M square units).
 
-⚠️ `Info.plist` restates `REF_SHORT`'s **value** inside a comment explaining the portrait rule, rather
+The web manifest's `orientation` is advisory and applies only to an installed PWA; `Info.plist` is the
+enforcement, and the two must agree. Both landscape variants are allowed so the notch can sit on either
+hand — which is also why the touch partition is left/right rather than handed.
+
+⚠️ `Info.plist` restates `REF_SHORT`'s **value** inside a comment explaining the orientation rule, rather
 than its name. It is the numbers rule broken across a language and a directory boundary: nothing that
 greps the JS will ever surface it, so changing `REF_SHORT` leaves a confident, wrong sentence behind in
 a file nobody re-reads. Left in place rather than fixed here, because it is the app target's file and
 this is a note, not a licence to edit it — but it is the first cross-language instance we have.
+  ⚠️ **And the same hazard just fired in the other direction, in this very file** — the plist comment
+stayed correct through `c6b59b5` while the MECHANICS paragraph above it went stale for five days. The
+cross-language boundary is not what makes a restated fact dangerous; **being a restatement is.**
 
 ---
 
@@ -3374,9 +3435,19 @@ point-blank, so the Emitter reading hardest is probably an artifact. Needs one h
 **No heal beats the lockout.** Integrity regenerates only after a quiet window and nothing else heals.
 Disengaging is the entire healing verb; watch that a bad Epoch is still recoverable.
 
-**Touch controls.** Parked pending the launch-environment decision. Every touch-down currently calls
-`flip()`, so steering re-grips reverse your polarity; Android long-press additionally synthesizes
-`contextmenu` → an unintended Overdrive ignition. The fix is either a real touch scheme or an honest desktop-only
-gate.
+**~~Touch controls.~~ Closed by building the real touch scheme.** The item offered two ways out — "either
+a real touch scheme or an honest desktop-only gate" — and shipping on iOS settled which. See *Touch*:
+three zones, move on the left half, Overdrive and flip on the right quarters.
+
+*What the item described is gone rather than fixed.* "Every touch-down currently calls `flip()`" and the
+Android long-press → `contextmenu` → unintended-Overdrive path both belonged to the intent-split scheme,
+which no longer exists; `flip()` is now reachable from one quarter of the screen and nothing else, and
+`contextmenu` is suppressed and never ignites.
+
+⚠️ **One part of the replacement is argued rather than measured, and it is the part a bot cannot settle:**
+whether the quarters land under the thumb and index finger of a real hand, and whether Pause in the
+top-right corner is far enough from where a held Overdrive press actually falls. Everything mechanical
+about the scheme is verified — partition, dead zone, ramp, origin-follow, un-notched diagonals, all three
+verbs concurrent — but "it fits the hand" is not, and the median scripted pilot has no hands.
 
 **HUD hierarchy.** The meters read as equals; only Capacitor and Streak deserve to be loud.
