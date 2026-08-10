@@ -360,8 +360,18 @@ it, and the spring reels it back the whole time; past `RING_GRACE_R`× the Field
 corner-to-corner flick outruns the ring by hundreds of px while steady strafing at any speed keeps
 100%, because Dots settle into a stable lag inside the Field.
 
-**Integrity** regenerates after a lockout with no hit. **Nothing else heals — disengaging is the
-entire healing verb.**
+**Integrity** does not come back. **Purging an Anomaly is the only heal in survival — one heal an
+Epoch, +30 against a pool of 100.** There is no passive regeneration, no lockout to wait out, and no
+other source; what you spend at Epoch II is still missing at Epoch VI. Integrity is a **run-long**
+resource, and that is the axis score does not have: score is ~131 pts/s and near rate-invariant, so it
+reports how long you lasted, while remaining Integrity reports how cleanly you got there.
+
+⚠️ **The practice rooms keep the old regeneration, deliberately.** Boss Rush, Pattern Lab and the
+tutorial still recover 2.6/s after 3.8s untouched. Boss Rush exists to teach an Anomaly's pattern and a
+fight costs a median 94 HP, so on survival rules it would grant about one and a half attempts a session
+and teach nothing. The menu already promises those rooms are not comparable ("Practice only · neither
+can set your best"); this is one more way that is true. **Survival is the only mode whose economy is
+the feature.**
 
 **Immunity** is one window for every source of damage — `IFRAME`, the same value whether you were hit
 by a Dot, a missile or a mine. The blink that reports it is driven off `P.iframe` itself rather than
@@ -1652,17 +1662,36 @@ including the ones that move standing population the most.
 is the only thing that accumulates and it empties every time you use it. What improves across a run is
 your position and your hoard, both of which you can lose in a second.
 
+**What now *degrades* across a run is Integrity, and it is the only thing in the game that cannot be
+rebuilt.** Removing passive regeneration turned health from a per-encounter resource into a run-long
+one. That is deliberate and it is the game's second axis: score is spawn-limited and therefore very
+nearly a clock (268–292 Dots/min in every condition ever measured; a flat 20 a kill), so two runs of the
+same length score about the same however they were played. Remaining Integrity does not — it separates
+them. The direction of the arrow is the point: a run only ever gets more fragile.
+
+**It is also what makes a run end.** Heal income is flat at 30 an Epoch; contact damage is
+`dmg × (1+(act-1)×0.08)` and never floors. Against the Brute's 22 base, **from Epoch VI one contact
+costs 30.8 — more than an entire Epoch's income** — and **at Epoch XLVI one contact is 101.2 and
+one-shots a full pool.** Flat income against unbounded expense on a 100 pool is terminal by
+construction, which is why closing the endless Epoch needed no new difficulty scalar. ⚠️ Those two
+figures are arithmetic off `aDmg`, confirmed by reading `e.dmg` off freshly-spawned bodies at eight
+Epochs; **where a run actually ends is not measured and this project's bot cannot measure it** — it does
+not dodge, has never picked up an Overdrive, and dies before half the roster exists.
+
 *The powerup roster was deleted rather than fixed.* Three temporary drops, of which measurement said only
 **Aegis** was load-bearing (−32.8% survival when suppressed, Welch t=4.06 at n=30, against t=1.12 and
 t=1.56 for the other two). Removing it cost **−23.5% survival** (34.9 → 26.7s, t=2.18, n=30) — and
 **halved the variance** (sd 18.8 → 8.5), because a free shield was most of the long tail. Runs are
-shorter and far more alike. See *Open* for what is meant to fill that hole.
+shorter and far more alike. See *Open* for what is meant to fill that hole. ⚠️ **Both figures now
+understate the hole**: they were measured against a build that still refunded damage passively, and
+removing regeneration takes survival down again from that already-lowered floor by an amount nobody has
+measured. Do not quote −23.5% as though it were the current gap.
 
 ### Modes
 | | |
 |---|---|
-| **Survival** | the real run. The only mode that can set your best score |
-| **Boss Rush** | one Anomaly always present over a **live ambient field**, cycling kinds on kill; number keys jump to a kind. Epoch pinned, intro mix skipped. Gilded Bounty suppressed |
+| **Survival** | the real run. The only mode that can set your best score, and **the only one with no passive heal** — see *Integrity* |
+| **Boss Rush** | one Anomaly always present over a **live ambient field**, cycling kinds on kill; number keys jump to a kind. Epoch pinned, intro mix skipped. Gilded Bounty suppressed. Keeps passive regeneration |
 | **Pattern Lab** | a live ambient field with **no Anomaly and no Epoch phases**; number keys fire the six shapes on demand, and auto-formations are suppressed so nothing arrives unless you asked. It exists because Boss Rush structurally cannot serve it — formations are gated on not-boss, which is most of what Boss Rush is |
 
 **Game states:** `menu` · `play` · `ready` (GET READY) · `paused` · `dead`.
@@ -3242,6 +3271,24 @@ anyway**, for difficulty rather than for this, and nothing above changes as a re
 prediction working, not a coincidence. Any further move still has to carry the `CHARGE_DMG` =
 4 × `VOLLEY_DMG` pin with it, or the bait silently stops being worth the risk that earns it.
 
+⚠️ **Removing passive regeneration is a move in exactly that direction, and it was not made for this
+item.** The orbit's price was already known — a median **94 HP a fight** off `anomLog` — and it was
+being refunded in full between encounters: the 271s reference tape sits at exactly **100.0 HP** at
+Epoch V. So the cost was real per-fight and zero per-run, which is precisely how an expensive orbit
+stays affordable forever. It is now spent against a flat 30 an Epoch and never returns. **That is the
+"make the orbit expensive" lever, arrived at sideways.**
+
+**Three reasons not to close this item on that basis.** *One:* the 94 is bot-derived and this file
+already flags it as "a lead, not a finding" — and the bot that produced it is **immortal**, so it did
+not feel the old cost either and cannot report the new one. *Two:* the change is not aimed; it prices
+the exploit and the intended loop by the same mechanism, which is the exact failure this item rejects
+in `RING_GRIND_DMG` and in a boss-HP raise. It escapes that objection only if the grind orbit takes
+disproportionately *more* contact than the intended loop does — plausible, since holding a large ring
+close is what the exploit is, but **unmeasured**. *Three:* the open question was never the price, it was
+whether a pilot who never volleys can close the fight inside a window they survive; a window that no
+longer refills makes that question harder to answer, not answered. **Still argued, not tested** — and
+the measurement that would settle it needs a human, for the reason given in *no heal beats the lockout*.
+
 **Aim at *not flipping*, not at closeness.** Closing is measured as intended and rewarded — orbiting at
 270px gives 8 kills / 7 deaths against 11 / 4 at 150px — so a generic point-blank buff punishes the
 loop the game wants. What the exploit does that the loop does not is hold a large ring indefinitely
@@ -3456,8 +3503,19 @@ outside a boss, so a rarity pass here lands at twice its intended strength (see 
 orbit and never dodging — which is the worst possible way to fight the kind that hovers and shoots
 point-blank, so the Emitter reading hardest is probably an artifact. Needs one human playtest.
 
-**No heal beats the lockout.** Integrity regenerates only after a quiet window and nothing else heals.
-Disengaging is the entire healing verb; watch that a bad Epoch is still recoverable.
+**~~No heal beats the lockout.~~ Closed — there is no lockout, because there is no passive heal.**
+Survival's only heal is the purge (+30, one an Epoch). The item asked whether anything could mend you
+with the arena still full; the answer is that nothing mends you at all now, so the question dissolved
+rather than being answered.
+
+**The half of it that survived is now the sharpest question in this file: is a bad Epoch still
+recoverable?** It was a footnote when damage refunded itself; it is the whole balance of the game when
+it does not. From Epoch VI a single Brute contact (30.8) costs more than an Epoch's entire income, so
+past that point mistakes are paid off only by *reaching the next Anomaly*, never by surviving the one
+you are in. **Nobody has played this.** The bot cannot answer it — it does not dodge, so it prices
+every hit as unavoidable and will always report the economy as harsher than a human finds it. ⚠️ This
+needs **one human playtest before the +30 is tuned**, and the tuning knob is the purge heal, not the
+damage scalar: the scalar is what makes runs end, and that is a feature.
 
 **~~Touch controls.~~ Closed by building the real touch scheme.** The item offered two ways out — "either
 a real touch scheme or an honest desktop-only gate" — and shipping on iOS settled which. See *Touch*:

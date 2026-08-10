@@ -14,6 +14,53 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### Integrity does not come back `v2`
+Passive regeneration is gone from survival. The purge is the whole heal now — **+30, one an Epoch,
+against a pool of 100.**
+
+**It was never healing you.** The gate was `hurtT > 3.8`, and any hit rearms it while `IFRAME` bounds
+intake at 1.25 events a second, so under pressure the window never opens and it recovered **literally 0
+HP** — the thing it was credited with doing, it never did. What it actually did was top you back to
+full *between* encounters: the 271s reference tape ends at exactly **100.0 HP** at Epoch V. So it was a
+per-encounter **reset**, and its real effect was that Integrity cost nothing across a run.
+
+**What that buys is a second axis, which this game did not have.** Score is spawn-limited and therefore
+very nearly a clock — throughput holds 268–292 Dots/min in every condition ever measured and a kill pays
+a flat 20 — so two runs of the same length score about the same however they were played. Remaining
+Integrity does not. It is now the only quantity that separates a clean run from a lucky one.
+
+**It is also what makes a run end, and no new difficulty scalar was added.** Heal income is flat at 30
+an Epoch; contact damage is `dmg × (1+(act-1)×0.08)` and never floors. Against the Brute's 22 base:
+**from Epoch VI one contact costs 30.8, more than an entire Epoch's income**, and **at Epoch XLVI one
+contact is 101.2 and one-shots a full pool.** Flat income against unbounded expense is terminal by
+construction. Both figures are arithmetic off `aDmg`, confirmed by reading `e.dmg` off freshly-spawned
+bodies at eight Epochs (I · II · III · V · VIII · XII · XX · XL), `maxDmg` reproducing the formula exactly.
+
+**The practice rooms keep it, deliberately.** Boss Rush, Pattern Lab and the tutorial still regenerate
+2.6/s after 3.8s. A fight costs a median 94 HP, so on survival rules Boss Rush would grant about one and
+a half attempts a session and teach nothing — and teaching an Anomaly's pattern is the only reason it
+exists. Verified per mode on the seam: survival **0.000 HP over 5s**, Pattern Lab **+13.000** (2.6 × 5),
+Boss Rush **+1.300 per 0.5s across 5 clean trials**, the sixth trial correctly interrupted by an Anomaly
+hit that reset the gate.
+
+⚠️ **A drain sweep was run and thrown away rather than published.** It reported HP/s per Epoch and both
+its axes were wrong: `killBoss()` on sight silently **advances `act`**, so every row was labelled with an
+Epoch it was not measured at, and Epoch I came back at **49.2 HP/s against a ceiling of 27.5** that
+`IFRAME` makes arithmetically impossible — a number that large is the rig failing, not the game being
+hard. Recorded because the replacement measurement (read the scalar off the bodies, pin `act` every
+batch, no pilot at all) is the one that should have been run first.
+
+⚠️ **Where a run actually ends is unmeasured, and this project's bot cannot measure it** — it does not
+dodge, so it prices every hit as unavoidable and will always report the economy as harsher than a human
+finds it. The +30 is **not tuned**; it is the previous value, kept deliberately until someone plays
+this. The tuning knob is the purge heal, never the damage scalar — the scalar is what ends runs, and
+that is the feature.
+
+*Also:* the Aegis hole (−23.5% survival, variance halved) is now **wider than its own numbers say**,
+since those were measured on a build that still refunded damage. MECHANICS' *no heal beats the lockout*
+closes — there is no lockout — and the half of it that mattered, **"is a bad Epoch still recoverable?"**,
+is promoted from footnote to the sharpest open question in the file.
+
 ### The port: the zones verified on a real device, CSP closed, and a probe to measure with `v2-ios`
 The three-zone control was measured on the seam in a browser and shipped **unverified on iOS**. It is
 verified now, and the certifier is the game itself: the tutorial gates each step on actually performing

@@ -1831,9 +1831,14 @@ const RING_GRIND_DMG=1;
 const CHARGE_DMG=12;
 // EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
 // Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
-// CHEAPEST of the three, costing -27 HP for 5s of contact (you regenerate; its orbit carries it away)
-// against 82 for the Emitter and 66 for the Bastion, which sit still and shoot you point-blank. Hard to
-// CATCH and dangerous to STAND NEXT TO are different axes; the grind is priced on the second.
+// CHEAPEST of the three, costing -27 HP for 5s of contact (its orbit carries it away from you) against
+// 82 for the Emitter and 66 for the Bastion, which sit still and shoot you point-blank. Hard to CATCH
+// and dangerous to STAND NEXT TO are different axes; the grind is priced on the second.
+//   The parenthetical used to read "you regenerate; its orbit carries it away". Only the second clause
+// was ever load-bearing, and the first is now false — nothing refunds. The RANKING is untouched, since
+// all three figures are gross contact cost and none of them ever included a refund; what changed is
+// that 27 against 82 is now a permanent gap rather than a recoverable one, which makes this table
+// MORE reason not to pay a per-kind bonus, not less.
 const GRIND_MULT={};
 // THE VOLLEY — the boss fight's erosion path. With an Anomaly alive, a hungry flip does not merely
 // scatter your rings: every gathered Dot that is NOT the Anomaly's colour is LAUNCHED AT IT and guided
@@ -2145,6 +2150,9 @@ function freshRun(){
     // the caps that bind them to each other. Paired with OD_DRAIN's doubling; see the note there for why
     // the two compound. Restore to 1 to undo the income half alone.
     moveMult:1, chargeGain:0.5,
+    // ⚠️ `hurtT` and `regen` ARE PRACTICE-ROOM STATE NOW, not player stats. Survival has no passive
+    // heal at all — the purge is the whole income. These two are read only inside the mode guard in
+    // stepPlayer; see the note there for why the rooms diverge and why that is deliberate.
     charge:0, iframe:0, flipCd:0, pulseCd:0, hurtT:99, regen:2.6,
     armor:1,
     holdT:0, holdMax:1.5, conduitAmp:0.5, // polarity mastery
@@ -2893,9 +2901,15 @@ function formCross(){
 //     one, which is the true thing about a body no polarity answers.
 //
 // ⚠️ SIX, AND IT MUST NOT SCALE WITH `act`. Contact CONSUMES a Neutral and IFRAME is 0.8s, so the worst
-// case is bounded by touches: 15 damage each against maxHp 100 with regen 2.6 after 3.8s. Six is already
-// 90 if you walk through every one of them. Growing the count with Epoch would not raise the difficulty,
-// it would raise the CEILING on a single bad stretch, which is a different and worse knob.
+// case is bounded by touches: 15 damage each against maxHp 100. Six is already 90 if you walk through
+// every one of them. Growing the count with Epoch would not raise the difficulty, it would raise the
+// CEILING on a single bad stretch, which is a different and worse knob.
+//   ⚠️ This bound USED TO CITE `regen 2.6 after 3.8s`, and that clause was never doing any work: six
+// touches at the IFRAME cadence span 4.8s, so the 3.8s gate cannot open part-way through and regen
+// contributed exactly 0 to this walk even when it existed. Removing it therefore did not move this
+// number — what moved is everything after, since the 90 no longer refunds. And the 15 itself is a base:
+// `aDmg` puts six Neutrals over the full pool from about Epoch V, so at depth this arrangement is
+// already lethal from full and the count is the only thing standing between it and unavoidable.
 const NDRIFT_N=6;
 // ⚠️ RADIUS, AND WHY A HEXAGON OF SIX IS NOT A CAGE. A hexagon's side EQUALS its radius, so the gap
 // between neighbours is 260px against the 60px that would be walkable for r15 bodies — this is six bodies
@@ -4071,8 +4085,10 @@ function bossMove(b,dt){
   if(b.variant==='sentinel'){                                  // circle the arena
     // Slower than the other kinds on purpose. A moving target is far harder to line a straight radial
     // shot on than a hovering one, and the Sentinel already stacks seekers (the most punishing missile)
-    // with a swarmer trail that denies your regen window. At 0.55 it measured 0-for-8 while the Emitter
-    // and Bastion sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
+    // with a swarmer trail that keeps you under continuous contact. At 0.55 it measured 0-for-8 while
+    // the Emitter and Bastion sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
+    // (This read "denies your regen window" when survival had a regen window. The pressure is the point
+    // and it outlived the mechanism; continuous contact now spends HP that never comes back.)
     // Its identity is that you must chase it, not that it cannot be hit.
     b.orbA += dt*0.40;
     const cx=W/2, cy=H*0.42, R=Math.min(W,H)*0.34;
@@ -4135,9 +4151,16 @@ function updateBoss(dt){
     b.seedT-=dt; if(b.seedT<=0){ b.seedT=rand(2.4,3.4)*pcad;
       // the trail leans toward YOUR ammo colour, exactly as ambient spawn already does during a boss.
       // At a flat 50/50 the Sentinel stacks three pressures at once (seekers + swarmers + its orbit) and
-      // never lets you go 3.8s untouched, so Integrity regen never starts — 0-for-4 against a bot that
+      // never lets you go 3.8s untouched, so Integrity regen never started — 0-for-4 against a bot that
       // went 4-for-4 on the other two kinds. Leaning the trail makes it half threat and half VOLLEY
       // AMMO, which is also the better read: chasing it through its own trail should feed you.
+      //   ⚠️ HALF THIS JUSTIFICATION HAS EXPIRED, AND THE FIX STANDS ON THE OTHER HALF. The 0-for-4 was
+      // measured when survival had a regen window to deny, so "denies the window" was a real edge the
+      // Sentinel held over the other two kinds. There is no window now, which means that edge is gone —
+      // every kind denies a heal that no longer exists. What the trail still does is feed you ammo while
+      // it threatens you, and that was always the better argument. If the Sentinel is ever re-measured
+      // against the other kinds, expect the gap to have NARROWED for a reason that has nothing to do
+      // with the Sentinel; do not read that as this fix working.
       const opp=bossOpp(b.color);
       // ⚠️ THE SENTINEL SHEDS DARTS, and the index is derived from the array rather than written down.
       // This was `['fast','mini','orbiter']` picked with a HARDCODED `irand(0,2)` — so removing two kinds
@@ -4420,9 +4443,42 @@ function stepPlayer(dt){
   if(P.flipCd>0)P.flipCd-=dt;
   if(P.pulseCd>0)P.pulseCd-=dt;
   P.holdT+=dt;                       // polarity mastery: charge builds while you hold a colour
-  // out-of-combat regen: recover after a few seconds without a hit
-  P.hurtT+=dt;
-  if(P.hurtT>3.8 && P.hp<P.maxHp) P.hp=Math.min(P.maxHp,P.hp+P.regen*dt);
+  // ⚠️ THERE IS NO OUT-OF-COMBAT REGEN IN SURVIVAL. `P.hurtT+=dt` and a flat 2.6/s heal above a 3.8s
+  // lockout stood here. It read as combat mercy and was not: the gate means it recovers literally 0 HP
+  // while anything is on you, because any hit rearms it and IFRAME bounds intake at 1.25 hits/s, so the
+  // 3.8s window never opens under pressure. What it actually did was top you back to full BETWEEN
+  // encounters — the 271s reference tape ends at exactly 100.0 HP at Epoch V. So it was never healing,
+  // it was a per-encounter RESET, and it made Integrity cost nothing across a run.
+  //   Now the purge is the whole income: one heal an Epoch, and HP is a RUN-LONG resource — what you
+  // spend at Epoch II is still missing at Epoch VI. That is the second axis this game did not have.
+  // Score is ~131 pts/s and near rate-invariant (throughput holds 268-292 Dots/min in every condition
+  // ever measured), so score alone can only report how long you sat; remaining HP reports how cleanly
+  // you got there.
+  //   IT IS ALSO WHY A RUN NOW ENDS, AND THE TWO NUMBERS ARE THE ARGUMENT. Heal income is flat at 30
+  // an Epoch. Per-hit damage is `dmg*(1+(act-1)*0.08)` and never floors, so against the Brute's 22:
+  //   · from EPOCH VI a single contact costs 30.8, MORE THAN AN ENTIRE EPOCH'S INCOME — past here one
+  //     mistake cannot be paid off by the Epoch you made it in, only by the next one you reach.
+  //   · at EPOCH XLVI a single contact is 101.2 and one-shots a full pool, which is the hard terminus.
+  // Flat income against unbounded expense on a 100 pool is therefore terminal by construction: closing
+  // the endless Epoch needed no new difficulty scalar, only the removal of the refund. Storm surge
+  // `9+act*2` and spawn count `+floor(act/2)` climb forever too and are not counted above, so the real
+  // squeeze arrives earlier than the contact term alone predicts.
+  //   ⚠️ WHERE A RUN ACTUALLY ENDS IS NOT MEASURED AND THE BOT CANNOT MEASURE IT. The two numbers above
+  // are arithmetic off `aDmg`, verified by reading `e.dmg` off freshly-spawned bodies at eight Epochs.
+  // Turning them into "a run lasts N minutes" needs a pilot that dodges, and the scripted one does not
+  // dodge, has never picked up an Overdrive, and dies before half the roster exists. A drain sweep was
+  // attempted here and thrown away: `killBoss()` on sight silently ADVANCES `act`, so every row was
+  // labelled with an Epoch it was not measured at, and Epoch I reported 49.2 HP/s against a ceiling of
+  // 27.5 that IFRAME makes arithmetically impossible. Pin `act` every batch if anyone retries it.
+  //   ⚠️ THE PRACTICE ROOMS KEEP IT, DELIBERATELY. Boss Rush exists to teach an Anomaly's pattern and a
+  // fight costs a median 94 HP, so on survival rules it would hand you about one and a half attempts
+  // and teach nothing; the Lab and the tutorial are sandboxes for the same reason. The menu already
+  // promises these rooms are not comparable ("Practice only · neither can set your best") — this is one
+  // more way that is true, not an oversight. Survival is the only mode whose economy is the feature.
+  if(testMode||labMode||tutMode){
+    P.hurtT+=dt;
+    if(P.hurtT>3.8 && P.hp<P.maxHp) P.hp=Math.min(P.maxHp,P.hp+P.regen*dt);
+  }
 }
 
   // ----- forces on enemies -----

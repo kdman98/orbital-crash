@@ -1,7 +1,7 @@
 # ORBITAL CRASH
 
-Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies. No
-meta-progression; instant temporary powerup drops only.
+Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies. Your
+Integrity never regenerates: purging an Anomaly is the only heal, so a run is one long spend.
 
 ## ▶ [Play in your browser](https://kdman98.github.io/orbital-crash/)
 

@@ -41,7 +41,9 @@ paragraph goes in MECHANICS and this line points at it.
 - **Ring spin** — the rate the ring orbits the Star. (`DOTSPD`)
 - **Ring hysteresis** — a Dot stays yours for a grace window after a move outruns it, and the spring
   reels it back the whole time. (`RING_GRACE`, `RING_GRACE_R`, `e.ringGrace`)
-- **Integrity** — your health. Regenerates only after a quiet window; nothing else heals.
+- **Integrity** — your health. It does not come back: purging an Anomaly (+30) is the only heal in
+  survival, so Integrity is spent across a whole run rather than per encounter. The practice rooms keep
+  the old passive regeneration; survival does not.
   (`P.hp`, `P.maxHp`, `P.hurtT`)
 - **Immunity** — the window after a hit during which you cannot be hurt again. **One value for every
   source**, now that nothing blocks. The star's blink is driven off it directly. (`IFRAME`, `P.iframe`)
