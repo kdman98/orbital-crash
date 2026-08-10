@@ -1273,6 +1273,7 @@ const L={ en:{
   'tut.5.tilt':'Hold a second finger to enter Overdrive and sweep Dots in a wider, faster circle.',
   'tut.5.noteOn':'burning',
   'tut.5.noteOff':'The Overdrive is charged!',
+  'tut.5.noteSpent':'The Overdrive is spent!',
   'tut.5.ok':'Good work!',
   'tut.6':"Let's experience a complex situation for a while, and end our tutorial!",
   'tut.6.note':'{n}s',
@@ -1420,6 +1421,7 @@ const L={ en:{
   'tut.5.tilt':'두 번째 손가락을 대고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
   'tut.5.noteOn':'연소 중',
   'tut.5.noteOff':'오버드라이브는 충전되어 있어요!',
+  'tut.5.noteSpent':'충전된 양을 다 사용했네요!',
   'tut.5.ok':'잘했어요!',
   'tut.6':'잠깐 복잡한 상황을 겪어 보고, 튜토리얼을 마칩니다!',
   'tut.6.note':'{n}초',
@@ -3394,7 +3396,15 @@ const TUT_STEPS=[
     ok:()=>T('tut.4.ok') },
   { say:()=>T('tut.5.'+tutDev()),
     setup:()=>{ P.charge=1; for(let i=0;i<8;i++) tutDrop(Math.random()<0.5?'red':'cyan'); },
-    note:()=>T(odOn?'tut.5.noteOn':'tut.5.noteOff'),
+    // ⚠️ THREE STATES, NOT TWO, AND THE THIRD ONE IS THE COMMON CASE. `noteOff` used to cover everything
+    // that was not burning — including a meter the player had just emptied. A full meter is exactly 3.0s
+    // (OD_DRAIN) while this step is held open for 6.0s in Korean by the reading floor, so a player who
+    // simply held the key read "오버드라이브는 충전되어 있어요!" for 2.87s at charge 0, mid-cooldown, and
+    // read it immediately before the ✓ — which is where a completion line belongs, so it was taken for one.
+    // Measured, both languages: EN 1.13s, KO 2.87s.
+    //   The threshold is OD_MIN and not 0 on purpose. Below the arming floor the verb is unavailable
+    // (`overdrive()` returns at P.charge<OD_MIN), and "can you fire it" is what this line is reporting.
+    note:()=>T(odOn?'tut.5.noteOn': P.charge>=OD_MIN?'tut.5.noteOff':'tut.5.noteSpent'),
     done:()=>tutOdT>=0.5,
     ok:()=>T('tut.5.ok') },
   { say:()=>T('tut.6'),
