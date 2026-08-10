@@ -2384,7 +2384,34 @@ function beginRun(){
 function enterCalm(first){
   wavePhase='calm'; phaseT=first?5:Math.max(6,10-act*0.4); intensityTarget=0.12;
 }
-function enterBuild(){ wavePhase='build'; phaseT=Math.max(12,19-act*0.6); intensityTarget=0.55; }
+// ⚠️ BUILD LOST 7.4s AT EVERY EPOCH — the intercept moved, the SLOPE DID NOT. It was
+// `max(12, 19-act*0.6)`; it is now `max(8, 11.6-act*0.6)`, i.e. the same -0.6/epoch ramp shifted down
+// by exactly the cut Epoch I needed. Build is the LOW-DENSITY stretch at every epoch, not just the
+// first: calm/build/storm run at intensity 0.12 / 0.55 / 0.92, so build is the shrug between the
+// breath and the squeeze, and it was the longest of the three everywhere.
+//   The complaint that started this was about Epoch I, where the ramp pointed the WRONG WAY:
+// `19-act*0.6` decreases with act, so Epoch I drew the LONGEST build in the game at 18.4s — and it is
+// also the only epoch that can contain no variety at all, since formations gate at `elapsed>42` in
+// director() and Neutrals at 150, both landing after it ends. The emptiest window had the longest
+// clock. That was true to a lesser degree at every epoch, which is why the fix generalised.
+//   ⚠️ STORM IS DELIBERATELY NOT CUT WITH IT. Storm is the dense half and the reason a stretch is
+// worth playing; the complaint was that nothing happens, and trimming the part where something DOES
+// happen answers a different complaint. Cut the empty stretch, keep the climax.
+//   The floor moved 12 -> 8, which sits between storm's 10 and calm's 6 and is still ~11x the
+// intensity lerp's 0.71s time constant, so the ramp to 0.55 still completes with room to spare.
+// MEASURED non-boss window (calm+build+storm), both arms driven through eleven real Epochs on one rig
+// with killBoss() on sight, each arm asserting its OWN formula present and the other's absent:
+//   Epoch      I     II    III    IV     V     VI    VII   VIII   IX     X     XI
+//   before   38.1   41.4  40.1  38.8  37.5   36.2  34.9  33.6  32.3  31.0  30.1
+//   after    30.7   34.0  32.7  31.4  30.1   28.8  28.1  27.4  26.7  26.0  25.7
+//   delta    -7.4   -7.4  -7.4  -7.4  -7.4   -7.4  -6.8  -6.2  -5.6  -5.0  -4.4
+//   ⚠️ THE CUT IS NOT UNIFORM AND I DID NOT PREDICT THAT. It is a flat -7.4s only through Epoch VI,
+// where the new 8s floor bites; past that the OLD formula was still descending toward its own 12s
+// floor (reached at Epoch XII), so the two curves converge and the saving shrinks to -4.4s by XI.
+// Shifting an intercept under a clamp does not shift the clamped tail — the floors decide the far
+// end, not the slope. Deep runs therefore keep most of their pacing; the change is front-loaded,
+// which is where the complaint was. If the tail ever wants the same treatment, the 8 is the lever.
+function enterBuild(){ wavePhase='build'; phaseT=Math.max(8,11.6-act*0.6); intensityTarget=0.55; }
 let stormCol=null, stormShiftT=0; // mid-storm colour flip: the Flip must answer twice per storm
 function enterStorm(){
   wavePhase='storm'; phaseT=Math.max(10,15-act*0.3); intensityTarget=0.92;
@@ -2983,10 +3010,12 @@ function director(dt){
     // OUTSIDE A BOSS — roughly half a run — so the wall-clock gap is about double the interval, which is
     // what makes a naive "make it rarer" pass land at twice the intended rate.
     //   ⚠️ AND INSIDE THE METEOR SHOWER EPOCH IT RUNS ON FORMATION CADENCE INSTEAD. Do the arithmetic
-    // before touching this: an Epoch's non-boss window is calm+build+storm, about 38s at Epoch IV, so
+    // before touching this: an Epoch's non-boss window is calm+build+storm, about 31s at Epoch IV, so
     // against a rand(200,300) clock the odds of a comet landing inside any given shower are roughly one
-    // in seven. An Epoch NAMED for the shower would have shown nothing, six times out of seven. At
-    // rand(9,16) it lands 3-4 of them, which at n=3-5 bodies each is a readable event and not a wall.
+    // in eight. An Epoch NAMED for the shower would have shown nothing, seven times out of eight. At
+    // rand(9,16) it lands 2-3 of them, which at n=3-5 bodies each is a readable event and not a wall.
+    //   (Was 38s / one in seven / 3-4 until build lost 7.4s at every epoch — see enterBuild. The
+    // conclusion did not move, but the numbers it rests on did, and a stale one here reads as measured.)
     cometT-=dt;
     if(cometT<=0){ cometT = isShower(act) ? rand(9,16) : rand(200,300); formComet(); }
     // THE NEUTRAL DRIFT, on its own clock for the budget reason at FORMS, and gated LATE for a second
