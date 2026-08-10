@@ -1499,11 +1499,11 @@ const L={ en:{
   'menu.tut':'튜토리얼',
   'menu.rush':'보스 러시',  'menu.lab':'패턴 실험실',
   'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
-  'menu.depth':'시작 시대',
+  'menu.depth':'시작 단계',
   'card.from':'{e}단계에서 시작한 판',
   'dead.share':'공유하기',
   'set.skin':'별 외형',
-  'set.skinD':'획득한 외형입니다. 색은 언제나 극성을 뜻하므로, 외형이 색을 바꾸는 일은 없습니다. 달라지는 것은 안쪽 무늬뿐입니다.',
+  'set.skinD':'지금까지 얻은 별 외형입니다. 색은 극성을 나타내니, 외형은 색을 그대로 두고 테두리 안쪽 무늬만 바꿉니다.',
   'skin.locked':'잠김',
   'skin.star.core':'코어',
   'skin.star.turret':'보루',
@@ -1602,27 +1602,36 @@ const L={ en:{
   'anom.emitter.tip3':'방출체 · 돌진 · 회피',
   'anom.sentinel.tip':'감시자 · 추적탄 · 추격',
   'anom.bastion.tip'  :'바스티온 · 탄막벽 · 틈새',
-  'achv.turret.nm'      :'포탑',            'achv.turret.ds'      :'60초 동안 한자리를 지킨다',
+  // ⚠️ THE `.ds` LINES ARE OBJECTIVES, SO THEY TAKE THE `-기` FORM, not the `-한다` the first draft used.
+  // `-한다` is the shape an English infinitive falls into when it is carried across word by word ("reach
+  // a Meteor Shower Epoch" → "유성우 시대에 진입한다"), and it reads as a manual rather than as a game.
+  // The flavour lines were written in Korean from the start and never had the problem; these now match
+  // them.
+  //   Vocabulary comes from the game's OWN Korean, not from the English: Epoch is 단계 (`hud.epoch`,
+  // `dead.cause`), never 시대. Core is 코어 (`hud.hp`), never 핵. A flip is 색을 뒤집다 (the tutorial's
+  // own words). A run is 판 (`rc.runs`). Anything else invents a second name for a thing the player has
+  // already been taught.
+  'achv.turret.nm'      :'포탑',            'achv.turret.ds'      :'한자리에서 60초 버티기',
   'achv.turret.fl'      :'여기가 타워 디펜스인 줄 아셨어요?',
-  'achv.flappystar.nm'  :'촐싹대는 별',      'achv.flappystar.ds'  :'한 시대에 색을 40번 반전한다',
+  'achv.flappystar.nm'  :'촐싹대는 별',      'achv.flappystar.ds'  :'한 단계에서 색 40번 뒤집기',
   'achv.flappystar.fl'  :'필요한 일이었나요…?',
-  'achv.untouched.nm'   :'손도 못 대는',     'achv.untouched.ds'   :'한 대도 맞지 않고 변이체를 소멸시킨다',
+  'achv.untouched.nm'   :'손도 못 대는',     'achv.untouched.ds'   :'한 대도 안 맞고 변이체 잡기',
   'achv.untouched.fl'   :'쉽다 쉬워',
-  'achv.bountyhunter.nm':'현상금 사냥꾼',    'achv.bountyhunter.ds':'한 판에 황금 현상금을 네 번 챙긴다',
+  'achv.bountyhunter.nm':'현상금 사냥꾼',    'achv.bountyhunter.ds':'한 판에 황금 현상금 4번 먹기',
   'achv.bountyhunter.fl':'보안관님, 욕보십쇼.',
-  'achv.headbutt.nm'    :'박치기',          'achv.headbutt.ds'    :'황금 현상금에 직접 부딪혀 챙긴다',
+  'achv.headbutt.nm'    :'박치기',          'achv.headbutt.ds'    :'황금 현상금을 몸으로 들이받아 먹기',
   'achv.headbutt.fl'    :'이건 못 참지',
-  'achv.wombo.nm'       :'웜보 콤보',        'achv.wombo.ds'       :'250콤보를 달성한다',
+  'achv.wombo.nm'       :'웜보 콤보',        'achv.wombo.ds'       :'250콤보 찍기',
   'achv.wombo.fl'       :'세계를 충격에 빠트릴 콤보',
-  'achv.makeawish.nm'   :'소원을 빌어요!',   'achv.makeawish.ds'   :'유성우 시대에 진입한다',
+  'achv.makeawish.nm'   :'소원을 빌어요!',   'achv.makeawish.ds'   :'유성우 단계까지 가기',
   'achv.makeawish.fl'   :'뭐든 멀리에서 보면 희극이죠',
-  'achv.kameha.nm'      :'카메하!',         'achv.kameha.ds'      :'오버드라이브 한 번에 온전한 변이체를 소멸시킨다',
+  'achv.kameha.nm'      :'카메하!',         'achv.kameha.ds'      :'오버드라이브 한 번에 멀쩡한 변이체 잡기',
   'achv.kameha.fl'      :'이거나 먹어라!',
-  'achv.friendlyfire.nm':'오인 사격',        'achv.friendlyfire.ds':'돌격체의 돌진을 변이체에 맞힌다',
+  'achv.friendlyfire.nm':'오인 사격',        'achv.friendlyfire.ds':'돌격체 돌진을 변이체에 맞히기',
   'achv.friendlyfire.fl':'내 잘못은 아닌 듯 함..',
-  'achv.demolition.nm'  :'발파',            'achv.demolition.ds'  :'행성 폭발 한 번으로 15개를 지운다',
+  'achv.demolition.nm'  :'발파',            'achv.demolition.ds'  :'행성 폭발 한 방으로 15개 지우기',
   'achv.demolition.fl'  :'귀 막아!',
-  'achv.speedrunner.nm' :'스피드러너',       'achv.speedrunner.ds' :'시작 30초 안에 핵을 잃는다',
+  'achv.speedrunner.nm' :'스피드러너',       'achv.speedrunner.ds' :'시작 30초 안에 코어 잃기',
   'achv.speedrunner.fl' :'하지만 빨랐죠?',
 } };
 
