@@ -14,6 +14,27 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### Every Dot hits for 2 less, and the death census says where that lands `v2`
+A flat **−2** on all eight `ETYPE` rows: Dart 8→**6**, Drifter 10→**8**, Bomber 10→**8**, Harrier
+12→**10**, Neutral 15→**13**, Charger 16→**14**, Planet 20→**18**, Brute 22→**20**. Dots only — the
+Anomaly's body (30), its missiles (10) and its mines (20) are not Dots and did not move.
+
+**Measured, paired on eight seeds:** median survival **34.0 → 36.85s, +8.5%**, and no seed got worse.
+**It did not move the wall:** 0 of 8 reached Epoch II before, 0 of 8 after.
+
+**The census explains why, and it is the first one this project has run** — `lastDmg` has shipped the
+instrument for weeks and nothing ever aggregated it. Sixteen seeded runs: **16 of 16 died inside Epoch
+I, and 16 of 16 died with `phase === 'boss'`**, killing blow **7 Anomaly body · 8 ambient Dots · 1
+missile**. Not one run ended in the 30.7s of ambient field before the fight. So the ambient economy is
+not the wall — **the first Anomaly is** — and roughly half of what kills you there was never a Dot, which
+is exactly the half a Dot nerf cannot reach. Caveat that matters: *when* is trustworthy, *what* is not,
+because a pilot that never dodges walks into the body repeatedly.
+
+**Three comments were re-derived rather than find-replaced**, and one of them was already wrong: the
+Neutral hexagon bound said six of them cross the pool "from about Epoch V", which at the old base of 15
+was Epoch **III** (104.4). At 13 the sentence is true. The −2 pass did not fix that line, it collided
+with it. The damage-size ladder also still listed a Mini, deleted back in `6324914`.
+
 ### Integrity does not come back `v2`
 Passive regeneration is gone from survival. The purge is the whole heal now — **+30, one an Epoch,
 against a pool of 100.**

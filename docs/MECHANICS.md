@@ -1670,8 +1670,8 @@ same length score about the same however they were played. Remaining Integrity d
 them. The direction of the arrow is the point: a run only ever gets more fragile.
 
 **It is also what makes a run end.** Heal income is flat at 30 an Epoch; contact damage is
-`dmg × (1+(act-1)×0.08)` and never floors. Against the Brute's 22 base, **from Epoch VI one contact
-costs 30.8 — more than an entire Epoch's income** — and **at Epoch XLVI one contact is 101.2 and
+`dmg × (1+(act-1)×0.08)` and never floors. Against the Brute's 20 base, **from Epoch VIII one contact
+costs 31.2 — more than an entire Epoch's income** — and **at Epoch LI one contact is exactly 100.0 and
 one-shots a full pool.** Flat income against unbounded expense on a 100 pool is terminal by
 construction, which is why closing the endless Epoch needed no new difficulty scalar. ⚠️ Those two
 figures are arithmetic off `aDmg`, confirmed by reading `e.dmg` off freshly-spawned bodies at eight
@@ -3510,14 +3510,47 @@ rather than being answered.
 
 **The half of it that survived is now the sharpest question in this file: is a bad Epoch still
 recoverable?** It was a footnote when damage refunded itself; it is the whole balance of the game when
-it does not. From Epoch VI a single Brute contact (30.8) costs more than an Epoch's entire income, so
+it does not. From Epoch VIII a single Brute contact (31.2) costs more than an Epoch's entire income, so
 past that point mistakes are paid off only by *reaching the next Anomaly*, never by surviving the one
 you are in. **Nobody has played this.** The bot cannot answer it — it does not dodge, so it prices
 every hit as unavoidable and will always report the economy as harsher than a human finds it. ⚠️ This
 needs **one human playtest before the +30 is tuned**, and the tuning knob is the purge heal, not the
 damage scalar: the scalar is what makes runs end, and that is a feature.
 
-**~~Touch controls.~~ Closed by building the real touch scheme.** The item offered two ways out — "either
+*The bot arm has been run, and the death census that goes with it — which nothing in this project had
+ever done, despite `lastDmg` shipping the instrument.* Sixteen seeded survival runs, pilot flipping
+every 35 frames (below the 40→47 step, so this is not measured at the cadence the docs forbid):
+
+> **16 of 16 died inside Epoch I, and 16 of 16 died with `phase === 'boss'`. Median 37.7s.**
+> Killing blow: **7 the Anomaly's body · 8 ambient Dots · 1 missile.**
+
+**The pre-boss stretch is survived every single time.** Epoch I's non-boss window is 30.7s and not one
+run ended inside it, so the ambient economy is not what is killing runs — **the first Anomaly is, and it
+is a cliff rather than a ramp.** That the killer splits almost evenly between the Anomaly and the
+ordinary Dots piling on while you are busy is the `anomLog` design note coming true: the window is the
+whole fight, and the field does not stop while you deal with it.
+
+⚠️ **Read the two halves differently.** *When* is robust — a bot that clears 30.7s of ambient field
+sixteen times out of sixteen and then dies in the fight is telling you where the difficulty is. *What*
+is not: the pilot flies a fixed Lissajous and never dodges, so it walks into the body repeatedly, and
+the 7 is inflated by exactly the behaviour a human would not repeat. Note also the whole heal economy
+sits behind a purge this pilot never performs, so it is not measuring the economy past Epoch I at all.
+
+*The −2 damage pass measured against this, paired on the same eight seeds:* median **34.0 → 36.85s,
++8.5%, and no seed got worse** (deltas 0 to +6.4). **It did not move the wall at all — still 0 of 8 into
+Epoch II.** The reason is in the census: half the killing blows come from the Anomaly's body (30) and
+its missiles (10), and **neither of those is a Dot**, so neither moved. A cut to ambient damage buys
+time inside the fight; it cannot buy the fight.
+
+*Two measurements were attempted and are not reportable; recording them so nobody spends the afternoon
+twice.* **Cost-per-fight off `anomLog` cannot be measured with an immortal pilot** — it read 984 HP for
+one Epoch-I fight, because a pilot that cannot die grinds until the boss does, so fight *length* becomes
+a free variable and the number measures the grind rather than the fight. The 78→94 median in the grind
+item has the same defect and should be read the same way. And the **score-at-Epoch curve from an
+immortal pilot is inflated and must not set thresholds**: it reaches Epoch V at 475s with ~69,000, where
+the one human reference tape reaches Epoch V at 271s with 39,105 — **1.75× the time and 1.76× the
+score for the same depth.** Where a threshold needs a score-at-depth, the tape is the anchor and the
+bot is not. The item offered two ways out — "either
 a real touch scheme or an honest desktop-only gate" — and shipping on iOS settled which. See *Touch*:
 three zones, move on the left half, Overdrive and flip on the right quarters.
 

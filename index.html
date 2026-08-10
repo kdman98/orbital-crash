@@ -1654,8 +1654,11 @@ function capGrant(){ grantPulse=1; }
 // blinking through its immunity. Removed from EVERY damage path — Dot contact and coreHit alike — the
 // 12-14 particle red burst, the full-screen red flash, the screen shake, and the hitstop.
 // Because the number is now the only readout, it has to carry the magnitude itself, which is the one
-// channel a number has and a shake or a colour does not: 6 (Mini) → 16px · 10 (Drifter, missile) → 18 ·
-// 15 (Neutral) → 20 · 20 (mine) → 22 · 22 (Brute) → 23 · 30 (the Anomaly's body) → 26.
+// channel a number has and a shake or a colour does not: 6 (Dart) → 16px · 8 (Drifter, Bomber) → 17 ·
+// 10 (Harrier, missile) → 18 · 13 (Neutral) → 19 · 14 (Charger) → 20 · 18 (Planet) → 21 ·
+// 20 (Brute, mine) → 22 · 30 (the Anomaly's body) → 26. Two sources sharing a size is correct, not a
+// collision: the channel carries the MAGNITUDE, so equal damage must read equal. (This ladder listed a
+// Mini until the -2 pass; that species was deleted in 6324914 and the entry had outlived it.)
 // It also has to appear on EVERY hit. It used to be contact-only, so a 20-damage mine gave no readout at
 // all; with the flash and burst gone that would have been silence.
 const HURT_SZ0=14, HURT_SZK=0.40;
@@ -2187,8 +2190,8 @@ function freshRun(){
 // them casually — the Planet below deliberately takes NEITHER, because a new species wearing a retired
 // one's outline inherits every expectation the old one taught.
 const ETYPE={
-  drift:  {r:11, hp:1, mass:1.0,  maxsp:3.4, seek:0.22, dmg:10},
-  fast:   {r:8,  hp:1, mass:0.7,  maxsp:6.4, seek:0.42, dmg:8},
+  drift:  {r:11, hp:1, mass:1.0,  maxsp:3.4, seek:0.22, dmg:8},
+  fast:   {r:8,  hp:1, mass:0.7,  maxsp:6.4, seek:0.42, dmg:6},
   // ⚠️ THE BRUTE'S 2.0 -> 3.2 IS A RING FIX, AND IT CHANGES NOTHING ELSE. `maxsp` IS A CEILING, NOT A
   // PACE (see the Harrier's note below): free flight is governed by `seek`, and at seek 0.15 a Brute
   // cruises at 0.92 and never approaches its own ceiling. A RINGED body is different — it is PINNED at
@@ -2213,13 +2216,13 @@ const ETYPE={
   // the Brute shell at 148.8 against the Drifter's 148.1 — the same circle, turning at the same rate, so
   // the heaviest body in the sky would ring exactly like the modal one. 3.2 lands 144.6 at 1.326: still
   // inside, still slower, still legibly the heavy one. Do not raise it to meet the Drifter.
-  heavy:  {r:20, hp:3, mass:2.7,  maxsp:3.2, seek:0.15, dmg:22},
-  neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:15},
-  // BOMBER at Drifter parity (10) on purpose. Contact is deliberately NOT where the Bomber is dangerous —
+  heavy:  {r:20, hp:3, mass:2.7,  maxsp:3.2, seek:0.15, dmg:20},
+  neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:13},
+  // BOMBER at Drifter parity (8) on purpose. Contact is deliberately NOT where the Bomber is dangerous —
   // strictly weaker than a Drifter (same damage, slower, lower seek, far bigger target at r17). Its
   // threat is the 120px detonation in bomberBlast, which costs you no health at all, only your hoard.
-  bomber: {r:17, hp:1, mass:1.5,  maxsp:2.5, seek:0.17, dmg:10},
-  charger:{r:13, hp:1, mass:1.0,  maxsp:3.0, seek:0.14, dmg:16}, // telegraphs then dashes; ignores your field
+  bomber: {r:17, hp:1, mass:1.5,  maxsp:2.5, seek:0.17, dmg:8},
+  charger:{r:13, hp:1, mass:1.0,  maxsp:3.0, seek:0.14, dmg:14}, // telegraphs then dashes; ignores your field
   // THE PLANET — the one body you WANT in your rings, and the only one that charges while it is there.
   // Author: "holding that dot alive is a demerit. it is hard. we should reward that action for that,
   // destroying enemy dots — no need to deal damage to boss though." See stepPlanet / planetBlast.
@@ -2232,7 +2235,7 @@ const ETYPE={
   //     maxsp 1.7 / seek 0.13 — the slowest, laziest body in the game. It does not hunt you; you have to
   //                go and get it, which is the first half of the price.
   //     r 23     — the largest ordinary Dot. It cannot be hidden in a crowd and it cannot be dodged late.
-  planet: {r:23, hp:4, mass:3.2,  maxsp:1.7, seek:0.13, dmg:20},
+  planet: {r:23, hp:4, mass:3.2,  maxsp:1.7, seek:0.13, dmg:18},
   // THE HARRIER — the one body that ORBITS you instead of arriving at you. Author: "fast velocity, slow
   // turn → making a ellipse ring when chasing or being pulled."
   //   `ballistic` is the whole species and it is a flag rather than a number because it switches a MODE,
@@ -2296,7 +2299,7 @@ const ETYPE={
   //     r 13      — ⚠️ AND IT MUST STAY UNDER 27. `stepAnnihilation` buckets on `cell=64` with a +/-1
   //                 neighbourhood, so the widest pair it can see is 64; against the Anomaly's r37 that
   //                 caps any new species at 27 before boss contact starts being missed entirely.
-  harrier:{r:13, hp:1, mass:0.9,  maxsp:5.0, seek:0.34, dmg:12, ballistic:1},
+  harrier:{r:13, hp:1, mass:0.9,  maxsp:5.0, seek:0.34, dmg:10, ballistic:1},
 };
 // ⚠️ THE ORBIT IS WHAT THE RING DOES *NOT* DO TO THIS ONE. Three of the four terms that hold ordinary
 // matter in your rings are switched off for a ballistic body, and the fourth — plain `seek` — is left as
@@ -2901,15 +2904,19 @@ function formCross(){
 //     one, which is the true thing about a body no polarity answers.
 //
 // ⚠️ SIX, AND IT MUST NOT SCALE WITH `act`. Contact CONSUMES a Neutral and IFRAME is 0.8s, so the worst
-// case is bounded by touches: 15 damage each against maxHp 100. Six is already 90 if you walk through
+// case is bounded by touches: 13 damage each against maxHp 100. Six is already 78 if you walk through
 // every one of them. Growing the count with Epoch would not raise the difficulty, it would raise the
 // CEILING on a single bad stretch, which is a different and worse knob.
 //   ⚠️ This bound USED TO CITE `regen 2.6 after 3.8s`, and that clause was never doing any work: six
 // touches at the IFRAME cadence span 4.8s, so the 3.8s gate cannot open part-way through and regen
 // contributed exactly 0 to this walk even when it existed. Removing it therefore did not move this
-// number — what moved is everything after, since the 90 no longer refunds. And the 15 itself is a base:
-// `aDmg` puts six Neutrals over the full pool from about Epoch V, so at depth this arrangement is
-// already lethal from full and the count is the only thing standing between it and unavoidable.
+// number — what moved is everything after, since the 78 no longer refunds. And the 13 itself is a base:
+// `6*13*(1+(act-1)*0.08)` first exceeds 100 at Epoch V (102.96), so from there this arrangement is
+// lethal from full and the count is the only thing standing between it and unavoidable.
+//   ⚠️ This line read "about Epoch V" while the base was 15, and at 15 it was WRONG — six was 90, which
+// crosses the pool at Epoch III (104.4), two Epochs earlier than advertised. The -2 pass happens to make
+// the sentence true; it did not fix it, and nothing here would have caught it, because a grep-shaped
+// audit sees a wrong NAME and never a wrong NUMBER. Re-derive this line whenever the base moves.
 const NDRIFT_N=6;
 // ⚠️ RADIUS, AND WHY A HEXAGON OF SIX IS NOT A CAGE. A hexagon's side EQUALS its radius, so the gap
 // between neighbours is 260px against the 60px that would be walkable for r15 bodies — this is six bodies
@@ -3124,7 +3131,7 @@ function director(dt){
 }
 // BOMBER RARITY — one knob, applied to BOTH bands below so the species is scaled by the same factor at
 // every Epoch rather than halved early and creeping back at high Act. Its weight was priced when a Bomber
-// was a Dot you could walk through; contact is back at Drifter parity (10) but the death blast now clears
+// was a Dot you could walk through; contact is back at Drifter parity (8) but the death blast now clears
 // a 120px hole in your hoard, so the old weight was paying for the wrong property.
 //   `wchoice` sums weights as floats, so a fractional weight is exact, not rounded.
 //   ⚠️ THESE ARE SHARES IN A BAG, NOT RATES. Halving one weight shrinks the bag, so every other species
@@ -4455,10 +4462,10 @@ function stepPlayer(dt){
   // ever measured), so score alone can only report how long you sat; remaining HP reports how cleanly
   // you got there.
   //   IT IS ALSO WHY A RUN NOW ENDS, AND THE TWO NUMBERS ARE THE ARGUMENT. Heal income is flat at 30
-  // an Epoch. Per-hit damage is `dmg*(1+(act-1)*0.08)` and never floors, so against the Brute's 22:
-  //   · from EPOCH VI a single contact costs 30.8, MORE THAN AN ENTIRE EPOCH'S INCOME — past here one
+  // an Epoch. Per-hit damage is `dmg*(1+(act-1)*0.08)` and never floors, so against the Brute's 20:
+  //   · from EPOCH VIII a single contact costs 31.2, MORE THAN AN ENTIRE EPOCH'S INCOME — past here one
   //     mistake cannot be paid off by the Epoch you made it in, only by the next one you reach.
-  //   · at EPOCH XLVI a single contact is 101.2 and one-shots a full pool, which is the hard terminus.
+  //   · at EPOCH LI a single contact is exactly 100.0 and one-shots a full pool, the hard terminus.
   // Flat income against unbounded expense on a 100 pool is therefore terminal by construction: closing
   // the endless Epoch needed no new difficulty scalar, only the removal of the refund. Storm surge
   // `9+act*2` and spawn count `+floor(act/2)` climb forever too and are not counted above, so the real
@@ -5353,7 +5360,7 @@ function onKill(e){
 // blasts / shockwaves
 // THE BOMBER DETONATION. It exists to clear excessive ring shield and leftover dots; the SCOPING is the
 // whole design, and each exclusion is load-bearing:
-//   IT DOES NOT TOUCH YOU. Contact stays ETYPE.bomber.dmg = 10, Drifter parity, and the blast is not a
+//   IT DOES NOT TOUCH YOU. Contact stays ETYPE.bomber.dmg = 8, Drifter parity, and the blast is not a
 //   second damage channel at the core. A blast that pierces to the core reads as an unfair Dot rather
 //   than a hazard. Everything else about a Bomber is just a normal dot.
 //   IT DOES NOT TOUCH THE ANOMALY — a straight two-channel violation (§7), since a boss walks the arena
