@@ -9,15 +9,26 @@
      WORTHLESS — with no outbound channel, script that gets in has nowhere to send anything.
        `unsafe-inline` is unavoidable and honest about it: the whole game is one inline <script> and
      the styling is inline too. It buys nothing against XSS; `connect-src` is the clause doing work.
-       ⚠️ connect-src is 'self' RATHER THAN 'none', which is the one place this is looser than the web
-     build needs. The same file loads in the Capacitor WebView from capacitor://localhost, whose
-     injected runtime is not audited here, and a policy that breaks the native app would do it
-     silently. 'self' still blocks every cross-origin destination, which is the entire security value.
-     Tighten to 'none' once an iOS build has been run against it.
+       connect-src is 'none'. It was 'self' until an iOS build had actually been run against this file,
+     because the Capacitor WebView's injected runtime was unaudited and a policy that broke the native
+     app would have broken it SILENTLY. That build has now been run, and the runtime was read rather
+     than guessed at:
+       · native-bridge.js patches fetch and XMLHttpRequest only when `doPatchHttp` is true, which on iOS
+         requires the CapacitorHttp config flag. capacitor.config.json does not set it. And a patched
+         request would not need this clause anyway — CapacitorHttp exists precisely to route through the
+         NATIVE stack, which is not subject to a page CSP.
+       · the service worker is the other candidate and it never registers here: the call site is guarded
+         `if(!window.Capacitor && 'serviceWorker' in navigator)`, so sw.js and its fetches do not exist
+         inside the shell at all.
+       · the game itself opens no connection of any kind, which is the README's central claim.
+     Verified on iPhone 17 / iOS 26.5 after the change: menu, a full tutorial run, and all three touch
+     zones. ⚠️ If a future change enables CapacitorHttp, a plugin, or a remote server URL, this word is
+     the first thing that will break — and it will break silently, which is why it is written down here
+     rather than only in a commit body.
        Not achievable here and deliberately absent: frame-ancestors, report-uri and sandbox are all
      ignored in a <meta> CSP, and GitHub Pages cannot set response headers — so there is no
      clickjacking protection available on this host at all. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'none'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#060814" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -228,6 +239,13 @@
   @media (pointer:coarse){
     #muteBtn,#motionBtn{display:none;}
     #pauseBtn{top:16px;bottom:auto;}
+    /* ⚠️ FOUND ON THE DEVICE, NOT IN THE BROWSER: the Overdrive button rendered "오버드라이브 SHIFT 유지"
+       on a phone — a keyboard hint on a machine with no keyboard, sitting on the one control a touch
+       player actually presses. It is the same lie #controls was hidden for, one element further in, and
+       it survived that sweep because it lives INSIDE a button rather than in a legend.
+         Hidden rather than reworded: #touchCtl already says "오른쪽 위 · 유지: 오버드라이브", so a second
+       copy on the button would be the only place in the HUD that names the same zone twice. */
+    #cbKey{display:none;}
   }
 
   /* ---- ONE persistent feedback channel now. No centre banner: the world announces itself by DOING it.
@@ -5845,7 +5863,12 @@ function easePalette(){
 //   The counter is FRAMES, not `elapsed`, and that is load-bearing: `elapsed` only advances inside
 // step(), so a time-based clock would freeze the sky on the menu, the pause and the death screen —
 // which are exactly the states where palCur is still easing somewhere new.
-const SKY_EVERY=8;
+// A LIVE OBJECT RATHER THAN A BARE CONST, for exactly the reason TILT is one. The question this
+// cadence exists to answer — whether the cache actually raises the frame rate — can only be measured
+// where frames are really composited, and a `const` costs a full rebuild-and-reinstall per data point.
+// Sweeping it from the seam (`__orbital.SKY.every=1`, i.e. repaint every frame) turns the A/B into two
+// launches. **The shipped value is 8 and nothing in the game ever writes to it.**
+const SKY={every:8};
 let skyCv=null, skyCx=null, skyAge=1e9;
 function paintSky(c){
   const g=c.createRadialGradient(W/2,H*0.42,0,W/2,H*0.42,Math.max(W,H)*0.78);
@@ -5862,7 +5885,7 @@ function blitSky(){
   }
   // `palMoving` first, so an Epoch flip repaints on the frame it happens rather than up to eight
   // frames later. When it is true the counter is not advanced — the reset below covers it either way.
-  if(palMoving || ++skyAge>=SKY_EVERY){
+  if(palMoving || ++skyAge>=SKY.every){
     skyAge=0;
     skyCx.setTransform(S*DPR,0,0,S*DPR,0,0);   // same transform as ctx, so paintSky draws design units
     paintSky(skyCx);
@@ -6851,7 +6874,18 @@ function frameBody(now){
 // ambient still humming, no message. A bad frame is DROPPED and the loop survives; only a persistent
 // fault (8 in a row) halts — and it says so, instead of pretending to still run.
 let frameErrs=0;
+// THE FRAME COUNTER. Counts COMPOSITED frames — it increments once per rAF callback and nothing else
+// touches it, so it measures what the display actually showed rather than what any timer was asked to
+// do. That distinction is the whole reason this exists: every previous attempt to price the sky cache
+// measured *fill cost* in a pane that was free to discard the frames it never showed, which inverted
+// the result. See THE SKY CACHE.
+//   Deliberately not a rolling average and not drawn anywhere. It is a monotonic count plus the clock,
+// so a reader takes two samples and divides; an on-screen average would need a window length, and
+// picking one is how you end up measuring the window instead of the game.
+let frameN=0, frameT0=0;
 function frame(now){
+  if(!frameT0) frameT0=now;
+  frameN++;
   try{ frameBody(now); frameErrs=0; }
   catch(err){
     console.error('[orbital-crash] frame fault',err);
@@ -8116,6 +8150,11 @@ window.__orbital=window.__polaris=window.__flux={
   stick(){ return {id:stickId, ox:stickOX, oy:stickOY,
                    vec:{x:+stickVec.x.toFixed(3), y:+stickVec.y.toFixed(3)},
                    maxUnitsPerFrame:STICK.speed*(P?P.moveMult:1)}; },
+  // THE SKY CACHE'S INSTRUMENT. `SKY.every` is the repaint cadence — set it to 1 for the no-cache arm
+  // (see THE SKY CACHE) — and `fps()` hands back a COMPOSITED frame count with the wall time it took.
+  // Two samples and a subtraction, rather than an average whose window this file would have had to pick.
+  SKY,
+  fps(){ return {frames:frameN, ms:Math.round(performance.now()-frameT0), every:SKY.every}; },
   // ⚠️ overdrive() is PRESS, not toggle. A harness that calls it twice ignites once and never releases;
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},

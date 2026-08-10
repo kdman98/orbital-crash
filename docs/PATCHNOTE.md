@@ -14,6 +14,46 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### The port: the zones verified on a real device, CSP closed, and a probe to measure with `v2-ios`
+The three-zone control was measured on the seam in a browser and shipped **unverified on iOS**. It is
+verified now, and the certifier is the game itself: the tutorial gates each step on actually performing
+the verb, so walking it end to end on iPhone 17 / iOS 26.5 proves all three zones —
+**1/6 → 2/6** (drag the left half), **4/6 → 5/6** (press bottom-right, star cyan → pink),
+**5/6 → 6/6** (hold top-right, meter drained). Holding Overdrive did **not** trip Pause, which is the one
+ergonomic question `66d8244` recorded as unmeasurable.
+
+The WebView reports **874 × 402**, so the seams land on 437/201 exactly as designed — the safe-area insets
+do not shrink the viewport, they only inset `#hud`.
+
+**`connect-src` is `'none'` on both pages.** `7b2f75a` left it at `'self'` for one stated reason: iOS had
+never been built against the file and a broken policy would break *silently*. The runtime was then read
+rather than guessed at — Capacitor patches fetch/XHR only when `CapacitorHttp` is set (it is not, and a
+patched request routes natively, outside any page CSP), and the service worker never registers in the
+shell because its call site is guarded `if(!window.Capacitor …)`. Verified live on device.
+
+⚠️ **Found only on the device: the Overdrive button said "SHIFT 유지" on a phone.** A keyboard hint on the
+one control a touch player presses — the same lie `#controls` was hidden for, surviving that sweep by
+living *inside a button* rather than in a legend. Hidden on coarse pointers.
+
+**`npm run sync` carries the locale now.** `pod install` dies with an `Encoding::CompatibilityError`
+whose backtrace names only ruby and cocoapods and reads like a broken install; it is `LC_CTYPE=C` making
+`Dir.pwd` ASCII-8BIT under CocoaPods 1.17.0 / Ruby 4.0.6. Proven by deleting `Pods/` and resyncing.
+
+**A DEBUG-only JS probe now exists in the shell**, because it had no way in *or* out: Capacitor prints
+JS console output with `print()`, which stdout-only and invisible to `log show`, and the WebView loads a
+fixed URL with no query string. `--evalJS` + `NSLog`, gated `#if DEBUG` because it evaluates arbitrary JS.
+It polls for readiness rather than sleeping a guess — a flat 1s delay reported
+*"undefined is not an object"*, which reads exactly like a stale build and was really a 600KB page still
+parsing.
+
+⚠️ **The sky cache is still not measured, and the reason is worth more than the number would have been.**
+Two rigs disagreed by **4×** (+37% vs +150%) and the cause was the *reading*: a simulator screenshot is
+expensive and lands on the machine being measured, and one fell inside a window. That is the same defect
+that invalidated every earlier attempt at this figure, in a new place. Polling `log show` is the same
+mistake in different clothes. See MECHANICS *Open* for the table and for why **even a clean simulator
+number would not close the item** — the simulator runs on the host Mac's GPU, and the cache was bet on
+fill-rate-bound hardware.
+
 ### Touch is three zones now, and tilt stops steering `66d8244`
 Author: *"three touching point for control (move half, overdrive quart, flip quart)"* — v2's feature, on
 the `v2` branch. The canvas partitions by geometry: **move on the left half, Overdrive on the top-right

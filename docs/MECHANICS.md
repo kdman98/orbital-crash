@@ -3165,6 +3165,30 @@ actually composited and cannot be discarded. Until then the honest claim is *"a 
 rasterisation, unverified on GPU"* — and ⚠️ **any copy or commit body asserting a frame-rate improvement
 is asserting something nobody has measured.** See *Feel → The sky cache*.
 
+**The instrument now exists. The number still does not.** `__orbital.fps()` returns a count of composited
+frames plus wall time, `SKY.every` is a live knob (1 = no cache), and the iOS shell has a DEBUG-only JS
+probe so both can be driven on a device. Three attempts were made on the iPhone 17 simulator and **none
+of them is admissible**:
+
+| rig | E8 (cache) | E1 (no cache) | "gain" |
+|---|---|---|---|
+| two separate launches | 38.16 | 27.83 | +37% |
+| paired, one process | 23.50 | 9.40 | **+150%** |
+| three interleaved pairs | — | — | never completed |
+
+⚠️ **A 4× disagreement between the first two is the finding; neither number is a result.** The cause was
+the *reading*, not the change: a simulator screenshot is expensive and lands on the machine being
+measured, and one of them fell inside a measurement window. **That is the same defect that invalidated
+every previous attempt at this figure, in a new place** — the instrument became part of the experiment
+again. Polling `log show` in a loop is the same mistake wearing different clothes: it is host CPU and the
+simulator shares it. The fix in place for next time is `localStorage` — the run writes its result and a
+separate, later launch reads it, so nothing touches the machine while it measures.
+
+⚠️ **And a clean simulator number would still not close this item.** The simulator composites, which is
+the defect the open question names — but it runs on the host Mac's GPU, and the cache was bet on
+*fill-rate-bound* hardware. A Mac result can show the cache helps when frames genuinely composite; it
+cannot speak for an iPhone. **Closing this needs a real device.**
+
 **🟡 The grind exploit, restated without the cliff that was never there.** This item spent months
 reasoned as a threshold — a line at 18 HP, a *trigger condition*, a margin above it that widened and
 narrowed as the pool moved. **There is no threshold, and the margin arithmetic was measuring nothing.**
