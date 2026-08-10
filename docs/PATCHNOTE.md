@@ -14,7 +14,7 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
-### Touch is three zones now, and tilt stops steering `b0ed967`
+### Touch is three zones now, and tilt stops steering `66d8244`
 Author: *"three touching point for control (move half, overdrive quart, flip quart)"* — v2's feature, on
 the `v2` branch. The canvas partitions by geometry: **move on the left half, Overdrive on the top-right
 quarter, flip on the bottom-right quarter**, decided by `zoneOf(x,y)` in CSS pixels.
@@ -59,7 +59,7 @@ Settings rows and are hidden on coarse pointers; Pause moves to the top-right co
 diagonals and all three verbs concurrently are measured on the seam at 874×402 with zero console errors.
 Ergonomics are argued. The median scripted pilot has no thumbs.
 
-### MECHANICS said "portrait" for five days after the code said landscape `b0ed967`
+### MECHANICS said "portrait" for five days after the code said landscape `66d8244`
 Found while building the zones on the landscape geometry. `c6b59b5` moved `Info.plist` and the manifest
 to `LandscapeLeft`/`LandscapeRight` **and refuted the fairness argument that had justified the portrait
 lock** — `S` keys on the short side, so rotating is area- and spawn-radius-neutral (1.391M and 1044 both
