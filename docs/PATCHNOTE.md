@@ -14,6 +14,33 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### A run you can hand to somebody `v2`
+A **1080×1350** card built from the run that just ended — score, Epoch, killer, time, peak combo, the
+Overdrive and Anomaly strips, and your star in the skin it was wearing. Share sits beside Menu, *below*
+Reforge: one tap to play again is what that screen is for, and a card is a garnish.
+
+**Drawn, not screenshotted.** A DOM capture needs a rasteriser this game does not ship and would hand
+over whatever the viewport happened to be. The card is composed for the medium instead — 4:5, the shape
+every messenger shows uncropped — and it reuses the *real* skin code: `starHull`/`STAR_FACE` now take a
+context and geometry rather than reading `P` and `ctx`, so the card draws the same star at 68px that the
+field draws at 15 with no second copy to drift.
+
+**It touches no network and must not start.** `connect-src 'none'` is the policy and a share feature is
+the obvious place to break it. Everything is canvas → data URL → blob. Measured: 811 KB, 37 ms to
+encode, valid PNG magic, and a `blob:` URL creates cleanly under the policy with no console error.
+
+⚠️ **`toDataURL`, not `toBlob`, and that is deliberate.** Safari only honours `navigator.share` inside
+the task that handled the gesture; awaiting a `toBlob` callback leaves it and the sheet silently never
+opens — on the one platform this is shipping to. The whole path to `share()` is synchronous, and the
+button is bound directly rather than through a wrapper for the same reason.
+
+**Two layout faults found by looking at it.** The wordmark printed twice (header and footer) — cut, the
+star closes the card and needs no caption. And the start-Epoch read `EPOCH III · ECLIPSE · from III` on
+a deep start that never advanced: true, and nonsense. It is its own line now, because how deep you got
+and whether you were handed a head start are two facts, and the second is what makes the first
+comparable. The block rhythm is set by the busiest card — both strips present — because that is the run
+worth sharing, and at the first spacing the star's halo washed over the Anomaly chips on exactly those.
+
 ### The five original achievements are gone `v2`
 Roster **16 → 11, one hidden**. Deleted: `firstBoss`, `combo60`, `act3`, `redline`, `lancegild`.
 

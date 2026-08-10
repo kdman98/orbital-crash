@@ -431,6 +431,7 @@
   /* THE DEPTH SELECTOR borrows the doornote's label treatment on purpose: it is the same KIND of thing,
      a quiet line qualifying the loud button above it, and giving it a voice of its own would make the
      menu read as having two headline controls instead of one. */
+  .deadrow{display:flex;gap:10px;margin-top:12px;justify-content:center;flex-wrap:wrap;}
   .depth{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:11px;flex-wrap:wrap;}
   .depthlab{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;}
   .depthpills{display:flex;gap:5px;}
@@ -988,7 +989,13 @@
   <div id="deadAnomLogLab" class="loglab hidden"><span data-t="log.anom">Anomalies · </span><span id="deadAnomLogSum"></span></div>
   <div id="deadAnomLog" class="chiplog"></div>
   <button class="btn" id="againBtn" data-t="dead.again">Reforge</button>
-  <button class="btn sm ghost" id="deadMenuBtn" data-t="ui.menu" style="margin-top:12px;">Menu</button>
+  <!-- Share sits BESIDE Menu and below Reforge, never above it. One tap to play again is the thing this
+       screen is for, and a card is a garnish; putting a second solid button here would make the player
+       choose between two loud options at the exact moment they want the quiet one. -->
+  <div class="deadrow">
+    <button class="btn sm ghost" id="shareBtn" data-t="dead.share">Share</button>
+    <button class="btn sm ghost" id="deadMenuBtn" data-t="ui.menu">Menu</button>
+  </div>
 </div>
 
 <script>
@@ -1328,6 +1335,8 @@ const L={ en:{
   'menu.rush':'Boss Rush',  'menu.lab':'Pattern Lab',
   'menu.note':'Practice only · neither can set your best',
   'menu.depth':'Begin at',
+  'card.from':'Started at Epoch {e}',
+  'dead.share':'Share',
   'set.skin':'Star',
   'set.skinD':'Looks you have earned. Colour always means polarity, so a skin never changes hue — only what is drawn inside the hull.',
   'skin.locked':'Locked',
@@ -1491,6 +1500,8 @@ const L={ en:{
   'menu.rush':'보스 러시',  'menu.lab':'패턴 실험실',
   'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
   'menu.depth':'시작 시대',
+  'card.from':'{e}단계에서 시작한 판',
+  'dead.share':'공유하기',
   'set.skin':'별 외형',
   'set.skinD':'획득한 외형입니다. 색은 언제나 극성을 뜻하므로, 외형이 색을 바꾸는 일은 없습니다. 달라지는 것은 안쪽 무늬뿐입니다.',
   'skin.locked':'잠김',
@@ -5922,6 +5933,11 @@ let chargeReady=false;   // has the OVERDRIVE READY chime already fired for this
 // DEATH CEREMONY: the Core shatters and the world drifts for a beat BEFORE the ledger appears —
 // then the score counts up like a till. Losing should still feel like an event.
 let deathRevealT=0, deadCountT=0;
+// Was the run that just ended a new best? `nb` is local to die() and the death screen only needs it to
+// toggle one element, but the run card is built LATER — on a button press — by which time the only
+// other way to ask is `score===store.best`, which is also true for every tie and every replay of the
+// screen. One flag beats a comparison that is quietly wrong.
+let lastRunBest=false;
 function die(){
   if(state==='dead')return; // guard against double-entry
   // DYING IN THE TUTORIAL IS AN ENDING, NOT A DEATH SCREEN. It routes before `state='dead'` so none of
@@ -5973,6 +5989,7 @@ function die(){
   el('deadTime').textContent=fmtTime(elapsed);
   el('deadCombo').textContent=peakCombo;
   el('deadBest').classList.toggle('hidden',!nb);
+  lastRunBest=nb;   // the card says so too, and `nb` is local to this function
   showRunLogs('dead',false);   // endOverdrive() above already closed the final ride into odLog
 
   // the shatter
@@ -5986,6 +6003,154 @@ function revealDead(){
   el('dead').classList.remove('hidden');
   deadCountT=0.8;
   for(let i=0;i<6;i++) setTimeout(()=>beep(760+i*70,0.035,'square',0.05), i*110); // till blips
+}
+
+// =====================================================================
+//  THE RUN CARD — a run you can hand to somebody
+// =====================================================================
+// DRAWN, NOT SCREENSHOTTED. A DOM capture would need a rasteriser this game does not ship and would
+// hand over whatever the viewport happened to be — a phone in landscape, a HUD mid-animation, the
+// pause button. The card is composed for the medium it lands in instead: 4:5 portrait, which is the
+// shape every messenger and feed shows without cropping.
+//   ⚠️ IT TOUCHES NO NETWORK, and must not start. `connect-src 'none'` is the policy on both pages and
+// the card is the obvious place to break it — a hosted image, a share endpoint, a shortener. Everything
+// here is a canvas, a data URL and a blob, so the policy stays closed and the iOS shell needs nothing.
+const CARD_W=1080, CARD_H=1350;
+const CARD_FONT='-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Arial,sans-serif';
+function cardText(g,s,x,y,size,weight,col,align,track){
+  g.font=weight+' '+size+'px '+CARD_FONT;
+  g.fillStyle=col; g.textAlign=track?'left':(align||'center'); g.textBaseline='alphabetic';
+  if(!track){ g.fillText(s,x,y); return; }
+  // Canvas has no letter-spacing in every engine this ships to, so tracked lines are drawn per glyph.
+  // Only the small caps lines use it; the score would look hand-kerned and wrong.
+  let w=0; for(const ch of s) w+=g.measureText(ch).width+track;
+  w-=track;
+  let cx = (align==='left') ? x : x-w/2;
+  for(const ch of s){ g.fillText(ch,cx,y); cx+=g.measureText(ch).width+track; }
+}
+function cardChip(g,s,x,y,h,col,txt){
+  const pad=18;
+  g.font='700 26px '+CARD_FONT;
+  const w=g.measureText(s).width+pad*2, r=h/2;
+  g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+  g.fillStyle=col; g.fill();
+  g.fillStyle=txt; g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(s,x+w/2,y+h/2+1);
+  return w;
+}
+// A row of chips, centred, with an overflow chip rather than a clipped row — the same contract the
+// death screen's own log makes, because the card is a copy of that receipt and not a new claim.
+function cardChipRow(g,items,y,cap){
+  const shown=items.slice(0,cap), extra=items.length-shown.length;
+  const labels=shown.concat(extra>0?['+'+extra]:[]);
+  g.font='700 26px '+CARD_FONT;
+  const widths=labels.map(s=>g.measureText(s).width+36);
+  const total=widths.reduce((a,b)=>a+b,0)+12*(labels.length-1);
+  let x=(CARD_W-total)/2;
+  labels.forEach((s,i)=>{
+    const dim=extra>0 && i===labels.length-1;
+    cardChip(g,s,x,y,46, dim?'rgba(255,255,255,.06)':'rgba(255,255,255,.10)',
+             dim?'rgba(210,226,255,.55)':'#dbe7ff');
+    x+=widths[i]+12;
+  });
+}
+function buildRunCard(){
+  const cv=document.createElement('canvas');
+  cv.width=CARD_W; cv.height=CARD_H;
+  const g=cv.getContext('2d');
+  // The sky you died under, not a generic backdrop — `palCur` is already the Epoch's palette, so a card
+  // from Eclipse and one from Meteor Shower do not look like the same run with a different number.
+  const grd=g.createRadialGradient(CARD_W/2,CARD_H*0.38,0,CARD_W/2,CARD_H*0.38,CARD_H*0.78);
+  grd.addColorStop(0,rgbStr(palCur.bg1,1)); grd.addColorStop(1,rgbStr(palCur.bg2,1));
+  g.fillStyle=grd; g.fillRect(0,0,CARD_W,CARD_H);
+  g.fillStyle='rgba(0,0,0,.18)'; g.fillRect(0,0,CARD_W,CARD_H);
+
+  cardText(g,'ORBITAL CRASH',CARD_W/2,132,34,'800','rgba(215,232,255,.55)','center',9);
+  cardText(g,T('dead.kicker').toUpperCase(),CARD_W/2,286,30,'800','rgba(255,120,150,.85)','center',7);
+  cardText(g,score.toLocaleString(),CARD_W/2,430,150,'900','#ffffff');
+  if(lastRunBest) cardText(g,T('dead.best').toUpperCase(),CARD_W/2,494,30,'900',COL.gold,'center',5);
+
+  // Epoch, and the start Epoch beside it when they differ. A card that showed only "VII" would read the
+  // same for a run that travelled there and one that began two Epochs short of it.
+  // The HUD's own Epoch line, verbatim — same key, same Roman/Arabic split, same act name. A card that
+  // invented its own phrasing for the thing the player just spent ten minutes reading would be a second
+  // vocabulary for one fact.
+  const ep=T('hud.epoch',{r:roman(act), n:act, name:T('act.'+((act-1)%ACTS.length)).toUpperCase()});
+  cardText(g,ep,CARD_W/2,566,30,'700','rgba(200,220,255,.72)');
+  let cy=616;
+  // ⚠️ ITS OWN LINE, NOT A SUFFIX ON THE EPOCH. Appended it read "EPOCH III · ECLIPSE · from III" for a
+  // deep start that never advanced — true, and nonsense to look at. These are two different facts: how
+  // deep you got, and whether you were handed a head start. The second is what makes the first
+  // comparable, so it has to be legible on its own rather than trailing the thing it qualifies.
+  if(runStartAct>1){
+    cardText(g,T('card.from',{e:epochGlyph(runStartAct)}),CARD_W/2,cy,24,'600','rgba(196,166,255,.72)');
+    cy+=44;
+  }
+  if(lastDmg) cardText(g,T('dead.cause',{src:srcName(lastDmg.src),r:roman(lastDmg.act),n:lastDmg.act}),
+                       CARD_W/2,cy,26,'600','rgba(180,200,230,.6)');
+
+  const stat=(label,val,x)=>{
+    cardText(g,label.toUpperCase(),x,730,22,'700','rgba(160,185,220,.6)','center',4);
+    cardText(g,val,x,794,64,'900','#eaf2ff');
+  };
+  stat(T('dead.time'),fmtTime(elapsed),CARD_W*0.30);
+  stat(T('dead.combo'),String(peakCombo),CARD_W*0.70);
+
+  // ⚠️ 116 PER BLOCK AND THE STAR PARKED BELOW BOTH. The rhythm is set by the WORST case — a run with
+  // an Overdrive log AND an Anomaly log — because that is the run worth sharing. At the first spacing
+  // the star's halo washed straight over the Anomaly chips on exactly those cards and nowhere else.
+  let y=876;
+  if(odCount>0){
+    cardText(g,T('log.od')+'×'+odCount+' · '+odTotal.toFixed(1)+'s',CARD_W/2,y,24,'700','rgba(255,227,107,.75)');
+    cardChipRow(g,odLog.map(v=>v.toFixed(1)+'s'),y+22,6); y+=116;
+  }
+  if(anomLog.length){
+    cardText(g,T('log.anom')+'×'+anomLog.length,CARD_W/2,y,24,'700','rgba(190,150,255,.8)');
+    cardChipRow(g,anomLog.map(v=>Math.round(v)+' HP'),y+22,5); y+=116;
+  }
+
+  // The star, in the skin that was on it, drawn by the SAME code the field uses.
+  const face=STAR_FACE[skinPick('star')]||STAR_FACE.core;
+  const sc=P?COL[P.polarity]:COL.cyan, sx=CARD_W/2, sy=1212, sr=68;
+  const halo=g.createRadialGradient(sx,sy,0,sx,sy,sr*2.0);
+  halo.addColorStop(0,hexA(sc,0.16)); halo.addColorStop(1,hexA(sc,0));
+  g.fillStyle=halo; g.beginPath(); g.arc(sx,sy,sr*2.0,0,TAU); g.fill();
+  face(g,sc,sr*0.147,sx,sy,sr);
+  g.save(); g.translate(sx,sy); g.rotate(-0.22); g.scale(1,0.36);
+  g.strokeStyle=hexA(sc,0.5); g.lineWidth=sr*0.16;
+  g.beginPath(); g.arc(0,0,sr*1.95,0,TAU); g.stroke(); g.restore();
+
+  // (A second wordmark sat here as a footer and was cut on sight: the header already says it, and
+  //  saying the same thing twice on a 1080px card is the same defect the world text was deleted for.
+  //  The star closes the card — it is a signature, and it does not need a caption.)
+  return cv;
+}
+// SYNCHRONOUS UP TO share(), AND THAT IS THE WHOLE REASON IT USES toDataURL RATHER THAN toBlob. Safari
+// only honours navigator.share inside the task that handled the gesture, and awaiting a toBlob callback
+// leaves it — the share sheet then silently never opens, on the one platform this is being shipped to.
+function dataURLToFile(u,name){
+  const [head,b64]=u.split(',');
+  const mime=(head.match(/:(.*?);/)||[])[1]||'image/png';
+  const bin=atob(b64), n=bin.length, arr=new Uint8Array(n);
+  for(let i=0;i<n;i++) arr[i]=bin.charCodeAt(i);
+  return new File([arr],name,{type:mime});
+}
+function shareRunCard(){
+  let file;
+  // A failed card must never eat the death screen — Reforge is one tap away and this is a garnish.
+  try{ file=dataURLToFile(buildRunCard().toDataURL('image/png'),'orbital-crash.png'); }
+  catch(e){ return; }
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    // A cancelled sheet rejects with AbortError. That is the user saying no, not a fault to report.
+    navigator.share({files:[file]}).catch(()=>{});
+    return;
+  }
+  const url=URL.createObjectURL(file);
+  const a=document.createElement('a');
+  a.href=url; a.download=file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),20000);
 }
 
 // =====================================================================
@@ -6787,44 +6952,49 @@ function drawEnemies(){
 // visible edge touches anything — the one direction a drawing must never lie in. The rim is a STROKE,
 // so it is inset by half its width to put its OUTER edge on P.r; move one without the other and the rim
 // detaches into a floating ring or overshoots the envelope.
-function starHull(c,SRW){
-  ctx.fillStyle=c;
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r,0,TAU); ctx.fill();
-  ctx.strokeStyle=hexA('#ffffff',0.85); ctx.lineWidth=SRW;
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r-SRW/2,0,TAU); ctx.stroke();
+//   ⚠️ TAKES ITS CONTEXT AND ITS GEOMETRY, and does not read `P` or `ctx`. The run card draws the same
+// star onto an offscreen canvas at a different size, and the ONE thing worse than a card that shows the
+// wrong skin is a second copy of the drawing code that drifts from this one. Parameters, not globals.
+function starHull(g,c,SRW,x,y,r){
+  g.fillStyle=c;
+  g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
+  g.strokeStyle=hexA('#ffffff',0.85); g.lineWidth=SRW;
+  g.beginPath(); g.arc(x,y,r-SRW/2,0,TAU); g.stroke();
 }
 // A FACE OWNS THE INTERIOR. It is handed the polarity colour and never picks one — hue is polarity
 // everywhere in this game, and that is the one rule a cosmetic does not get to bend.
 const STAR_FACE={
-  core(c,SRW){
-    starHull(c,SRW);
+  core(g,c,SRW,x,y,r){
+    starHull(g,c,SRW,x,y,r);
     // lit hemisphere — a bright offset cap fakes a sphere under additive blending. Scaled with the body
     // (was 0.42/0.26 against a 0.82 hull) so the sphere read survives the larger disc.
-    ctx.fillStyle=hexA('#ffffff',0.45);
-    ctx.beginPath(); ctx.arc(P.x-P.r*0.32,P.y-P.r*0.32,P.r*0.51,0,TAU); ctx.fill();
+    g.fillStyle=hexA('#ffffff',0.45);
+    g.beginPath(); g.arc(x-r*0.32,y-r*0.32,r*0.51,0,TAU); g.fill();
   },
-  turret(c,SRW){
-    starHull(c,SRW);
+  turret(g,c,SRW,x,y,r){
+    starHull(g,c,SRW,x,y,r);
     // A fort, because you earned this by refusing to move: an octagonal keep with four buttresses,
     // entirely INSIDE the hull, so the silhouette on screen is still the circle the collider is. No
     // sphere cap — the flat, plated read is the whole point of it not looking like Core.
-    ctx.save(); ctx.translate(P.x,P.y);
-    const keep=P.r*0.60;
-    ctx.strokeStyle=hexA('#ffffff',0.60); ctx.lineWidth=1.7;
-    ctx.beginPath();
+    //   Every measurement is a FRACTION OF r, never a literal, which is what lets the card draw this at
+    // 70px and the field draw it at 15 without a second set of numbers to keep in step.
+    g.save(); g.translate(x,y);
+    const keep=r*0.60;
+    g.strokeStyle=hexA('#ffffff',0.60); g.lineWidth=Math.max(1, r*0.113);
+    g.beginPath();
     for(let i=0;i<8;i++){ const a=i*TAU/8+Math.PI/8;
-      const x=Math.cos(a)*keep, y=Math.sin(a)*keep;
-      if(i) ctx.lineTo(x,y); else ctx.moveTo(x,y); }
-    ctx.closePath(); ctx.stroke();
-    ctx.strokeStyle=hexA('#ffffff',0.34); ctx.lineWidth=1.5;
+      const px=Math.cos(a)*keep, py=Math.sin(a)*keep;
+      if(i) g.lineTo(px,py); else g.moveTo(px,py); }
+    g.closePath(); g.stroke();
+    g.strokeStyle=hexA('#ffffff',0.34); g.lineWidth=Math.max(1, r*0.1);
     for(let i=0;i<4;i++){ const a=i*TAU/4+Math.PI/4;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a)*keep, Math.sin(a)*keep);
-      ctx.lineTo(Math.cos(a)*P.r*0.93, Math.sin(a)*P.r*0.93);
-      ctx.stroke(); }
-    ctx.fillStyle=hexA('#ffffff',0.55);
-    ctx.beginPath(); ctx.arc(0,0,P.r*0.20,0,TAU); ctx.fill();
-    ctx.restore();
+      g.beginPath();
+      g.moveTo(Math.cos(a)*keep, Math.sin(a)*keep);
+      g.lineTo(Math.cos(a)*r*0.93, Math.sin(a)*r*0.93);
+      g.stroke(); }
+    g.fillStyle=hexA('#ffffff',0.55);
+    g.beginPath(); g.arc(0,0,r*0.20,0,TAU); g.fill();
+    g.restore();
   },
 };
 function drawPlayer(){
@@ -6872,7 +7042,7 @@ function drawPlayer(){
   // body, rim and interior — the skin's whole surface area. The hold-charge ring above, the blink, and
   // the halo below are STATE READOUTS rather than identity, so they are common to every face: a skin
   // must not be able to make a meter harder to read.
-  (STAR_FACE[skinPick('star')] || STAR_FACE.core)(c,SRW);
+  (STAR_FACE[skinPick('star')] || STAR_FACE.core)(ctx,c,SRW,P.x,P.y,P.r);
   // tilted ring halo — you are a ringed star even before matter gathers
   ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(-0.22); ctx.scale(1,0.36);
   ctx.strokeStyle=hexA(c,0.55); ctx.lineWidth=2.4;
@@ -7498,6 +7668,9 @@ el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anom
 el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-6 to fire a shape
 el('againBtn').onclick=()=>{ startRun(lastWasTest, lastStartAct); }; // Reforge = instant retry, same mode AND same depth
 el('deadMenuBtn').onclick=()=>{ toMenu(); };
+// Bound directly rather than through a wrapper: navigator.share must be reached inside the task that
+// handled the click, and every hop between the two is a chance to lose the gesture.
+el('shareBtn').onclick=shareRunCard;
 // The touch control is HELD like every other Overdrive input, so it is pointerdown/up rather than click —
 // a click only exists after the release, which is the moment the ride would have to end.
 // `pointerleave` covers a finger that slides off the button before lifting.
@@ -8543,6 +8716,9 @@ window.__orbital=window.__polaris=window.__flux={
   // SKINS. `skinPick` is the one the fingerprint test needs: it is the only thing drawPlayer consults,
   // so a test can swap faces and assert the sim did not move.
   SKINS, skinPick, skinOwned, paintSkins,
+  // THE RUN CARD. `buildRunCard` returns the canvas, so a test can assert its pixels without opening a
+  // share sheet — the export path is the only part that needs a human and a device.
+  buildRunCard, shareRunCard, CARD_W, CARD_H,
   // Draw one frame on demand. The harness runs in a HIDDEN tab, where the browser never fires
   // requestAnimationFrame — so without this the canvas stays blank forever and no visual change can be
   // verified at all (every pixel sample this session read pure black until it was added).

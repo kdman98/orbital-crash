@@ -1825,11 +1825,14 @@ wallpaper, so the remainder collapses into one `+N` — and `N` reads the **coun
 of the log, because the log stops growing well before a marathon run does. Reading the array would let
 a long run quietly under-report how much it was hiding.
 
-**The cause line names species, never internals.** It reads *Lost to* a Dot's display name plus the
-Epoch in Roman, with the phase **recorded but never rendered** — it is on `lastDmg` and reachable at
+**The cause line names species, never internals.** It names the Dot that killed you by display name plus
+the Epoch it happened in — *Lost to Charger (red) · Epoch III*, and in Korean *빨간색 쐐기에 당함 · 3단계*.
+⚠️ **The Roman numeral is English's alone.** `dead.cause` is a per-language sentence rather than one
+frame with slots, so English fills `{r}` and Korean fills `{n}`; a doc that states one rendering states
+half of them. The phase is **recorded but never rendered** — it is on `lastDmg` and reachable at
 `__orbital.lastDmg.phase` for a harness, and reaches no player-facing surface at all. *(It sat behind a
 `DEV` flag until `fbe2bd8` removed that seam; the rule is unchanged, only the mechanism.)* The Anomaly
-damages you through the ordinary Dot-contact path, so it needs a row in `DOTNAME` like everything else;
+damages you through the ordinary Dot-contact path, so it needs a `dot.*` row in `L` like everything else;
 without one the receipt printed the raw internal type back at the player.
 
 ---

@@ -22,9 +22,10 @@ paragraph goes in MECHANICS and this line points at it.
   It never means an enemy, because *its body* (the boss) and *a body* (an enemy) collided in the same
   sentence too often. (The ordinary English senses — a *commit body*, *body copy* — are not the game's
   vocabulary and are left alone.)
-  The code agrees: identifiers were always `Dot`-shaped (`DOTNAME`, `DOTSPD`), and the comments and
-  Bestiary copy were brought into line — what `body` survives in either file is a hull, a CSS selector,
-  or the `PRICED IN CONNECTING BODIES` unit of account.
+  The code agrees: identifiers were always `Dot`-shaped — `DOTSPD` still, and `DOTNAME` until `70f4431`
+  folded the name table into `L` — and the comments and Bestiary copy were brought into line; what
+  `body` survives in either file is a hull, a CSS selector, or the `PRICED IN CONNECTING BODIES` unit
+  of account.
 
 ---
 
@@ -77,14 +78,14 @@ paragraph goes in MECHANICS and this line points at it.
 - **Ride** — one Overdrive from ignition to end, and the unit the run summary logs. A *burn* is the
   state you are in; a ride is the finished thing that gets counted. Every ride ends in one place.
   (`odT`, `odLog`, `endOverdrive`)
-- **Redline** — igniting a full Capacitor and riding it to empty. Granted inside `endOverdrive()`, the
-  single exit, so banking early and dying mid-ride are judged by the same line. (`redline`)
 - **Annihilation** — the core kill event: two opposite-charge things touch, both destroyed.
   (`queueKill`, `processKills`)
 - **Pop** — to destroy a Dot.
 - **Sky cache** — the background painted once into an offscreen canvas and blitted, rather than
-  repainted every frame. Rebuilt on three triggers only: the palette easing after an Epoch flip, a frame
-  counter, and a canvas size change. (`blitSky`, `paintSky`, `SKY_EVERY`, `palMoving`)
+  repainted every frame. Rebuilt on **four** triggers: the palette *easing* after an Epoch flip, a frame
+  counter, a canvas size change, and an explicit invalidation wherever the palette **jumps** rather than
+  eases — a jump falls between the first two and would otherwise serve the previous sky.
+  (`blitSky`, `paintSky`, `skyInvalidate`, `SKY.every`, `palMoving`)
 - **Vacuum** — what a reversal does to opposite-colour Motes lying inert on the field.
 - **Purge** — destroying an Anomaly. The word means only this. (`killBoss`)
 
@@ -257,7 +258,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Anomaly log** — one entry per Anomaly fight, holding **every** point of damage taken while that
   Anomaly was alive — not only damage the Anomaly itself dealt. (`anomLog`)
 - **Cause line** — the death receipt's *Lost to* line: the species that killed you, by display name,
-  and the Epoch it happened in. (`lastDmg`, `DOTNAME`, `deadCause`)
+  and the Epoch it happened in. The name is resolved at render time from a `{t,c}` key pair, never
+  stored — see *A damage source is a key pair, not a name* in MECHANICS. (`lastDmg`, `srcName`,
+  `deadCause`)
 
 ## Meters
 
@@ -284,6 +287,8 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   only. Some gate a **Skin**, so they no longer "unlock nothing".
 - **Skin** — an earned look, chosen in **Settings**. Cosmetic only, draw-time only, and it never changes
   hue: colour means polarity. One category (`star`) with **Core** and **Redoubt** today.
+- **Run card** — the shareable 1080×1350 PNG built from the run you just finished. Drawn on a canvas,
+  never screenshotted, and it touches no network. (`buildRunCard`, `shareRunCard`)
   (`ACHV`, `store.achv`)
 
 ## Feel
@@ -321,6 +326,11 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 Kept only so an old commit message reads correctly. None of these is the current word for the thing —
 which is not the same as none of them appearing anywhere: `P.eddy` is still the live code name for
 Overdrive's ring behaviour, and a few of these survive in comments explaining their own removal.
+
+**Removed with the five original achievements:** **Redline** → igniting a full Capacitor and riding it
+to empty; the feat is gone and so is `odFrom`, the charge-at-ignition field that existed only to judge
+it · **Skeet Shooter**, **Chain Reactor**, **Deep Field**, **Purge an Anomaly** → the plays all still
+work exactly as before; only the ticks for them are gone.
 
 **Removed with the powerup system:** **Collapse** → Overdrive is what the Capacitor buys now ·
 **Tally** → the Collapse kill bonus, gone with it · **Orb** and **powerup** → there are no pickups ·
