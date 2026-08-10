@@ -116,8 +116,9 @@ paragraph goes in MECHANICS and this line points at it.
   down the middle instead of entering an orbit. (`ARC_INJ`)
 - **Cruise** — the speed a Dot actually travels at, `seek * 6.1429`. Not `maxsp`, which is only a ceiling
   and which no ordinary Dot ever reaches in free flight: the two are independent, and reading the table's
-  `maxsp` as pace is what left the Harrier shipping sixth-fastest of eight while its row read second.
-  (`cruiseSpeed`, `CRUISE_K`)
+  `maxsp` as pace is what shipped the Harrier at `seek` 0.16 — cruise 0.983, **sixth of eight**, under a
+  Bomber — while its `maxsp` 5.0 row read second. Today's 0.34 cruises 2.089 and the row is right, so the
+  entry above and this one describe different builds rather than disagreeing. (`cruiseSpeed`, `CRUISE_K`)
 - **Reversal excursion** — how far a cruising Dot carries on the wrong way once you get behind it, and the
   honest measure of "slow turn". **It is exactly `1.5653 × cruise` for the seven species that share the
   0.86 bleed** — identical to floating-point precision — because friction sets the *shape* of the turn and
