@@ -1660,8 +1660,14 @@ including the ones that move standing population the most.
   where the instruction goes competes with it.
 
   ⚠️ **"Flavour only; they unlock nothing" and "nothing counts the rows" were both true and are both
-  now false.** The count gates the skin ladder, so a row is a currency and every property that used to
-  be harmless has teeth:
+  now false.** A row gates a skin, so it is a currency and every property that used to be harmless has
+  teeth:
+
+  ⚠️ *An entry dated 2026-08-10 says "the count gates the skin ladder". It does not.* Skins key on a
+  **specific achievement id** (`{id:'turret', req:'turret'}`), not on `store.achv.size`. The count
+  threshold was the plan and was never built, because an unused branch in a gate is a gate nobody has
+  tested. Either shape makes a row a currency, so nothing below changes — but do not go looking for a
+  ladder that is not there.
   - **Grants are survival-only.** `grantAchv` carries the same `!testMode && !labMode && !tutMode`
     condition as the best score and the records list — one condition, three consumers, wrong together
     or right together. Before this, Boss Rush could farm `firstBoss`, `combo60`, `redline` and
@@ -1706,6 +1712,34 @@ without this a cold Epoch-V start would serve the `t<20` teaching band at Epoch-
 warps only the intro *gates* — never `elapsed` — so Time Survived stays the honest number and the sim
 keeps one clock. Reach-style achievements (`act3` today) carry a cold-start guard, because "reach Epoch
 III" has to mean you travelled there.
+
+### Skins
+The second thing that crosses a run boundary, and the second that grants **access, never power**. One
+category today (`star`), two faces: **Core** (default) and **Redoubt**, gated on the Turret achievement.
+They live in Settings rather than in a room of their own — *one question per surface*, and "which star am
+I looking at" is Settings' question.
+
+Two properties hold the category honest, and both are structural rather than promises:
+
+1. **Draw-time only.** Nothing a skin touches is read by `step()`, so a skin cannot move a fingerprint.
+   That makes the whole category testable in one assertion, and it is the assertion that ships:
+   **measured, both faces produce the identical fingerprint `a17adc13`** over 1,200 seeded frames while
+   `skinPick` genuinely returned different faces.
+2. **The hull is not the skin's to move.** `starHull()` fills and rims to exactly `P.r`, because contact
+   is `e.r + P.r` and a star drawn smaller than its collider dies before its own visible edge touches
+   anything. A face owns the **interior** only, and is handed the polarity colour rather than choosing
+   one.
+
+⚠️ **Neither is a law of nature, and the code says so.** A future skin that wants its own silhouette
+makes that argument *at `starHull`*, in the open, rather than by quietly drawing something else — the
+door is not bolted, it has a sign on it. The one thing that is not negotiable is **hue**: colour means
+polarity everywhere in this game, so a cosmetic never picks one.
+
+**State readouts are common to every face** — the hold-charge ring, the immunity blink and the halo are
+drawn outside the face function, so a skin cannot make a meter harder to read.
+
+A selection you no longer own falls back to the default rather than failing to draw; the alternative
+failure mode is an invisible star.
 
 **What now *degrades* across a run is Integrity, and it is the only thing in the game that cannot be
 rebuilt.** Removing passive regeneration turned health from a per-encounter resource into a run-long

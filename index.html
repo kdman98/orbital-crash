@@ -438,6 +438,9 @@
       border:1px solid rgba(255,255,255,.14);border-radius:5px;padding:2px 9px;cursor:pointer;min-width:32px;}
   .dp:hover{border-color:rgba(255,255,255,.32);}
   .dp.on{color:var(--ink);border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);}
+  /* A locked pill still occupies its slot — the shape of the row tells you there IS more, which is the
+     only job it has before you earn it. It carries the trigger as its tooltip rather than as a label. */
+  .dp.lock{opacity:.38;cursor:default;} .dp.lock:hover{border-color:rgba(255,255,255,.14);}
   /* gap 16, set when this was four links: at 28 they totalled 373px against 331px of usable width on a
      375px phone and wrapped Settings onto a line of its own. Three links now — 278.5px at this gap — so
      the value is no longer load-bearing, but it is what the row was measured at and there is no reason
@@ -919,6 +922,18 @@
     <button class="sw" id="swMotion">Off</button>
   </div>
 
+  <!-- SKINS LIVE IN SETTINGS, NOT IN A ROOM OF THEIR OWN. One question per surface: Settings answers
+       "how does this reach my eyes and ears", and which star you are looking at is exactly that. A
+       fourth entry in the menu's link row would have made a two-item wardrobe look like a system. -->
+  <div class="setrow">
+    <div class="st">
+      <div class="sn" data-t="set.skin">Star</div>
+      <div class="sd" data-t="set.skinD">Looks you have earned. Colour always means polarity, so a skin
+        never changes hue — only what is drawn inside the hull.</div>
+    </div>
+    <span class="depthpills" id="skinPills"></span>
+  </div>
+
   <!-- SOUND IS A LEVEL, AND THE SWITCH BESIDE IT IS STILL A SWITCH. The row keeps both because they are
        not the same verb: the level is set once, mute is done for a moment and undone. Collapsing them
        would mean the M key has to guess a volume to come back to.
@@ -1217,6 +1232,11 @@ const store={
   // not what that button promises. `achv` survives the wipe for exactly this reason; so does this.
   startActMax:clamp(num('orbitalcrash_startact',1),1,START_ACT_CAP),
   startAct:clamp(num('orbitalcrash_startsel',1),1,START_ACT_CAP),   // the player's current selection
+  // Chosen skin per category, e.g. {star:'turret'}. An object rather than one key per category because
+  // categories are the thing expected to grow; a corrupt value falls back to {} and every lookup
+  // defaults, so a bad save costs a cosmetic and never a boot.
+  skin:(()=>{ try{ const o=JSON.parse(LS.getItem('orbitalcrash_skin'));
+                   return (o&&typeof o==='object'&&!Array.isArray(o)) ? o : {}; }catch(e){ return {}; } })(),
 };
 const RUNS_KEPT=10;
 function save(){
@@ -1232,6 +1252,7 @@ function save(){
     LS.setItem('orbitalcrash_lang',store.lang);
     LS.setItem('orbitalcrash_startact',store.startActMax);
     LS.setItem('orbitalcrash_startsel',store.startAct);
+    LS.setItem('orbitalcrash_skin',JSON.stringify(store.skin));
   }catch(e){}                                               // losing the save beats crashing mid-run
 }
 
@@ -1307,6 +1328,11 @@ const L={ en:{
   'menu.rush':'Boss Rush',  'menu.lab':'Pattern Lab',
   'menu.note':'Practice only · neither can set your best',
   'menu.depth':'Begin at',
+  'set.skin':'Star',
+  'set.skinD':'Looks you have earned. Colour always means polarity, so a skin never changes hue — only what is drawn inside the hull.',
+  'skin.locked':'Locked',
+  'skin.star.core':'Core',
+  'skin.star.turret':'Redoubt',
   'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',
   'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
   'menu.contact':'Contact',
@@ -1414,7 +1440,7 @@ const L={ en:{
   'achv.friendlyfire.nm':'Friendly Fire',   'achv.friendlyfire.ds':"Land a Charger's dash on an Anomaly",
   'achv.friendlyfire.fl':"It's not my fault anyway",
   'achv.demolition.nm'  :'Demolition',      'achv.demolition.ds'  :'Erase 15 Dots with one Planet blast',
-  'achv.demolition.fl'  :'It was going to blow anyway',
+  'achv.demolition.fl'  :'Cover your ears',
   'achv.speedrunner.nm' :'Speedrunner',     'achv.speedrunner.ds' :'Lose the core within 30 seconds',
   'achv.speedrunner.fl' :'It was fast though',
 
@@ -1470,6 +1496,11 @@ const L={ en:{
   'menu.rush':'보스 러시',  'menu.lab':'패턴 실험실',
   'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
   'menu.depth':'시작 시대',
+  'set.skin':'별 외형',
+  'set.skinD':'획득한 외형입니다. 색은 언제나 극성을 뜻하므로, 외형이 색을 바꾸는 일은 없습니다. 달라지는 것은 안쪽 무늬뿐입니다.',
+  'skin.locked':'잠김',
+  'skin.star.core':'코어',
+  'skin.star.turret':'보루',
   'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',
   'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
   'menu.contact':'문의',
@@ -1572,9 +1603,9 @@ const L={ en:{
   'achv.lancegild.nm':'클레이 사격',  'achv.lancegild.ds':'황금 현상금을 변이체에 쏴 맞힌다',
   'achv.turret.nm'      :'포탑',            'achv.turret.ds'      :'60초 동안 한자리를 지킨다',
   'achv.turret.fl'      :'여기가 타워 디펜스인 줄 아셨어요?',
-  'achv.flappystar.nm'  :'파닥이는 별',      'achv.flappystar.ds'  :'한 시대에 색을 40번 반전한다',
+  'achv.flappystar.nm'  :'촐싹대는 별',      'achv.flappystar.ds'  :'한 시대에 색을 40번 반전한다',
   'achv.flappystar.fl'  :'필요한 일이었나요…?',
-  'achv.untouched.nm'   :'무피격',          'achv.untouched.ds'   :'한 대도 맞지 않고 변이체를 소멸시킨다',
+  'achv.untouched.nm'   :'손도 못 대는',     'achv.untouched.ds'   :'한 대도 맞지 않고 변이체를 소멸시킨다',
   'achv.untouched.fl'   :'쉽다 쉬워',
   'achv.bountyhunter.nm':'현상금 사냥꾼',    'achv.bountyhunter.ds':'한 판에 황금 현상금을 네 번 챙긴다',
   'achv.bountyhunter.fl':'보안관님, 욕보십쇼.',
@@ -1586,10 +1617,10 @@ const L={ en:{
   'achv.makeawish.fl'   :'뭐든 멀리에서 보면 희극이죠',
   'achv.kameha.nm'      :'카메하!',         'achv.kameha.ds'      :'오버드라이브 한 번에 온전한 변이체를 소멸시킨다',
   'achv.kameha.fl'      :'이거나 먹어라!',
-  'achv.friendlyfire.nm':'아군 오사',        'achv.friendlyfire.ds':'돌격체의 돌진을 변이체에 맞힌다',
+  'achv.friendlyfire.nm':'오인 사격',        'achv.friendlyfire.ds':'돌격체의 돌진을 변이체에 맞힌다',
   'achv.friendlyfire.fl':'내 잘못은 아닌 듯 함..',
   'achv.demolition.nm'  :'발파',            'achv.demolition.ds'  :'행성 폭발 한 번으로 15개를 지운다',
-  'achv.demolition.fl'  :'어차피 터질 운명이었어요',
+  'achv.demolition.fl'  :'귀 막아!',
   'achv.speedrunner.nm' :'스피드러너',       'achv.speedrunner.ds' :'시작 30초 안에 핵을 잃는다',
   'achv.speedrunner.fl' :'하지만 빨랐죠?',
 } };
@@ -1668,6 +1699,35 @@ function grantAchv(id){
   // attached to it. Naming it costs a few characters the pill has room for.
   showAchvToast(T('fx.achv',{name: ac?T('achv.'+ac.id+'.nm'):T('fx.achvAny')}));
   if(typeof sfx!=='undefined') sfx.level();
+}
+
+// ---------- skins ----------
+// The second thing that crosses a run boundary, and like the Epoch start it grants ACCESS, never power.
+// Two properties are what keep it cheap to police, and both are structural rather than promises:
+//   1. DRAW-TIME ONLY. Nothing here is read by step(), so a skin cannot move a fingerprint. That makes
+//      the whole category testable in one assertion: swap every skin and the oracle must not notice.
+//   2. THE HULL IS NOT THE SKIN'S TO MOVE — see `starHull` above drawPlayer. Fill and rim land on
+//      exactly P.r for every face, because contact is `e.r + P.r` and a star drawn smaller than its
+//      collider kills you before your own edge touches anything.
+// ⚠️ Neither is a law of nature. A future skin that wants its own silhouette makes that argument AT
+// `starHull`, in the open, rather than by quietly drawing something else — the door is not bolted, it
+// has a sign on it. What is not negotiable is hue: colour means polarity everywhere in this game, so a
+// face is handed `c` and never picks one.
+const SKINS={
+  star:[
+    {id:'core'},                    // no `req` — always yours
+    {id:'turret', req:'turret'},    // earned by standing still for a minute
+  ],
+};
+// `req` is an achievement id. A count threshold would sit here as a number, and is deliberately not
+// built until a skin needs one — an unused branch in a gate is a gate nobody has tested.
+const skinOwned=s=>!s.req || store.achv.has(s.req);
+function skinPick(cat){
+  const list=SKINS[cat]||[];
+  const want=(store.skin&&store.skin[cat])||null;
+  // A selection you no longer own falls back to the default rather than failing to draw. Reachable by
+  // erasing a save by hand, and the failure mode of the alternative is an invisible star.
+  return (list.find(s=>s.id===want && skinOwned(s)) || list[0]).id;
 }
 
 // =====================================================================
@@ -6725,6 +6785,51 @@ function drawEnemies(){
     }
   }
 }
+// ⚠️ THE HULL IS A PROMISE, AND IT IS NOT THE SKIN'S TO MOVE. Fill and rim land on exactly P.r for
+// every face: contact is `e.r + P.r`, so a star drawn smaller than its collider dies before its own
+// visible edge touches anything — the one direction a drawing must never lie in. The rim is a STROKE,
+// so it is inset by half its width to put its OUTER edge on P.r; move one without the other and the rim
+// detaches into a floating ring or overshoots the envelope.
+function starHull(c,SRW){
+  ctx.fillStyle=c;
+  ctx.beginPath(); ctx.arc(P.x,P.y,P.r,0,TAU); ctx.fill();
+  ctx.strokeStyle=hexA('#ffffff',0.85); ctx.lineWidth=SRW;
+  ctx.beginPath(); ctx.arc(P.x,P.y,P.r-SRW/2,0,TAU); ctx.stroke();
+}
+// A FACE OWNS THE INTERIOR. It is handed the polarity colour and never picks one — hue is polarity
+// everywhere in this game, and that is the one rule a cosmetic does not get to bend.
+const STAR_FACE={
+  core(c,SRW){
+    starHull(c,SRW);
+    // lit hemisphere — a bright offset cap fakes a sphere under additive blending. Scaled with the body
+    // (was 0.42/0.26 against a 0.82 hull) so the sphere read survives the larger disc.
+    ctx.fillStyle=hexA('#ffffff',0.45);
+    ctx.beginPath(); ctx.arc(P.x-P.r*0.32,P.y-P.r*0.32,P.r*0.51,0,TAU); ctx.fill();
+  },
+  turret(c,SRW){
+    starHull(c,SRW);
+    // A fort, because you earned this by refusing to move: an octagonal keep with four buttresses,
+    // entirely INSIDE the hull, so the silhouette on screen is still the circle the collider is. No
+    // sphere cap — the flat, plated read is the whole point of it not looking like Core.
+    ctx.save(); ctx.translate(P.x,P.y);
+    const keep=P.r*0.60;
+    ctx.strokeStyle=hexA('#ffffff',0.60); ctx.lineWidth=1.7;
+    ctx.beginPath();
+    for(let i=0;i<8;i++){ const a=i*TAU/8+Math.PI/8;
+      const x=Math.cos(a)*keep, y=Math.sin(a)*keep;
+      if(i) ctx.lineTo(x,y); else ctx.moveTo(x,y); }
+    ctx.closePath(); ctx.stroke();
+    ctx.strokeStyle=hexA('#ffffff',0.34); ctx.lineWidth=1.5;
+    for(let i=0;i<4;i++){ const a=i*TAU/4+Math.PI/4;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*keep, Math.sin(a)*keep);
+      ctx.lineTo(Math.cos(a)*P.r*0.93, Math.sin(a)*P.r*0.93);
+      ctx.stroke(); }
+    ctx.fillStyle=hexA('#ffffff',0.55);
+    ctx.beginPath(); ctx.arc(0,0,P.r*0.20,0,TAU); ctx.fill();
+    ctx.restore();
+  },
+};
 function drawPlayer(){
   if(!P)return;
   const c=COL[P.polarity];
@@ -6767,16 +6872,10 @@ function drawPlayer(){
   // more rings claiming to be an edge, on the one body whose edge now has to be unambiguous.
   // They are not replaced. `drawField` already lays a real radial gradient under the star (0.16 → 0 over
   // P.fieldR), so the soft light is there and it fades to nothing — a gradient promises no distance.
-  // body — fills to the true radius
-  ctx.fillStyle=c;
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r,0,TAU); ctx.fill();
-  // lit hemisphere — a bright offset cap fakes a sphere under additive blending. Scaled with the body
-  // (was 0.42/0.26 against a 0.82 hull) so the sphere read survives the larger disc.
-  ctx.fillStyle=hexA('#ffffff',0.45);
-  ctx.beginPath(); ctx.arc(P.x-P.r*0.32,P.y-P.r*0.32,P.r*0.51,0,TAU); ctx.fill();
-  // atmosphere rim — inset by half the stroke so its OUTER edge lands on P.r
-  ctx.strokeStyle=hexA('#ffffff',0.85); ctx.lineWidth=SRW;
-  ctx.beginPath(); ctx.arc(P.x,P.y,P.r-SRW/2,0,TAU); ctx.stroke();
+  // body, rim and interior — the skin's whole surface area. The hold-charge ring above, the blink, and
+  // the halo below are STATE READOUTS rather than identity, so they are common to every face: a skin
+  // must not be able to make a meter harder to read.
+  (STAR_FACE[skinPick('star')] || STAR_FACE.core)(c,SRW);
   // tilted ring halo — you are a ringed star even before matter gathers
   ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(-0.22); ctx.scale(1,0.36);
   ctx.strokeStyle=hexA(c,0.55); ctx.lineWidth=2.4;
@@ -7602,8 +7701,29 @@ function applyLang(){
 }
 
 let setPoll=0;
+// A locked pill is present and dim rather than absent, which is the opposite call from the Epoch
+// selector — and deliberately so. The depth selector hides entirely because it gates a MODE a new
+// player cannot use and would only be confused by; a wardrobe gates nothing, so showing the empty slot
+// is the whole invitation. The trigger goes in the tooltip, not the label: a row of instructions is a
+// quest log, and this is a settings panel.
+function paintSkins(){
+  const host=el('skinPills'); if(!host) return;
+  host.innerHTML='';
+  const cur=skinPick('star');
+  for(const s of SKINS.star){
+    const owned=skinOwned(s);
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='dp'+(s.id===cur?' on':'')+(owned?'':' lock');
+    b.textContent = owned ? T('skin.star.'+s.id) : T('skin.locked');
+    if(owned) b.onclick=()=>{ store.skin.star=s.id; save(); paintSkins(); };
+    else b.title=T('achv.'+s.req+'.ds');
+    host.appendChild(b);
+  }
+}
 function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=T(on?'sw.on':'sw.off'); };
+  paintSkins();
   sw('swCb', store.cb);
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
@@ -8420,6 +8540,9 @@ window.__orbital=window.__polaris=window.__flux={
   // rows are computed from, plus grantAchv itself so a test can prove the mode guard rather than the
   // side effect. `ACHV` is here because the skin ladder counts rows and a test needs the denominator.
   ACHV, grantAchv, get feat(){ return FEAT; }, TURRET_R, TURRET_T,
+  // SKINS. `skinPick` is the one the fingerprint test needs: it is the only thing drawPlayer consults,
+  // so a test can swap faces and assert the sim did not move.
+  SKINS, skinPick, skinOwned, paintSkins,
   // Draw one frame on demand. The harness runs in a HIDDEN tab, where the browser never fires
   // requestAnimationFrame — so without this the canvas stays blank forever and no visual change can be
   // verified at all (every pixel sample this session read pure black until it was added).

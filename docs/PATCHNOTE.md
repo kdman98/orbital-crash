@@ -14,6 +14,30 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-10
 
+### Skins, and one to earn `v2`
+A skin system with one category (`star`) and two faces: **Core** and **Redoubt**, the second gated on
+the Turret achievement. Chosen in **Settings** rather than a room of its own — *one question per
+surface*, and "which star am I looking at" is Settings' question; a fourth entry in the menu's link row
+would have made a two-item wardrobe look like a system.
+
+**Two structural properties, not two promises.** Nothing a skin touches is read by `step()`, so a skin
+cannot move a fingerprint — **measured: both faces produce the identical `a17adc13`** over 1,200 seeded
+frames while `skinPick` genuinely returned different faces. And `starHull()` fills and rims to exactly
+`P.r` for every face, because contact is `e.r + P.r` and a star drawn smaller than its collider dies
+before its own visible edge touches anything; a face owns the **interior** only and is handed the
+polarity colour rather than picking one. Redoubt is therefore an octagonal keep with four buttresses
+*inside* an unchanged circular silhouette.
+
+⚠️ **Neither property is bolted shut.** A future skin that wants its own silhouette makes that argument
+at `starHull`, in the open. Hue is the one thing that stays non-negotiable. State readouts — the
+hold-charge ring, the immunity blink, the halo — are drawn outside the face function, so a skin cannot
+make a meter harder to read. A selection you no longer own falls back rather than failing to draw.
+
+⚠️ **Correction to the entry below:** it says "the count gates the skin ladder". It does not. Skins key
+on a **specific achievement id**, not on `store.achv.size`. The count threshold was the plan and was
+never built — an unused branch in a gate is a gate nobody has tested. Either shape makes a row a
+currency, so nothing else in that entry changes.
+
 ### Twelve more achievements, and they stopped being harmless `v2`
 Roster 5 → **16**, two hidden. Each row now carries a **trigger** and a **flavour** line, and Records
 shows the flavour only once the row is earned — unearned, a row has to read as a goal, and a punchline

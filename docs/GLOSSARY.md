@@ -281,7 +281,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   at 4.8 px/frame, while the burning ring is ceiling-limited and each species rides its own — so burning
   opens a Mini by +55.7px, a Drifter by +30.8px and a Brute by +24.7px. (`P.eddy`, `P.ringMul`, `maxsp`)
 - **Achievement** — an in-run feat listed in **Records**. Sixteen rows, two hidden. Earned in Survival
-  only. The count gates the skin ladder, so they no longer "unlock nothing".
+  only. Some gate a **Skin**, so they no longer "unlock nothing".
+- **Skin** — an earned look, chosen in **Settings**. Cosmetic only, draw-time only, and it never changes
+  hue: colour means polarity. One category (`star`) with **Core** and **Redoubt** today.
   (`ACHV`, `store.achv`)
 
 ## Feel
