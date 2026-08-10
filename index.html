@@ -407,6 +407,18 @@
     font-weight:800;letter-spacing:.06em;color:var(--dim);padding:5px 11px;border-radius:100px;
     transition:background .12s ease,color .12s ease;}
   .langsel button:hover{color:var(--ink);}
+  /* CONTACT, in the one corner .langsel left free. Deliberately the quietest thing on this screen:
+     10px, --dim, no pill and no border. The menu's whole argument is that exactly two things on it
+     should look pressable, and a support address is not one of them — it needs to be FINDABLE, which
+     is a different requirement from being noticeable, and a corner is what serves it.
+       `pointer-events:auto` for the same reason .langsel carries it, and the underline on the address
+     alone is what says which half is the link. The label goes through data-t; the address does not,
+     because an email is not language — same call the langsel labels make one rule up. */
+  .contact{position:absolute;bottom:14px;right:16px;pointer-events:auto;font-size:10px;
+    letter-spacing:.07em;color:var(--dim);opacity:.6;transition:opacity .12s ease;}
+  .contact:hover{opacity:1;}
+  .contact a{color:inherit;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.16);}
+  .contact a:hover{color:var(--ink);border-bottom-color:currentColor;}
   .langsel button.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;}
   @media (max-height:520px){ .langsel{top:10px;right:12px;} }
   .refs{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
@@ -792,6 +804,7 @@
     <button class="ref" id="settingsBtn" data-t="ref.settings">Settings</button>
   </div>
   <div class="hint" data-th="menu.hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
+  <div class="contact"><span data-t="menu.contact">Contact</span> <a href="mailto:kdman98@naver.com">kdman98@naver.com</a></div>
 </div>
 
 <!-- BESTIARY (loads the standalone bestiary.html in an overlay) -->
@@ -1209,6 +1222,7 @@ const L={ en:{
   'menu.note':'Practice only · neither can set your best',
   'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',
   'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
+  'menu.contact':'Contact',
   'bestiary.frame':'ORBITAL CRASH Bestiary',
 
   // ---- settings ----
@@ -1354,6 +1368,7 @@ const L={ en:{
   'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
   'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',
   'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
+  'menu.contact':'문의',
   'bestiary.frame':'ORBITAL CRASH 도감',
 
   // ---- settings ----
