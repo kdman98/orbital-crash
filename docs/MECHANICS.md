@@ -40,6 +40,22 @@ minute after `28c4ea8` landed. Under the old Codex that was a third site to reme
 one there was nothing to edit. **Copy that states a value is a copy of that value** — and the cheap
 fix is usually not a better checker, it is a sentence that does not need the number.
 
+⚠️ **Deleting the numbers did not delete the duplication — the Bestiary also duplicates the ART, and
+that went stale the same way.** `bestiary.html` carries `anomBody()`, a hand-copy of `bossBody()` marked
+"mirroring index.html". When the Anomaly bodies became a star, a vortex and a nebula, the Bestiary went
+on drawing a faceted hexagon, a hollow pincer ring and a rays crown — teaching a body the player will
+never meet. Nothing failed and nothing warned. **A wrong picture in the reference is worse than no
+picture, because the player believes it**, and unlike a wrong number a wrong drawing cannot be grepped
+for at all — it is not even a literal.
+
+**It cannot be de-duplicated, and the reason should stop anyone "fixing" it badly.** The game is one
+self-contained HTML file with an inline script, which is load-bearing for the offline shell and the CSP;
+the Bestiary is opened **standalone** as well as in the iframe (see its `og:` tags), so it cannot reach
+`parent.__orbital` either. A shared `anomaly-art.js` would hand `index.html` an external dependency it
+deliberately does not have. So the copy stays and is made **loud** — a warning block at `anomBody`
+naming `bossBody`, and this paragraph. **When you touch one, walk the other in the same pass.** The only
+enforcement is the habit.
+
 **Two literals survive on purpose.** The achievement rows `Land a 60-chain` and `Reach Epoch III`
 restate the thresholds tested at `combo>=60` and `act>=3`; a criterion without its number is not a
 criterion. They are the same shape of hazard and are only safer because an achievement threshold is
@@ -1106,14 +1122,40 @@ restated again** — see *Traps*.
 
 | | |
 |---|---|
-| **Emitter** | hovers and alternates a hexagon **burst** (one arm leads you, the other five close your escape angles) with a sweeping **stream** of leading fans. From Epoch II it also **dashes** |
+| **Emitter** | hovers and alternates a six-way **burst** (one arm leads you, the other five close your escape angles) with a sweeping **stream** of leading fans. From Epoch II it also **dashes** |
 | **Sentinel** | circles the arena firing pincers **and sheds swarmers as it goes**, so its orbit writes a **trail** you have to run down |
 | **Bastion** | telegraphs a collapsing charge-ring, then erupts a **radial wall with one seam** — be in the seam. Between rings it lobs **mines** onto the ground around *you*. Carries less HP: the kind that moves you rather than out-damaging you |
 
-The first Anomaly of a run is always the **Emitter**, whose opening hex burst teaches the loop. Each
-kind draws a different body and **the shape is the mechanic** — the Emitter's hexagon turns on the same
-value that aims its crossfire; the Bastion's rays lengthen as the nova winds up. Drawn `source-over`
-inside the additive pass (law 12).
+The first Anomaly of a run is always the **Emitter**, whose opening hex burst teaches the loop. Drawn
+`source-over` inside the additive pass (law 12).
+
+**The bodies are cosmic, not geometric.** Emitter = a **star** (limb-darkened photosphere, granulation,
+six prominences on `hexRot`). Sentinel = a **vortex** (three spiral arms, because this is the kind that
+orbits you and a spiral is orbital motion made visible; two bright tips on its pincer axis). Bastion = a
+**nebula** with its crown of rays kept on top, still lengthening as the nova winds up. A fourth body — a
+**singularity**, the one place in this game that can hold a black fill — is written and **unreachable**:
+`spawnBoss` throws on any variant not in `HUNT_SPD`, so it cannot be entered from play *or* the seam.
+Giving it a spawn path is a gameplay change, not an art one.
+
+⚠️ **The hexagon was never the telegraph its comment claimed.** The old note said the Emitter's shell
+"is literally the volley it is about to throw", but `fireHexVolley` assigns `b.hexRot = leadAngle(...)`
+**on the same line that fires** — it records the shot, it does not predict it. There was nothing to read
+in advance, and that claim survived long enough to be repeated to the author twice. What a body actually
+owes the volley is narrower: symmetry locked to `hexRot` at the moment of firing, so the missiles look
+like they came out of the thing. `spawnRing` + `bossFlash` already carry the announcement.
+
+⚠️ **Every core is built FROM the polarity colour, never decorated with it.** White appears only where it
+means heat; each ramp runs white → pale `c` → `c` → darkened `c`. Verified on both poles before shipping:
+**72–94%** of each core's lit pixels are dominated by the pole's own channel. A treatment that only reads
+on one pole is not a treatment, it is a red drawing — which is exactly how the first attempt at a fourth
+core (an aurora veil in `mix(pole, tint)`) failed.
+
+⚠️ **Tune these at `b.r`, not at a study's radius.** The design study drew them at R=52 on a desktop
+canvas; the real Anomaly is **R=37**, and the shipping WebView runs S≈0.5, so on the phone it is an
+**eighteen-pixel disc**. The nebula is the lowest-contrast of the four and collapsed into "crown plus a
+bright dot" at true size — it needed its base lightened, its lobes pushed and its centre knot *shrunk*
+(0.36R → 0.26R, because a big white centre erases the cloud it sits in). A still at study scale cannot
+tell you this.
 
 **Its size is its hitbox** (law 4). Everything follows the one number: the star's contact envelope, the
 volley and grind connect radius, the hunt's contact floor, the bounce-out push, the missile launch

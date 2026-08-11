@@ -1225,10 +1225,15 @@ function resize(){
 // Generated from a LOCAL PRNG, never `Math.random`. Star layout must not consume global entropy, or a
 // resize mid-run would shift every spawn after it and the oracle's fingerprints would stop meaning
 // anything. Same seed every time, so the sky is also stable across reloads.
+// ⚠️ `flow` IS WHY THIS READS AS DRIFT RATHER THAN AS A BACKDROP, and it was missing. Parallax alone is
+// driven ONLY by where the Star is, so the sky stopped dead whenever the player did — which is most of a
+// boss fight, where you circle a fixed point and hold station. A constant per-layer flow means the field
+// is always moving THROUGH something. Rates are in design units per second and keep the depth ordering:
+// far drifts slowest, near fastest, same ratio the parallax column already uses.
 const STAR_LAYERS=[
-  {n:150, r:[0.5,1.1], a:[0.20,0.45], par:0.012},   // far: dust, barely moves
-  {n:78,  r:[0.9,1.7], a:[0.35,0.70], par:0.032},
-  {n:30,  r:[1.4,2.5], a:[0.55,0.95], par:0.075},   // near: the ones that sell the motion
+  {n:150, r:[0.5,1.1], a:[0.20,0.45], par:0.012, flow:1.6},   // far: dust, barely moves
+  {n:78,  r:[0.9,1.7], a:[0.35,0.70], par:0.032, flow:4.2},
+  {n:30,  r:[1.4,2.5], a:[0.55,0.95], par:0.075, flow:9.0},   // near: the ones that sell the motion
 ];
 let stars=[];
 function initStars(){
@@ -1258,7 +1263,15 @@ function drawStars(){
   ctx.globalCompositeOperation='lighter';
   for(const layer of stars){
     const off=layer.cfg.par*damp;
-    const ox=-(px-W/2)*off, oy=-(py-H/2)*off;
+    // ⚠️ `elapsed`, NOT a frame counter, and NOT damped by reduceMotion. Comfort mode takes the travel
+    // out of the PARALLAX because that is the component tied to your own movement — the part that can
+    // swing hard and fast. A slow constant drift is the opposite kind of motion and is what the mode
+    // is for: it keeps the sky alive at a rate nothing sudden happens at.
+    //   `elapsed` only advances inside step(), so the drift correctly freezes on pause and on the death
+    // screen while the palette keeps easing. That is the same split the sky cache's frame counter was
+    // written to avoid, and here it is the behaviour we want: a paused field should not be sailing.
+    const fx=-elapsed*layer.cfg.flow;
+    const ox=-(px-W/2)*off + fx, oy=-(py-H/2)*off;
     for(const st of layer.list){
       // wrap into the padded field, then draw at the offset position
       let x=(st.x+ox)%layer.fw; if(x<0)x+=layer.fw;
@@ -6724,6 +6737,30 @@ function paintSky(c){
   g.addColorStop(0,rgbStr(palCur.bg1,1)); g.addColorStop(1,rgbStr(palCur.bg2,1));
   c.fillStyle=g; c.fillRect(0,0,W,H);
   drawNebula(c);
+  // DEPTH HAZE, then a VIGNETTE. Both live INSIDE the cached sky, so they are paid once every SKY.every
+  // frames rather than per frame — which is the whole reason they are affordable at all.
+  //   The haze makes distance read as COLOUR rather than only as dimness: a thin wash of the biome tint
+  // at the top against a cold blue at the floor. It is keyed to palCur, so it turns over with the Epoch
+  // like everything else in here and never becomes a fixed blue the Eclipse palette fights.
+  c.globalCompositeOperation='lighter';
+  const hz=c.createLinearGradient(0,0,0,H);
+  hz.addColorStop(0,   rgbStr(palCur.tint,0.055));
+  hz.addColorStop(0.55,rgbStr(palCur.tint,0.012));
+  hz.addColorStop(1,   rgbStr(palCur.bg1,0.05));
+  c.fillStyle=hz; c.fillRect(0,0,W,H);
+  c.globalCompositeOperation='source-over';
+  // ⚠️ THE VIGNETTE IS THE ONE DARK LAYER THE FIELD ALLOWS, and it is legal only because it is UNDER the
+  // play layer rather than in it. Everything above runs `lighter`, where a dark mark adds nothing; this
+  // is painted into the sky cache before any of that starts. It must never move above the enemy pass.
+  //   ⚠️ 0.20, NOT THE 0.42 THE STUDY USED, AND THE DIFFERENCE IS LEGIBILITY RATHER THAN TASTE. A
+  // vignette darkens the rim — which is exactly where matter ENTERS. Every Dot spawns off-screen and
+  // drifts in, so anything that dims the border dims the first second of every threat, in the one part
+  // of the frame you read with peripheral vision. The study looked better at 0.42 because a study has
+  // nothing flying into it. If this is ever raised, check it against incoming Dots at the rim and not
+  // against an empty field.
+  const vg=c.createRadialGradient(W/2,H/2,Math.min(W,H)*0.30,W/2,H/2,Math.max(W,H)*0.76);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.20)');
+  c.fillStyle=vg; c.fillRect(0,0,W,H);
 }
 function blitSky(){
   if(!skyCv){ skyCv=document.createElement('canvas'); skyCx=skyCv.getContext('2d',{alpha:false}); }
@@ -6768,54 +6805,258 @@ function drawNebula(c){
   }
   c.globalCompositeOperation='source-over';
 }
-// PER-KIND SILHOUETTES. You have to know which fight you are in BEFORE it fires, because by then you
-// have already picked your position. Each kind has a shape that IS its mechanic, readable from across
-// the arena:
-//   EMITTER  — a faceted HEXAGON that turns on `hexRot`, the same value that aims its crossfire. The
-//              shell you watch rotating is literally the volley it is about to throw.
-//   SENTINEL — a hollow RING with two opposed pincer wings sitting on its firing axis. Never solid: it
-//              reads as something on an orbit, which is exactly what it is.
-//   BASTION   — a dense core inside a crown of RAYS that lengthen as the nova winds up. The body is the
-//              telegraph, so the one kind you cannot bait announces itself with its own outline.
+// ============================================================================================
+//  PER-KIND SILHOUETTES. You have to know which fight you are in BEFORE it fires, because by then you
+//  have already picked your position. Each kind has a body that IS its mechanic:
+//    EMITTER  — a STAR. A limb-darkened photosphere with six PROMINENCES on `hexRot`, which is the
+//               same set of axes its six-way volley leaves on.
+//    SENTINEL — a VORTEX. Three spiral arms turning, because this is the kind that orbits you, and a
+//               spiral is orbital motion made visible. Two arm-tips brighten on its pincer axis.
+//    BASTION  — a NEBULA, with the crown of RAYS kept on top: they still lengthen as the nova winds up,
+//               so the one kind you cannot bait still announces itself with its own outline.
+//    (SINGULARITY is written and CANNOT BE REACHED AT ALL — not in play, not from the seam. `spawnBoss`
+//     guards on `variant in HUNT_SPD` and throws otherwise, which I confirmed by trying it. Held for the
+//     fourth Anomaly, and wiring it is not an art job: it needs a HUNT_SPD entry, an `updateBoss` arm and
+//     a firing pattern, or it silently runs the EMITTER's whole routine — see the guard's own comment.
+//     The body is parked here so the fourth kind arrives with a look instead of needing one under
+//     deadline. Until then this arm is dead code, and it is labelled as such rather than implied to work.)
+//
+//  ⚠️ THE HEXAGON IS GONE AND SO IS ITS MUZZLE RING, and neither was carrying what its comment claimed.
+//  The old note here said the hexagon "is literally the volley it is about to throw" — but
+//  `fireHexVolley` assigns `b.hexRot = leadAngle(...)` ON THE SAME LINE that fires the volley, so the
+//  orientation RECORDS the shot rather than predicting it. There was never anything to read in advance.
+//  What the body actually owes the mechanic is narrower: symmetry locked to `hexRot` at the moment of
+//  firing, so the missiles look like they came out of the thing. `fireHexVolley` already draws
+//  `spawnRing` + `bossFlash` on that beat, which is the announcement; the body does not repeat it.
+//
+//  ⚠️ HUE IS STILL POLARITY, AND EVERY CORE IS BUILT FROM `c` RATHER THAN DECORATED WITH IT. White
+//  appears only where it means HEAT. Each ramp runs white → pale `c` → `c` → darkened `c`, which is what
+//  makes the cyan Anomaly the same treatment rather than a second drawing. Measured on the study before
+//  it shipped: 72-94% of each core's lit pixels are dominated by the pole's own channel, in both poles.
+//  A treatment that only reads on one pole is not a treatment, it is a red drawing.
+// ============================================================================================
+// Two colour helpers the cores need. `mixCol` walks between two hexes; `mixA` does it with an alpha.
+// Both take the polarity colour as an argument for the reason above — never read `COL` directly here.
+function mixCol(h1,h2,t){
+  const a=parseInt(h1.slice(1),16), b2=parseInt(h2.slice(1),16);
+  const r=Math.round((a>>16&255)+((b2>>16&255)-(a>>16&255))*t);
+  const g=Math.round((a>>8&255)+((b2>>8&255)-(a>>8&255))*t);
+  const bl=Math.round((a&255)+((b2&255)-(a&255))*t);
+  return 'rgb('+r+','+g+','+bl+')';
+}
+function mixA(h1,h2,t,al){
+  const a=parseInt(h1.slice(1),16), b2=parseInt(h2.slice(1),16);
+  const r=Math.round((a>>16&255)+((b2>>16&255)-(a>>16&255))*t);
+  const g=Math.round((a>>8&255)+((b2>>8&255)-(a>>8&255))*t);
+  const bl=Math.round((a&255)+((b2&255)-(a&255))*t);
+  return 'rgba('+r+','+g+','+bl+','+al+')';
+}
+// Fixed-seed detail tables. Generated ONCE at parse time from a LOCAL prng, never `Math.random` — the
+// same rule the starfield obeys, and for the same reason: consuming global entropy here would shift
+// every spawn after it and the oracle's fingerprints would stop meaning anything.
+const BOSS_DETAIL=(()=>{
+  let s=0x2545f491>>>0;
+  const rnd=()=>{ s^=s<<13; s>>>=0; s^=s>>>17; s^=s<<5; s>>>=0; return s/4294967296; };
+  return {
+    grain: Array.from({length:52},()=>({a:rnd()*TAU, d:0.15+rnd()*0.70, r:0.05+rnd()*0.09,
+                                        p:rnd()*TAU, s:0.4+rnd()*1.5})),
+    lobes: Array.from({length:5},(_,i)=>({a:rnd()*TAU, d:0.10+rnd()*0.32, r:0.42+rnd()*0.32,
+                                          sp:0.10+rnd()*0.26, dir:i%2?-1:1, acc:i})),
+    fil:   Array.from({length:8},()=>({a:rnd()*TAU, len:0.5+rnd()*0.6, bow:(rnd()-0.5)*1.5,
+                                       w:0.02+rnd()*0.03, sp:0.1+rnd()*0.3})),
+    dust:  Array.from({length:40},()=>({a:rnd()*TAU, d:0.20+rnd()*0.75, r:0.02+rnd()*0.05,
+                                        p:rnd()*TAU, s:0.5+rnd()*1.4})),
+  };
+})();
 function bossBody(b,R,c,oc){
+  const x=b.x, y=b.y, D=BOSS_DETAIL;
+  // ⚠️ EVERY CORE RESTORES `globalCompositeOperation` TO 'source-over' BEFORE RETURNING. drawBoss calls
+  // this inside a save/restore that has already set source-over on purpose — the layered bodies saturate
+  // to white under `lighter` — but a core that leaves the context additive would poison the integrity
+  // ring drawn immediately after it, which is OUTSIDE that restore.
   if(b.variant==='sentinel'){
-    ctx.strokeStyle=c; ctx.lineWidth=R*0.30;
-    ctx.beginPath(); ctx.arc(b.x,b.y,R*0.74,0,TAU); ctx.stroke();            // the hollow band
-    ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(b.x,b.y,R*0.90,0,TAU); ctx.stroke();
-    ctx.beginPath(); ctx.arc(b.x,b.y,R*0.58,0,TAU); ctx.stroke();
-    for(const s of [0,Math.PI]){                                             // the two pincer wings
-      const a=b.hexRot+s;
-      ctx.strokeStyle=hexA(oc,0.9); ctx.lineWidth=R*0.17;
-      ctx.beginPath(); ctx.arc(b.x,b.y,R*0.74,a-0.42,a+0.42); ctx.stroke();
+    // ---- VORTEX: this is the kind that orbits you, so its body is orbital motion made visible ----
+    const spin=elapsed*0.30;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.clip();
+    ctx.fillStyle=mixCol(c,'#05030b',0.90); ctx.fillRect(x-R,y-R,R*2,R*2);
+    ctx.globalCompositeOperation='lighter';
+    for(let k=0;k<3;k++){
+      // The arms turn on their own clock; the PINCER AXIS is carried by the two bright tips below, on
+      // `hexRot` and `hexRot+π`, which is exactly where firePincer sends its seekers. Keeping those
+      // separate from the arms is deliberate — the arms say "this one orbits", the tips say "from there".
+      const base=spin+k*TAU/3;
+      for(let pass=0;pass<2;pass++){
+        ctx.beginPath();
+        for(let s=0;s<=30;s++){
+          const u=s/30, rr=R*(0.10+0.92*u), a=base+u*3.1*1.05+(pass?0.16:0);
+          const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr;
+          s?ctx.lineTo(px,py):ctx.moveTo(px,py);
+        }
+        const gg=ctx.createRadialGradient(x,y,0,x,y,R);
+        gg.addColorStop(0,   mixA(c,'#ffffff',0.70,0.85));
+        gg.addColorStop(0.45,hexA(c,0.55));
+        gg.addColorStop(1,   hexA(c,0.05));
+        ctx.strokeStyle=gg; ctx.lineWidth=R*(pass?0.09:0.16); ctx.lineCap='round'; ctx.stroke();
+      }
     }
-    ctx.fillStyle='rgba(255,255,255,0.92)';                                  // the pupil
-    ctx.beginPath(); ctx.arc(b.x,b.y,R*0.25,0,TAU); ctx.fill();
+    ctx.lineCap='butt';
+    for(const d of D.dust){
+      const a=d.a+spin*0.6, dd=d.d*R;
+      ctx.fillStyle=mixA(c,'#ffffff',0.5,0.06+0.10*Math.sin(elapsed*d.s+d.p));
+      ctx.beginPath(); ctx.arc(x+Math.cos(a)*dd, y+Math.sin(a)*dd, d.r*R,0,TAU); ctx.fill();
+    }
+    // the two pincer tips, ON the firing axis, riding the arms rather than sitting outside them
+    for(const s of [0,Math.PI]){
+      const a=b.hexRot+s, px=x+Math.cos(a)*R*0.80, py=y+Math.sin(a)*R*0.80;
+      const gg=ctx.createRadialGradient(px,py,0,px,py,R*0.30);
+      gg.addColorStop(0,mixA(oc,'#ffffff',0.55,0.85)); gg.addColorStop(1,hexA(oc,0));
+      ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(px,py,R*0.30,0,TAU); ctx.fill();
+    }
+    const kn=ctx.createRadialGradient(x,y,0,x,y,R*0.42);
+    kn.addColorStop(0,'rgba(255,255,255,0.95)');
+    kn.addColorStop(0.40,mixA(c,'#ffffff',0.45,0.70)); kn.addColorStop(1,hexA(c,0));
+    ctx.fillStyle=kn; ctx.beginPath(); ctx.arc(x,y,R*0.42,0,TAU); ctx.fill();
+    ctx.restore();
+    ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle=mixA(c,'#ffffff',0.5,0.34); ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.stroke();
     return;
   }
   if(b.variant==='bastion'){
-    const ch=b.novaCharge>0 ? 1-b.novaCharge/0.9 : 0;                        // rays extend as it winds up
-    const n=14, inner=R*0.54, outer=R*(1.02+0.44*ch);
-    ctx.strokeStyle=hexA(oc,0.5+0.45*ch); ctx.lineWidth=3;
-    for(let i=0;i<n;i++){ const a=i/n*TAU + elapsed*0.5;
-      ctx.beginPath();
-      ctx.moveTo(b.x+Math.cos(a)*inner, b.y+Math.sin(a)*inner);
-      ctx.lineTo(b.x+Math.cos(a)*outer, b.y+Math.sin(a)*outer); ctx.stroke(); }
-    ctx.fillStyle=c; ctx.beginPath(); ctx.arc(b.x,b.y,R*0.60,0,TAU); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(b.x,b.y,R*0.30,0,TAU); ctx.fill();
+    // ---- NEBULA, WITH THE CROWN KEPT. The rays are the telegraph and they are not the art's to take:
+    // they still lengthen with `novaCharge`, so the one kind you cannot bait still announces itself.
+    const ch=b.novaCharge>0 ? 1-b.novaCharge/0.9 : 0;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.clip();
+    // ⚠️ TUNED AT `b.r`, NOT AT THE STUDY'S RADIUS, and the two are not close. The study drew this at
+    // R=52 on a desktop canvas; the real Anomaly is R=37, and the shipping WebView runs S≈0.5, so on the
+    // phone it is an EIGHTEEN PIXEL disc. At that size a low-contrast cloud is a dark smudge and the
+    // Bastion collapses back into "crown plus a bright dot" — which is roughly what it looked like
+    // before. A nebula is the lowest-contrast idea of the four and it is the one that needed the base
+    // lightened and the lobes pushed, not the one that could afford subtlety.
+    ctx.fillStyle=mixCol(c,'#08040e',0.72); ctx.fillRect(x-R,y-R,R*2,R*2);
+    ctx.globalCompositeOperation='lighter';
+    for(const L of D.lobes){                         // three of five lobes are the pole itself
+      const a=L.a+elapsed*L.sp*L.dir, d=L.d*R, lx=x+Math.cos(a)*d, ly=y+Math.sin(a)*d, rr=L.r*R;
+      const col = L.acc===1 ? mixCol(c,COL.violet,0.45) : L.acc===3 ? mixCol(c,COL.gold,0.38) : c;
+      const gg=ctx.createRadialGradient(lx,ly,0,lx,ly,rr);
+      // the whole cloud brightens as the nova charges — a nebula winding up to a detonation
+      gg.addColorStop(0,hexA(col,0.68+0.30*ch)); gg.addColorStop(0.55,hexA(col,0.30)); gg.addColorStop(1,hexA(col,0));
+      ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(lx,ly,rr,0,TAU); ctx.fill();
+    }
+    for(const F of D.fil){
+      const a=F.a+elapsed*F.sp;
+      ctx.strokeStyle=mixA(c,'#ffffff',0.65,0.22); ctx.lineWidth=F.w*R;
+      ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*R*0.15, y+Math.sin(a)*R*0.15);
+      ctx.quadraticCurveTo(x+Math.cos(a+F.bow)*R*0.7, y+Math.sin(a+F.bow)*R*0.7,
+                           x+Math.cos(a+F.bow*0.4)*R*F.len, y+Math.sin(a+F.bow*0.4)*R*F.len);
+      ctx.stroke();
+    }
+    // ⚠️ DARK LANES MUST NOT PASS THROUGH THE CENTRE. Three evenly-spaced centre-crossing chords draw an
+    // inscribed TRIANGLE — more geometric than the hexagon this core exists to get away from, and it was
+    // visible the first time it rendered. Two lanes, off-centre, different radii and curvatures.
+    ctx.globalCompositeOperation='source-over';
+    for(const L of [{a:0.5,bow:1.75,off:0.86,w:0.11},{a:3.4,bow:-2.30,off:0.58,w:0.075}]){
+      const a=elapsed*0.05+L.a;
+      ctx.strokeStyle='rgba(7,3,12,0.62)'; ctx.lineWidth=R*L.w; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*R*1.15, y+Math.sin(a)*R*1.15);
+      ctx.quadraticCurveTo(x+Math.cos(a+L.bow*0.5)*R*L.off, y+Math.sin(a+L.bow*0.5)*R*L.off,
+                           x+Math.cos(a+L.bow)*R*1.15,      y+Math.sin(a+L.bow)*R*1.15);
+      ctx.stroke();
+    }
+    ctx.lineCap='butt';
+    ctx.globalCompositeOperation='lighter';
+    // The knot is deliberately SMALL — 0.26R, not 0.36. A big white centre is the fastest way to erase
+    // a nebula: it blows out the lobes it is supposed to sit inside, and at eighteen pixels the whole
+    // body becomes the knot. It reads as the thing the cloud is collapsing toward, not as the body.
+    const kn=ctx.createRadialGradient(x,y,0,x,y,R*0.26);
+    kn.addColorStop(0,'rgba(255,255,255,'+(0.92+0.08*ch).toFixed(3)+')');
+    kn.addColorStop(0.45,hexA(c,0.55)); kn.addColorStop(1,hexA(c,0));
+    ctx.fillStyle=kn; ctx.beginPath(); ctx.arc(x,y,R*0.26,0,TAU); ctx.fill();
+    ctx.restore();
+    ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle=mixA(c,'#ffffff',0.5,0.38); ctx.lineWidth=1.6;   // the kill edge keeps its own rim
+    ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.stroke();
+    // ⚠️ THE CROWN OF 14 RAYS IS GONE, ON THE AUTHOR'S CALL, and the nova telegraph is NOT gone with it.
+    // Check `drawBoss` before restoring anything here: it already draws the real wind-up OUTSIDE the
+    // body — a bright ring collapsing 3.4r → 1.2r plus a pulsing ring at ~1.05r, both keyed to the same
+    // `novaCharge`. The rays were a SECOND rendering of that one value, in thin opposite-colour strokes
+    // over a cloud, which is where they stopped working: fourteen 3px lines in the contrasting hue on
+    // top of a soft body read as a mechanical fitting bolted to it — the exact industrial quality this
+    // whole pass exists to remove.
+    //   THE WIND-UP STILL SHOWS ON THE BODY. It moved from lines into light: the lobes carry
+    // `0.68 + 0.30*ch` and the knot brightens with `ch`, so the cloud itself swells toward the
+    // detonation. Same information, in the body's own language rather than borrowed from a machine.
+    //   What IS lost is far-read identity — the crown was the Bastion's most distinctive silhouette at
+    // distance. The nebula's mottling and dark lanes have to carry that now, and they are lower
+    // contrast. If the three kinds ever prove hard to tell apart across the arena, this is the first
+    // place to look, and the fix is to make the CLOUD more distinct, not to bolt the rays back on.
     return;
   }
-  const hex=(rad,rot)=>{ ctx.beginPath();                                    // EMITTER
-    for(let i=0;i<6;i++){ const a=rot+i/6*TAU, px=b.x+Math.cos(a)*rad, py=b.y+Math.sin(a)*rad;
-      i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
-    ctx.closePath(); };
-  hex(R,b.hexRot); ctx.fillStyle=c; ctx.fill();
-  ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2; ctx.stroke();
-  hex(R*0.52,-b.hexRot*1.4); ctx.strokeStyle=hexA(oc,0.8); ctx.lineWidth=2.5; ctx.stroke();
-  for(let i=0;i<6;i++){ const a=b.hexRot+i/6*TAU;                            // the six muzzles
-    ctx.fillStyle=hexA(oc,0.95);
-    ctx.beginPath(); ctx.arc(b.x+Math.cos(a)*R, b.y+Math.sin(a)*R, 4.4,0,TAU); ctx.fill(); }
-  ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(b.x,b.y,R*0.24,0,TAU); ctx.fill();
+  if(b.variant==='singularity'){
+    // ---- HELD FOR THE FOURTH ANOMALY, AND UNREACHABLE TODAY. `spawnBoss` throws on any variant not in
+    // HUNT_SPD, so this arm cannot be entered from play OR from the seam — verified by calling it. It is
+    // parked so the fourth kind arrives with a body; giving it a spawn path is a gameplay change (a
+    // HUNT_SPD entry, an updateBoss arm, a firing pattern), not this one.
+    ctx.save(); ctx.translate(x,y);
+    ctx.globalCompositeOperation='lighter';
+    ctx.save(); ctx.rotate(-0.42); ctx.scale(1,0.30);
+    for(let k=0;k<3;k++){
+      const rr=R*(1.64-k*0.25);
+      const gg=ctx.createLinearGradient(-rr,0,rr,0);
+      gg.addColorStop(0,   mixA(c,COL.violet,0.55,0.22));
+      gg.addColorStop(0.34,hexA(c,0.62));
+      gg.addColorStop(0.60,mixA(c,'#ffffff',0.72,0.80));    // doppler-bright, still the pole's family
+      gg.addColorStop(0.80,hexA(c,0.55));
+      gg.addColorStop(1,   mixA(c,COL.violet,0.55,0.22));
+      ctx.strokeStyle=gg; ctx.lineWidth=R*0.30;
+      ctx.beginPath(); ctx.arc(0,0,rr,0,TAU); ctx.stroke();
+    }
+    ctx.restore();
+    // ⚠️ THE ONE BLACK FILL IN THE GAME. Everything in the play layer runs under `lighter`, where a dark
+    // mark adds nothing and is invisible — the boss body is the sole exception because drawBoss
+    // composites it source-over. This event horizon is only drawable HERE.
+    ctx.globalCompositeOperation='source-over';
+    ctx.fillStyle='#03040a'; ctx.beginPath(); ctx.arc(0,0,R*0.50,0,TAU); ctx.fill();
+    ctx.globalCompositeOperation='lighter';
+    const pr=ctx.createRadialGradient(0,0,R*0.50,0,0,R);
+    pr.addColorStop(0,hexA(c,0.72)); pr.addColorStop(0.5,hexA(c,0.26)); pr.addColorStop(1,hexA(c,0.06));
+    ctx.fillStyle=pr; ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.arc(0,0,R*0.50,0,TAU,true); ctx.fill();
+    ctx.strokeStyle=mixA(c,'#ffffff',0.55,0.85); ctx.lineWidth=R*0.045;
+    ctx.beginPath(); ctx.arc(0,0,R*0.525,0,TAU); ctx.stroke();
+    ctx.restore();
+    ctx.globalCompositeOperation='source-over';
+    return;
+  }
+  // ---- EMITTER: A STAR. Six prominences on `hexRot`, which is the axis set its volley leaves on ----
+  ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<6;i++){
+    const a=b.hexRot+i/6*TAU, reach=R*(1.14+0.10*Math.sin(elapsed*1.5+i));
+    ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=R*0.12; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(x+Math.cos(a-0.20)*R*0.93, y+Math.sin(a-0.20)*R*0.93);
+    ctx.quadraticCurveTo(x+Math.cos(a)*reach*1.16, y+Math.sin(a)*reach*1.16,
+                         x+Math.cos(a+0.20)*R*0.93, y+Math.sin(a+0.20)*R*0.93);
+    ctx.stroke();
+  }
+  ctx.lineCap='butt'; ctx.globalCompositeOperation='source-over';
+  // WHITE ONLY WHERE IT MEANS HEAT: the pole owns everything past a third of the radius, and the limb
+  // darkens into the pole's own hue rather than into grey.
+  const ph=ctx.createRadialGradient(x,y,0,x,y,R);
+  ph.addColorStop(0,   '#ffffff');
+  ph.addColorStop(0.20, mixCol(c,'#ffffff',0.80));
+  ph.addColorStop(0.46, mixCol(c,'#ffffff',0.42));
+  ph.addColorStop(0.76, c);
+  ph.addColorStop(1,    mixCol(c,'#1a0410',0.58));
+  ctx.fillStyle=ph; ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.fill();
+  for(const f of D.grain){
+    const a=f.a+elapsed*0.16, d=f.d*R;
+    ctx.fillStyle=mixA(c,'#ffffff',0.75,0.05+0.10*Math.sin(elapsed*f.s+f.p));
+    ctx.beginPath(); ctx.arc(x+Math.cos(a)*d, y+Math.sin(a)*d, f.r*R,0,TAU); ctx.fill();
+  }
+  ctx.strokeStyle=mixA(c,'#ffffff',0.6,0.45); ctx.lineWidth=R*0.045;   // the limb
+  ctx.beginPath(); ctx.arc(x,y,R*0.978,0,TAU); ctx.stroke();
 }
 function drawBoss(){
   if(!boss)return; const b=boss, c=COL[b.color], oc=COL[bossOpp(b.color)];
@@ -6868,7 +7109,17 @@ function drawBoss(){
     }
     ctx.restore();
   }
-  ctx.fillStyle=hexA(c, 0.28+(bossFlash>0?0.4:0));
+  // ⚠️ A GRADIENT, NOT A FLAT DISC, and this was a pre-existing inconsistency the new cores exposed.
+  // It used to be `fillStyle=hexA(c,0.28); arc(2.1r)` — a flat additive plate with a HARD EDGE at 2.1r.
+  // Every ordinary Dot's glow is a ramped sprite specifically so there is "no boundary to aim at" (see
+  // glowSprite), and the Anomaly — the one body you spend a whole fight judging distance to — was the
+  // exception. Invisible while the body underneath was a flat hexagon of the same colour; obvious the
+  // moment the core became a bright star and the plate's rim stood off it.
+  //   Same extent, same peak alpha, ramped to zero. Nothing about the reach changes.
+  const hg=ctx.createRadialGradient(b.x,b.y,b.r*0.55,b.x,b.y,b.r*2.1*pulse);
+  const ha=0.28+(bossFlash>0?0.4:0);
+  hg.addColorStop(0,hexA(c,ha)); hg.addColorStop(0.55,hexA(c,ha*0.45)); hg.addColorStop(1,hexA(c,0));
+  ctx.fillStyle=hg;
   ctx.beginPath(); ctx.arc(b.x,b.y,b.r*2.1*pulse,0,TAU); ctx.fill();
   // The whole enemy pass runs under `lighter` (set in render()) — which is why the old single-disc body
   // worked: one fill has nothing to blow out against. These silhouettes are LAYERED (band + wings,
@@ -7593,25 +7844,67 @@ function drawLances(){
       ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(L.x,L.y,L.r*0.4,0,TAU); ctx.fill();
       continue;
     }
-    // --- everything that flies: a motion streak plus a glowing head ---
-    const long = L.kind==='spear' ? 5 : 2;                              // a spear reads as a long shard
-    ctx.strokeStyle=hexA(c,0.55); ctx.lineWidth=L.r*0.9;
-    ctx.beginPath(); ctx.moveTo(L.px-L.vx*long,L.py-L.vy*long); ctx.lineTo(L.x,L.y); ctx.stroke();
-    ctx.fillStyle=hexA(c,0.35); ctx.beginPath(); ctx.arc(L.x,L.y,L.r*1.8,0,TAU); ctx.fill();
-    ctx.fillStyle=c; ctx.beginPath(); ctx.arc(L.x,L.y,L.r,0,TAU); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(L.x,L.y,L.r*0.45,0,TAU); ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(L.x,L.y,L.r*0.72,0,TAU); ctx.stroke();
-    // a SEEKER wears a spinning bracket while it is still guiding, and drops it when it commits — so
-    // "this one is still turning" and "this one has locked in" are different pictures
-    if(L.kind==='seeker' && L.seekT>0){
-      const sp=elapsed*7;
-      ctx.strokeStyle=hexA(c,0.75); ctx.lineWidth=2;
-      for(let k=0;k<3;k++){
-        const a0=sp+k/3*TAU;
-        ctx.beginPath(); ctx.arc(L.x,L.y,L.r*2.1,a0,a0+0.7); ctx.stroke();
+    // ============================================================================================
+    //  ONE SILHOUETTE PER KIND, and this used to be one drawing for four of them.
+    //  ⚠️ COLOUR IS ALREADY SPENT. Every missile is COL.neutral by the rule above, so SHAPE is the only
+    //  channel left — and it was carrying almost nothing: volley, ring and a committed seeker were the
+    //  same radius (9) with the same head, told apart only by a streak length of 10.8 / 9.2 / 6.6 design
+    //  units. Three of five kinds were unidentifiable in flight, while `srcKind` names all five on the
+    //  death receipt. The seeker's bracket dropped the moment it committed, i.e. exactly when knowing
+    //  what is arriving matters most.
+    //  Same draw-call count as the shared head it replaces. The cost was never the problem.
+    // ============================================================================================
+    const ang=Math.atan2(L.vy,L.vx);
+    ctx.save(); ctx.translate(L.x,L.y); ctx.rotate(ang);
+    ctx.fillStyle=hexA(c,0.35); ctx.beginPath(); ctx.arc(0,0,L.r*1.8,0,TAU); ctx.fill();   // shared glow
+    if(L.kind==='spear'){
+      // A BARBED SHARD. Longest and fastest; the barbs read at speed where a round head does not.
+      ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=L.r*0.62;
+      ctx.beginPath(); ctx.moveTo(-L.r*5.6,0); ctx.lineTo(-L.r*0.9,0); ctx.stroke();
+      ctx.fillStyle=c; ctx.beginPath();
+      ctx.moveTo(L.r*1.9,0); ctx.lineTo(-L.r*0.75,L.r*0.69); ctx.lineTo(-L.r*1.5,0);
+      ctx.lineTo(-L.r*0.75,-L.r*0.69); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle=hexA(c,0.8); ctx.lineWidth=L.r*0.25;
+      ctx.beginPath(); ctx.moveTo(-L.r*0.5,L.r*0.55); ctx.lineTo(-L.r*1.75,L.r*1.12);
+                       ctx.moveTo(-L.r*0.5,-L.r*0.55); ctx.lineTo(-L.r*1.75,-L.r*1.12); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(L.r*0.75,0,L.r*0.33,0,TAU); ctx.fill();
+    } else if(L.kind==='ring'){
+      // A HOLLOW ANNULUS — it reads as the wall it belongs to. The hole is the whole identity, so it is
+      // drawn as strokes and never filled; a filled ring is just the old generic head again.
+      ctx.strokeStyle=c; ctx.lineWidth=L.r*0.40;
+      ctx.beginPath(); ctx.arc(0,0,L.r*0.85,0,TAU); ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=L.r*0.16;
+      ctx.beginPath(); ctx.arc(0,0,L.r*0.85,0,TAU); ctx.stroke();
+      ctx.strokeStyle=hexA(c,0.30); ctx.lineWidth=L.r*0.27;
+      ctx.beginPath(); ctx.arc(0,0,L.r*1.40,0,TAU); ctx.stroke();
+    } else if(L.kind==='seeker'){
+      // A SWEPT DART, and ⚠️ THE FINS STAY ON AFTER IT COMMITS. They only stop wavering. The old bracket
+      // vanished at commit, which removed the identity at the exact moment the thing became unavoidable.
+      const flap = L.seekT>0 ? Math.sin(elapsed*7)*0.30 : 0;
+      ctx.strokeStyle=hexA(c,0.40); ctx.lineWidth=L.r*0.29;
+      ctx.beginPath(); ctx.moveTo(-L.r*2.4,0); ctx.lineTo(-L.r*0.9,0); ctx.stroke();
+      ctx.fillStyle=c; ctx.beginPath();
+      ctx.moveTo(L.r*1.35,0); ctx.lineTo(-L.r*0.55,L.r*0.52); ctx.lineTo(-L.r*0.22,0);
+      ctx.lineTo(-L.r*0.55,-L.r*0.52); ctx.closePath(); ctx.fill();
+      for(const s of [1,-1]){
+        ctx.save(); ctx.rotate(s*(0.72+flap*s));
+        ctx.fillStyle=hexA(c,0.85);
+        ctx.beginPath(); ctx.moveTo(-L.r*0.33,0); ctx.lineTo(-L.r*1.7,L.r*0.38);
+                         ctx.lineTo(-L.r*1.35,-L.r*0.18); ctx.closePath(); ctx.fill();
+        ctx.restore();
       }
+      ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(L.r*0.45,0,L.r*0.28,0,TAU); ctx.fill();
+    } else {
+      // VOLLEY — the dumb one, and it should look dumb: a blunt round slug with a stubby twin streak.
+      ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=L.r*0.33;
+      ctx.beginPath(); ctx.moveTo(-L.r*2.7,L.r*0.29); ctx.lineTo(-L.r*1.0,L.r*0.29);
+                       ctx.moveTo(-L.r*2.7,-L.r*0.29); ctx.lineTo(-L.r*1.0,-L.r*0.29); ctx.stroke();
+      ctx.fillStyle=c; ctx.beginPath();
+      ctx.arc(L.r*0.22,0,L.r*0.82,-Math.PI/2,Math.PI/2);
+      ctx.lineTo(-L.r*0.78,L.r*0.82); ctx.lineTo(-L.r*0.78,-L.r*0.82); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(0,0,L.r*0.34,0,TAU); ctx.fill();
     }
+    ctx.restore();
   }
   ctx.lineCap='butt';
 }

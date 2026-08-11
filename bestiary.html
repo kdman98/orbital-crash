@@ -86,9 +86,29 @@
   // blast) and `violet` (the danger sign, and every formation arrival) both had to be added after a card
   // reached for them. If a card needs a colour the game uses, copy the value from index.html rather than
   // approximating it: a card teaching a different hue than the game shows is worse than no mark at all.
-  const COL={red:'#ff3f6c',cyan:'#38e0ff',neutral:'#c7b8ff',lime:'#8dff6b',violet:'#9b6bff'};
+  const COL={red:'#ff3f6c',cyan:'#38e0ff',neutral:'#c7b8ff',lime:'#8dff6b',violet:'#9b6bff',gold:'#ffcf4d'};
   const TAU=Math.PI*2;
   const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';};
+  // Same two helpers `bossBody` uses in index.html, and for the same reason: an Anomaly core is built
+  // FROM the polarity colour, never decorated with it, so every stop on every ramp is derived from `c`.
+  const _mx=(h1,h2,t)=>{const a=parseInt(h1.slice(1),16),b=parseInt(h2.slice(1),16);
+    return [Math.round((a>>16&255)+((b>>16&255)-(a>>16&255))*t),
+            Math.round((a>>8&255)+((b>>8&255)-(a>>8&255))*t),
+            Math.round((a&255)+((b&255)-(a&255))*t)];};
+  const mixCol=(h1,h2,t)=>{const v=_mx(h1,h2,t); return 'rgb('+v[0]+','+v[1]+','+v[2]+')';};
+  const mixA=(h1,h2,t,al)=>{const v=_mx(h1,h2,t); return 'rgba('+v[0]+','+v[1]+','+v[2]+','+al+')';};
+  // Fixed-seed detail tables, mirroring BOSS_DETAIL in index.html. A LOCAL prng, never Math.random —
+  // here it buys a stable card rather than a stable simulation, but the habit is the same one.
+  const ANOM_DETAIL=(()=>{
+    let s=0x2545f491>>>0;
+    const rnd=()=>{ s^=s<<13; s>>>=0; s^=s>>>17; s^=s<<5; s>>>=0; return s/4294967296; };
+    return {
+      grain: Array.from({length:52},()=>({a:rnd()*TAU,d:0.15+rnd()*0.70,r:0.05+rnd()*0.09,p:rnd()*TAU,s:0.4+rnd()*1.5})),
+      lobes: Array.from({length:5},(_,i)=>({a:rnd()*TAU,d:0.10+rnd()*0.32,r:0.42+rnd()*0.32,sp:0.10+rnd()*0.26,dir:i%2?-1:1,acc:i})),
+      fil:   Array.from({length:8},()=>({a:rnd()*TAU,len:0.5+rnd()*0.6,bow:(rnd()-0.5)*1.5,w:0.02+rnd()*0.03,sp:0.1+rnd()*0.3})),
+      dust:  Array.from({length:40},()=>({a:rnd()*TAU,d:0.20+rnd()*0.75,r:0.02+rnd()*0.05,p:rnd()*TAU,s:0.5+rnd()*1.4})),
+    };
+  })();
 
   // ---- LANGUAGE ----------------------------------------------------------------------------------
   // This page shares NO code with index.html, so it carries its own small table and its own reader.
@@ -402,7 +422,12 @@
       ctx.fillStyle=hexA(lc,0.95); ctx.beginPath(); ctx.arc(lx,ly,4.5,0,TAU); ctx.fill();
     }
     const pulse=1+0.06*Math.sin(t*4);
-    ctx.fillStyle=hexA(c,0.28); ctx.beginPath(); ctx.arc(x,y,r*2.1*pulse,0,TAU); ctx.fill();
+    // A GRADIENT, mirroring drawBoss() in index.html. This was a flat additive disc with a hard edge at
+    // 2.1r while every ordinary Dot's glow ramps to zero so there is "no boundary to aim at" — and the
+    // Anomaly is the body you spend a whole fight judging distance to. Same extent, same peak alpha.
+    const hg=ctx.createRadialGradient(x,y,r*0.55,x,y,r*2.1*pulse);
+    hg.addColorStop(0,hexA(c,0.28)); hg.addColorStop(0.55,hexA(c,0.28*0.45)); hg.addColorStop(1,hexA(c,0));
+    ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(x,y,r*2.1*pulse,0,TAU); ctx.fill();
     ctx.globalCompositeOperation='source-over';
     // draws the EMITTER silhouette on purpose: there is no generic Anomaly body any more, and the
     // first Anomaly of every run is always the Emitter, so this is the one you actually meet first.
@@ -416,49 +441,144 @@
     ctx.strokeStyle='#fff'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x,y,IR,-Math.PI/2,-Math.PI/2+frac*TAU); ctx.stroke();
   }
 
-  // The per-kind silhouette, mirroring bossBody() in index.html. Each shape IS the mechanic:
-  //   emitter  — a faceted HEXAGON that turns (the crossfire pattern it throws)
-  //   sentinel — a hollow RING with two opposed pincer wings on its firing axis
-  //   bastion   — a dense core inside a crown of RAYS (the nova wind-up, made of body)
+  // ============================================================================================
+  //  THE PER-KIND BODY, MIRRORING bossBody() IN index.html:
+  //    emitter  — a STAR: limb-darkened photosphere, granulation, six prominences on the volley axes
+  //    sentinel — a VORTEX: three spiral arms, because this is the kind that ORBITS you, plus two
+  //               bright tips on the pincer axis
+  //    bastion  — a NEBULA under its crown of RAYS, which still lengthen as the nova winds up
+  //
+  //  ⚠️⚠️ THIS IS A HAND-COPY AND IT HAS ALREADY GONE STALE ONCE — that is what this warning is for.
+  //  It previously drew a faceted hexagon, a hollow pincer ring and a rays crown, because that is what
+  //  `bossBody` drew when it was copied. The game moved; this did not; nothing failed, nothing warned,
+  //  and the Bestiary went on teaching a body the player would never meet. A wrong picture in the
+  //  reference is worse than no picture, because the player believes it.
+  //    IT CANNOT SHARE THE SOURCE, and the reason is worth stating so nobody "fixes" it badly. The game
+  //  is one self-contained HTML file with an inline script — that is load-bearing for the offline shell
+  //  and the CSP — and this page is opened STANDALONE as well as in the iframe (see the og: tags), so it
+  //  cannot reach `parent.__orbital` either. Extracting a shared `anomaly-art.js` would give index.html
+  //  an external dependency it deliberately does not have.
+  //    So the duplication stays, and it is made LOUD instead of silent: when you touch `bossBody`, walk
+  //  this function in the same pass. There is no test that will tell you.
+  // ============================================================================================
   function anomBody(ctx,x,y,R,key,c,oc,t){
+    const D=ANOM_DETAIL;
     if(key==='sentinel'){
-      const rot=t*0.9;
-      ctx.strokeStyle=c; ctx.lineWidth=R*0.30;
-      ctx.beginPath(); ctx.arc(x,y,R*0.74,0,TAU); ctx.stroke();
-      ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(x,y,R*0.90,0,TAU); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x,y,R*0.58,0,TAU); ctx.stroke();
-      for(const s2 of [0,Math.PI]){
-        ctx.strokeStyle=hexA(oc,0.9); ctx.lineWidth=R*0.17;
-        ctx.beginPath(); ctx.arc(x,y,R*0.74,rot+s2-0.42,rot+s2+0.42); ctx.stroke();
+      const spin=t*0.30, rot=t*0.9;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.clip();
+      ctx.fillStyle=mixCol(c,'#05030b',0.90); ctx.fillRect(x-R,y-R,R*2,R*2);
+      ctx.globalCompositeOperation='lighter';
+      for(let k=0;k<3;k++){
+        const base=spin+k*TAU/3;
+        for(let pass=0;pass<2;pass++){
+          ctx.beginPath();
+          for(let s2=0;s2<=30;s2++){
+            const u=s2/30, rr=R*(0.10+0.92*u), a=base+u*3.1*1.05+(pass?0.16:0);
+            const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr;
+            s2?ctx.lineTo(px,py):ctx.moveTo(px,py);
+          }
+          const gg=ctx.createRadialGradient(x,y,0,x,y,R);
+          gg.addColorStop(0,   mixA(c,'#ffffff',0.70,0.85));
+          gg.addColorStop(0.45,hexA(c,0.55));
+          gg.addColorStop(1,   hexA(c,0.05));
+          ctx.strokeStyle=gg; ctx.lineWidth=R*(pass?0.09:0.16); ctx.lineCap='round'; ctx.stroke();
+        }
       }
-      ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(x,y,R*0.25,0,TAU); ctx.fill();
+      ctx.lineCap='butt';
+      for(const d of D.dust){
+        const a=d.a+spin*0.6, dd=d.d*R;
+        ctx.fillStyle=mixA(c,'#ffffff',0.5,0.06+0.10*Math.sin(t*d.s+d.p));
+        ctx.beginPath(); ctx.arc(x+Math.cos(a)*dd, y+Math.sin(a)*dd, d.r*R,0,TAU); ctx.fill();
+      }
+      for(const s2 of [0,Math.PI]){                     // the pincer tips, on the firing axis
+        const a=rot+s2, px=x+Math.cos(a)*R*0.80, py=y+Math.sin(a)*R*0.80;
+        const gg=ctx.createRadialGradient(px,py,0,px,py,R*0.30);
+        gg.addColorStop(0,mixA(oc,'#ffffff',0.55,0.85)); gg.addColorStop(1,hexA(oc,0));
+        ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(px,py,R*0.30,0,TAU); ctx.fill();
+      }
+      const kn=ctx.createRadialGradient(x,y,0,x,y,R*0.42);
+      kn.addColorStop(0,'rgba(255,255,255,0.95)');
+      kn.addColorStop(0.40,mixA(c,'#ffffff',0.45,0.70)); kn.addColorStop(1,hexA(c,0));
+      ctx.fillStyle=kn; ctx.beginPath(); ctx.arc(x,y,R*0.42,0,TAU); ctx.fill();
+      ctx.restore();
+      ctx.globalCompositeOperation='source-over';
+      ctx.strokeStyle=mixA(c,'#ffffff',0.5,0.34); ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.stroke();
       return;
     }
     if(key==='bastion'){
       const ch=0.5+0.5*Math.sin(t*1.9);                         // breathe the wind-up
-      const n=14, inner=R*0.54, outer=R*(1.02+0.44*ch);
-      ctx.strokeStyle=hexA(oc,0.5+0.45*ch); ctx.lineWidth=3;
-      for(let i=0;i<n;i++){ const a=i/n*TAU + t*0.5;
-        ctx.beginPath();
-        ctx.moveTo(x+Math.cos(a)*inner, y+Math.sin(a)*inner);
-        ctx.lineTo(x+Math.cos(a)*outer, y+Math.sin(a)*outer); ctx.stroke(); }
-      ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,R*0.60,0,TAU); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(x,y,R*0.30,0,TAU); ctx.fill();
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.clip();
+      ctx.fillStyle=mixCol(c,'#08040e',0.72); ctx.fillRect(x-R,y-R,R*2,R*2);
+      ctx.globalCompositeOperation='lighter';
+      for(const L of D.lobes){
+        const a=L.a+t*L.sp*L.dir, d=L.d*R, lx=x+Math.cos(a)*d, ly=y+Math.sin(a)*d, rr=L.r*R;
+        const col = L.acc===1 ? mixCol(c,COL.violet,0.45) : L.acc===3 ? mixCol(c,COL.gold,0.38) : c;
+        const gg=ctx.createRadialGradient(lx,ly,0,lx,ly,rr);
+        gg.addColorStop(0,hexA(col,0.68+0.30*ch)); gg.addColorStop(0.55,hexA(col,0.30)); gg.addColorStop(1,hexA(col,0));
+        ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(lx,ly,rr,0,TAU); ctx.fill();
+      }
+      for(const F of D.fil){
+        const a=F.a+t*F.sp;
+        ctx.strokeStyle=mixA(c,'#ffffff',0.65,0.22); ctx.lineWidth=F.w*R;
+        ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*R*0.15, y+Math.sin(a)*R*0.15);
+        ctx.quadraticCurveTo(x+Math.cos(a+F.bow)*R*0.7, y+Math.sin(a+F.bow)*R*0.7,
+                             x+Math.cos(a+F.bow*0.4)*R*F.len, y+Math.sin(a+F.bow*0.4)*R*F.len);
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation='source-over';      // dark lanes, off-centre — never through the middle
+      for(const L of [{a:0.5,bow:1.75,off:0.86,w:0.11},{a:3.4,bow:-2.30,off:0.58,w:0.075}]){
+        const a=t*0.05+L.a;
+        ctx.strokeStyle='rgba(7,3,12,0.62)'; ctx.lineWidth=R*L.w; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*R*1.15, y+Math.sin(a)*R*1.15);
+        ctx.quadraticCurveTo(x+Math.cos(a+L.bow*0.5)*R*L.off, y+Math.sin(a+L.bow*0.5)*R*L.off,
+                             x+Math.cos(a+L.bow)*R*1.15,      y+Math.sin(a+L.bow)*R*1.15);
+        ctx.stroke();
+      }
+      ctx.lineCap='butt';
+      ctx.globalCompositeOperation='lighter';
+      const kn=ctx.createRadialGradient(x,y,0,x,y,R*0.26);
+      kn.addColorStop(0,'rgba(255,255,255,'+(0.92+0.08*ch).toFixed(3)+')');
+      kn.addColorStop(0.45,hexA(c,0.55)); kn.addColorStop(1,hexA(c,0));
+      ctx.fillStyle=kn; ctx.beginPath(); ctx.arc(x,y,R*0.26,0,TAU); ctx.fill();
+      ctx.restore();
+      ctx.globalCompositeOperation='source-over';
+      ctx.strokeStyle=mixA(c,'#ffffff',0.5,0.38); ctx.lineWidth=1.6;
+      ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.stroke();
+      // The crown of 14 opposite-colour rays is gone here too — mirrors bossBody(). In the game the nova
+      // wind-up is still drawn OUTSIDE the body by drawBoss (a ring collapsing 3.4r → 1.2r); on a card
+      // there is no wind-up to show at all, so the cloud's own brightening is the whole story.
       return;
     }
+    // ---- EMITTER: a STAR. Six prominences on the axes its volley leaves on ----
     const rot=t*0.5;
-    const hex=(rad,rr)=>{ ctx.beginPath();
-      for(let i=0;i<6;i++){ const a=rr+i/6*TAU, px=x+Math.cos(a)*rad, py=y+Math.sin(a)*rad;
-        i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
-      ctx.closePath(); };
-    hex(R,rot); ctx.fillStyle=c; ctx.fill();
-    ctx.strokeStyle=hexA('#ffffff',0.5); ctx.lineWidth=2; ctx.stroke();
-    hex(R*0.52,-rot*1.4); ctx.strokeStyle=hexA(oc,0.8); ctx.lineWidth=2.5; ctx.stroke();
-    for(let i=0;i<6;i++){ const a=rot+i/6*TAU;
-      ctx.fillStyle=hexA(oc,0.95);
-      ctx.beginPath(); ctx.arc(x+Math.cos(a)*R, y+Math.sin(a)*R, 4.4,0,TAU); ctx.fill(); }
-    ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(x,y,R*0.24,0,TAU); ctx.fill();
+    ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<6;i++){
+      const a=rot+i/6*TAU, reach=R*(1.14+0.10*Math.sin(t*1.5+i));
+      ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=R*0.12; ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(x+Math.cos(a-0.20)*R*0.93, y+Math.sin(a-0.20)*R*0.93);
+      ctx.quadraticCurveTo(x+Math.cos(a)*reach*1.16, y+Math.sin(a)*reach*1.16,
+                           x+Math.cos(a+0.20)*R*0.93, y+Math.sin(a+0.20)*R*0.93);
+      ctx.stroke();
+    }
+    ctx.lineCap='butt'; ctx.globalCompositeOperation='source-over';
+    const ph=ctx.createRadialGradient(x,y,0,x,y,R);
+    ph.addColorStop(0,   '#ffffff');
+    ph.addColorStop(0.20, mixCol(c,'#ffffff',0.80));
+    ph.addColorStop(0.46, mixCol(c,'#ffffff',0.42));
+    ph.addColorStop(0.76, c);
+    ph.addColorStop(1,    mixCol(c,'#1a0410',0.58));
+    ctx.fillStyle=ph; ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.fill();
+    for(const f of D.grain){
+      const a=f.a+t*0.16, d=f.d*R;
+      ctx.fillStyle=mixA(c,'#ffffff',0.75,0.05+0.10*Math.sin(t*f.s+f.p));
+      ctx.beginPath(); ctx.arc(x+Math.cos(a)*d, y+Math.sin(a)*d, f.r*R,0,TAU); ctx.fill();
+    }
+    ctx.strokeStyle=mixA(c,'#ffffff',0.6,0.45); ctx.lineWidth=R*0.045;
+    ctx.beginPath(); ctx.arc(x,y,R*0.978,0,TAU); ctx.stroke();
   }
 
   // a compact Anomaly-kind portrait: the boss body + a live cue of its signature attack

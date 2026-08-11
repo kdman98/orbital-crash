@@ -14,6 +14,69 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-11
 
+### The Anomalies are cosmic now, the missiles are five shapes, and the sky drifts `v2`
+**Anomaly bodies.** Emitter = a **star** — limb-darkened photosphere, granulation, six prominences on
+`hexRot`. Sentinel = a **vortex**, three spiral arms, because this is the kind that orbits you and a
+spiral is orbital motion made visible. Bastion = a **nebula** with its crown of rays kept on top, still
+lengthening as the nova winds up. A **singularity** is written for the fourth Anomaly and is
+**unreachable** — `spawnBoss` throws on any variant not in `HUNT_SPD`, confirmed by calling it. Giving it
+a spawn path needs a hunt speed, an `updateBoss` arm and a firing pattern; that is a gameplay change.
+
+⚠️ **The hexagon was never the telegraph its own comment claimed.** `fireHexVolley` assigns
+`b.hexRot = leadAngle(...)` **on the same line that fires the volley** — it records the shot rather than
+predicting it, so there was never anything to read in advance. I repeated that claim to the author twice
+before reading the four lines under it. What a body actually owes the volley is symmetry locked to
+`hexRot` **at the moment of firing**; `spawnRing` + `bossFlash` already carry the announcement, so the
+bodies do not repeat it and there are no permanent six-fold marks.
+
+Every core is built **from** the polarity colour rather than decorated with it — white only where it
+means heat. Measured on both poles: **72–94%** of each core's lit pixels are channel-dominated by the
+pole. That check killed an earlier fourth core (an aurora veil) which was `mix(pole, tint)` and would
+have been invisible on cyan.
+
+⚠️ **Tuned at `b.r`, and the study's radius lied.** The study drew these at R=52 on a desktop canvas; the
+Anomaly is **R=37**, and at S≈0.5 on the device it is an **eighteen-pixel disc**. The nebula collapsed
+into "crown plus a bright dot" at true size — base lightened, lobes pushed, and the centre knot **shrunk**
+0.36R → 0.26R, because a big white centre erases the cloud it is supposed to sit inside.
+
+**Missiles: five kinds, five silhouettes.** Colour was already spent — every missile is `COL.neutral` by
+rule, so a same-colour missile can never read as safe — which left shape carrying everything, and shape
+was carrying almost nothing: **volley, ring and a committed seeker were the same drawing** at the same
+radius, separated only by streak lengths of 10.8 / 9.2 / 6.6 units. Now: barbed shard, blunt slug, hollow
+annulus, swept dart, and the mine unchanged. **The seeker's fins stay on after it commits** and merely
+stop wavering — the old bracket vanished at commit, i.e. exactly when knowing what is arriving matters
+most. Same draw-call count.
+
+**Sky: it drifts.** Parallax was driven *only* by the player's position, so the sky stopped dead whenever
+you did — which is most of a boss fight. Each layer now carries a constant `flow` (1.6 / 4.2 / 9.0 design
+units/s, keeping the depth ordering). Deliberately **not** damped by reduced-motion: that mode exists to
+remove the sudden player-coupled swing, and a slow constant drift is the opposite kind of motion. Keyed
+to `elapsed`, so it correctly freezes on pause.
+
+A **depth haze** and a **vignette** join the cached sky, so both are paid once every `SKY.every` frames
+rather than per frame. ⚠️ **The vignette ships at 0.20, not the study's 0.42** — a vignette darkens the
+rim, and the rim is where every Dot *enters*. The study looked better at 0.42 because nothing flies into
+a study. Check it against incoming matter at the border, never against an empty field.
+
+⚠️ **The Anomaly's halo was a flat additive disc with a hard edge at 2.1r**, while every ordinary Dot's
+glow is a ramped sprite specifically so there is "no boundary to aim at". A pre-existing inconsistency on
+the one body you spend a whole fight judging distance to — invisible while the body under it was a flat
+hexagon of the same colour, obvious the moment the core became a bright star. Now a gradient: same
+extent, same peak alpha, ramped to zero.
+
+⚠️ **The Bestiary duplicates the art, and it went stale the moment the game changed.** `bestiary.html`
+carries `anomBody()`, a hand-copy of `bossBody()`, and it went on drawing a hexagon, a hollow pincer ring
+and a rays crown after the game stopped — teaching a body the player would never meet. Ported, along with
+the same flat-halo fix, which that file had its own copy of too. **A wrong picture in the reference is
+worse than no picture**, and unlike a wrong number it cannot be grepped for — it is not a literal.
+It cannot be shared out: the game is deliberately one self-contained file, and the Bestiary is opened
+standalone as well as in the iframe, so it cannot reach `parent.__orbital`. The duplication is now loud
+instead of silent — a warning block at `anomBody` naming `bossBody`, and a paragraph in MECHANICS.
+
+Verified: seeded runs reproduce exactly, and a run **with** rendering produces the identical fingerprint
+to one without — the whole change is draw-only. All three variants render distinctly (control 0). No
+console errors over 2,400 stepped frames. The Bestiary builds 12 cards and 19 canvases with none blank.
+
 ### The star is yours, the field is themed, and the number that decided it was wrong `v2`
 The two tiers stop overlapping. **The star is per-element; everything else is themed.** A theme cannot
 reach the star, and the field has no per-element categories left — the `drift` wardrobe row is gone after
