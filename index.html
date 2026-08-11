@@ -8240,9 +8240,7 @@ function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; 
 // of the thumb that was now parked on top of it: a correction for a problem the scheme created. Both are
 // gone with it.
 //
-// THE PARTITION. The app is landscape-locked (UISupportedInterfaceOrientations is LandscapeLeft/Right on
-// phone and iPad), so left/right and top/bottom mean the same thing in every session and the split can be
-// geometry rather than a guess about how the device is being held:
+// THE PARTITION. Halves and quarters of the VIEWPORT, whatever shape it is:
 //
 //     +---------------------------+--------------+
 //     |                           |  OVERDRIVE   |  hold to burn
@@ -8254,8 +8252,18 @@ function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; 
 // MOVE is the half because it is the only CONTINUOUS verb; the other two are instants, and an instant
 // wants a target rather than a field. OVERDRIVE sits ABOVE flip because the two must be usable at the
 // same time — Overdrive is held for seconds and you keep flipping straight through the ride, so they
-// cannot share a thumb. Top-right is where a landscape grip already rests an index finger, which makes
-// it the shoulder button this layout does not otherwise have.
+// cannot share a thumb.
+//   ⚠️ THE ERGONOMIC ARGUMENT IS A LANDSCAPE ARGUMENT AND THE LOCK IS NATIVE-ONLY. In the shell this is
+// settled — `UISupportedInterfaceOrientations` is LandscapeLeft/Right on phone and iPad — and there
+// top-right is where the grip already rests an index finger, which makes it the shoulder button this
+// layout does not otherwise have. **On the web it is settled by nothing.** The manifest's
+// `orientation: landscape` is advisory and applies only to an INSTALLED PWA, so the primary way people
+// play this game — a phone browser, per the README — can be portrait, and an earlier version of this
+// comment claimed the lock covered "every session". It does not.
+//   What survives portrait is the part that matters: flip stays under the right thumb, which is the verb
+// asked for most. What is lost is the shoulder button — Overdrive becomes a deliberate reach. That is a
+// graceful degradation rather than a broken control, but it is ARGUED, not measured, and nobody has held
+// a portrait phone browser and tried it.
 //   ⚠️ THE ZONE IS READ ON CONTACT AND NEVER AGAIN. A steering finger that wanders into the right half
 // keeps steering, and an Overdrive finger that slides down does not become a flip. Re-testing per move
 // would mean the control changes under you while you are using it, which is the one thing a control may

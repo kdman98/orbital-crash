@@ -402,7 +402,16 @@ Move is the half because it is the only *continuous* verb; the other two are ins
 wants a target rather than a field. **Overdrive sits above flip because the two must be usable at once** —
 Overdrive is held for seconds and you keep flipping through the ride, so they cannot share a thumb.
 Verified: three fingers down simultaneously, the star moving at 19.6 units/frame while burning, a flip
-landing mid-burn, and the burn surviving it.
+landing mid-burn, and the burn surviving it. On device, the tutorial certifies all three by gating each
+step on performing the verb — 1/6 → 2/6 drag, 4/6 → 5/6 flip, 5/6 → 6/6 Overdrive hold.
+
+⚠️ **That ergonomic argument is a LANDSCAPE argument, and the lock is native-only.** In the shell it is
+settled and top-right really is where the grip rests an index finger. **On the web it is settled by
+nothing** — the manifest's `orientation` is advisory and applies only to an installed PWA, so a phone
+*browser*, which is how the README tells people to play, can be portrait. The partition still works
+there (halves and quarters of whatever viewport exists) and flip stays under the right thumb, which is
+the verb asked for most; what is lost is the shoulder button, with Overdrive becoming a deliberate
+reach. **Argued, not measured — nobody has held a portrait phone browser and tried it.**
 
 ⚠️ **The zone is read on contact and never again.** A steering finger that wanders into the right half
 keeps steering; an Overdrive finger that slides down does not become a flip. Re-testing per move would
