@@ -14,6 +14,85 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-11
 
+### A Drifter skin, a shorter Turret, and the wardrobe stops having a heading `v2`
+**Turret is 30 seconds, down from 60.** `TURRET_T` is quoted in `achv.turret.ds` in both languages and the
+string cannot follow it automatically — every other row's description is a sentence rather than a number,
+and one templated row would be the odd one out. Both strings walked by hand; the constant now says so.
+
+**`DOT_FACE`, and it starts at one species.** `drift` gets a face table — **Plain** (the disc the game has
+always drawn, lifted out of the shared `else` branch unchanged) and **Bead** (the core opened into a
+ring). Everything else still draws inline. `drawEnemies` is the most heavily argued draw code in the file
+and a seventeen-branch extraction would put every one of those arguments at risk to serve a wardrobe.
+
+The Dot contract is `STAR_FACE`'s plus one clause the star does not need: **a Dot's silhouette is its
+species**, so a Dot face may not touch the disc at all. Interior only. A face also draws its **own core
+dot** — hence `drift` joining `noCore` — because leaving the shared 0.34r mark to be stamped on afterwards
+would put a fixed white dot inside every future Drifter skin whatever it had drawn there.
+
+⚠️ **Bead's first version punched its ring out with `destination-out`, which does not do what it looks
+like.** This is the shared world canvas with the sky already on it, so the cut goes through the sky as
+well and leaves a transparent bite in the field. Caught before it shipped. Additive blending needs no
+erasing: the hole is the body's own colour, never drawn over. **Negative space here means not drawing** —
+exactly how the Planet's plate gaps already work. Nothing in this pass may use a `destination-*` operator.
+
+Bead is gated on `devlock`, so it is unreachable in play. Proven rather than assumed: setting
+`skin.drift = 'bead'` changes **0** pixels of the rendered field and `skinPick('drift')` returns `plain`.
+Opening the lock through the harness changes **98** pixels across three Drifters, which is what makes the
+zero mean something — the same rig detects the face when the face is allowed to draw.
+
+**The heading is gone**, on the author's call, after going stale twice in two passes — *"The look of your
+star"* while the star was the only category, then *"The look of it all"* once the overall tier landed. **A
+heading is copy about scope, and scope is what moves every time this panel grows.** That is an argument
+for not having one, not for keeping one current. The kicker stays: it is the panel's name, not a claim
+about its contents.
+
+⚠️ **Three stacked tiers overflowed by 32px in English and 39px in Korean** even with the heading gone.
+The fix is not more shrinking — it is the right axis. The shipping WebView is **874×402**, wide and short,
+so one full-width row per category spends the scarce axis and wastes the plentiful one. The per-element
+tiers are now a wrapping row of **columns**: three fit with room, and a fourth category wraps instead of
+pushing anything past the fold. Columns align to the top, because a locked card is taller than an unlocked
+one and centring would stagger the category labels.
+
+The suppression note moved out of the sections and sits **once**, between the tiers. Per-section was fine
+at one category and becomes the same sentence printed N times as the roster grows.
+
+### The wardrobe grows a second tier, and a lock that cannot open `v2`
+Skins are now **two tiers**. *Per-element* skins dress one species — `star` today, Dots when the draw
+code has a seam to hang them on. An *overall* skin dresses the whole game and **suppresses** every
+per-element pick while worn. First one declared: **Pixel Graphic**.
+
+⚠️ **Suppresses, not overwrites**, which is why there are two resolvers. `skinPick` is what the drawing
+code asks; `elementPick` is what the wardrobe asks. They disagree by design while an overall skin is on,
+and a test that cannot tell them apart cannot prove the difference. Measured: Pixel Graphic over a stored
+Redoubt gives `star_drawn: core` / `star_stored: turret`, and taking it off returns both to `turret`.
+
+The overall tier **answers even where it has nothing to say** — its own face if it has one, otherwise the
+category default, never the player's pick. A hand-picked smooth star inside a pixel field is not a
+customisation, it is the skin failing. The fall-through alternative would make that bug appear and
+disappear as art landed, which is the worst schedule a bug can keep.
+
+**`devlock` is an achievement with no path**: `grantAchv` refuses the id outright rather than relying on
+nothing calling it. "No caller today" is a fact about one commit. It stays out of Records — `hid` means
+*undiscovered*, and a row nobody can ever tick is not a secret, it is a bug report with a tick box. What
+it buys is a skin that ships **visible and unwearable**, which is the honest state for art that does not
+exist yet. Pixel Graphic sits behind it.
+
+⚠️ **The empty slot is a different call from the dimmed lock.** Locked skins show their art — withholding
+art you *have* is a choice this panel declines. Drawing the default star under a label reading "Pixel
+Graphic" would be showing art you do **not** have. `skinSwatch` falls back to Core so the field never
+fails to draw; the wardrobe uses `skinSwatchEmpty`, because nothing is the only honest picture of nothing.
+
+The heading stopped saying *"The look of your star"*. It was accurate while the star was the only
+category and became the narrowest thing on the panel the moment the overall tier landed — **a heading is
+copy about scope, so it goes stale when scope moves.**
+
+The description under it is gone, on the author's call: the cards state the hue law and the unlock better
+than a sentence about them did. Losing it cost nothing and the second tier immediately spent the space —
+**23px past the fold at 874×402**, measured, so the short-screen branch now shrinks the heading, the
+sections and the swatch. The swatch needed `!important`: `skinSwatch` writes its size as an **inline**
+style (the backing store is dpr-scaled and the CSS size un-scales it), and an inline style outranks a
+media query — without the flag the rule is ignored in silence.
+
 ### Skins get their own panel, and the locked slot finally says what unlocks it `v2`
 Out of the Settings row, into a **Skins** link on the menu — second in the row, next to Records, because
 Records is where the thing that unlocks them lives. Each slot draws the actual star through `STAR_FACE`,

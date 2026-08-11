@@ -293,10 +293,20 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Achievement** — an in-run feat listed in **Records**. Eleven rows, one hidden. Earned in Survival
   only. Some gate a **Skin**, so they no longer "unlock nothing".
 - **Skin** — an earned look, chosen in **Skins**, its own menu panel. Cosmetic only, draw-time only, and
-  it never changes hue: colour means polarity. One category (`star`) with **Core** and **Redoubt** today.
-  Each slot draws its own art through `STAR_FACE` — the third caller of that seam, after the field and
-  the run card — and a locked slot shows the art dimmed with its trigger printed underneath.
-  (`SKINS`, `skinPick`, `skinSwatch`, `paintSkins`)
+  it never changes hue: colour means polarity. Each slot draws its own art through `STAR_FACE` — the third
+  caller of that seam, after the field and the run card — and a locked slot shows the art dimmed with its
+  trigger printed underneath. (`SKINS`, `skinPick`, `skinSwatch`, `paintSkins`)
+- **Per-element skin** — dresses one species. Two categories: `star` (**Core**, **Redoubt**) and `drift`
+  (**Plain**, **Bead**). A category key is the engine's own name for the thing, so a Dot row labels itself
+  from `dot.<type>` rather than from a second copy of the species name. (`SKINS`, `elementPick`)
+- **`DOT_FACE`** — the Dot equivalent of `STAR_FACE`, extracted for **one** species so far. A Dot face
+  owns the interior and may not touch the disc: silhouette is species identity. It draws its own core dot,
+  which is why `drift` is in `noCore`. (`DOT_FACE`, `drawEnemies`)
+- **Overall skin** — dresses the whole game and **suppresses** every per-element pick while worn, without
+  overwriting them. `none` is a real row, not an absence. **Pixel Graphic** is the first, declared and
+  locked. (`OVERALL`, `OVERALL_FACE`, `overallPick`)
+- **Dev lock** — an achievement with `dev:true`: refused by `grantAchv`, hidden from Records, and used to
+  ship a skin visible but unwearable. `devlock` is the only one. (`ACHV`)
 - **Run card** — the shareable 1080×1350 PNG built from the run you just finished. Drawn on a canvas,
   never screenshotted, and it touches no network. (`buildRunCard`, `shareRunCard`)
   (`ACHV`, `store.achv`)

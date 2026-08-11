@@ -1765,8 +1765,63 @@ keeps one clock. Reach-style achievements (`act3` today) carry a cold-start guar
 III" has to mean you travelled there.
 
 ### Skins
-The second thing that crosses a run boundary, and the second that grants **access, never power**. One
-category today (`star`), two faces: **Core** (default) and **Redoubt**, gated on the Turret achievement.
+The second thing that crosses a run boundary, and the second that grants **access, never power**.
+
+**Two tiers, and the second one wins.** *Per-element* skins dress one species at a time and are chosen
+independently of each other — `star` with **Core** and **Redoubt** (gated on Turret), and `drift` with
+**Plain** and **Bead** (gated on the dev lock, so unreachable in play). An *overall* skin dresses the
+whole game at once and **suppresses** every per-element choice while worn. First one declared: **Pixel
+Graphic**.
+
+**A category key is the thing's own name in the engine** — `star`, then the `e.type` string for every
+species — which is what lets a Dot row label itself from `dot.<type>`, the table the Bestiary, the cause
+line and the hit tally already read. The one place this project has been genuinely bitten by duplicated
+copy is species names; the wardrobe does not become a second copy of them.
+
+⚠️ **`DOT_FACE` starts at one species, not seventeen.** `drawEnemies` is the most heavily argued draw
+code in the file, and a sweeping extraction would put every one of those arguments at risk to serve a
+wardrobe. `drift` has a face table; everything else still draws inline. The contract is `STAR_FACE`'s one
+level down, plus a clause the star does not need: **a Dot's silhouette is its species**, read in
+peripheral vision on a screen holding hundreds of bodies, so a Dot face may not change the disc at all.
+Interior only. A Drifter that stopped being a plain disc would not be a costume, it would be a new
+species nobody can name.
+
+A Dot face **draws its own core dot**, which is why `drift` joined `noCore`. Leaving the shared 0.34r
+mark to be stamped on afterwards would put a fixed white dot in the middle of every future Drifter skin
+whatever that skin had drawn there — a face owns the interior or it does not.
+
+⚠️ **Nothing in the enemy pass may use a `destination-*` operator.** Bead's first version punched its
+ring out with `destination-out`, which does not do what it looks like: this is the shared world canvas
+with the sky already on it, so the cut goes through the sky too and leaves a transparent bite in the
+field. Additive blending needs no erasing — the ring's hole is the body's own colour, never drawn over.
+Negative space here means **not drawing**, which is exactly how the Planet's plate gaps work.
+
+⚠️ **Suppresses, not overwrites.** `store.skin` keeps the per-element selections untouched underneath, so
+removing an overall skin restores the exact wardrobe you had. This is why there are **two resolvers**:
+`skinPick(cat)` is what the drawing code asks and `elementPick(cat)` is what the wardrobe asks. They
+disagree by design while an overall skin is worn, and a test that cannot tell them apart cannot prove the
+suppression is suppression rather than a silent overwrite. Measured: wearing Pixel Graphic over a stored
+Redoubt gives `star_drawn: core`, `star_stored: turret`, and removing it returns both to `turret`.
+
+**Winner-takes-all rather than a merge**, and the overall tier answers even where it has nothing to say —
+its own face if it supplies one, otherwise the category **default**, never the player's pick. An overall
+skin is a claim about the whole screen: a hand-picked smooth star inside a pixel field is not a
+customisation, it is the skin failing. Falling through to the per-element pick for uncovered categories
+is the obvious-looking alternative, and it would make that bug **appear and disappear as art landed** —
+the worst schedule a bug can keep.
+
+**A lock that cannot open, by construction.** `{id:'devlock', dev:true}` is an achievement with no path:
+`grantAchv` refuses the id outright rather than relying on nothing calling it. "No caller today" is a fact
+about one commit; a skin gated on it opens the day someone adds one. It keeps `devlock` out of Records
+too — `hid` means *undiscovered*, and a row a player can never tick is not a secret, it is a bug report
+with a tick box. What it buys is a skin that can ship **visible and unwearable**, which is the honest
+state for art that does not exist yet. Pixel Graphic is gated on it.
+
+⚠️ **The empty slot is a different call from the dimmed lock.** Locked skins show their art dimmed —
+withholding art you *have* is a design choice this panel declines. Drawing the default star under a label
+reading "Pixel Graphic" would be showing art you do **not** have, which is a picture of something that
+does not exist. `skinSwatch` falls back to Core so the *field* never fails to draw; the wardrobe uses
+`skinSwatchEmpty` instead, because **nothing is the only honest picture of nothing**.
 They have **their own menu panel**, second in the link row so that Records and the thing Records unlocks
 sit next to each other. *(They lived in a Settings row first, on "one question per surface" — Settings
 answers "how does this reach my eyes and ears" and a two-item wardrobe in its own room looks like a
