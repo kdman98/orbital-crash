@@ -3273,6 +3273,30 @@ lesson, check whether the lesson actually rests on the story or merely arrived w
 `stepCollapseWave`. "settleR" and "v0" were never symbols at any point. If the sweep flagged deleted
 names too, the residue would be noise and nobody would run it twice.
 
+⚠️ **A PASSING CONTROL LICENSES THE INSTRUMENT, NOT THE READING — one measurement with a good control is
+still one measurement.** This is the entry above continued past where its advice runs out. That one says
+to validate a sweep against something known-dirty before believing it says clean, and here that was
+*done*: the per-body pixel deltas behind the skin tiers were taken with a same-face-twice control, which
+returned **0** exactly as it should. The rig was sound. The numbers were still wrong by ~3× — quoted as
+star **102 px** and Drifter **~33 px**, re-measured across five field states (2–19 Drifters, control 0 in
+each) at **312–341** and **88–115 px per body**. *(Measured by the v2 gameplay session; recorded here as
+theirs, because the rule stands on the shape and not on the figures.)*
+
+**The two questions are different and only one of them was asked.** A control answers *can this rig
+detect the thing at all* — validity. Repetition answers *is this value the value* — variance. A control
+cannot see variance by construction: it is the case where the true answer is zero, so it is silent about
+every case where the answer is not. Passing one feels like finishing, which is the family this whole
+section is about, and it is a **cleaner** kind of false confidence than a broken instrument because
+nothing about the rig is available to doubt.
+
+⚠️ **What let it live for a full pass is that the CONCLUSION never moved.** The ratio (~3×) survived
+re-measurement, so the design it was cited for was right the whole time and never showed strain — the
+argument kept working while its evidence was wrong, and the numbers propagated into an `index.html`
+comment, *## Skins*, and a commit message before anyone re-ran them. **A figure is not checked by the
+decision it supports continuing to look correct.** The check is cheap and it is the same one the entry
+above ends on, one level up: before a number becomes an argument, take it again in a *different state* —
+not a second time in the same one, which is what the control already was.
+
 **A smoothing coefficient applied per *event* silently encodes the sample rate it was tuned at.** Change
 the transport and the control changes feel with no code touched, no constant edited and nothing to see in
 review — the line is identical before and after. Tilt smoothing was a fixed fraction applied once per
