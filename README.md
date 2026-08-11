@@ -10,7 +10,7 @@ browser and you can switch it on the menu.
 
 | | Mouse and keyboard | Touchscreen |
 |---|---|---|
-| **Steer** | `Mouse` — the star chases your pointer | **left half** — drag it like a stick; the star keeps going the way you push |
+| **Steer** | `Mouse` — the star chases your pointer | **left half** — drag; the star travels exactly as far as your finger does |
 | **Flip** | `Space` or `Click` — reverse your poles | **bottom right** — press |
 | **Overdrive** | hold `Shift` or `Right-click` | **top right** — hold |
 | **Pause · Mute** | `P` / `Esc` · `M` | the `❚❚` button, top right corner |

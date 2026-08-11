@@ -14,6 +14,47 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-11
 
+### The move zone follows your finger now, because a finger is not an angle `v2-ios`
+Author, from the device: *"moving is not following my finger movement, acceleration is applied little
+late."* Both halves were real, and both trace to one mistake — **the virtual stick inherited tilt's rate
+model along with tilt's own speed constant.**
+
+**It was speed-capped and the mouse is not.** `stepPlayer` chases the pointer at `0.185 × gap` per frame,
+uncapped; the stick's ceiling was a flat 14.
+
+| | rate model | mouse |
+|---|---|---|
+| across a 400-unit gap | 14/frame | **74/frame** |
+| across an 800-unit gap | 14/frame | **148/frame** |
+
+In an arena 1739 × 800 that is a touch player **~5× slower across open ground than a mouse player**.
+⚠️ And 14 is the number `settleT` uses for the engine's *deliberate slow glide on resume* — the stick ran
+permanently at the speed the game reserves for slowing you down on purpose.
+
+**Reversals cost 128px of thumb.** At full deflection the floating origin sat 64px behind the finger, so
+full speed the other way meant crossing the dead zone and the whole ramp again. That is precisely what
+"acceleration applied a little late" feels like.
+
+**The rate argument never applied to a finger.** The tilt block argues, correctly, that an angle means
+*keep going this way* rather than *be there* — inherent to an angle, which has no position to offer.
+**A finger has a position and a displacement.** None of it transferred; it came across because the code
+did, and nobody re-derived it at the new site.
+
+So the move zone is a **displacement**: the star travels as far as the finger did on the glass, times
+`STICK.gain` 1.6, through the same `/S` divide `setPointer` uses for the mouse. Measured at 874×402
+(`unitsPerCssPx` 3.184): touch-down alone moves **0**; 50px moves exactly **159.2**; **reversal is free**
+at −31.84 on the same frame; a 2px nudge moves 6.37 so there is no dead zone; a re-grip 300px away moves
+0; 60 frames held still drift **0.000**; a 200px swipe banks 636.8 against the old ceiling of 14. Zero
+console errors, and the flip, Overdrive and mouse paths are all unchanged.
+
+⚠️ **Given up deliberately: you cannot hold a heading.** Crossing the arena is a drag and a re-grip
+rather than a lean. Re-gripping is lossless by construction — a fresh touch sets a fresh reference.
+⚠️ **`gain` is not multiplied by `moveMult`**, unlike every other movement — moveMult scales a speed and
+there is no speed here. Overdrive lifting a displacement would change the control under you mid-ride.
+⚠️ **Not yet felt on the device.** The numbers are exact and the model is right; whether 1.6 is the right
+gain is a hand judgement. It is a live object, so the probe can sweep it between runs
+(`__orbital.STICK.gain=2.2`) rather than costing a rebuild per guess.
+
 ### Skins get their own panel, and the locked slot finally says what unlocks it `v2`
 Out of the Settings row, into a **Skins** link on the menu — second in the row, next to Records, because
 Records is where the thing that unlocks them lives. Each slot draws the actual star through `STAR_FACE`,

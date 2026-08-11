@@ -5936,10 +5936,12 @@ function beginReady(){ resumeT=READY_DUR; state='ready'; lastT=performance.now()
 // field opens becomes level. Sitting up between runs should not cost you a drift.
 // ⚠️ `tiltCalibrate()` RAN HERE AND NO LONGER DOES. It re-zeroed the sensor to however the phone was
 // being held as the run started, which was load-bearing while tilt steered and is now calibrating
-// something nothing reads. The stick's equivalent is the line that replaced it: zero the VECTOR but
-// keep the finger's origin, so a run resuming under a thumb that never lifted stops the star instead of
-// cashing whatever deflection was frozen across the pause. The next pointermove re-establishes it.
-function endReady(){ state='play'; acc=0; reanchorPointer(); stickVec.x=stickVec.y=0; }
+// something nothing reads. What replaced it drops any displacement BANKED ACROSS THE BREAK — a finger
+// that slid during a pause, or during the GET READY breather, has not asked for anything yet, and
+// cashing that travel on the first live frame would teleport the star before the player has moved.
+// `stickLX/LY` are deliberately left alone: they are a reference, not a debt, and the next pointermove
+// measures from wherever the thumb actually is.
+function endReady(){ state='play'; acc=0; reanchorPointer(); stickDX=stickDY=0; }
 function skipReady(){ if(state==='ready'){ resumeT=0; endReady(); } }
 
 // =====================================================================
@@ -8276,29 +8278,55 @@ function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; 
 // picked tilt for phone browsers that had no working sensor, and the stored `orbitalcrash_tilt` outlived
 // the switch that could undo it. A scheme chosen by the event that is currently being handled cannot be
 // wrong about the device, because it is not making a claim about the device.
+// ⚠️ THIS WAS A VIRTUAL STICK — A RATE — AND THE RATE ARGUMENT NEVER APPLIED TO A FINGER.
+//
+// Reported from the device as *"moving is not following my finger movement, acceleration is applied
+// little late"*, and both halves of that were real and measurable:
+//
+//   · THE RATE WAS SPEED-CAPPED AND THE MOUSE IS NOT. `stepPlayer` chases the pointer at `0.185 × gap`
+//     per frame, uncapped — 74 units/frame across a 400-unit gap, 148 across 800. The stick's ceiling
+//     was a flat 14. In an arena 1739 × 800 design units, that made a touch player roughly **5× slower
+//     across open ground than a mouse player**. Worse, the game already uses `cap=14` in `settleT` as
+//     its DELIBERATE slow glide on resume: the stick ran permanently at the speed the engine reserves
+//     for slowing you down on purpose.
+//   · REVERSALS COST 128px OF THUMB. At full deflection the floating origin sat 64px behind the finger,
+//     so reaching full speed the other way meant crossing the dead zone and the whole ramp again. That
+//     is exactly what "acceleration applied a little late" feels like.
+//
+// **The root error was inheriting tilt's model along with tilt's own speed constant.** The tilt block
+// argues, correctly, that an ANGLE means "keep going this way" rather than "be there" — that is
+// inherent to an angle, which has no position to offer. A FINGER HAS A POSITION AND A DISPLACEMENT, so
+// none of that reasoning transferred; it was carried across because the code was.
+//
+// So the move zone is DIRECT now: the star travels exactly as far as your finger did on the glass,
+// times a gain. No dead zone, no ramp, no floating origin, no ceiling, and reversal is free because
+// there is no state to unwind — a delta of zero moves nothing and a delta the other way moves the other
+// way, on the same frame.
+//   ⚠️ WHAT THIS GIVES UP, DELIBERATELY: you can no longer hold a heading. A rate keeps moving while you
+// hold it; a displacement only moves while you drag. Crossing the arena takes a drag and a re-grip
+// rather than a lean. Re-gripping is lossless by construction — a fresh touch sets a fresh reference and
+// only deltas count — which is the trackpad behaviour every player already has in their hands.
 const STICK={
-  dead : 6,     // CSS px of slop around the origin. TAP_SLOP was 12 for a different job — telling a tap
-                // from a drag — and nothing has to make that distinction any more, so this can be
-                // tighter and the stick can answer sooner.
-  full : 64,    // CSS px of deflection for full speed. A thumb pivots through about this much without
-                // the hand leaving its grip; past it the ORIGIN follows, so the player never runs out
-                // of stick before they run out of zone.
-  speed: 14,    // design units per frame at full deflection, before moveMult.
-                //   THE SAME NUMBER TILT USED, AND FOR THE SAME REASON — this is the one tuned figure
-                // that transfers intact from the control being retired, because it was set against the
-                // GAME rather than against the sensor: the fastest thing that hunts you is the Charger
-                // dash at CHG_SPD 9.5, Volley shots travel 8.4 and Comets 7.6, so 14 clears the Charger
-                // by ~47%. Multiplied by P.moveMult, so Overdrive lifts it to 19.6 exactly as it lifts
-                // every other kind of movement.
+  gain: 1.6,    // star travel per unit of finger travel, both measured on the glass.
+                //   1.0 would be literally 1:1 — move the thumb a centimetre, the star moves a
+                // centimetre — which is the most predictable thing available and was the first
+                // instinct. It is a touch slow for the job: clearing a Charger dash (CHG_SPD 9.5)
+                // wants ~100 design units in a hurry, and at 1.0 that is a 50px thumb flick. 1.6 puts
+                // the same dodge at ~31px and still crosses ~80% of the arena in one full-zone drag,
+                // while staying proportional enough that the star never goes anywhere the finger did
+                // not ask for.
+                //   ⚠️ A LIVE OBJECT, like TILT and SKY, and for the reason those are: this is a FEEL
+                // number, no bot can sign it off, and the device probe can sweep it between runs
+                // (`__orbital.STICK.gain=2.2`) instead of costing a rebuild-and-reinstall per guess.
 };
-// ⚠️ NO LOW-PASS, AND THAT IS NOT AN OMISSION. Tilt smoothed because an accelerometer reading is noisy,
-// and the tilt block argues at length that the smoothing had to be a time constant rather than a
-// per-event fraction or the feel would be welded to the sample rate. A touch offset has none of that
-// problem: it is two integers the compositor has already resolved, exact on arrival. Filtering it would
-// buy nothing and cost lag — and lag is what this whole block exists to give back.
+// ⚠️ NO SMOOTHING AND NO DEAD ZONE. Tilt needed a low-pass because an accelerometer reading is noisy,
+// and a stick needed a dead zone because a held deflection integrates its own error forever. A
+// displacement has neither problem: it is the difference between two integers the compositor already
+// resolved, it does not accumulate when the finger is still, and any filter on it is pure lag — which
+// is the whole complaint this block exists to answer.
 let stickId=null;              // the finger steering, so its release can be told from any other
-let stickOX=0, stickOY=0;      // the FLOATING origin: wherever this finger went down, and it moves
-const stickVec={x:0,y:0};      // unit direction x ramped magnitude, each component in [-1,1]
+let stickLX=0, stickLY=0;      // where that finger was last seen, CSS px — the reference for the delta
+let stickDX=0, stickDY=0;      // displacement banked since the last physics step, CSS px
 let odTouchId=null;            // the finger HOLDING Overdrive, so its release can be told from any other
 const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
 
@@ -8312,43 +8340,40 @@ function zoneOf(x,y){
   return y<ZONE.y ? 'od' : 'flip';
 }
 
+// BANKS THE DISPLACEMENT; IT DOES NOT MOVE ANYTHING. The move is applied in stepStick, on the fixed
+// 60Hz tick, and that split is load-bearing rather than tidy.
+//   ⚠️ WRITING P FROM HERE WOULD PUT STEERING ON THE TOUCH SAMPLE RATE. Pointer events arrive on the
+// display's clock — 120Hz on a ProMotion phone, bursty under load — and the file already has a scar from
+// exactly this: tilt's smoothing was a per-event fraction, so when the bridge went 30Hz → 60Hz the
+// controls silently got twice as slow and it was reported as "tilt reaction is a little slow". A
+// displacement is immune to the RATE of sampling (two 5px deltas and one 10px delta bank the same 10px)
+// but not to being applied off-clock, which would move the star a different distance per frame depending
+// on how many events happened to land in it — and would break the fixed-step determinism the oracle
+// rests on.
 function stickSet(x,y){
-  let dx=x-stickOX, dy=y-stickOY;
-  const m=Math.hypot(dx,dy);
-  // THE ORIGIN FOLLOWS PAST FULL DEFLECTION. Without it a thumb that goes down near the left edge runs
-  // out of zone before it runs out of stick, so full speed is unreachable in that direction — a control
-  // that is quietly weaker one way for a reason the player cannot see. Dragging the origin along keeps
-  // the whole range available from anywhere in the half, and lets you walk the stick across the zone the
-  // way a real one lets you hold a heading.
-  if(m>STICK.full){
-    const k=(m-STICK.full)/m;
-    stickOX+=dx*k; stickOY+=dy*k;
-    dx-=dx*k; dy-=dy*k;
-  }
-  const mm=Math.min(m,STICK.full);
-  // ⚠️ ONE DEAD ZONE ON THE MAGNITUDE, NOT ONE PER AXIS. Per-axis is what tiltCurve does and it is right
-  // for tilt, where the two axes really are two separate readings. A stick has ONE offset, and
-  // dead-zoning its components independently notches the diagonals: push at 45 degrees just past the
-  // threshold and both components are still individually suppressed, so the star does not move at all in
-  // the exact direction you are pointing.
-  if(mm<=STICK.dead){ stickVec.x=stickVec.y=0; return; }
-  const r=(mm-STICK.dead)/(STICK.full-STICK.dead);   // linear past the dead zone; mm is already clamped
-  stickVec.x=dx/mm*r; stickVec.y=dy/mm*r;
+  stickDX+=x-stickLX; stickDY+=y-stickLY;
+  stickLX=x; stickLY=y;
 }
-function stickClear(){ stickId=null; stickVec.x=stickVec.y=0; }
+function stickClear(){ stickId=null; stickDX=stickDY=0; }
 
-// THE MOVE ZONE IS A RATE, NOT A POSITION, and the argument is the one the tilt block made at length —
-// it outlives tilt because it was never about the sensor. An offset from where you put your thumb down
-// means "keep going this way", not "be there". Feeding a rate through stepPlayer's position chase means
-// picking an offset whose chase velocity equals the speed you wanted, which silently welds this control
-// to that 0.185 coefficient: retune the chase for the mouse and touch changes speed for reasons nobody
-// would think to look for. So the stick adds velocity to P directly, exactly as the keyboard nudge does,
-// and stepPlayer's clamp and P.dx bookkeeping cover it on the very next line.
+// THE MOVE ZONE IS A DISPLACEMENT, NOT A RATE. The star travels exactly as far as the finger did on the
+// glass, times STICK.gain — see the block above for why the rate model this replaced was wrong for a
+// finger, and what it cost.
+//   `/S` IS THE WHOLE MAPPING, and it is the same divide `setPointer` performs for the mouse: events
+// arrive in CSS pixels and the world is in design units, so a delta measured on the glass becomes a
+// distance in the world through exactly one division. That is what makes the gain honest — at 1.0 the
+// star moves the distance your finger moved, on any display, because S already carries the scale.
+//   ⚠️ NOT MULTIPLIED BY `P.moveMult`. Every other movement in the game is, and this one must not be:
+// moveMult scales a SPEED, and there is no speed here to scale. Overdrive lifting a displacement would
+// mean the same thumb travel moved the star further while burning — the control would change under you
+// mid-ride, which is the one thing the zone rule at the top of this block already forbids.
 function stepStick(){
   if(stickId===null || !P) return;
-  pointer.has=false;                                 // the stick drives; the chase must let go
-  const sp=STICK.speed*P.moveMult;
-  P.x+=stickVec.x*sp; P.y+=stickVec.y*sp;            // stepPlayer clamps to the arena right after
+  pointer.has=false;                                 // the finger drives; the chase must let go
+  if(stickDX||stickDY){
+    P.x+=stickDX/S*STICK.gain; P.y+=stickDY/S*STICK.gain;   // stepPlayer clamps to the arena right after
+    stickDX=stickDY=0;                               // consumed whole: banked travel is spent once
+  }
 }
 
 canvas.addEventListener('pointermove',e=>{
@@ -8374,7 +8399,10 @@ canvas.addEventListener('pointerdown',e=>{
   switch(zoneOf(e.clientX,e.clientY)){
     // First finger into the half owns the stick. A second one there is ignored rather than stealing it:
     // a palm or a resting knuckle must not take the steering away from the thumb that is using it.
-    case 'move': if(stickId===null){ stickId=e.pointerId; stickOX=e.clientX; stickOY=e.clientY; stickVec.x=stickVec.y=0; } break;
+    // The touch-down sets the REFERENCE and banks nothing, so grabbing the stick never moves the star —
+    // which is also what makes a re-grip free: lift, put the thumb anywhere, and only travel from there
+    // counts. The old floating origin had to be placed carefully for the same reason and could not.
+    case 'move': if(stickId===null){ stickId=e.pointerId; stickLX=e.clientX; stickLY=e.clientY; stickDX=stickDY=0; } break;
     case 'od':   if(odTouchId===null){ odTouchId=e.pointerId; overdrive(); } break;
     default:     flip();                                  // ON PRESS — see the top of this block
   }
@@ -9056,9 +9084,12 @@ window.__orbital=window.__polaris=window.__flux={
   // to assert the partition without synthesising a single event. `stick()` reports the live vector and
   // its floating origin, so a recorded drag can be checked against the speed it was supposed to ask for.
   zoneOf, STICK, get ZONE(){return {...ZONE};},
-  stick(){ return {id:stickId, ox:stickOX, oy:stickOY,
-                   vec:{x:+stickVec.x.toFixed(3), y:+stickVec.y.toFixed(3)},
-                   maxUnitsPerFrame:STICK.speed*(P?P.moveMult:1)}; },
+  // `pending` is CSS px banked since the last tick and `unitsPerCssPx` is what they will become, so a
+  // harness can assert the mapping without owning a finger. There is no ceiling to report any more —
+  // that was the defect (see the STICK block), and a displacement control does not have one.
+  stick(){ return {id:stickId, lastX:stickLX, lastY:stickLY,
+                   pending:{x:+stickDX.toFixed(2), y:+stickDY.toFixed(2)},
+                   unitsPerCssPx:+(STICK.gain/S).toFixed(3), gain:STICK.gain}; },
   // THE SKY CACHE'S INSTRUMENT. `SKY.every` is the repaint cadence — set it to 1 for the no-cache arm
   // (see THE SKY CACHE) — and `fps()` hands back a COMPOSITED frame count with the wall time it took.
   // Two samples and a subtraction, rather than an average whose window this file would have had to pick.

@@ -401,9 +401,11 @@ geometry — `zoneOf(x,y)` in CSS pixels against the cached viewport halves:
 Move is the half because it is the only *continuous* verb; the other two are instants, and an instant
 wants a target rather than a field. **Overdrive sits above flip because the two must be usable at once** —
 Overdrive is held for seconds and you keep flipping through the ride, so they cannot share a thumb.
-Verified: three fingers down simultaneously, the star moving at 19.6 units/frame while burning, a flip
-landing mid-burn, and the burn surviving it. On device, the tutorial certifies all three by gating each
-step on performing the verb — 1/6 → 2/6 drag, 4/6 → 5/6 flip, 5/6 → 6/6 Overdrive hold.
+Verified: three fingers down simultaneously, the star steering while burning, a flip landing mid-burn,
+and the burn surviving it. On device, the tutorial certifies all three by gating each step on performing
+the verb — 1/6 → 2/6 drag, 4/6 → 5/6 flip, 5/6 → 6/6 Overdrive hold. *(That check originally read "the
+star moving at 19.6 units/frame while burning" — `14 × moveMult`, a figure belonging to the rate model
+and to a coupling the displacement model deliberately dropped. See below.)*
 
 ⚠️ **That ergonomic argument is a LANDSCAPE argument, and the lock is native-only.** In the shell it is
 settled and top-right really is where the grip rests an index finger. **On the web it is settled by
@@ -432,23 +434,53 @@ in it, and it is why `TAP_SLOP`, `TAP_TIME` and `tapMoved` are gone.
 steering meant the finger had to reach every part of the arena, so it covered the arena, so the star had
 to be drawn 55px above the fingertip to stay readable. A stick does not park your thumb on the star.
 
-**The stick is a rate, with a floating origin.** Touch-down sets the origin; the offset from it is a
-direction and a magnitude, fed to P as velocity. `STICK.dead` 6px, `STICK.full` 64px, `STICK.speed` 14
-design units/frame before `moveMult` — **the one tuned number inherited intact from tilt**, because it
-was set against the game rather than against a sensor (Charger dash 9.5, Volley 8.4, Comet 7.6; 14 clears
-the Charger by ~47%). Measured at exactly 14.00/frame idle and 19.60 under Overdrive.
+**The move zone is a DISPLACEMENT, not a rate.** The star travels exactly as far as your finger did on
+the glass, times `STICK.gain` (1.6). One divide by `S` is the whole mapping — the same divide
+`setPointer` performs for the mouse — so at gain 1.0 the star would move the distance your thumb moved,
+on any display. No dead zone, no ramp, no floating origin, no ceiling.
 
-⚠️ **The origin follows past full deflection.** Without it a thumb going down near the left edge runs out
-of zone before it runs out of stick, and full speed is unreachable in that direction for a reason the
-player cannot see. Verified: shoved 200px from a 100px origin, the origin lands on exactly 236.
+⚠️ **It was a rate until 2026-08-11, and the rate argument never applied to a finger.** Reported from the
+device as *"moving is not following my finger movement, acceleration is applied little late"*, and both
+halves were real:
 
-⚠️ **One dead zone on the magnitude, not one per axis.** Per-axis is right for tilt, where the two axes
-are genuinely two readings. A stick has one offset, and dead-zoning components independently **notches
-the diagonals** — push at 45° just past the threshold and both components are still individually
-suppressed, so the star does not move at all in the direction you are pointing. Verified un-notched at
-(5,5): both components 0.013.
+| | rate model | mouse (`stepPlayer`) |
+|---|---|---|
+| across a 400-unit gap | 14/frame (capped) | **74/frame** |
+| across an 800-unit gap | 14/frame (capped) | **148/frame** |
 
-**No low-pass, and that is not an omission.** Tilt smoothed because an accelerometer reading is noisy. A
+In an arena 1739 × 800, that made a touch player **~5× slower across open ground than a mouse player** —
+and `cap=14` is the number `settleT` uses for the engine's *deliberate slow glide on resume*, so the
+stick ran permanently at the speed the game reserves for slowing you down. The second half was the
+floating origin: at full deflection it sat 64px behind the finger, so a full reversal cost **128px of
+thumb travel** before full speed the other way. That is what "acceleration applied a little late" is.
+
+**The root error was inheriting tilt's model along with tilt's own speed constant.** The tilt argument —
+an angle means *keep going this way*, not *be there* — is inherent to an angle, which has no position to
+offer. **A finger has a position and a displacement**, so none of it transferred; it came across because
+the code did.
+
+*Verified at 874×402, `unitsPerCssPx` 3.184:* touch-down alone moves 0; a 50px delta moves exactly
+159.2; **reversal is free** — 10px back gives −31.84 on the same frame; a 2px nudge moves 6.37, so there
+is no dead zone; a re-grip 300px away moves 0 and then tracks normally; and 60 frames with the finger
+held still drift **0.000**. A 200px swipe banked in one tick moves 636.8 units, against the old ceiling
+of 14.
+
+⚠️ **What this gives up, deliberately: you cannot hold a heading.** A rate keeps moving while held; a
+displacement only moves while you drag, so crossing the arena costs a drag and a re-grip rather than a
+lean. Re-gripping is lossless by construction — a fresh touch sets a fresh reference and only deltas
+count — which is the trackpad behaviour every player already has in their hands.
+
+⚠️ **`STICK.gain` is NOT multiplied by `P.moveMult`**, and every other movement in the game is. moveMult
+scales a *speed*, and there is no speed here to scale; Overdrive lifting a displacement would mean the
+same thumb travel moved the star further while burning, changing the control under the player mid-ride.
+
+**The displacement is banked in the handler and applied in `stepStick`, on the fixed tick.** Writing `P`
+from a pointer handler would put steering on the touch sample rate — 120Hz on a ProMotion phone, bursty
+under load — and this file already has that scar: tilt's smoothing was a per-event fraction, so a bridge
+change from 30Hz to 60Hz silently halved the control speed and was reported as *"tilt reaction is a
+little slow"*. A displacement is immune to the sampling *rate* but not to being applied off-clock.
+
+**No smoothing and no dead zone, and that is not an omission.** Tilt smoothed because an accelerometer reading is noisy. A
 touch offset is two integers the compositor already resolved. Filtering would buy nothing and cost lag.
 
 ⚠️ **The utility cluster moved because the partition left it nowhere neutral.** `#muteBtn`, `#motionBtn`
