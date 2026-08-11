@@ -2206,14 +2206,17 @@ hitting one of these draws the previous picture:
    thresholded at **half a channel**, below which the cache cannot round to a different byte and a
    repaint would draw the identical image. **The palette is the only input that can move fast**, and only
    for the ~2s after an Epoch flip, when the sky repaints *every frame* and pays the full old price.
-   ⚠️ **This trigger is what allows `SKY_EVERY` to be wide at all** — without it the counter would have to
+   ⚠️ **This trigger is what allows `SKY.every` to be wide at all** — without it the counter would have to
    be pinned to the worst thing that ever happens, and an Epoch transition would visibly step.
    ⚠️ Its `= true` initialiser is **never read** and guarantees nothing: `render()` calls `easePalette()`
    and *then* `blitSky()`, and `easePalette` assigns `palMoving` unconditionally, so this frame's value
    has always replaced it before `blitSky` looks. See trigger 2 for what actually covers frame one.
-2. **`++skyAge>=SKY_EVERY`** (8). ⚠️ **The counter is FRAMES, not `elapsed`** — `elapsed` only advances
-   inside `step()`, so a time-based clock would freeze the sky on the menu, the pause and the death
-   screen, which are exactly the states where `palCur` is still easing somewhere new.
+2. **`++skyAge>=SKY.every`** — a live object (`const SKY={every:8}`), not a bare const, and exported on
+   the seam, so the A/B this cadence exists to settle is `__orbital.SKY.every=1` rather than a rebuild
+   per data point. The shipped value is 8 and nothing in the game writes to it. ⚠️ **The counter is
+   FRAMES, not `elapsed`** — `elapsed` only advances inside `step()`, so a time-based clock would freeze
+   the sky on the menu, the pause and the death screen, which are exactly the states where `palCur` is
+   still easing somewhere new.
    ⚠️ **`skyAge` is declared at `1e9`, and that — not anything about `palMoving` — is what makes frame
    one blit a FILLED cache**: `++skyAge` clears any threshold, so the very first `blitSky` paints before
    it draws. Lower that initial value and the first frame of every run blits a blank canvas.
@@ -2518,40 +2521,38 @@ genuine, just old. **A cache-buster query does not help when the origin is gone.
 -sTCP:LISTEN` returning empty, or `curl` returning a zero-length body, is what settles it. Treat
 navigation success as evidence of a *response*, never of a *server*.
 
-⚠️ **`git add index.html` takes every hunk in the file, including the other session's.** Two sessions
-share this checkout and `index.html` is one 7,000-line file, so an in-progress edit belonging to someone
-else gets swept into your commit whenever they happen to be mid-pass. It has happened three times. Once
-it shipped a half-done CSS rename: `.acv` defined in the stylesheet while the builder still emitted
-`class="cxa"`, so the achievement rows rendered with no rule behind them for ~50 minutes.
+⚠️ **`git add <path>` takes every hunk in that file, including the other session's.** Sessions share this
+checkout and the game is one file, so an in-progress edit belonging to someone else gets swept into your
+commit whenever they happen to be mid-pass. **Five times now.** Once it shipped a half-done CSS rename:
+`.acv` defined in the stylesheet while the builder still emitted `class="cxa"`, so the achievement rows
+rendered with no rule behind them for ~50 minutes.
 
-**Know your changed-line count before you stage, and check it against `git diff --numstat`.** This is a
-comparison, not a review, which is the whole point — "inspect every hunk" is what nobody does under
-time pressure, and a filtered copy costs real effort even when the file is quiet.
+⚠️ **It is not an `index.html` problem, and writing it as one is what let the last two through.** The
+most recent pair — `7445900` and `d8389b9` — swept a docs session's `MECHANICS.md`, `GLOSSARY.md` and
+`PATCHNOTE.md` edits along with the game. Nothing broke, which is precisely why it is worth its own
+line: **the failure this entry names is loud and the same command's quiet form is a docs commit that
+silently carries somebody's half-written paragraph.** The rule is per *contended file*, and every file
+in this repo is contended.
+
+**Know your changed-line count before you stage, and check it against `git diff --numstat`.** A
+comparison, not a review — "inspect every hunk" is what nobody does under time pressure.
 
 ⚠️ **ASSERT THE DIFF IS NON-EMPTY BEFORE READING IT AS CLEAN, because a wrong path fails as silence.**
-`git diff -- orbital-crash/index.html` from inside `orbital-crash/` returns nothing — the repo root *is*
-that directory, so the path matches no file. Measured here on a file with real changes: the wrong path
-gives `''` and `--quiet` exits **0**; the right path gives `3 1 docs/MECHANICS.md` and exits **1**.
-**Empty output and exit 0 are exactly what "your tree is clean" looks like**, so the guard that exists to
-catch another session's hunks in your commit reports success *by failing to run*. That is strictly worse
-than skipping it, because skipping it leaves you uncertain and this leaves you confident. Check that the
-command found the file at all — a `git status` line with no matching diff line is the tell.
+`git diff -- orbital-crash/index.html` from inside `orbital-crash/` matches no file — the repo root *is*
+that directory. Measured on a file with real changes: the wrong path gives `''` and `--quiet` exits
+**0**; the right path gives `3 1 docs/MECHANICS.md` and exits **1**. **Empty output and exit 0 are what
+"your tree is clean" looks like**, so the guard reports success *by failing to run* — worse than skipping
+it, which at least leaves you uncertain. A `git status` line with no matching diff line is the tell.
 
-⚠️ **Paste the number, never recall it.** Both sessions have now published a numstat in a commit body
-that the terminal never printed — `34 0` against a real `32 0`, `23 0` against `22 0`, `22 insertions,
-6 deletions` against `13 2` — **twice each, and twice inside commits whose own subject was about not
-asserting what you have not run.** The mechanism is mundane and worth naming: a sentence that wants a
-figure will accept a remembered one, and nothing in the sentence looks wrong afterwards. So run the
-check, copy its output into the body, and treat any number you typed from memory as unverified — which,
-in a section built entirely out of remembered numbers being wrong, it is.
-The strongest form is a **parity check**: a pass of one-for-one string replacements *cannot* produce
-unequal insertions and deletions, so any asymmetry is somebody else's work. The commit that caused the
-rename breakage read `19 15` where the author's twelve one-line swaps could only be `12 12`, and that
-number had already been printed by the pre-commit `--stat`.
-
-⚠️ It only catches this in **one direction.** Equal counts do not prove a clean diff — a foreign hunk
-that happens to be balanced hides inside yours. It catches the case that has actually bitten us, and
-that is all it claims.
+⚠️ **Paste the number, never recall it.** Both sessions have published a numstat no terminal ever
+printed — `34 0` against a real `32 0`, `23 0` against `22 0`, `22 insertions, 6 deletions` against
+`13 2` — **twice each, and twice inside commits whose own subject was about not asserting what you have
+not run.** A sentence that wants a figure will accept a remembered one, and nothing looks wrong
+afterwards. The strongest form is a **parity check**: one-for-one string replacements *cannot* produce
+unequal insertions and deletions, so any asymmetry is somebody else's work — the commit that caused the
+rename breakage read `19 15` where twelve one-line swaps could only be `12 12`, and the pre-commit
+`--stat` had already printed it. ⚠️ **One direction only:** equal counts prove nothing, because a
+balanced foreign hunk hides inside yours.
 
 ⚠️ **`git commit <path>` commits the WORKTREE version of that path, not the staged one — so in a shared
 checkout it sweeps, it does not isolate.** This was proposed in good faith as the safe one-command way to
@@ -2564,71 +2565,48 @@ git commit -m msg f.txt
 committed:  base PEER_STAGED MY_UNSTAGED     ← BOTH. Nothing dropped, everything taken.
 ```
 
-So it does not "ship only what is staged" (the claim that made it sound safe) and it does not "drop the
-staged half" (the correction). It commits what is *on disk* for that path, which in a contended file is
-by definition both people's work. ⚠️ **The path form's danger is exactly that it reads as narrowing** —
-naming one file feels like restraint, and it silently widens from the index to the worktree.
-**Ordinary `git add` then `git commit` is the safer pair**, because `add` snapshots at add-time and
-`commit` ships the index, so a peer's later write is not eligible. That is what actually saved
-`8429887`. For real isolation the filtered copy is still the only answer.
-  *Nobody had run it.* Two sessions that had spent the night on measure-don't-assert reasoned about a git
-flag from memory and both got it wrong — which is the same failure as every other entry here, applied to
-a tool rather than to the game.
+It commits what is *on disk* for that path, which in a contended file is by definition both people's
+work. ⚠️ **The path form's danger is that it reads as narrowing** — naming one file feels like restraint,
+and it silently widens from the index to the worktree. **Ordinary `git add` then `git commit` is the
+safer pair**, because `add` snapshots at add-time and `commit` ships the index, so a peer's later write
+is not eligible; that is what saved `8429887`.
 
-**When you must commit out of a tree someone else is mid-edit in**, build the staged content instead of
-staging the file: back the tree up, write HEAD-plus-your-own-change to disk, `git add` that, restore the
-backup, and `cmp` against it. It worked the first time it was used under pressure and saved ~130 lines
-of an unfinished Codex removal. Two limits, both real:
+**For real isolation, build the staged content instead of staging the file**: back the tree up, write
+HEAD-plus-your-own-change to disk, `git add` that, restore the backup, `cmp` against it. It saved ~130
+lines of an unfinished Codex removal the first time it was used under pressure. Two limits:
 
 - ⚠️ **The strip script must fail closed.** Exit non-zero unless it finds *exactly* the occurrences it
-  expects. A replacement that silently matches nothing stages HEAD verbatim — a commit that looks
-  completely normal and contains none of your work.
+  expects. A replacement that silently matches nothing stages HEAD verbatim — a normal-looking commit
+  containing none of your work.
 - ⚠️ **It is not a lock.** The tree is briefly the filtered copy, so a concurrent write in that window is
-  lost to the restore. `cmp` after restoring is the only thing that tells you nothing was; the recipe
-  narrows the race and cannot close it.
+  lost to the restore. `cmp` after restoring is the only thing that tells you nothing was.
 
-⚠️ **`git checkout -- <file>` in a shared checkout destroys everyone's uncommitted work in that file, and
-every other entry in this family is about the opposite direction.** The staging traps above all describe
-a commit sweeping someone else's work **in** — a bad commit, which can be amended. This sweeps it
-**out**, and there is nothing to amend: no reflog entry, no stash, no dangling blob. The worktree is not
-version-controlled until you stage it.
-
-It happened here on 2026-08-08. `git checkout -- index.html` was run casually as a cleanup while two
-sessions had uncommitted changes in that file, and it took a graze removal and a sky-cache optimisation
-with it. The graze work was reconstructible only because the session that wrote it still had every edit
-in context; **it was rewritten from scratch and committed within minutes, and that is the only reason it
-exists.**
-
-⚠️ **The asymmetry is what makes this worth its own entry: the recovery is not symmetric with the
-mistake.** Discarding your own work is a decision. Discarding it out of a file two other processes are
-writing is the same keystroke, and nothing in git distinguishes them — `checkout` reports success either
-way, and a clean `git status` afterwards looks exactly like a tidy tree rather than like a loss.
-
-**Two rules follow, and the first one is stronger than the entry originally stated it.**
+⚠️ **`git checkout -- <file>` sweeps the other way, and that direction has no recovery at all.**
+Everything above is a commit taking someone's work **in** — a bad commit, which can be amended. This
+takes it **out**: no reflog entry, no stash, no dangling object, nothing `git fsck` will surface, because
+content that was never staged never entered the object database. It happened on 2026-08-08, run casually
+as a cleanup while two sessions had uncommitted changes in `index.html`, and it took a graze removal and
+a sky-cache optimisation with it. The graze was reconstructible only because its author still had every
+edit in context and rewrote it from scratch within minutes; the sky cache came back only because that
+session happened to be holding an unrelated `mine.patch` from a diff-filtering step minutes earlier.
+**Ten minutes sooner and it was gone. That is luck, not process, and it must not be written down as a
+procedure.**
 
 ⚠️ **Do not run a tree-mutating git command in this checkout at all** — `checkout --`, `restore`,
-`reset --hard`, `clean`. **There is no safe casual use of them while other sessions are live**, and the
-first draft of this entry said "run `git status` first," which is not good enough: the operator here
-*did* have the information and read it as success. (`git stash` is a different case — it stores what it
-removes, so it is recoverable. The four above are not.)
+`reset --hard`, `clean`. The first draft of this entry said "run `git status` first," which is not good
+enough: the operator *did* have the information and read it as success. (`git stash` is a different
+case — it stores what it removes.)
 
-⚠️ **There is no recovery path. Not a hard one — none.** No stash, no dangling object, nothing `git fsck`
-will surface, because content that was never staged never entered the object database. The session that
-lost the sky cache got it back only because it happened to be holding an unrelated `mine.patch` from a
-diff-filtering step minutes earlier. **Ten minutes sooner and it was gone. That is luck, not process, and
-it must not be written down as a procedure.**
+⚠️ **The tell is a `git status` showing FEWER modified files than you expect, and it is the only trap in
+this file caught by an absence.** Discarding your own work is a decision; discarding it out of a file two
+other processes are writing is the same keystroke, and git reports success either way — the operator's
+status went from `M index.html` to clean and read as the command having tidied up. **Every other trap
+here is caught by something appearing that should not be there. Absence is what nobody scans for.**
 
-**So the second rule: in a shared tree, committing is the only durable claim on your own work.** What
-saved one side was that it committed within about three minutes of noticing; what lost the other was
-that it had not. Announcing a file, as this repo does, coordinates *edits* and does nothing about
-*reverts*, because **the revert does not read the announcement**. Land small commits early rather than
-holding a clean one.
-
-⚠️ **The tell is a `git status` that shows FEWER modified files than you expect.** The operator's went
-from `M index.html` to clean and they read it as the command having tidied up. **Every other trap in this
-file is caught by something appearing that should not be there; this one is caught by something
-missing** — and absence is the thing nobody scans for. A shorter status after a git command you did not
-think was destructive is the alarm.
+**So: in a shared tree, committing is the only durable claim on your own work.** What saved one side was
+committing within three minutes of noticing; what lost the other was not having. Announcing a file, as
+this repo does, coordinates *edits* and does nothing about *reverts* — **the revert does not read the
+announcement.** Land small commits early rather than holding a clean one.
 
 ⚠️ **When a check returns a suspiciously clean result — in either direction — verify the comparison
 before you verify the finding.** A check has two halves: what it compares and what it concludes, and
@@ -2696,8 +2674,8 @@ and it is false: `render()` calls `easePalette()` and *then* `blitSky()`, `easeP
 read.** What actually makes frame one blit a filled cache is `skyAge` being declared at `1e9`, three
 lines away. The claim reached two files before anyone tested it.
 
-⚠️ **The precise gap: values were being verified and behavioural claims were not.** `SKY_EVERY=8`,
-`m>0.5` and `skyAge=1e9` were all re-read off the source, deliberately, because a *number* from the same
+⚠️ **The precise gap: values were being verified and behavioural claims were not.** `SKY_EVERY=8` (since
+folded into `SKY.every`), `m>0.5` and `skyAge=1e9` were all re-read off the source, deliberately, because a *number* from the same
 author had been wrong earlier the same day. `palMoving=true`'s *behaviour* was taken from prose — and a
 comment sitting on the declaration line is the most authoritative-looking place a wrong claim can live.
 **Numbers get audited because they look checkable; sentences about what a line ensures do not, and they
@@ -2775,9 +2753,29 @@ both correctly reported SUBSTANTIVE. That is this file's own rule about sweeps t
 it tells you a thing is clean, prove it can tell you when it is not* — and it is the only evidence that
 separates a working detector from one that happens to share your intuition.
 
-The `//`-in-a-string hazard is nil **in this file**: all four `://` occurrences (line 30, 6937, 6938,
-7375) sit inside comments, none in code. The technique is not general, and that count is a property of
-this file rather than of the method.
+⚠️ **This clearance went stale and the detector is now wrong in both directions — measured, 2026-08-11.**
+It read *"all four `://` occurrences sit inside comments, none in code"*, with four line numbers, in a
+file that has since grown to 9,719 lines at `759ae0f`. Re-run: **8 occurrences, two of them code** — the
+`og:url` and `og:image` meta tags, which carry `https://` inside a markup attribute. Both verdicts below
+came from editing one line of `HEAD:index.html` and running the recipe. *(No line numbers: that is what
+went stale the first time.)*
+
+| edit | verdict | |
+|---|---|---|
+| the `og:image` URL | **COMMENT-ONLY** | ⚠️ false negative — the strip truncates that line to `content="https:` in both blobs, so a real change vanishes |
+| one line inside `<!-- -->` | **SUBSTANTIVE** | false positive — the recipe strips `//` only, and this file carries **29 HTML comment blocks, 169 lines** |
+
+The second direction is the safe one and the first is the one the whole entry exists to prevent. Fix
+both by stripping `<!-- -->` and attribute values before the `//` pass — **or accept that the recipe
+under-reports and never let it excuse a commit on its own.**
+
+**Note which half of the original was load-bearing.** The clearance was correct when written and nothing
+was edited to falsify it: it had bound itself to a property of the *file* rather than of the *method* —
+which its own last clause said, before publishing the count anyway. **A caveat naming the thing that
+will go stale does not stop it going stale.** ⚠️ *And the first attempt to test this returned the
+reassuring answer:* a one-line `sed` hit two lines, one of them inside `<!-- -->`, so the diff survived
+the strip for a reason unrelated to the hypothesis and the detector read **SUBSTANTIVE**. Same shape as
+everything above — the rig answered a question nobody asked, in the direction that ends the enquiry.
 
 ⚠️ **A user-facing string built by `+` is an English-only string, and it fails silently.** English is SVO
 with no case marking, so `'Lost to '+name+' · Epoch '+n` reads fine; Korean puts the epoch first, gives
@@ -2804,9 +2802,10 @@ string is a row from before this changed and renders as-is; do not "fix" that br
 `-apple-system,system-ui,sans-serif`, which resolves no Hangul on Windows or Android — canvas text would
 have picked a different fallback from every other string on screen. `CANVAS_FONT` is the one constant.
 
-⚠️ **`const T = store.totals` shadows the translator.** It was in `openRecords` and in `die()`. Block
-scope saves the second one by a hair, because the death receipt calls `T()` fourteen lines below it —
-a name that is only safe because of where its braces happen to be.
+⚠️ **`const T = store.totals` shadows the translator, and the fix was to stop relying on block scope.**
+It was in `openRecords` and in `die()`; the second survived only because the death receipt's `T()` calls
+happened to sit in a different brace. Both read `Tt` now and the reason is on the line, because "safe
+where the braces happen to be" is not a property anyone can maintain.
 
 ⚠️ **The English in the markup is a duplicate of `L.en` and they must not drift.** The duplication is
 deliberate: it keeps the HTML readable as a page and it is what shows if the script dies before
@@ -2827,8 +2826,10 @@ goes **inside** `#menu`. Hit-test with `elementFromPoint` against the button; a 
 
 ⚠️ **Three ways to measure text and get a number that means nothing.** `scrollWidth` **clamps to
 `clientWidth` on a centred button**, so it reports zero overflow however far the text runs past the
-edge — `Range.getClientRects()` is the tool that sees the actual laid-out run. A hidden element measures
-0 and zeros compare equal, so **assert visibility before every comparison**. And the Browser pane's
+edge — `Range.getClientRects()` is the tool that sees the actual laid-out run. **A hidden element measures
+0 and zeros compare equal**, so assert visibility before every comparison: checking whether the four
+`.refs` links wrapped returned a confident *"1 row, 4 per row"* with every rect at zero, because the menu
+was behind the death overlay at the time — no error, a plain false PASS. And the Browser pane's
 viewport can be **0×0**, which makes `94vw` resolve to nothing and every paragraph "overflow" its
 collapsed container: one pass here reported 67.5px of overflow that did not exist. Assert
 `innerWidth !== 0` before believing anything.
@@ -2837,8 +2838,8 @@ collapsed container: one pass here reported 67.5px of overflow that did not exis
 first-visit tutorial used to auto-start, which would drop a scripted pilot into a mode with the wave clock
 parked at `phaseT=1e9` and damage off — every fingerprint and every tape measuring *that* instead, with
 nothing thrown. `window.__H` was the gate that worked, and it worked because of **when** it exists:
-`preload.js` is injected ahead of the inline script, so the harness has announced itself before the boot
-line runs. A gate on anything `.oracle.js` defines **cannot** work — it is pasted after load. *(`f122816`
+`.harness/preload.js` is injected ahead of the inline script, so the harness has announced itself before
+the boot line runs. A gate on anything `.oracle.js` defines **cannot** work — it is pasted after load. *(`f122816`
 removed the auto-start entirely, so this specific hazard is gone at the source and `tutSuppressed` is now
 cosmetic. **The rule is kept because it is about boot-time gates in general**, and the next one will be
 written by someone who did not watch this one nearly go wrong.)*
@@ -2851,11 +2852,6 @@ written by someone who did not watch this one nearly go wrong.)*
 **A record and a best are one condition with two consumers.** Boss Rush pays `200*act` per purge from an
 endless supply and the Lab spawns on demand, so both are barred from `store.best` *and* `store.runs` by
 the same test. Add a fourth mode and they are wrong together or right together — never half.
-
-**A hidden element measures 0, and 0 compares equal.** Checking whether the four `.refs` links wrapped
-returned a confident "1 row, 4 per row" — every rect was zero, because the menu was behind the death
-overlay at the time. There is no error attached to this: it is a plain false PASS. Assert the container
-is visible before believing any geometry read off it.
 
 **A rig state the game cannot reach produces numbers that look exactly like findings.** Two of these
 landed on the same day from opposite directions. A `CHARGE_DMG` of 12 was rejected for one-shotting an 11 HP
@@ -2967,10 +2963,11 @@ removed flag, and a const used above its declaration (temporal dead zone). **Loa
 `initStars` once used `TAU`, declared below the boot `resize()` call, and threw at load.
 
 **A HUD element that carries no class inherits no positioning.** `#combo` had `right`/`top` set and no
-`position`, so it is `static` and both had *always* been silently ignored — the element had never once
-been where the CSS said. It went unnoticed for as long as a neighbour happened to sit under it. Nothing
-errors, nothing logs; the rule is that a positioned offset without a `position` is dead CSS, and the
-sibling `.stat` class is where the other meters get theirs.
+`position`, so it was `static` and both had *always* been silently ignored — the element had never once
+been where the CSS said, and it went unnoticed for as long as a neighbour happened to sit under it.
+Nothing errors, nothing logs. **A positioned offset without a `position` is dead CSS**; the sibling
+`.stat` class is where the other meters get theirs, and `#combo` now carries its own `position:absolute`
+with a note saying it is load-bearing.
 
 **The browser can measure a build that is not on disk.** Assert a new-code marker — a value only the new
 build can produce — before trusting any number from a live probe.
@@ -3140,12 +3137,23 @@ tables, and there is **no error and no warning** — the kind quietly reverts to
 constant sits visibly in the file looking applied. **Renaming a variant means grepping every lookup
 keyed by the variant string**, not just the type checks. `Pulsar → Bastion` (`e8c7fa2`) crossed both.
 
-**`spawnBoss` does not validate the variant either, and what an unknown one becomes is the surprising
-part.** `updateBoss` is `if sentinel` → `else if bastion` → **`else` EMITTER**, so an unrecognised string
-does not produce an inert object: it produces a *complete, correct Emitter*. Measured on the shipped
-build, 900 frames, star pinned — `emitter`, `pulsar` and `zzz` all give maxHp **25** and peak lances
-**8**, identical; `bastion` gives 19 and 14, `sentinel` 25 and 3. **A typo spawns a real boss of the
-wrong kind**, which is far harder to notice than a broken one.
+**`spawnBoss` used not to validate the variant, and what an unknown one became is the surprising part.**
+`updateBoss` is `if sentinel` → `else if bastion` → **`else` EMITTER**, so an unrecognised string did not
+produce an inert object: it produced a *complete, correct Emitter*. Measured on the shipped build, 900
+frames, star pinned — `emitter`, `pulsar` and `zzz` all gave maxHp **25** and peak lances **8**,
+identical; `bastion` 19 and 14, `sentinel` 25 and 3. **A typo spawned a real boss of the wrong kind**,
+which is far harder to notice than a broken one.
+
+**Closed at the source, and this is the rare entry that gets to say so:** `spawnBoss` now opens with
+`if(!(variant in HUNT_SPD)) throw new Error(...)`. The measurement above is why the guard is a *throw*
+and not a fallback, and it is quoted at the guard. **The entry stays because the rest of the family is
+still open** — `HUNT_SPD[b.variant]||HUNT_SPD.emitter` and `VAR_PAT[variant]||1` are both still
+`||`-defaulted, so the only thing the throw closes is the *entry point*. Anything reaching those tables
+by another road still degrades silently.
+
+*It is load-bearing today rather than merely defensive.* A fourth kind, `singularity`, sits in
+`bossBody` with a full body and no `HUNT_SPD` row, so the throw is what makes "parked art" a statement
+the code enforces instead of a comment somebody has to believe.
 
 ⚠️ **And which way that fails depends entirely on how the instrument is being used — this is the
 refinement the rest of this section needs.** Had the rename missed `.oracle.js`, so that the harness
