@@ -143,7 +143,16 @@ paragraph goes in MECHANICS and this line points at it.
   never velocity. (`SAME_PUSH`)
 - **Gilded Bounty** — a periodic gold-ringed Dot worth a jackpot if popped inside its window. Only ever
   a Drifter or a Dart. (`e.gild`, `gildTimer`)
-- **Mote** — annihilation loot carrying the popped Dot's colour. Worth points where it lands. (`motes`)
+- **Mote** — annihilation loot carrying the popped Dot's colour. Worth points where it lands, and one
+  unit of the **Wish bank**. A **Neutral sheds one of each colour** — it wears both poles, so "the dead
+  Dot's colour" has no single answer for it, and it is the only drop that cannot be the wrong colour.
+  (`motes`, `moteCap`)
+- **Wish** — the help you call when the bank fills: **Allies**, **Integrity**, **Shockwave** or
+  **Gilded Storm**, chosen from a picker that opens by itself and cannot be dismissed. Instant, spent on
+  use, never a lasting flag — see *This is not the powerup roster* in MECHANICS. (`wishBank`,
+  `WISH_COST`, `openWish`, `pickWish`)
+- **Wish gauge** — the experience-bar line across the very top. A length, never a count.
+  (`#wishGauge`, `wishI`)
 
 ## Laws and rules
 
@@ -180,7 +189,8 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **The Cross** — four arms from a hub, quartering the arena. The hub is the arena's centre, and slides
   off the Star rather than bending around it. (`formCross`, `CROSS_R0`)
 - **The Comet** — a rare event: a shower of 3–5 fast Dots crossing the whole sky on one heading and
-  leaving. (`formComet`, `COMET_SPD`, `cometT`)
+  leaving. **Telegraphed as lanes**, not as points — the threat is a line, and the geometry is solved
+  once so the mark and the flight cannot disagree. (`formComet`, `COMET_SPD`, `COMET_TEL`, `cometT`)
 - **The Drift** — a rare event, not a formation: six Neutrals arriving on a telegraphed hexagon, with no
   choreography after arrival. The only spawner that places bodies *on* the field, which is why it is also
   the only one that needs a warning. (`formNeutralDrift`, `NDRIFT_N`, `NDRIFT_R`, `NDRIFT_TEL`, `ndriftT`)

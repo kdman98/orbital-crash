@@ -1063,6 +1063,26 @@ being decoration. Every nucleus is a **Brute**, so intercepting one is a real hi
 It was a single body until `9fd8dcb`, and the change is what the section header always claimed: **one
 crossing is a curio, a stream is weather.** Author: *"shower 3-5 comets at a pattern. wont it be cosmic?"*
 
+⚠️ **It is telegraphed, and it is the arrival that most needed to be.** The Drift's note says every other
+spawner *"is fair by geometry (off-screen, past the corner, from an edge) and so never needed a warning."*
+The Comet is off-screen too — and that is exactly what made it unfair, because at `COMET_SPD` **7.6**,
+four times a Drifter's cruise, being off-screen buys about **0.2s** where an ordinary arrival gives a
+second. **Distance is only fair when it converts into time.** `COMET_TEL` is 1.1s.
+
+**A lane, not a point, and that decides which primitive it uses.** `warnSpawn`'s converging ring answers
+*"a body will be here"*, which is the wrong question for a threat whose whole shape is a line across the
+arena — and five point marks along one edge say nothing about where any of them is going. `warnForm` is
+the right tool for the same reason the Cross uses it: the shape draws its own mark **and owns its own
+spawn**, so all the geometry is solved once, up front, and the lane that is drawn comes from the very
+numbers the bodies will fly. A sign computed separately from the thing it promises is a sign that can be
+wrong. The band is drawn at the true contact envelope (`ETYPE.heavy.r + P.r`), per the danger-edge law;
+the dashes travel along the heading, because a static line states a place and omits the half you act on.
+
+⚠️ **The lead is aimed where you were, and that is the mechanic rather than a defect.** Geometry resolves
+at telegraph time, so a shower arrives aimed at the position you held ~1.1s earlier — the same *"passes
+NEAR the Star rather than at it"* the aim jitter already builds in, now with a reason the player can act
+on. Move once the lanes are drawn and you have dodged; stand still and you have not.
+
 ⚠️ **The spread is the whole thing, or it becomes a Wall** — which is another formation's job and a
 different demand on the player. Three separate spreads keep it a stream you weave through rather than a
 line you must be outside of: **lateral**, abreast of the shared heading; **trail**, pushing each body
@@ -1706,7 +1726,54 @@ including the ones that move standing population the most.
   each paying a Capacitor chunk. Breaking a streak past the first tier **bursts** it into Capacitor
   instead of vanishing.
 - **Mote** — annihilation loot carrying the popped Dot's colour. Same-polarity Motes hoover to you;
-  opposite ones lie inert until a reversal vacuums them. Collecting one pays score where it lands.
+  opposite ones lie inert until a reversal vacuums them. Collecting one pays score where it lands, and
+  one unit of the **Wish bank**.
+  ⚠️ **A Neutral sheds one of each colour**, and that follows from what a Neutral is rather than being a
+  bonus: it wears both poles and is the one Dot the colour law does not reach, so *"the colour of the Dot
+  that died"* has no single answer for it. One red and one cyan is the same rule every other species
+  follows, not an exception to it. It used to shed **nothing** — the other way of answering an
+  unanswerable question, which made the only Dot you kill with a reversal the only Dot that paid no loot
+  for it. It is also the one drop that **cannot be the wrong colour**: ordinary Motes carry the dead
+  Dot's charge, so through hold-a-pole play most sit inert, while a Neutral always leaves one you can
+  hoover on the polarity you are already holding.
+
+### The Wish
+**Motes bank. At `WISH_COST` the bank opens a picker by itself and you call for help** — *Allies*
+(matter arrives in your polarity), *Integrity*, *Shockwave* (arena-wide) or *Gilded Storm*.
+
+⚠️ **This is not the powerup roster returning**, and the screen looks exactly like it, so the distinction
+has to be stated. `0b408c4` deleted 245 lines of arsenal, and what it deleted were **dormant passive
+flags**: `P.*` fields set by a field pickup and read forever after, behind flags `freshRun()` zeroed and
+nothing wrote. A Wish is an **instant** effect, bought with a resource banked by playing and spent the
+moment it is chosen — no pickup, no flag, nothing persists past the frame. **It must stay instant**: the
+moment one leaves a lasting `P.*` behind, this paragraph becomes false. Delete it citing `0b408c4` and
+you have deleted a different thing for the first thing's reasons.
+
+**It clears the bar the last Mote bank failed.** `motesBank` fed `mult` and went in `71c961e` for
+measuring **bimodal** — median ×1.9 over 12 runs that took hits, ×15 inside 46s in 6 of 6 that took
+none, nothing between, for a **1.30× total effect**. The bar set there is that anything reintroduced
+*"must separate outcomes, not decorate them."* A Wish changes whether you live, which a multiplier never
+could. It also inverts the old halve-on-hit coupling, which drained the resource of the player already
+struggling; a Wish is spent to recover *from* hits.
+
+**No input of its own, and no dismiss.** Touch is a full partition (`zoneOf` — move / Overdrive / flip)
+with no fourth zone, and every scheme overloading the flip reintroduces the press-latency the file
+removed on purpose, so the bank opens the picker itself. It cannot be dismissed because it opens
+*because* the bank is full: a close that spends nothing would re-open on the next Mote. Guarded on
+`state==='play'`, `!tutMode`, and `!testMode && !labMode` — the same condition the best score and the
+records list share, since Boss Rush and the Lab could farm Wishes off matter that is not comparable.
+
+**The gauge is a length, never a count.** An experience bar across the very top, inside `#hud` so it
+already sits under `env(safe-area-inset-top)`. `n / 40` invites arithmetic mid-run; the only fact it
+owes the player is *how close*, which a length already answers.
+
+⚠️ **Every constant here is a placeholder.** Nothing has measured Mote income in this build. The only
+figure that exists is the **761 motes in a clean run** from `71c961e`, which predates the −20% Dot damage
+pass and the current cap and life, and was one reading — pricing on it is the trap recorded in `759ae0f`
+verbatim. `WISH_COST` 40 fires after 11.6s of *scripted continuous harvest*, which is a ceiling on
+income and not a rate. `MOTE_SCORE` is deliberately **not** removed yet: score has two persisted
+consumers (`store.best`, `store.runs`), and `71c961e` shows the correct way to cut a term — reprice the
+flat values against the measured median, which held final score at 0.88×.
 - **Score is addition, and there is no multiplier.** A kill (`KILL_SCORE` 20) and a Mote (`MOTE_SCORE`
   5) each pay a flat amount wherever they happen. A kill is the unit, a Mote is a quarter of one, and a
   kill sheds 1–2 of them — so hoovering your own debris is worth about a third again on top of the kill

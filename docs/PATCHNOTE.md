@@ -12,6 +12,72 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-12
+
+### A Neutral sheds both colours, and the Comet announces itself `v2`
+**A Neutral drops one red Mote and one cyan.** It wears both poles and is the one Dot the colour law does
+not reach, so *"the colour of the Dot that died"* has no single answer for it — one of each is the same
+rule every other species follows rather than an exception to it. It used to shed **nothing**, which was
+the other way of answering an unanswerable question and made the only Dot you kill with a reversal the
+only Dot that paid no loot for it. It is now also the one drop that **cannot be the wrong colour**:
+ordinary Motes carry the dead Dot's charge, so through hold-a-pole play most sit inert, while a Neutral
+always leaves one you can hoover on the polarity you are already holding.
+
+**The Comet is telegraphed** (`COMET_TEL` 1.1s) — and it is the arrival that most needed it. The Drift's
+note has long said every other spawner *"is fair by geometry (off-screen, past the corner, from an edge)
+and so never needed a warning."* The Comet is off-screen too, and that is precisely what made it unfair:
+at `COMET_SPD` **7.6**, four times a Drifter's cruise, off-screen buys about **0.2s** where an ordinary
+arrival gives a second. **Distance is only fair when it converts into time.**
+
+⚠️ **A lane, not a point, and that chose the primitive.** `warnSpawn`'s converging ring answers "a body
+will be *here*", the wrong question for a threat whose shape is a line across the arena — and five point
+marks along one edge say nothing about where any of them is going. `warnForm` is right for the same
+reason the Cross uses it: the shape draws its own mark **and owns its own spawn**, so the geometry is
+solved once and the lane drawn comes from the very numbers the bodies will fly. **A sign computed
+separately from the thing it promises is a sign that can be wrong.** Band at the true contact envelope
+(`ETYPE.heavy.r + P.r`) per the danger-edge law; dashes travel along the heading, because a static line
+states a place and omits the half you act on. The lead resolves at telegraph time, so a shower arrives
+aimed where you stood ~1.1s ago — move once the lanes are drawn and you have dodged.
+
+⚠️ **The oracle cannot certify this.** Both changes add and move `rand()` calls — a Neutral consumed none
+and now consumes six, and the Comet's draws are resolved a beat earlier — so the seeded stream shifts and
+fingerprints move without any behaviour regressing. That is the documented property of any change that
+adds or removes an RNG-consuming call, not a regression.
+
+### The Wish: Motes bank into called help `v2`
+Motes now also bank; at `WISH_COST` the bank opens a picker by itself and you call for help — **Allies**
+(matter arrives in your polarity), **Integrity**, **Shockwave** (arena-wide push, never an erase) or
+**Gilded Storm**. An experience-bar gauge across the top reports progress as a *length*, never a count.
+
+⚠️ **Not the powerup roster returning.** `0b408c4` deleted 245 lines of arsenal, and those were **dormant
+passive flags** — `P.*` fields set by a pickup and read forever after. A Wish is **instant**, bought with
+a banked resource and spent on choosing. It must stay instant: the moment one leaves a lasting `P.*`
+behind, that argument stops being true.
+
+**It clears the bar the last Mote bank failed.** `motesBank` fed `mult` and went in `71c961e` for
+measuring bimodal (median ×1.9 with hits, ×15 in 46s without, nothing between, 1.30× total effect). The
+bar set there is *"it must separate outcomes, not decorate them"* — a Wish changes whether you live, and
+it inverts the old halve-on-hit coupling that drained the resource of the player already struggling.
+
+**No input of its own and no dismiss**, both forced rather than chosen: touch is a full partition with no
+fourth zone, and the picker opens *because* the bank is full, so a close that spent nothing would re-open
+on the next Mote.
+
+⚠️ **Every constant is a placeholder.** Nothing has measured Mote income in this build; the only figure
+that exists is the 761-in-a-clean-run from `71c961e`, which predates the −20% damage pass and was one
+reading — pricing on it is `759ae0f`'s trap verbatim. `MOTE_SCORE` is deliberately **not** removed:
+score has two persisted consumers, and `71c961e` shows the right way to cut a term is to reprice the
+flat values against the measured median.
+
+*Two bugs caught by the tests rather than by reading:* `startRun` cleared every overlay except this one,
+so a picker could sit over a live run doing nothing (`pickWish` guards on state, and the state had moved
+on); and the card row used `max-width` under an `align-items:center` parent, which is shrink-to-fit — it
+settled at 570px against an 804px cap and wrapped 3+1 while reading as though it had room. **The same
+mechanism was written into `.chiplog.slide` earlier the same day and writing it down did not prevent
+repeating it two hundred lines away.**
+
+---
+
 ## 2026-08-11
 
 ### The sky cache has a number at last, and it is half the size it was `v2`

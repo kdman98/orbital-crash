@@ -116,6 +116,47 @@
   #score{left:18px;top:16px;}
   #score .v{font-size:clamp(28px,6.5vw,50px);letter-spacing:-.02em;text-shadow:0 0 18px rgba(56,224,255,.35);}
   #best{left:20px;top:74px;}#best .v{font-size:14px;color:var(--dim);}
+  /* THE WISH GAUGE — the experience-bar shape, edge to edge at the very top. Gold because that is the
+     colour a spendable thing wears in this game (the Capacitor grant, the Bounty, the Overdrive button).
+       It sits at `top:0` INSIDE `#hud`, which is already inset by `env(safe-area-inset-top)`, so on a
+     notched phone it lands under the inset rather than beneath the notch — no second safe-area rule.
+       ⚠️ 4px AND NO TALLER. `#center` (the Epoch name and the clock) starts at `top:14px`, and that gap
+     is the whole clearance this bar has. `#bossbar` at `top:104px` is well clear either way.
+       `.full` reuses `shine`, the animation `#chgbar.full` already uses for the same meaning — a meter
+     that has reached the point where it can be spent. Same idea, same motion, no new vocabulary. */
+  #wishGauge{position:absolute;left:0;right:0;top:0;height:4px;background:rgba(255,255,255,.06);overflow:hidden;}
+  #wishGauge > i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);
+    background:linear-gradient(90deg,var(--gold),#fff);transition:transform .18s linear;}
+  #wishGauge.full > i{background:linear-gradient(90deg,#fff,var(--gold),#fff);animation:shine 1s linear infinite;}
+
+  /* THE WISH PICKER. Wraps rather than scrolling, unlike the death receipt's tally: four cards is a
+     fixed count that can be laid out for, where that row's length depended on how the run went.
+       ⚠️ THE CARD CAP IS DERIVED FROM THE VIEWPORT, NOT PICKED. At 874px — the shipping WebView width,
+     the one that put Reforge below the fold — `92vw` gives 804, so four cards plus three 10px gaps fit
+     one row only at 190px or less: 4x190+30 = 790. It was written at 220 first and MEASURED wrapping to
+     two rows there, which is why the number is 190 and why this note exists rather than the old claim
+     that four fit. On a 375px phone (92vw = 345) they wrap to two rows of two at the 150px basis.
+       ⚠️ `width`, NOT `max-width`, AND THAT IS THE WHOLE FIX. `.overlay` is `flex-direction:column;
+     align-items:center`, so a child is SHRINK-TO-FIT and a `max-width` is a ceiling the box never
+     reaches — measured at 874 the row settled at 570px against an 804px cap and wrapped 3+1 while
+     reading, from the CSS, as though it had room. Same mechanism as `.chiplog.slide` above, which is
+     where it was written down first and still did not stop it happening again here. */
+  /* THE PICKER SITS LOW, NOT CENTRED, and it is the one overlay that does. Every other one is a full
+     stop — you have died, you have paused — so dead centre is right for them. This one interrupts a run
+     you are still in, and the sky underneath is the thing you are about to act on: pinning the block to
+     `flex-start` at 30vh keeps the top third of the field readable instead of putting a heading across
+     it. `.final`'s 2px bottom margin is the shared value for a kicker sitting on a huge number
+     (`.finalv`); above a sentence it reads as one crushed line, so this one is overridden. */
+  #wish{justify-content:flex-start;padding-top:30vh;}
+  #wish .final{margin-bottom:14px;}
+  #wish h2{font-size:clamp(24px,5.4vh,40px);font-weight:900;letter-spacing:.01em;margin:0 0 26px;}
+  #wishrow{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:min(820px,92vw);margin-top:4px;}
+  .wishcard{flex:1 1 150px;max-width:190px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+    padding:14px 16px;border-radius:14px;cursor:pointer;text-align:left;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);color:#dfe6f2;font:inherit;}
+  .wishcard:hover{border-color:rgba(255,207,77,.5);background:rgba(255,207,77,.08);}
+  .wishcard b{font-size:15px;font-weight:800;color:var(--gold);letter-spacing:.01em;}
+  .wishcard span{font-size:11.5px;line-height:1.35;color:var(--dim);}
   /* NO SCORE MULTIPLIER. A `#mult` stat stood here in gold at 44px, the second-biggest number on
      screen. Measured: it read a median ×1.9 over 12 runs and never once passed ×7 while taking hits,
      against an advertised cap of ×15, and the whole system moved final score by 1.30×. It is gone;
@@ -881,6 +922,20 @@
 <div id="hud">
   <div class="stat" id="score"><div class="k" data-t="hud.score">Score</div><div class="v">0</div></div>
   <div class="stat" id="best"><div class="k" data-t="hud.best">Best</div><div class="v">0</div></div>
+  <!-- THE WISH GAUGE. Edge to edge along the very top, the way an experience bar has always been drawn —
+       a filling line you read peripherally, never a number you stop to parse. It carries NO TEXT and no
+       count on purpose: `n / 40` invites arithmetic mid-run, and the only fact it has to deliver is "how
+       close", which a length already answers.
+       ⚠️ IT IS VISIBLE FROM THE FIRST MOTE, which is the whole point of it existing. Motes pay score
+       today; the moment they also feed something spendable, a bank the player cannot see is a reward
+       that has silently gone missing.
+       ⚠️ AND IT IS NOT THE `#mult` STAT COMING BACK — that tombstone is in the CSS below, and it was a
+       44px gold number in the corner reporting a multiplier. This is a 4px line reporting progress
+       toward a choice. Different thing, same neighbourhood, and the tombstone's warning is about a
+       NUMBER competing with the score, which is exactly what having no number avoids.
+       The label lives on `data-ta` (aria) rather than on screen, so the string stays translated and
+       reachable without printing a word next to a bar that does not need one. -->
+  <div id="wishGauge" data-ta="hud.wish" role="progressbar"><i></i></div>
   <div id="combo"></div>
   <div id="center"><div id="actlab">EPOCH I · DRIFT</div><div id="time">0:00</div></div>
   <div id="bossbar" class="hidden"><span class="bl" data-t="hud.anomaly">Anomaly</span><i></i></div>
@@ -1107,6 +1162,20 @@
 </div>
 
 <!-- PAUSE -->
+<!-- WISH. Opens by itself when the Mote bank fills; see openWish(). No close button and no Esc binding —
+     the reason is in the comment on pickWish, and it is a consequence of the trigger rather than taste.
+     Four cards, one row, `wishcard` styled off the existing button vocabulary rather than a new one. -->
+<div class="overlay hidden" id="wish">
+  <div class="final" data-t="wish.kicker">A Wish</div>
+  <h2 data-t="wish.h2">Call for help</h2>
+  <div id="wishrow">
+    <button class="wishcard" data-wish="allies"><b data-t="wish.allies">Allies</b><span data-t="wish.allies.d">Matter arrives in your colour</span></button>
+    <button class="wishcard" data-wish="integrity"><b data-t="wish.integrity">Integrity</b><span data-t="wish.integrity.d">Repair the core</span></button>
+    <button class="wishcard" data-wish="shock"><b data-t="wish.shock">Shockwave</b><span data-t="wish.shock.d">Sweep the whole field</span></button>
+    <button class="wishcard" data-wish="gild"><b data-t="wish.gild">Gilded Storm</b><span data-t="wish.gild.d">Bounties, all at once</span></button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="pause">
   <div class="final" data-t="pause.kicker" style="letter-spacing:.4em;">Paused</div>
   <h2>❚❚</h2>
@@ -1616,6 +1685,12 @@ const L={ en:{
   'pause.hint':'<kbd>P</kbd> or <kbd>Esc</kbd> to resume',
   'log.od':'Overdrive · ',  'log.anom':'Anomalies · ',  'log.left':' left',
   'log.hits':'Hits Taken · ',
+  'hud.wish':'Wish',
+  'wish.kicker':'A Wish',   'wish.h2':'Call for help',
+  'wish.allies':'Allies',        'wish.allies.d':'Matter arrives in your colour',
+  'wish.integrity':'Integrity',  'wish.integrity.d':'Repair the core',
+  'wish.shock':'Shockwave',      'wish.shock.d':'Sweep the whole field',
+  'wish.gild':'Gilded Storm',    'wish.gild.d':'Bounties, all at once',
 
   // ---- death ----
   'dead.kicker':'Core Lost',  'dead.best':'New Best!',  'dead.again':'Reforge',
@@ -1792,6 +1867,17 @@ const L={ en:{
   // 피격 — 맞은 횟수이지 받은 피해가 아니다. `dead.cause`의 '당함'과 같은 사건을 가리키지만 그쪽은
   // 서술어라 명사 자리에 올 수 없고, 옆 라벨들(오버드라이브 · 변이체)이 전부 맨 명사라 결도 맞는다.
   'log.hits':'피격 · ',
+  // 소원 — the achievement already says 소원 (`achv.makeawish`), so the feature takes the word the game
+  // has been using rather than a second one for the same idea. 아군 / 충격파 / 현상금 all come out of the
+  // Korean already on screen (`fx.bounty` is 현상금), not out of the English being rendered.
+  //   ⚠️ 밀어냅니다, NOT 쓸어냅니다. The Shockwave PUSHES and pops Neutrals; it erases nothing — 쓸어내다
+  // would promise `planetBlast`'s effect, which is the Planet's and not this one's.
+  'hud.wish':'소원',
+  'wish.kicker':'소원',   'wish.h2':'무엇을 부를까요?',
+  'wish.allies':'아군',        'wish.allies.d':'내 색 입자가 몰려옵니다',
+  'wish.integrity':'코어 복구',  'wish.integrity.d':'코어 상태를 회복합니다',
+  'wish.shock':'충격파',      'wish.shock.d':'필드 전체를 밀어냅니다',
+  'wish.gild':'현상금 폭풍',    'wish.gild.d':'현상금이 한꺼번에',
 
   // ---- death ----
   // ⚠️ THE COLOUR MOVES IN FRONT OF THE NOUN, and this is the clearest case in the file for why a
@@ -2127,6 +2213,23 @@ let streakTier=0;                      // next streak-milestone index (25/50/100
 let gildTimer=14;                      // seconds until the next Gilded Bounty spawns
 let motes=[];                          // Flux Motes: annihilation loot. Worth points where they land.
 let moteN=0, moteT=0;                  // pickup ratchet ladder
+// ---- THE WISH BANK ----
+// ⚠️ A MOTE BANK LIVED HERE BEFORE AND WAS DELETED, so the difference is the first thing to state.
+// `motesBank` fed `mult` = `min(15, 1+motesBank*0.1)` and went in `71c961e` because it measured BIMODAL
+// rather than as a curve: median ×1.9 over 12 runs that took hits, ×15 inside 46s in 6 of 6 that took
+// none, nothing in between, for a **1.30× total effect on final score**. The bank was never what failed.
+// The multiplier on top of it was, and the halve-on-hit coupling punished backwards — a clean run banked
+// 761 against the 140 needed to cap, so the first two hits cost a deep bank nothing while a shallow one
+// lost half of what little it had. MECHANICS states the bar for anything reintroduced in this slot:
+// **it must separate OUTCOMES, not decorate them.** A Wish changes whether you live, which is the one
+// thing a multiplier could never do — that is the whole argument for it being allowed back.
+//   ⚠️ `WISH_COST` IS A PLACEHOLDER AND MUST BE DERIVED BEFORE IT IS DEFENDED. Nothing has measured Mote
+// income in THIS build. The only figure that exists is that 761, which predates the −20% Dot damage pass,
+// the current `moteCap`/life, and a graze that paid 10 — and it was ONE reading. Pricing on it would be
+// the trap recorded in `759ae0f` verbatim: a passing control licenses the instrument, not the reading.
+// Instrument `wishBank` over several field states first, then set this.
+const WISH_COST=40;
+let wishBank=0;
 // =====================================================================
 //  TELEGRAPHED SPAWN — the danger sign, and the file's first scheduled spawn
 // =====================================================================
@@ -3602,6 +3705,22 @@ const COMET_SPD=7.6;
 //   AIM      — every body solves its own near-miss point, so the stream FANS as it crosses. With one
 //              shared target they would converge, which is a noose, not a shower.
 // Speed varies per body too, so the gaps keep opening the whole way across.
+// ⚠️ THE COMET IS TELEGRAPHED NOW, AND IT IS THE ONE ARRIVAL THAT MOST NEEDED IT. The Drift's note above
+// says every other spawner "is fair by geometry (off-screen, past the corner, from an edge) and so never
+// needed a warning" — the comet is off-screen too, and that is exactly what made it unfair: it enters at
+// `COMET_SPD` 7.6, four times a Drifter's cruise, so "off-screen" buys a player ~0.2s rather than the
+// second an ordinary arrival gives. Distance is only fair when it converts into time.
+//   A LANE, NOT A POINT. `warnSpawn`'s converging ring answers "a body will be HERE", which is the wrong
+// question for a thing whose whole threat is a line across the arena — and five point marks at the edge
+// would say nothing at all about where they are going. `warnForm` exists for exactly this: the shape
+// draws its own mark and owns its own spawn, so the geometry is solved ONCE, up front, and the telegraph
+// is drawn from the same numbers the bodies will fly. A sign that is computed separately from the thing
+// it promises is a sign that can be wrong.
+//   ⚠️ THE LEAD IS AIMED WHERE YOU WERE, AND THAT IS NOT A BUG TO FIX. Geometry is solved at telegraph
+// time, so a comet arrives aimed at the position you held ~1.1s ago — which is the same "passes NEAR the
+// Star rather than at it" the aim jitter below already builds in, now with a reason the player can act
+// on. Move after the lane is drawn and you have dodged it; stand still and you have not.
+const COMET_TEL=1.1;
 function formComet(){
   const edge=irand(0,3), m=120, n=irand(3,5);
   let bx,by;
@@ -3613,6 +3732,7 @@ function formComet(){
   const tx=(P?P.x:W/2)+rand(-230,230), ty=(P?P.y:H/2)+rand(-230,230);
   const bdx=tx-bx, bdy=ty-by, bd=Math.hypot(bdx,bdy)||1;
   const hx=bdx/bd, hy=bdy/bd, sx=-hy, sy=hx;      // heading, and its perpendicular
+  const bodies=[];
   for(let i=0;i<n;i++){
     const lateral=(i-(n-1)/2)*rand(72,132), trail=i*rand(60,150);
     const x=bx+sx*lateral-hx*trail, y=by+sy*lateral-hy*trail;
@@ -3629,10 +3749,42 @@ function formComet(){
     // flight on its first frame, becoming an ordinary Brute sitting in the margin.
     const ex = ux>0 ? (W+m-x)/ux : ux<0 ? (-m-x)/ux : Infinity;
     const ey = uy>0 ? (H+m-y)/uy : uy<0 ? (-m-y)/uy : Infinity;
-    const e=spawnEnemy('heavy', Math.random()<0.5?'red':'cyan', x, y);
-    holdBody(e, ux*sp, uy*sp, Math.max(0.5, Math.min(ex,ey)/sp/60));
-    if(e) e.comet=1;
+    // SOLVED, NOT SPAWNED — the body is created in `spawn` below off exactly these numbers. Every
+    // `rand()` in this loop is consumed HERE, at telegraph time, so the lane that gets drawn and the
+    // path that gets flown cannot disagree.
+    bodies.push({x, y, ux, uy, sp, hold:Math.max(0.5, Math.min(ex,ey)/sp/60),
+                 color:Math.random()<0.5?'red':'cyan'});
   }
+  // The true contact envelope of what is coming — a Brute's hull plus yours, the same rule `warnSpawn`
+  // uses for its point mark. The band is drawn at this width and not a pixel narrower: the danger-edge
+  // law says a drawing that promises a distance must promise the true one.
+  const R=(ETYPE.heavy.r+(P?P.r:15));
+  const draw=f=>{
+    ctx.save();
+    for(const b of bodies){
+      const len=b.sp*60*b.hold, ex2=b.x+b.ux*len, ey2=b.y+b.uy*len;
+      // THE BAND IS THE CLAIM, faint and full width; the centre line is only where to read it. Drawn in
+      // that order so the thin line stays legible on top of its own band rather than being lost in it.
+      ctx.lineCap='butt';
+      ctx.strokeStyle=hexA(COL.violet,0.05+0.13*f); ctx.lineWidth=R*2;
+      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(ex2,ey2); ctx.stroke();
+      // Dashes travel ALONG the heading, so the mark states a direction as well as a place — a static
+      // line says "something crosses here" and leaves out the half you act on.
+      ctx.strokeStyle=hexA(COL.violet,0.22+0.55*f); ctx.lineWidth=2;
+      ctx.setLineDash([16,13]); ctx.lineDashOffset=-elapsed*140;
+      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(ex2,ey2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  };
+  const spawn=()=>{
+    for(const b of bodies){
+      const e=spawnEnemy('heavy', b.color, b.x, b.y);
+      holdBody(e, b.ux*b.sp, b.uy*b.sp, b.hold);
+      if(e) e.comet=1;
+    }
+  };
+  warnForm(COMET_TEL, draw, spawn);
 }
 // The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
 // like any other — and a comet should read as a thing that happens to the sky, not as this turn's
@@ -4972,7 +5124,18 @@ function stepMotes(dt){
       moteN++; moteT=0.8;
       if(!odOn) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
       score+=MOTE_SCORE;
+      // ⚠️ THE BANK IS ADDED TO, AND `MOTE_SCORE` IS NOT REMOVED — deliberately, this pass. Score has two
+      // persisted consumers, `store.best` and `store.runs`, so cutting ~26% of fight income silently makes
+      // every stored best unbeatable and stops "New Best!" firing for a long time. `71c961e` shows the
+      // correct fix and it is not "just delete the term": it repriced the flat values against the measured
+      // median and held final score at 0.88×. That needs the income measurement this bank exists to take.
+      wishBank++;
       sfx.mote(moteN);
+      // FIRES FROM THE ONE PLACE THE BANK IS WRITTEN, so no polling loop can disagree with the counter.
+      // ⚠️ It gets NO INPUT OF ITS OWN, and that is the design rather than a shortcut: touch is a full
+      // partition (`zoneOf` — move / Overdrive / flip) with no fourth zone, and every scheme that
+      // overloads the flip reintroduces the press-latency the file removed on purpose. See the Wish block.
+      if(wishBank>=WISH_COST) openWish();
       // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
       // several times a second, on top of the Core, on the exact pixels the flip read happens on.
       //   BUT THAT RULED OUT TEXT, NOT A MARK, and for a long time this was the only event in the game
@@ -5965,14 +6128,21 @@ function onKill(e){
   score+=gain;
   tutKills++;   // the tutorial's "you have annihilated five things" test — score cannot serve, since Motes pay into it too
   // Flux Motes: annihilations shed collectible loot carrying the Dot's colour.
+  // ⚠️ A NEUTRAL SHEDS ONE OF EACH, and that follows from what a Neutral IS rather than being a bonus.
+  // It wears both poles on a turning seam and is the one Dot the colour law does not reach, so "the
+  // colour of the Dot that died" has no single answer for it — one red and one cyan is the honest
+  // reading of the same rule every other species follows, not an exception to it.
+  //   It used to shed NOTHING, which was the other way of answering an unanswerable question and made
+  // the only Dot you kill with a reversal the only Dot that paid no loot for it.
+  //   ⚠️ AND IT IS THE ONE DROP THAT CANNOT BE THE WRONG COLOUR. Ordinary Motes carry the DEAD Dot's
+  // charge, so through the hold-a-pole play this game rewards most of them sit inert until a flip
+  // vacuums them; a Neutral always leaves one you can hoover on the polarity you are already holding.
   const moteCap=40, moteLife=()=>rand(4,8);
-  if(e.color!=='neutral' && motes.length<moteCap){
-    const n=1+(Math.random()<0.4?1:0);
-    for(let i=0;i<n && motes.length<moteCap;i++){
-      const a=rand(0,TAU), s=rand(0.5,2.2);
-      motes.push({x:e.x,y:e.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,color:e.color,life:moteLife(),vac:0});
-    }
-  }
+  const shed=col=>{ if(motes.length>=moteCap) return;
+    const a=rand(0,TAU), s=rand(0.5,2.2);
+    motes.push({x:e.x,y:e.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,color:col,life:moteLife(),vac:0}); };
+  if(e.color==='neutral'){ shed('red'); shed('cyan'); }
+  else { const n=1+(Math.random()<0.4?1:0); for(let i=0;i<n;i++) shed(e.color); }
   // Gilded Bounty: cash the jackpot Dot
   if(e.gild>0){
     const rew=250*act; score+=rew;
@@ -8054,6 +8224,7 @@ function hexA(hex,a){
 // =====================================================================
 const el=id=>document.getElementById(id);
 const hpI=el('hpbar').querySelector('i'), chgI=el('chgbar').querySelector('i'),
+      wishI=el('wishGauge').querySelector('i'),
       scoreV=el('score').querySelector('.v');
 function fmtTime(s){ const m=Math.floor(s/60); const ss=Math.floor(s%60); return m+':'+(ss<10?'0':'')+ss; }
 function updateHUD(){
@@ -8065,6 +8236,10 @@ function updateHUD(){
   cEl.textContent=combo>1?T('hud.streak',{n:combo}):'';
   cEl.style.color=['',COL.cyan,COL.gold,COL.violet,'#ffffff'][streakTier]||'';
   el('time').textContent=fmtTime(elapsed);
+  // A LENGTH, NOT A COUNT. Clamped because the bank can stand at or past the cost for the frames between
+  // the pickup that filled it and the picker opening, and a bar drawn past 1 overshoots its own track.
+  wishI.style.transform=`scaleX(${clamp(wishBank/WISH_COST,0,1)})`;
+  el('wishGauge').classList.toggle('full', wishBank>=WISH_COST);
   hpI.style.transform=`scaleX(${clamp(P?P.hp/P.maxHp:1,0,1)})`;
   el('hpbar').classList.toggle('low',P&&P.hp/P.maxHp<HP_LOW);
   // The Capacitor bar now runs BOTH WAYS — the same unconditional scaleX, and `.bar > i`'s
@@ -8518,7 +8693,7 @@ function startRun(mode, startAct){
   combo=0;peakCombo=0;streakTier=0;
   resetAchvCounters();   // one call; see the note on AC for why they are not a dozen loose lets
   gildTimer=14;lastDmg=null;hitLog.length=0;   // the receipt's tally is per-run and must not carry over
-  motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
+  motes.length=0;moteN=0;moteT=0;wishBank=0;stormCol=null;stormShiftT=0;
   chargeReady=false;deathRevealT=0;deadCountT=0;
   odOn=false;                                      // never start a run already burning
   odCd=0;                                          // nor already cooling — dying mid-ride sets this
@@ -8535,6 +8710,12 @@ function startRun(mode, startAct){
   el('pause').classList.add('hidden');
   el('bossbar').classList.add('hidden');
   el('bestiary').classList.add('hidden'); el('records').classList.add('hidden'); // a run must never start hidden under an info overlay
+  // ⚠️ THE WISH PICKER BELONGS IN THAT LIST AND WAS MISSED ONCE. It has no dismiss by design, so in play
+  // the only way out is picking — but the overlay's visibility and `state` are two facts, and only one of
+  // them is reset here. Left out, a picker still on screen from a previous run sits over a live run doing
+  // nothing, because `pickWish` guards on `state==='wish'` and the state HAS moved on. Caught by a test
+  // whose very first assertion read "opened by itself" after 0 frames.
+  el('wish').classList.add('hidden');
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
   state='play'; lastT=performance.now(); acc=0;
   if(labMode) beginLabRun(); else if(tutMode) beginTutRun(); else if(testMode) beginTestRun(); else beginRun();
@@ -8548,6 +8729,103 @@ function toMenu(){
   refreshDepth();       // and the run that just ended is the one thing that can have moved the ladder
 }
 
+// =====================================================================
+//  WISH — the Mote bank, spent on called help
+// =====================================================================
+// ⚠️ THIS IS NOT THE POWERUP ROSTER COMING BACK, and that has to be written down because the screen looks
+// exactly like it. `0b408c4` deleted 245 lines of arsenal, and what it deleted were DORMANT PASSIVE
+// FLAGS — `P.*` fields set by a field pickup, read forever afterwards, gated behind flags `freshRun()`
+// zeroed and nothing ever wrote. This is the opposite shape: an INSTANT effect, bought with a resource
+// you banked by playing, spent the moment you choose it. No pickup, no flag, nothing persists past the
+// frame. Delete this citing `0b408c4` and you have deleted a different thing for the first thing's
+// reasons — which is the failure mode `## Traps` calls a retired rule surviving where it was repeated.
+//   ⚠️ AND IT MUST STAY INSTANT. The moment one of these leaves a lasting `P.*` flag behind, the argument
+// above stops being true and this comment becomes a lie the next reader inherits.
+const WISH_HP=30;        // placeholder — same caveat as WISH_COST; the purge already pays +30, so this
+                         // deliberately does not exceed the game's existing one heal.
+const WISH_ALLIES=7;     // placeholder
+const WISH_GILD=3;       // placeholder
+function openWish(){
+  // THREE GUARDS, ALL LOAD-BEARING:
+  //   `state`  — a Mote can be consumed on the frame you die, because `stepMotes` runs before the death
+  //              check clears the field. A picker over a death receipt is one you cannot get out of.
+  //   tutMode  — the tutorial gates each step on performing its verb. A fourth screen arriving mid-step
+  //              stops the step it interrupted from ever being satisfied.
+  //   test/lab — the same condition the best score and the records list already share. Boss Rush hands
+  //              you an endless supply of Anomalies and the Lab spawns on demand, so either would farm
+  //              Wishes off matter that is not comparable to a survival run.
+  if(state!=='play' || tutMode || testMode || labMode) return;
+  state='wish';
+  el('wish').classList.remove('hidden');
+  if(AC && AC.state==='running') AC.suspend();   // silence while the sim is stopped — same as pauseGame
+}
+// ⚠️ NO DISMISS PATH, AND IT IS A CONSEQUENCE RATHER THAN A PREFERENCE. The picker opens BECAUSE the bank
+// is full, so a close that spends nothing leaves it full and re-opens on the very next Mote. Every option
+// is a gift and there is nothing to decline. Esc closes every other overlay in this game, so the absence
+// here is the surprising part, and this note is the reason it is absent — do not "fix" it by adding one
+// without also deciding what the bank does afterwards.
+function pickWish(id){
+  if(state!=='wish') return;
+  wishBank-=WISH_COST;
+  el('wish').classList.add('hidden');
+  if(AC && AC.state==='suspended') AC.resume();
+  // GRANT FIRST, THEN THE BREATHER. The field is already changed when GET READY starts, so the player
+  // reads the result during the pause rather than being dropped into a sky that changes under them.
+  wishGrant(id);
+  // Resume exactly as `resumeGame` does: `endReady` re-anchors the pointer and zeroes the stick vector,
+  // so a run resuming under a thumb that never lifted stops the star instead of cashing a frozen
+  // deflection. This is the same breather the retired perk picks used, for the same reason.
+  beginReady();
+}
+function wishGrant(id){
+  if(!P) return;
+  if(id==='integrity'){
+    P.hp=Math.min(P.maxHp, P.hp+WISH_HP);
+    spawnRing(P.x,P.y,COL[P.polarity],P.r+52); spawnRing(P.x,P.y,'#fff',P.r+22);
+    sfx.capFull();
+  } else if(id==='allies'){
+    // ⚠️ THEY ARRIVE, THEY DO NOT APPEAR. `spawnAtEdge` gives them the edge normal and the entry window
+    // every other arrival gets, so a wished-for crowd enters the way matter always enters — a body
+    // materialising inside your ring would be the one spawn in the game that ignores `EDGE_CLEAR`.
+    //   ⚠️ AND THE GIFT TURNS ON YOU IF YOU FLIP. They spawn in YOUR polarity, so they are harmless and
+    // your field gathers them — but a reversal makes every one of them opposite-charge and lethal, all
+    // at once, at close range. That is the tension, not a bug: the Wish that hands you the most matter
+    // is the one that most punishes a careless flip. Do not "fix" it by pinning their colour.
+    for(let i=0;i<WISH_ALLIES && enemies.length<290;i++)
+      spawnAtEdge(Math.random()<0.5?'drift':'fast', P.polarity);
+    sfx.buy();
+  } else if(id==='shock'){
+    // THE FLIP'S SHOCKWAVE, SCALED TO THE ARENA — the same push and the same Neutral-pop, out to the far
+    // corner instead of 104px. ⚠️ IT MUST NOT ERASE. `planetBlast` already deletes an entire colour
+    // arena-wide and that is the Planet's whole identity; a Wish that erased would take it, and the
+    // Anomaly-erosion rule ("could the Anomaly earn this by moving?") bars a contact channel besides.
+    // Push and pop only, and the boss is skipped here for the same reason a flip does nothing to it.
+    const R=Math.hypot(W,H), force=9;
+    spawnRing(P.x,P.y,COL[P.polarity],R,true); spawnRing(P.x,P.y,'#fff',P.r+60);
+    trauma=Math.min(1,trauma+0.45); flash=Math.max(flash,0.22); flashCol='#fff';
+    for(const o of enemies){
+      if(o.dead||o.type==='boss') continue;
+      const dx=o.x-P.x, dy=o.y-P.y, d=Math.hypot(dx,dy)||1;
+      const f=(1-Math.min(1,d/R))*force;
+      o.vx+=dx/d*f; o.vy+=dy/d*f;
+      if(o.type==='neutral') queueKill(o);   // the reversal's monopoly, kept — see flip() and planetBlast
+    }
+    for(const m of motes) m.vac=0.9;         // and the flip-vacuum with it, arena-wide
+    sfx.lance();
+  } else if(id==='gild'){
+    // Built the way the ordinary Bounty is built (`gildTimer` in step) rather than by gilding Dots
+    // already on the field: that recipe is spawn-then-mark, which keeps the Drifter/Dart restriction
+    // true BY CONSTRUCTION. Gilding whatever happens to be nearby could put the gold ring on a Brute or
+    // a Planet, and that ring is drawn at `e.r + P.r` — it is the contact edge as well as the cue, so a
+    // big Dot wearing one teaches a lethal radius that belongs to a different body.
+    for(let i=0;i<WISH_GILD && enemies.length<290;i++){
+      spawnAtEdge(Math.random()<0.5?'drift':'fast', Math.random()<0.5?'red':'cyan');
+      const g=enemies[enemies.length-1];
+      if(g) g.gild=6;
+    }
+    sfx.buy();
+  }
+}
 function pauseGame(){
   if(state!=='play')return;
   state='paused';
@@ -8565,6 +8843,13 @@ function resumeGame(){
 }
 function togglePause(){ if(state==='play')pauseGame(); else if(state==='paused')resumeGame(); }
 
+// Bound once off the row rather than per card, so adding a fifth Wish is a `<button data-wish>` and
+// nothing else. The id is read from the attribute, never from the button's text — a card's label is copy
+// and copy is allowed to change, in two languages.
+el('wishrow').addEventListener('click', ev=>{
+  const b=ev.target.closest('.wishcard');
+  if(b) pickWish(b.dataset.wish);
+});
 el('startBtn').onclick=()=>startRun(false, store.startAct);
 el('tutBtn').onclick=()=>startRun('tut');              // ✦ How to play — the six steps
 el('tutPlayBtn').onclick=()=>{ el('tutDone').classList.add('hidden'); startRun(false); };
@@ -9850,6 +10135,9 @@ window.__orbital=window.__polaris=window.__flux={
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
   get motes(){return motes;}, KILL_SCORE, MOTE_SCORE,
+  // WISH. `wishBank` is settable because the harness has to reach the picker without farming 40 Motes,
+  // and because pricing WISH_COST needs the bank sampled over a real run rather than a scripted one.
+  get wishBank(){return wishBank;}, set wishBank(v){wishBank=v;}, WISH_COST, openWish, pickWish, wishGrant,
   // Particles are normally beneath a harness's notice, but the flip's PUSH READ lives entirely in them
   // now (the wake at the two fling sites), and a direction is not something a screenshot can be raced
   // for — the sparks are gone in 0.3-0.7s. Exposed so the cone can be asserted rather than eyeballed.
