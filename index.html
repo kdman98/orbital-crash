@@ -3682,25 +3682,7 @@ function formComet(){
   // The true contact envelope of what is coming — a Brute's hull plus yours, the same rule `warnSpawn`
   // uses for its point mark. The band is drawn at this width and not a pixel narrower: the danger-edge
   // law says a drawing that promises a distance must promise the true one.
-  const R=(ETYPE.heavy.r+(P?P.r:15));
-  const draw=f=>{
-    ctx.save();
-    for(const b of bodies){
-      const len=b.sp*60*b.hold, ex2=b.x+b.ux*len, ey2=b.y+b.uy*len;
-      // THE BAND IS THE CLAIM, faint and full width; the centre line is only where to read it. Drawn in
-      // that order so the thin line stays legible on top of its own band rather than being lost in it.
-      ctx.lineCap='butt';
-      ctx.strokeStyle=hexA(COL.violet,0.05+0.13*f); ctx.lineWidth=R*2;
-      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(ex2,ey2); ctx.stroke();
-      // Dashes travel ALONG the heading, so the mark states a direction as well as a place — a static
-      // line says "something crosses here" and leaves out the half you act on.
-      ctx.strokeStyle=hexA(COL.violet,0.22+0.55*f); ctx.lineWidth=2;
-      ctx.setLineDash([16,13]); ctx.lineDashOffset=-elapsed*140;
-      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(ex2,ey2); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    ctx.restore();
-  };
+  const draw=f=>{ ctx.save(); for(const b of bodies) cometLane(b.x,b.y,b.ux,b.uy,b.sp*60*b.hold,f); ctx.restore(); };
   const spawn=()=>{
     for(const b of bodies){
       const e=spawnEnemy('heavy', b.color, b.x, b.y);
@@ -6772,6 +6754,9 @@ function render(){
     // Warnings sit UNDER everything that can occupy the ground they are marking, so a body arriving on
     // one is drawn over its own sign rather than behind it.
     if(warns.length) drawWarns();
+    // Same layer as the warns, and for the same reason: this IS a warn, continued past the moment
+    // `warnForm` hands its bodies over. Guarded on nothing — the loop's own off-screen test is the gate.
+    drawCometLanes();
     drawParticles();
     drawMotes();
     drawEnemies();
@@ -7941,6 +7926,48 @@ function drawParticles(){
 // Three ticks, odd and rotating, drawn INSIDE the footprint. Odd so the mark never resolves into a
 // symmetrical flower at some rotation (the Bomber's seven spikes, same reason), inside so nothing in the
 // drawing over-promises the envelope by a single pixel.
+// THE COMET LANE, drawn from TWO places on purpose, and the split is the whole fix.
+// ⚠️ THE FIRST VERSION TELEGRAPHED ONLY THE ENTRY, AND THAT WAS WORSE THAN IT SOUNDS. `warnForm` clears
+// its mark the instant it fires — but a comet SPAWNS OFF-SCREEN, and with `trail` pushing later bodies
+// further out it spawns a long way off: measured 4 bodies at **616–691px outside the viewport** at the
+// moment the lanes vanished, and **1.63s of blind time** before the first one was visible. The warning
+// lasted 1.1s and then took its information away for longer than it had shown it, which is a worse
+// object than no warning at all: it says "something is coming", then refuses to say where, then makes
+// you wait. A telegraph has to last until the thing it announces can be seen.
+//   So the same lane is drawn before the bodies exist (`formComet`'s `warnForm`) and after they do
+// (`drawCometLanes`, below, for any comet still off-screen). One helper, so the two halves cannot drift
+// into drawing different lines for the same flight.
+function cometLane(x,y,ux,uy,len,a){
+  const R=ETYPE.heavy.r+(P?P.r:15);          // the true contact envelope — danger-edge law
+  const ex=x+ux*len, ey=y+uy*len;
+  ctx.lineCap='butt';
+  // THE BAND IS THE CLAIM, faint and full width; the centre line is only where to read it. Drawn in that
+  // order so the thin line stays legible on top of its own band rather than being lost inside it.
+  ctx.strokeStyle=hexA(COL.violet,0.05+0.13*a); ctx.lineWidth=R*2;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.stroke();
+  // Dashes travel ALONG the heading, so the mark states a direction as well as a place — a static line
+  // says "something crosses here" and leaves out the half you act on.
+  ctx.strokeStyle=hexA(COL.violet,0.22+0.55*a); ctx.lineWidth=2;
+  ctx.setLineDash([16,13]); ctx.lineDashOffset=-elapsed*140;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.stroke();
+  ctx.setLineDash([]);
+}
+function drawCometLanes(){
+  ctx.save();
+  for(const e of enemies){
+    if(!e.comet || e.dead || !(e.hold>0)) continue;
+    const sp=Math.hypot(e.fvx||0, e.fvy||0); if(sp<0.01) continue;
+    // ⚠️ OFF-SCREEN ONLY, and it self-terminates — no timer, no flag to clear. Once the body is in frame
+    // it IS its own sign, and this file's rule is that a body arriving on a mark is drawn OVER it; a lane
+    // still under a visible comet would be the sign competing with the thing it announced.
+    const dx=Math.max(0,-e.x,e.x-W), dy=Math.max(0,-e.y,e.y-H), out=Math.hypot(dx,dy);
+    if(out<=e.r) continue;
+    // Full strength while it is far — so it takes over from the telegraph at the same brightness the
+    // telegraph ended on — then fades across the last 140px, which is the body's own entrance.
+    cometLane(e.x, e.y, e.fvx/sp, e.fvy/sp, e.hold*60*sp, clamp(out/140,0,1));
+  }
+  ctx.restore();
+}
 function drawWarns(){
   for(const w of warns){
     const f=clamp(1-w.life/w.max,0,1);       // 0 at the warning, 1 at the arrival

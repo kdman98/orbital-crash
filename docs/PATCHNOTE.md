@@ -44,6 +44,19 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### The Comet's lane outlives its telegraph `v2`
+The first version marked **only the entry**, and that was worse than no warning. `warnForm` clears its
+mark the instant it fires, but a Comet spawns off-screen and `trail` pushes later bodies much further
+out — measured at the moment the lanes vanished: **4 bodies, 616–691px outside the viewport, 1.63s of
+blind time** before the first was visible. A 1.1s warning that then withdraws its information for longer
+than it showed it says *something is coming*, refuses to say where, and makes you wait.
+⚠️ **A telegraph has to last until the thing it announces can be seen.**
+
+Same lane now drawn from two places — `warnForm` before the bodies exist, `drawCometLanes` after, for any
+Comet still off-screen — through one shared `cometLane` helper so the halves cannot drift into drawing
+different lines for one flight. It self-terminates on the off-screen test rather than a timer: in frame,
+a body *is* its own sign. Re-measured: **0 blind frames**, 66 of telegraph handing to 176 of live lane.
+
 ### The Wish is out of the live path, one commit after landing `v2`
 Played, and it **cuts the tempo of the whole game**. An auto-opening picker in a game whose texture is
 continuous stops the run several times a minute, and ⚠️ **no threshold fixes the shape of that** — the

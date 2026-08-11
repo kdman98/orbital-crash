@@ -1083,6 +1083,20 @@ at telegraph time, so a shower arrives aimed at the position you held ~1.1s earl
 NEAR the Star rather than at it"* the aim jitter already builds in, now with a reason the player can act
 on. Move once the lanes are drawn and you have dodged; stand still and you have not.
 
+⚠️ **THE LANE OUTLIVES THE TELEGRAPH, AND THE FIRST VERSION DID NOT — WHICH WAS WORSE THAN NO WARNING.**
+`warnForm` clears its mark the instant it fires, but a Comet *spawns off-screen*, and `trail` pushes the
+later bodies much further out. Measured at the moment the lanes vanished: **4 bodies, 616–691px outside
+the viewport, and 1.63s before the first was visible** — a warning that lasted 1.1s then withdrew its
+information for longer than it had shown it. It said *something is coming*, refused to say where, and
+made you wait. **A telegraph has to last until the thing it announces can be seen.**
+
+So the same lane is drawn from **two** places: `formComet`'s `warnForm` before the bodies exist, and
+`drawCometLanes` after they do, for any Comet still off-screen. One shared `cometLane` helper, so the two
+halves cannot drift into drawing different lines for one flight. It **self-terminates** — no timer and no
+flag, because the off-screen test is the gate: once a body is in frame it *is* its own sign, and this
+file's rule is that a body arriving on a mark is drawn over it. Re-measured after: **0 blind frames**,
+66 of telegraph handing off to 176 of live lane.
+
 ⚠️ **The spread is the whole thing, or it becomes a Wall** — which is another formation's job and a
 different demand on the player. Three separate spreads keep it a stream you weave through rather than a
 line you must be outside of: **lateral**, abreast of the shared heading; **trail**, pushing each body
