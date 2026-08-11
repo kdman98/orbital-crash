@@ -14,6 +14,54 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-11
 
+### The sky cache has a number at last, and it is half the size it was `v2`
+**The open question is answered for a composited rig.** `__orbital.probe()` — a frame-interval instrument
+that flushes to `localStorage` so a later launch reads it and nothing touches the machine mid-measurement
+— gives the sky cache **~13fps** on the iPhone 17 Pro simulator: **56.0fps against 42.5** in the same
+menu scene at `every=8` vs `every=1`. It also confirms the software-raster claim the file has leaned on
+for months: with **27 entities on field, cached frames still held 61fps, p95=17ms, 0.2% over 20ms.** The
+play layer really is nearly free; the background really was all of it.
+
+⚠️ **This does not close the open item, for the reason that item already gave itself.** The simulator
+composites — the defect that voided every earlier attempt — but it draws on the host Mac's GPU, and the
+cache was bet on fill-rate-bound phone silicon. The paragraph predicting exactly this was written before
+the run and is kept.
+
+**A repaint cost +6.7 to +10.8ms over a cache hit, and an Act transition pays it on EVERY frame** for the
+150–176 frames `easePalette` takes to close — four times a lap, measured at **42fps sustained**. That was
+the finding the rest of this entry fixes.
+
+**`SKY.scale=0.5` — the cache is painted at half linear resolution and stretched on the blit**, a quarter
+of the pixels. Legal only because `paintSky` is eight full-screen fills that are *all* smooth gradients
+(a radial base, five clouds, a linear haze, the vignette — not the "gradient plus five clouds" the docs
+said), and because the one layer with crisp marks, the starfield, is drawn per frame **over** the cache.
+Repaint premium fell to **+0.8 to +1.9ms**, and a real Act transition — 149 frames caught live, against
+the 150 the ease was computed to take — ran at **17.0ms · 58.7fps with zero frames over 20ms**.
+
+**ProMotion enabled**, `CADisableMinimumFrameDurationOnPhone`. iOS clamps a WKWebView's `rAF` to 60Hz
+without it. Safe because the sim is fixed-step — but ⚠️ **two things counted RENDERED FRAMES, which is
+correct at 60 and wrong at 120**: the sky cadence (now wall-clock; a frame counter would have doubled the
+repaint rate and undone the paragraph above) and the death shatter drift, the one particle path outside
+`step()` (now `Math.pow(0.92, dt*60)`). ⚠️ **Unverified — the host Mac is a 60Hz Air, so every 60fps
+ceiling in these tables is the laptop's display, not the game's.** Needs a real device.
+
+**Starfield: 258 → 232** (135/70/27), thinned 10% uniformly so the layer ratio that carries the depth
+survives. A look decision, and it bought nothing: measured off the stars' own radii, **~101 survive the
+cull per frame for 404 device px of ink — 0.03% of ONE full-screen fill**, where the sky does eight.
+⚠️ I first reported 258 drawn per frame; **only ~101 are**, the rest sit outside the padded field.
+What actually cost was per-star bookkeeping, independent of count and brightness: a fresh `rgba(...)`
+string per star per frame — `toFixed(3)`, template literal, and a CSS parse the engine cannot cache — and
+its own `beginPath`/`fill`. Now colour tables at 1/64 alpha and one fill per bucket: **101 fills and 96
+allocations → 46 and zero**, proven output-identical (same stars, same positions, zero hue mismatches,
+worst alpha error 0.00759 against the 0.00781 bound, zero chained arcs). ⚠️ **No frame-time gain is
+claimed** — vsync hides anything under 16.7ms.
+
+⚠️ **A full 45-second measurement window was scored as data while the app ran a dead script.** The probe
+was armed by patching the gitignored device copy; the patch ended in a `//` comment that swallowed the
+rest of its line, `}catch(e){…}` included. The *source* was syntax-checked and passed; the *patched copy*
+was not. And a packaged web app with a dead script does not look dead — the static markup still rendered
+a laid-out menu. Staging now parses the artefact it is about to ship. See *Traps*.
+
 ### The Anomalies are cosmic now, the missiles are five shapes, and the sky drifts `v2`
 **Anomaly bodies.** Emitter = a **star** — limb-darkened photosphere, granulation, six prominences on
 `hexRot`. Sentinel = a **vortex**, three spiral arms, because this is the kind that orbits you and a

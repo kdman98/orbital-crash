@@ -1231,9 +1231,18 @@ function resize(){
 // is always moving THROUGH something. Rates are in design units per second and keep the depth ordering:
 // far drifts slowest, near fastest, same ratio the parallax column already uses.
 const STAR_LAYERS=[
-  {n:150, r:[0.5,1.1], a:[0.20,0.45], par:0.012, flow:1.6},   // far: dust, barely moves
-  {n:78,  r:[0.9,1.7], a:[0.35,0.70], par:0.032, flow:4.2},
-  {n:30,  r:[1.4,2.5], a:[0.55,0.95], par:0.075, flow:9.0},   // near: the ones that sell the motion
+  // ⚠️ THINNED 10% ACROSS ALL THREE LAYERS (was 150/78/30 = 258), and the cut is uniform ON PURPOSE:
+  // the ratio between the layers IS the depth, so taking it out of one layer would flatten the field
+  // rather than quieten it. This was a LOOK decision, not a performance one — the starfield is under
+  // four hundredths of one percent of a single full-screen fill (see THE STAR COLOUR TABLES), so the
+  // count was never what anything cost.
+  //   Note that `initStars` walks one seeded stream, six draws per star, so changing any `n` reshuffles
+  // every layer AFTER it too. This is not the same sky minus 26 stars; it is a new arrangement at a
+  // lower density. Nothing depends on the old one — the seed exists to keep the sky stable across
+  // reloads, not across edits.
+  {n:135, r:[0.5,1.1], a:[0.20,0.45], par:0.012, flow:1.6},   // far: dust, barely moves
+  {n:70,  r:[0.9,1.7], a:[0.35,0.70], par:0.032, flow:4.2},
+  {n:27,  r:[1.4,2.5], a:[0.55,0.95], par:0.075, flow:9.0},   // near: the ones that sell the motion
 ];
 let stars=[];
 function initStars(){
@@ -1254,13 +1263,51 @@ function initStars(){
     return {cfg:L, fw, fh, list:out};
   });
 }
+// =====================================================================
+//  THE STAR COLOUR TABLES — the starfield's cost was never its ink
+// =====================================================================
+// 232 stars exist but the field is padded to W+260 x H+260, so only about 101 survive the cull in a
+// given frame — measured off their own radii, not assumed. That is 404 device px of fill against a
+// 1,405,392 px screen: 0.03% of ONE full-screen fill, where the sky does eight. So the count was never
+// the expense, and thinning the field is a look decision that buys nothing here. What WAS the expense:
+// the old inner loop built a fresh `rgba(...)` string per star per frame — a toFixed(3), a template
+// literal, and a CSS colour parse the engine cannot cache because the string is novel every time —
+// then issued its own beginPath/fill. Measured on one frame: 101 fills, 101 fillStyle assignments and
+// 96 distinct strings built, none of which depend on how bright or how numerous the stars are.
+//   These tables make the strings constant and let the fills batch. Alpha is quantised to 1/64, which
+// is below the step at which a 1-2px dot reads as changing brightness, so a twinkling star walks a
+// staircase nobody can see. Verified against the original on identical inputs: same stars, same
+// positions, zero hue mismatches, worst alpha error 0.00759 against the 0.00781 quantiser bound —
+// and 101 fills and 96 string allocations a frame became 46 and zero.
+//   ⚠️ ONE REAL BEHAVIOUR CHANGE, AND IT IS BOUNDED. Subpaths inside a single fill() are filled once
+// under the nonzero rule, so two stars that OVERLAP and land in the same bucket now blend additively
+// once rather than twice. With ~1,074 px of stars scattered over 1.4M px, and the pair also needing to
+// share a 1/64 alpha bucket and a colour class, that is a handful of pixels a session at most.
+const STAR_Q=64;
+const STAR_WHITE=[], STAR_WARM=[], STAR_BW=[], STAR_BM=[];
+for(let i=0;i<=STAR_Q;i++){
+  STAR_WHITE.push(`rgba(255,255,255,${(i/STAR_Q).toFixed(3)})`);
+  STAR_WARM.push('');                                  // filled by starWarmTable once palCur exists
+  STAR_BW.push([]); STAR_BM.push([]);                  // reused every frame; a frame allocates nothing
+}
+let starWarmKey='';
+// The warm stars carry the biome tint, which EASES — so this table cannot be built once. Keyed on the
+// tint rounded to steps of 2/255: finer than that is invisible at these alphas, and it stops an Act
+// transition from rebuilding 65 strings on every frame of the fade.
+function starWarmTable(){
+  const t=palCur.tint, k=((t[0]|0)>>1)+','+((t[1]|0)>>1)+','+((t[2]|0)>>1);
+  if(k===starWarmKey) return;
+  starWarmKey=k;
+  for(let i=0;i<=STAR_Q;i++) STAR_WARM[i]=rgbStr(t, i/STAR_Q);
+}
 function drawStars(){
   if(!stars.length) return;
   // Parallax is driven by where the Star is, so it only moves when YOU do. Comfort mode keeps the
   // depth but takes most of the travel out.
   const px=P?P.x:W/2, py=P?P.y:H/2;
   const damp=store.reduceMotion?0.3:1;
-  ctx.globalCompositeOperation='lighter';
+  starWarmTable();
+  for(let i=0;i<=STAR_Q;i++){ STAR_BW[i].length=0; STAR_BM[i].length=0; }
   for(const layer of stars){
     const off=layer.cfg.par*damp;
     // ⚠️ `elapsed`, NOT a frame counter, and NOT damped by reduceMotion. Comfort mode takes the travel
@@ -1268,19 +1315,39 @@ function drawStars(){
     // swing hard and fast. A slow constant drift is the opposite kind of motion and is what the mode
     // is for: it keeps the sky alive at a rate nothing sudden happens at.
     //   `elapsed` only advances inside step(), so the drift correctly freezes on pause and on the death
-    // screen while the palette keeps easing. That is the same split the sky cache's frame counter was
-    // written to avoid, and here it is the behaviour we want: a paused field should not be sailing.
+    // screen while the palette keeps easing. The sky cache reaches the same result from the other side:
+    // it repaints on a WALL-CLOCK interval, which is what keeps it honest at 120Hz. Both want the same
+    // thing here — a paused field should not be sailing.
     const fx=-elapsed*layer.cfg.flow;
     const ox=-(px-W/2)*off + fx, oy=-(py-H/2)*off;
     for(const st of layer.list){
-      // wrap into the padded field, then draw at the offset position
+      // wrap into the padded field, then bucket it by quantised alpha — no drawing in this pass
       let x=(st.x+ox)%layer.fw; if(x<0)x+=layer.fw;
       let y=(st.y+oy)%layer.fh; if(y<0)y+=layer.fh;
       x-=130; y-=130;
       if(x<-4||x>W+4||y<-4||y>H+4) continue;
       const tw=0.72+0.28*Math.sin(elapsed*st.sp+st.tw);
-      ctx.fillStyle=st.warm?rgbStr(palCur.tint,st.a*tw):`rgba(255,255,255,${(st.a*tw).toFixed(3)})`;
-      ctx.beginPath(); ctx.arc(x,y,st.r,0,TAU); ctx.fill();
+      let q=(st.a*tw*STAR_Q+0.5)|0; if(q<0)q=0; else if(q>STAR_Q)q=STAR_Q;
+      // Flat x,y,r triples rather than objects, so a full frame of bucketing allocates nothing.
+      (st.warm?STAR_BM[q]:STAR_BW[q]).push(x,y,st.r);
+    }
+  }
+  // One fillStyle and one fill per occupied bucket.
+  // ⚠️ THE moveTo IS LOAD-BEARING. arc() draws a line from the current point to where the arc starts,
+  // so a second arc in the same path would be chained to the first by a stray segment across the sky.
+  // Moving to the arc's own start (angle 0, i.e. x+r) is what keeps each dot a separate island.
+  ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<=STAR_Q;i++){
+    const bw=STAR_BW[i], bm=STAR_BM[i];
+    if(bw.length){
+      ctx.fillStyle=STAR_WHITE[i]; ctx.beginPath();
+      for(let j=0;j<bw.length;j+=3){ ctx.moveTo(bw[j]+bw[j+2],bw[j+1]); ctx.arc(bw[j],bw[j+1],bw[j+2],0,TAU); }
+      ctx.fill();
+    }
+    if(bm.length){
+      ctx.fillStyle=STAR_WARM[i]; ctx.beginPath();
+      for(let j=0;j<bm.length;j+=3){ ctx.moveTo(bm[j]+bm[j+2],bm[j+1]); ctx.arc(bm[j],bm[j+1],bm[j+2],0,TAU); }
+      ctx.fill();
     }
   }
   ctx.globalCompositeOperation='source-over';
@@ -6660,7 +6727,7 @@ function easeArr(a,b,e){ let m=0; for(let i=0;i<3;i++){ const d=b[i]-a[i]; a[i]+
 // ⚠️ This initialiser is NEVER READ. render() calls easePalette() and then blitSky(), in that order,
 // and easePalette assigns palMoving unconditionally — so by the time blitSky looks, this frame's value
 // has already replaced it. Kept only so the binding is never observed undefined. What actually
-// guarantees frame one blits a FILLED cache rather than a blank one is `skyAge=1e9` below.
+// guarantees frame one blits a FILLED cache rather than a blank one is `skyPaintT=-1e9` below.
 let palMoving=true;
 function easePalette(){
   const inMenu=(state==='menu'); // 'ready' and 'paused' are IN-RUN — the biome must not lurch back to Act I
@@ -6721,8 +6788,27 @@ function easePalette(){
 // where frames are really composited, and a `const` costs a full rebuild-and-reinstall per data point.
 // Sweeping it from the seam (`__orbital.SKY.every=1`, i.e. repaint every frame) turns the A/B into two
 // launches. **The shipped value is 8 and nothing in the game ever writes to it.**
-const SKY={every:8};
-let skyCv=null, skyCx=null, skyAge=1e9;
+// `scale` is the resolution the cache is PAINTED at, as a fraction of the backing store; the blit
+// stretches it back to full size. 0.5 is a quarter of the pixels and therefore a quarter of the fill.
+//   ⚠️ THIS IS ONLY LEGAL BECAUSE OF WHAT IS **NOT** IN THIS CACHE. paintSky is eight full-screen
+// fills and every one of them is a smooth gradient — one radial, five nebula clouds, a linear haze, a
+// vignette. There is no high-frequency detail anywhere in it, so bilinear upscaling has nothing to
+// destroy (and interpolation, if anything, hides banding rather than adding it). The one layer that
+// WOULD have shown it — the starfield — is drawn per frame OVER this, outside the cache, because it
+// parallaxes and flows. Check that that is still true before lowering this further: the first thing to
+// move a crisp mark INTO paintSky makes this a blur, not an optimisation.
+// Measured 2026-08-11, iPhone 17 Pro sim, 1748x804 backing: a repaint frame cost +6.7 to +10.8ms over
+// a cache hit, and a sustained repaint (every=1, i.e. what an Act transition does for 150-176 frames)
+// held only 42fps against 59. That cost is fill, and fill is what this divides.
+const SKY={every:8, scale:0.5};
+// ⚠️ THE CADENCE IS WALL-CLOCK, NOT A FRAME COUNT, and that is what makes it survive ProMotion.
+// `SKY.every` is still expressed in 60Hz frames because that is the unit it was measured and tuned in,
+// but the gate below converts it to milliseconds. Counting RENDERED frames would silently double the
+// repaint RATE — and so the fill cost — the moment the display ran at 120, which is exactly the change
+// this cache exists to absorb. A timestamp also makes `skyInvalidate()` mean the same thing it always
+// did: force the next call to repaint.
+const SKY_MS=()=>SKY.every*(1000/60);
+let skyCv=null, skyCx=null, skyPaintT=-1e9;
 // ⚠️ CALL THIS WHENEVER `palCur` IS JUMPED RATHER THAN EASED. blitSky repaints on `palMoving` or every
 // SKY.every frames, and `palMoving` is only true while easePalette is CROSSING to a target — so a site
 // that assigns palCur directly lands exactly between the two conditions and the cache serves the
@@ -6731,7 +6817,7 @@ let skyCv=null, skyCx=null, skyAge=1e9;
 // the same colour. A deep start is the first thing in this game that can begin in a DIFFERENT sky from
 // the one last rendered, and it turns that into a visible wrong-colour flash on the opening frames.
 // Boss Rush jumps to ACTS[2] the same way and had the same latent defect.
-function skyInvalidate(){ skyAge=1e9; }
+function skyInvalidate(){ skyPaintT=-1e9; }
 function paintSky(c){
   const g=c.createRadialGradient(W/2,H*0.42,0,W/2,H*0.42,Math.max(W,H)*0.78);
   g.addColorStop(0,rgbStr(palCur.bg1,1)); g.addColorStop(1,rgbStr(palCur.bg2,1));
@@ -6764,21 +6850,34 @@ function paintSky(c){
 }
 function blitSky(){
   if(!skyCv){ skyCv=document.createElement('canvas'); skyCx=skyCv.getContext('2d',{alpha:false}); }
-  // Sized off canvas.width/height rather than a recomputed W*S*DPR: one source of truth, so the
-  // cache cannot drift out of step with whatever resize() decided. A size change is always a rebuild.
-  if(skyCv.width!==canvas.width||skyCv.height!==canvas.height){
-    skyCv.width=canvas.width; skyCv.height=canvas.height; skyAge=1e9;
+  // Still sized off canvas.width/height rather than a recomputed W*S*DPR — one source of truth, so the
+  // cache cannot drift out of step with whatever resize() decided — but now through SKY.scale. Rounded
+  // and floored at 1 so a 0-viewport at boot cannot ask for a 0-wide canvas, which throws on some
+  // engines and silently blanks the sky on others. A size change is always a rebuild.
+  const cw=Math.max(1,Math.round(canvas.width*SKY.scale)), ch=Math.max(1,Math.round(canvas.height*SKY.scale));
+  if(skyCv.width!==cw||skyCv.height!==ch){
+    skyCv.width=cw; skyCv.height=ch; skyPaintT=-1e9;
   }
-  // `palMoving` first, so an Epoch flip repaints on the frame it happens rather than up to eight
-  // frames later. When it is true the counter is not advanced — the reset below covers it either way.
-  if(palMoving || ++skyAge>=SKY.every){
-    skyAge=0;
-    skyCx.setTransform(S*DPR,0,0,S*DPR,0,0);   // same transform as ctx, so paintSky draws design units
+  // `palMoving` first, so an Epoch flip repaints on the frame it happens rather than up to SKY.every
+  // frames later. The stamp below is set either way, so the cadence restarts from the last real paint.
+  const nowMs=performance.now();
+  if(palMoving || nowMs-skyPaintT>=SKY_MS()){
+    if(PROBE.on) PROBE.sky = palMoving?2:1;    // 2 = act transition, 1 = routine cadence — see THE FRAME PROBE
+    skyPaintT=nowMs;
+    // ctx's transform TIMES the cache scale, so paintSky still draws in design units and needs no
+    // knowledge that it is painting into a smaller surface than the one that will be shown.
+    skyCx.setTransform(S*DPR*SKY.scale,0,0,S*DPR*SKY.scale,0,0);
     paintSky(skyCx);
   }
+  else if(PROBE.on) PROBE.sky=0;
   // save/restore rather than assuming the base transform is installed: this must stay correct if it
   // is ever called from somewhere that has already translated.
-  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(skyCv,0,0); ctx.restore();
+  // The 9-arg form: the cache is smaller than the screen now, so the destination size must be stated.
+  // Smoothing is left ON deliberately — nearest-neighbour here would turn the gradients into visible
+  // steps, which is the one way this change could actually be seen.
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+  ctx.drawImage(skyCv,0,0,skyCv.width,skyCv.height,0,0,canvas.width,canvas.height);
+  ctx.restore();
 }
 // The gas. Sits between the starfield and the play layer, and takes a small parallax of its own so the
 // background reads as three distinct depths rather than one flat plate: stars far, gas nearer, arena at
@@ -8082,7 +8181,13 @@ function frameBody(now){
   if(state==='dead'){
     if(deathRevealT>0){ // shatter drift: the world settles before the ledger appears
       deathRevealT-=dt;
-      for(const p of parts){ p.vx*=0.92; p.vy*=0.92; p.x+=p.vx*0.5; p.y+=p.vy*0.5; p.life-=dt*0.6; }
+      // ⚠️ THE ONE PLACE PARTICLES MOVE ON THE RENDER CLOCK RATHER THAN THE FIXED TICK — the sim is
+      // stopped by now, so `step()` is not running and stepDecay cannot do this. Damping and travel are
+      // therefore scaled to REAL dt, not applied once per frame: a flat `*=0.92` per rendered frame
+      // settles twice as fast on a 120Hz panel, which would make the death drift a different animation
+      // depending on the display. `k` is 0.92 per 60Hz frame, held to that rate at any refresh.
+      const k=Math.pow(0.92, dt*60), travel=dt*60*0.5;
+      for(const p of parts){ p.vx*=k; p.vy*=k; p.x+=p.vx*travel; p.y+=p.vy*travel; p.life-=dt*0.6; }
       if(deathRevealT<=0) revealDead();
     }
     if(deadCountT>0){ // score till-count
@@ -8119,9 +8224,84 @@ let frameErrs=0;
 // so a reader takes two samples and divides; an on-screen average would need a window length, and
 // picking one is how you end up measuring the window instead of the game.
 let frameN=0, frameT0=0;
+// =====================================================================
+//  THE FRAME PROBE — off unless asked, because the reading must not be the load
+// =====================================================================
+// Opt in with `localStorage.orbitalcrash_probe='1'` and reload; read it back with `__orbital.probe()`.
+// Off, it costs one boolean test per frame and writes nothing.
+//   It records FRAME INTERVALS, never JS wall time, and that distinction is the entire point. Canvas
+// draw calls are QUEUED, so timing the JS around them prices the enqueue and not the draw — the exact
+// mistake documented under THE SKY CACHE, where it inverted the result and made the cache look slower
+// than no cache. A frame whose work overruns vsync stretches the NEXT rAF interval, and that stretch is
+// both real and the thing a player actually feels.
+//   Three accumulators, because the question this exists to answer is WHICH sky path costs:
+//     0 blit    — served from cache, one drawImage
+//     1 cadence — routine repaint, every SKY.every-th frame
+//     2 pal     — repaint forced by palMoving, i.e. AN ACT TRANSITION (~150-176 frames each, x4 a lap)
+// An interval is charged to the frame that STARTED it, so PROBE.sky is read at the top of the frame
+// AFTER the one that set it, before frameBody can overwrite it.
+//   It flushes to localStorage on a cadence so the answer survives the run without anything attaching
+// to read it. That is not fussiness: a simulator screenshot and a `log show` tail both land on the
+// machine being measured, and one landing inside a window once produced a 4x disagreement between two
+// rigs on the same change. The run writes; a LATER, separate launch reads.
+// ⚠️ A simulator number cannot speak for phone hardware — the sim draws on the host Mac's GPU. This is
+// built into the game precisely so the same instrument can be read off a real device.
+const PROBE={ on:false, sky:0, last:0, flush:240, n:0, acc:null, t0:0 };
+function probeMake(){ return {n:0, sum:0, max:0, h:new Array(51).fill(0)}; }
+function probeInit(){
+  try{ PROBE.on = LS.getItem('orbitalcrash_probe')==='1'; }catch(e){ PROBE.on=false; }
+  if(!PROBE.on) return;
+  PROBE.acc=[probeMake(),probeMake(),probeMake()]; PROBE.last=0; PROBE.n=0;
+  PROBE.t0=performance.now();
+}
+function probeTick(now){
+  const a=PROBE.acc[PROBE.sky];
+  if(PROBE.last){
+    const dt=now-PROBE.last;
+    a.n++; a.sum+=dt; if(dt>a.max)a.max=dt;
+    a.h[dt<0?0:Math.min(50,(dt*0.5)|0)]++;      // 2ms buckets to 100ms, then one overflow bin
+  }
+  PROBE.last=now;
+  if(++PROBE.n>=PROBE.flush){ PROBE.n=0; probeSave(); }
+}
+function probeSave(){
+  if(!PROBE.on) return;
+  const j=JSON.stringify(probeRead(true));
+  try{ LS.setItem('orbitalcrash_probe_out', j); }catch(e){}
+  // Also to the console, because a packaged WebView has no other way out that does not require
+  // attaching a debugger DURING the run. One line every PROBE.flush frames (~4s at 60) is nothing next
+  // to a frame, and the reader tails the log ONCE after the run rather than polling it.
+  console.log('[probe] '+j);
+}
+// Percentiles come off the histogram rather than a kept sample list: a 51-int array is bounded, and
+// the mean alone cannot tell a steady 20ms from a 16ms that hitches every second — which is the shape
+// of failure this is looking for.
+function probeRead(raw){
+  if(!PROBE.acc) return {on:PROBE.on, note:'probe not armed; set localStorage.orbitalcrash_probe=1 and reload'};
+  const pct=(h,n,p)=>{ let want=n*p, c=0;
+    for(let i=0;i<h.length;i++){ c+=h[i]; if(c>=want) return i>=50?100:i*2+1; } return 0; };
+  // `raw` attaches the histograms. Every record here is CUMULATIVE FROM BOOT, so a run that sat in the
+  // menu before it played has both mixed into one number — and the menu has no act transitions at all,
+  // which would flatter the very comparison this exists to make. Histograms subtract; percentiles do
+  // not. So the saved record carries the arrays and the windows get differenced offline.
+  const one=a=>a.n?{frames:a.n, mean:+(a.sum/a.n).toFixed(2), fps:+(1000*a.n/a.sum).toFixed(1),
+                    p50:pct(a.h,a.n,0.50), p95:pct(a.h,a.n,0.95), p99:pct(a.h,a.n,0.99),
+                    max:+a.max.toFixed(1), over20:+(100*a.h.slice(10).reduce((s,v)=>s+v,0)/a.n).toFixed(1),
+                    ...(raw?{h:a.h}:{})}
+                 : {frames:0};
+  // `rev` is the new-code marker. There is no build stamp in this file, and a device can silently run
+  // a copy behind HEAD (three gitignored copies exist since the Capacitor port), so the reader asserts
+  // THIS number before believing a single figure below it. Bump it whenever the fields change.
+  return { on:true, rev:1, secs:+((performance.now()-PROBE.t0)/1000).toFixed(1),
+           st:state, act:(typeof act!=='undefined'?act:null), ents:(enemies?enemies.length:0),
+           dpr:DPR, S:+S.toFixed(3), cw:canvas.width, ch:canvas.height,
+           vw:Math.round(canvas.width/DPR), vh:Math.round(canvas.height/DPR), every:SKY.every,
+           blit:one(PROBE.acc[0]), cadence:one(PROBE.acc[1]), pal:one(PROBE.acc[2]) };
+}
 function frame(now){
   if(!frameT0) frameT0=now;
   frameN++;
+  if(PROBE.on) probeTick(now);
   try{ frameBody(now); frameErrs=0; }
   catch(err){
     console.error('[orbital-crash] frame fault',err);
@@ -8151,6 +8331,7 @@ function crashHalt(err){
   el('crashReload').onclick=()=>location.reload();
 }
 window.addEventListener('error',e=>{ console.error('[orbital-crash]',e.error||e.message); });  // surface faults outside the frame path (handlers, audio)
+probeInit();                 // must precede the first frame: an accumulator armed late measures a window it did not pick
 requestAnimationFrame(frame);
 
 // =====================================================================
@@ -9642,6 +9823,14 @@ window.__orbital=window.__polaris=window.__flux={
   // Two samples and a subtraction, rather than an average whose window this file would have had to pick.
   SKY,
   fps(){ return {frames:frameN, ms:Math.round(performance.now()-frameT0), every:SKY.every}; },
+  // THE FRAME PROBE (see its block above frame()). `probe()` reads the live accumulators; `probeArm()`
+  // sets the flag and reloads, because arming has to happen before the first frame to be worth reading.
+  // `probeLast()` returns the flushed record from a PREVIOUS run — that is the one to trust on a device,
+  // since reading a run while it is running is the load that has already corrupted one measurement.
+  probe:probeRead, probeSave,
+  probeArm(on){ try{ on===false?LS.removeItem('orbitalcrash_probe'):LS.setItem('orbitalcrash_probe','1'); }catch(e){}
+                location.reload(); },
+  probeLast(){ try{ return JSON.parse(LS.getItem('orbitalcrash_probe_out')||'null'); }catch(e){ return null; } },
   // ⚠️ overdrive() is PRESS, not toggle. A harness that calls it twice ignites once and never releases;
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},

@@ -82,10 +82,14 @@ paragraph goes in MECHANICS and this line points at it.
   (`queueKill`, `processKills`)
 - **Pop** — to destroy a Dot.
 - **Sky cache** — the background painted once into an offscreen canvas and blitted, rather than
-  repainted every frame. Rebuilt on **four** triggers: the palette *easing* after an Epoch flip, a frame
-  counter, a canvas size change, and an explicit invalidation wherever the palette **jumps** rather than
-  eases — a jump falls between the first two and would otherwise serve the previous sky.
-  (`blitSky`, `paintSky`, `skyInvalidate`, `SKY.every`, `palMoving`)
+  repainted every frame. Rebuilt on **four** triggers: the palette *easing* after an Epoch flip, a
+  **wall-clock** interval, a canvas size change, and an explicit invalidation wherever the palette
+  **jumps** rather than eases — a jump falls between the first two and would otherwise serve the previous
+  sky. Painted at half linear resolution and stretched on the blit.
+  (`blitSky`, `paintSky`, `skyInvalidate`, `SKY.every`, `SKY.scale`, `skyPaintT`, `palMoving`)
+- **Frame probe** — the off-by-default frame-*interval* instrument, armed from `localStorage` and flushed
+  back to it so a later launch reads the result without loading the machine mid-measurement. Splits
+  frames into cache hit / routine repaint / Act transition. (`__orbital.probe`, `PROBE`)
 - **Vacuum** — what a reversal does to opposite-colour Motes lying inert on the field.
 - **Purge** — destroying an Anomaly. The word means only this. (`killBoss`)
 

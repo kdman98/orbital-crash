@@ -2192,11 +2192,22 @@ is inside the exception, not breaking the rule.
 
 ### The sky cache
 
-The background — one full-screen radial gradient plus five nebula clouds — is painted into an offscreen
-canvas and blitted, not repainted per frame. It is the cheapest change in the game's history by ratio:
-measured under software rasterisation at 2560×1600, **the background was 68.7ms of a 69.3ms frame**,
-against **0.60ms for every enemy, mote, particle and lance on the field together**. A full-screen radial
-gradient alone costs 9.35ms against 0.63ms for a flat fill of the same area. Blitting is 0.03ms.
+The background is painted into an offscreen canvas and blitted, not repainted per frame. It is the
+cheapest change in the game's history by ratio: measured under software rasterisation at 2560×1600, **the
+background was 68.7ms of a 69.3ms frame**, against **0.60ms for every enemy, mote, particle and lance on
+the field together**. A full-screen radial gradient alone costs 9.35ms against 0.63ms for a flat fill of
+the same area. Blitting is 0.03ms.
+
+`paintSky` is **eight full-screen fills**, not the "gradient plus five clouds" this section said for
+months: a radial base, five nebula clouds, a linear depth haze, and the vignette. At the device's
+1748×804 backing store that is ~11M pixel writes per repaint, and it is why the repaint is fill-bound.
+
+**`SKY.scale` — the cache is painted at half linear resolution and stretched back on the blit**, so it
+costs a quarter of the pixels. ⚠️ **This is legal only because of what is NOT in the cache.** All eight
+fills are smooth gradients with no high-frequency detail, so bilinear upscaling has nothing to destroy;
+the one layer that would have shown it, the starfield, is drawn per frame *over* the cache because it
+parallaxes and flows. **The first thing to move a crisp mark into `paintSky` turns this into a blur
+rather than an optimisation.** Smoothing must stay on — nearest-neighbour would step the gradients.
 
 ⚠️ **Three rebuild triggers, and you must know all three before touching `easePalette`, `resize()` or the
 counter.** The cache is stale-by-design, so anything that changes what the sky *should* look like without
@@ -2211,17 +2222,25 @@ hitting one of these draws the previous picture:
    ⚠️ Its `= true` initialiser is **never read** and guarantees nothing: `render()` calls `easePalette()`
    and *then* `blitSky()`, and `easePalette` assigns `palMoving` unconditionally, so this frame's value
    has always replaced it before `blitSky` looks. See trigger 2 for what actually covers frame one.
-2. **`++skyAge>=SKY.every`** — a live object (`const SKY={every:8}`), not a bare const, and exported on
-   the seam, so the A/B this cadence exists to settle is `__orbital.SKY.every=1` rather than a rebuild
-   per data point. The shipped value is 8 and nothing in the game writes to it. ⚠️ **The counter is
-   FRAMES, not `elapsed`** — `elapsed` only advances inside `step()`, so a time-based clock would freeze
-   the sky on the menu, the pause and the death screen, which are exactly the states where `palCur` is
-   still easing somewhere new.
-   ⚠️ **`skyAge` is declared at `1e9`, and that — not anything about `palMoving` — is what makes frame
-   one blit a FILLED cache**: `++skyAge` clears any threshold, so the very first `blitSky` paints before
-   it draws. Lower that initial value and the first frame of every run blits a blank canvas.
-3. **A canvas size change**, unconditionally (`skyAge=1e9`). The cache is sized off `canvas.width/height`
-   rather than a recomputed `W*S*DPR`, so it cannot drift out of step with whatever `resize()` decided.
+2. **`performance.now()-skyPaintT >= SKY.every*(1000/60)`** — a live object (`const SKY={every:8,
+   scale:0.5}`), not a bare const, and exported on the seam, so the A/B this cadence exists to settle is
+   `__orbital.SKY.every=1` rather than a rebuild per data point. The shipped value is 8 and nothing in
+   the game writes to it.
+   ⚠️ **THE CADENCE IS WALL-CLOCK, AND IT USED TO BE A FRAME COUNT.** `SKY.every` is still *expressed* in
+   60Hz frames because that is the unit it was tuned in, but the gate converts it to milliseconds.
+   Counting rendered frames silently doubles the repaint *rate* — and so the fill cost — the moment the
+   display runs at 120Hz, which is the exact load this cache exists to absorb. That became live when
+   `CADisableMinimumFrameDurationOnPhone` was added; see *ProMotion* below.
+   ⚠️ **It is `performance.now()`, NOT `elapsed`, and the distinction is the whole reason the old note
+   said "FRAMES, not `elapsed`".** `elapsed` only advances inside `step()`, so an `elapsed`-based clock
+   would freeze the sky on the menu, the pause and the death screen — exactly the states where `palCur`
+   is still easing somewhere new. A wall clock has neither problem.
+   ⚠️ **`skyPaintT` is declared at `-1e9`, and that — not anything about `palMoving` — is what makes
+   frame one blit a FILLED cache**: any real timestamp clears the threshold, so the very first `blitSky`
+   paints before it draws. Raise that initial value and the first frame of every run blits a blank canvas.
+3. **A canvas size change**, unconditionally (`skyPaintT=-1e9`). The cache is sized off
+   `canvas.width/height` (times `SKY.scale`) rather than a recomputed `W*S*DPR`, so it cannot drift out
+   of step with whatever `resize()` decided.
 
 Everything the counter *does* cover is slower than the eye: clouds 0.25 design units/frame, parallax
 ~0.14, breath 0.006 of a 0.9–1.05 factor, intensity 0.0007 of an alpha of ~0.04. **The picture that cost
@@ -2232,13 +2251,128 @@ Stars composite above the clouds rather than between them. Exact in principle �
 near-exact in fact: of 7,500 sampled channels **three differ, each by exactly 1/255**, bounded at one
 8-bit round and unable to grow.
 
-⚠️ **There is no measured frame-rate improvement, and this section claims none.** Every GPU figure
-produced for the change was withdrawn: the dev pane's instrument inverts the work it aims at, since an
-uncomposited pane lets the browser discard frames it never shows — each frame's opaque background
-`fillRect` overwrites the last, so the sky never rasterises — while the cache canvas **is** read every
-frame by `drawImage` and cannot be discarded. Under that method the optimisation measures *slower*. **The
-honest status is a measured win in software rasterisation, unverified on GPU, and the only thing that
-settles it is a frame counter on the iOS build.** See *Open*.
+**There is now a measured frame-rate improvement, taken on a composited rig.** 2026-08-11, iPhone 17 Pro
+simulator, 874×402 CSS @ DPR 2 → 1748×804 backing, `S=0.502`, via `__orbital.probe()` writing to
+`localStorage` and read back after the run (see *The frame probe*):
+
+| arm | scene | cached frame | repaint frame | overall |
+|---|---|---|---|---|
+| `every=8` (ship) | menu, 0 entities | 16.8ms · 59.5fps | 27.6ms · 36fps | 56.0 fps |
+| `every=8` (ship) | play, 27 entities | 16.4ms · 61.0fps | 23.1ms · 43fps | 58.7 fps |
+| `every=1` (no cache) | menu, 0 entities | — | 23.8ms · 42fps | **42.5 fps** |
+
+**The cache is worth ~13fps** (56.0 against 42.5, same scene). It also confirms the software-raster claim
+that the play layer is nearly free: 27 entities on field and cached frames still held **61fps with
+p95=17ms and 0.2% of frames over 20ms**. A classification check that the instrument was honest — the
+ship arm's blit:cadence ratio came out **3149:450 = 7.00:1**, exactly the specified 1-in-8.
+
+⚠️ **This does NOT close the open question, and the reason is the rig, not the number.** The simulator
+composites — which was the defect that invalidated every earlier attempt — but it draws on the *host
+Mac's* GPU, and the cache was bet on fill-rate-bound phone hardware. See *Open*.
+
+⚠️ **Every earlier GPU figure remains withdrawn.** The dev pane's instrument inverts the work it aims at,
+since an uncomposited pane lets the browser discard frames it never shows — each frame's opaque
+background `fillRect` overwrites the last, so the sky never rasterises — while the cache canvas **is**
+read every frame by `drawImage` and cannot be discarded. Under that method the optimisation measures
+*slower*. **Do not quote those numbers; quote the table above and its rig.**
+
+**What `SKY.scale` then bought, measured the same way.** The repaint premium over a cached frame fell
+from **+6.7 to +10.8ms** down to **+0.8 to +1.9ms**, and a real Act transition — 149 frames caught in the
+wild, against the 150 the ease was computed to take — ran at **17.0ms · 58.7fps with zero frames over
+20ms**, where the same transition cost 42fps before. ⚠️ **The two pre-fix readings of the same quantity
+differ by 60% (+6.7 vs +10.8ms); that spread is the honest error bar on any single run here.**
+
+---
+
+### The frame probe
+
+`__orbital.probe()`, armed with `localStorage.orbitalcrash_probe='1'` and a reload. **Off by default; one
+boolean test per frame when off, and it writes nothing.** It is the instrument this file spent months
+saying did not exist.
+
+**It records frame INTERVALS, never JS wall time**, and that is the whole design. Canvas draw calls are
+queued, so timing the JS around them prices the enqueue and not the draw — the exact mistake that made
+every dev-pane figure worthless and inverted the cache's result. A frame whose work overruns vsync
+stretches the *next* rAF interval, and that stretch is both real and what a player feels.
+
+Three accumulators, because the question is *which* sky path costs: `blit` (cache hit), `cadence`
+(routine repaint), `pal` (repaint forced by `palMoving`, i.e. an Act transition). An interval is charged
+to the frame that *started* it. Percentiles come off 2ms histograms rather than a kept sample list, and
+the saved record carries the raw arrays because **every record is cumulative from boot** — a run that sat
+in the menu first has both mixed in, and the menu has no Act transitions at all, which would flatter the
+very comparison the probe exists to make. Histograms subtract; percentiles do not.
+
+⚠️ **It flushes to `localStorage` and a later launch reads it, because reading it live is the load.** This
+is the fix this file prescribed after two rigs disagreed 4× on the same change. It works: on a packaged
+WebView the record is readable straight off disk at
+`…/Containers/Data/Application/<id>/Library/WebKit/<bundle>/WebsiteData/Default/*/*/LocalStorage/localstorage.sqlite3`,
+as `hex(value)` decoded from **UTF-16LE** — `cast(value as text)` truncates at the first NUL and returns
+`{`. ⚠️ **`console.log` from a WKWebView does NOT appear under `log show --predicate 'process == "App"'`**;
+it belongs to the WebContent process. Half an hour was lost to an empty log that meant nothing.
+
+⚠️ **`rev` is the new-code marker.** There is no build stamp in `index.html` and the device runs a
+gitignored copy, so a measurement can silently price a build behind HEAD. Assert `probe().rev` before
+believing any figure under it.
+
+⚠️ **What the probe CANNOT see: anything under 16.7ms.** Vsync clamps a healthy frame to the refresh
+interval, so a cached frame reading 17.2ms might have done 3ms of work or 14ms. Every "we have headroom"
+claim from this instrument is really "we are not dropping frames," and the two are not the same sentence.
+
+### ProMotion, and the frame-counted trap it exposes
+
+`CADisableMinimumFrameDurationOnPhone` is `true` in `Info.plist`. Without it iOS clamps *all* animation —
+including a WKWebView's `requestAnimationFrame` — to 60Hz, so the game would render at 60 on a 120Hz
+panel no matter how much headroom it had.
+
+**What made it safe is that the simulation is fixed-step**: `acc += dt*timeScale; while(acc>=1/60) step()`
+on real elapsed time, so a faster render rate draws the same game more often rather than running it
+faster. Every enemy, lance and particle motion lives inside `step()` and is therefore untouched.
+
+⚠️ **Two things counted RENDERED FRAMES instead of seconds, and both were correct at 60 and wrong at
+120** — the worst shape a bug can have, because the rig everyone develops on hides it:
+
+- the sky cache cadence (`++skyAge>=SKY.every`) → now wall-clock, doubling the repaint rate at 120Hz
+- the death shatter drift (`p.vx*=0.92` per frame in `frameBody`, the one particle path outside `step()`
+  because the sim has stopped by then) → now `Math.pow(0.92, dt*60)`
+
+**Anything added later that ticks per frame rather than per `dt` will be twice as fast on a 120Hz phone
+and perfectly correct on every rig you test it on.**
+
+⚠️ **NONE OF THIS IS VERIFIED.** The simulator takes its refresh rate from the host Mac's display, and
+that Mac is a 60Hz MacBook Air — so every "60fps" in this file's tables is the *laptop's* ceiling, not the
+game's. Whether a frame fits in the 8.3ms a 120Hz budget allows is unknown and unknowable here. **This
+needs a real ProMotion device.** See *Open*.
+
+### The starfield
+
+258 → **232** stars across three parallax layers (135/70/27), thinned 10% uniformly. ⚠️ **The cut is
+uniform because the RATIO between layers is the depth** — taking it out of the dense far layer would
+flatten the field rather than quieten it. ⚠️ **`initStars` walks one seeded stream at six draws per star,
+so changing any `n` reshuffles every layer after it.** The seed keeps the sky stable across *reloads*,
+not across *edits*; a count change gives a new arrangement, not the old sky minus 26 dots.
+
+**The thin was a look decision and bought nothing measurable, which is the point worth recording.**
+Measured off the stars' own radii: 232 defined, **~101 survive the cull in a frame** (the field is padded
+to W+260 × H+260, so over half sit outside the viewport), for **404 device px of ink — 0.03% of ONE
+full-screen fill**, where the sky does eight. **The count was never what anything cost.**
+
+What *did* cost was per-star bookkeeping, and it was independent of both count and brightness: the old
+inner loop built a fresh `rgba(...)` string per star per frame — a `toFixed(3)`, a template literal, and
+a CSS colour parse the engine cannot cache because the string is novel every time — then issued its own
+`beginPath`/`fill`. **Now: colour tables indexed by alpha quantised to 1/64, and one fill per occupied
+bucket.** Measured on one frame, 101 fills and 96 string allocations became **46 and zero**.
+
+⚠️ **`moveTo` before every `arc` is load-bearing.** `arc()` draws a line from the current point to where
+the arc starts, so a second arc in the same path chains to the first by a stray segment across the sky.
+
+⚠️ **One bounded behaviour change**: subpaths inside a single `fill()` are filled once under the nonzero
+rule, so two stars that overlap *and* share a bucket now blend additively once rather than twice. With
+404px of stars over 1.4M px, that is a handful of pixels a session.
+
+⚠️ **The speedup is NOT measured and this section claims none** — 101 fills to 46 is a draw-call fact,
+not a frame-time result, and vsync hides anything under 16.7ms (see *The frame probe*). The change is
+justified by that count and by an A/B proving the output identical: same stars, same positions, zero hue
+mismatches, worst alpha error **0.00759 against the 0.00781 quantiser bound**, zero chained arcs.
 
 ---
 
@@ -2671,11 +2805,13 @@ inherited by every reader who has no reason to doubt it.
 the comment *"true until the first ease proves otherwise."* That reads as a guarantee about frame one,
 and it is false: `render()` calls `easePalette()` and *then* `blitSky()`, `easePalette` assigns
 `palMoving` unconditionally, and `blitSky` is its only reader — **so the initialiser has never once been
-read.** What actually makes frame one blit a filled cache is `skyAge` being declared at `1e9`, three
-lines away. The claim reached two files before anyone tested it.
+read.** What actually makes frame one blit a filled cache is the paint stamp being declared out of range,
+three lines away. The claim reached two files before anyone tested it. *(That stamp was `skyAge=1e9` when
+this was written and is `skyPaintT=-1e9` since the cadence went wall-clock for ProMotion — the trap is
+unchanged, only the symbol moved.)*
 
 ⚠️ **The precise gap: values were being verified and behavioural claims were not.** `SKY_EVERY=8` (since
-folded into `SKY.every`), `m>0.5` and `skyAge=1e9` were all re-read off the source, deliberately, because a *number* from the same
+folded into `SKY.every`), `m>0.5` and the paint stamp were all re-read off the source, deliberately, because a *number* from the same
 author had been wrong earlier the same day. `palMoving=true`'s *behaviour* was taken from prose — and a
 comment sitting on the declaration line is the most authoritative-looking place a wrong claim can live.
 **Numbers get audited because they look checkable; sentences about what a line ensures do not, and they
@@ -2712,6 +2848,25 @@ provably spent no entropy: added lines matching `Math.random|rand(|rnd(` came to
 or removed matching `spawnBurst|spawnRing|pushText|sfx.|queueKill` came to **0**. ⚠️ **Run that grep as
 part of claiming an oracle pass**, in both directions on the diff. A green fingerprint on a diff nobody
 checked for entropy is worth exactly as much as a red one.
+
+⚠️ **SYNTAX-CHECK THE ARTEFACT YOU SHIP, NOT THE SOURCE YOU EDITED.** 2026-08-11, arming the frame probe
+for a device run: `index.html` stays clean and the gitignored `ios/App/App/public/index.html` is patched
+instead, so the measurement build differs from source by design. The patch replaced a line with one
+ending `// MEASUREMENT BUILD` — and **the `//` swallowed the rest of that line, `}catch(e){…}` included**,
+leaving an unclosed `try`. The source was checked with `node --check` and passed. **The patched copy was
+never checked**, so the app ran a **dead inline script for a full 45-second measurement window** and the
+run was scored as data.
+
+⚠️ **The failure is quiet because the static markup still renders.** The menu drew, laid out, and read in
+English — because the HTML carries English defaults and needs no JS — so a screenshot looked like a
+working game. The tells were the blank canvas and a language that ignored the stored preference. **A
+packaged web app with a dead script does not look dead; it looks like the game with nothing happening in
+it.**
+
+The staging step now ends with: assert the arm marker present in the patched copy, assert the source
+*unmutated*, and parse the patched copy's `<script>` block with `vm.Script`. All four are positive
+confirmations of the artefact rather than of the intent. This is the same family as the three-copy build
+trap — **the thing you measured is not the thing you edited unless you checked the thing you measured.**
 
 ⚠️ **A check can make the provenance-for-truth substitution too, and one written the day after that trap
 was recorded did.** A PATCHNOTE coverage sweep asked *"did this commit touch `index.html`"* and reported
@@ -3521,8 +3676,16 @@ Drive `overdrive()` by hand through the seam if you are testing anything downstr
 
 Questions the game has not answered. These are live; everything else in this file is settled.
 
-**🟡 Does the sky cache actually raise the frame rate? Nobody knows, and the dev browser cannot tell
-us.** The software-rasterisation win is real and large (background 68.7ms of a 69.3ms frame → a 0.03ms
+**🟢 ANSWERED FOR A COMPOSITED RIG, 2026-08-11 — still open for phone hardware.** The sky cache is worth
+**~13fps**: 56.0 against 42.5 in the same menu scene on the iPhone 17 Pro simulator, via the
+`localStorage` method this item prescribed below. The full table and the `SKY.scale` follow-up live in
+*Feel → The sky cache*. ⚠️ **What remains open is exactly what the last paragraph of this item already
+said would remain open: the simulator runs on the host Mac's GPU, and the bet was on fill-rate-bound
+phone silicon.** A real device closes it; nothing else does. The prose below is kept because the trap it
+documents is still live, and because it predicted its own limit correctly.
+
+**🟡 Does the sky cache actually raise the frame rate on a PHONE? Still nobody knows.** The
+software-rasterisation win is real and large (background 68.7ms of a 69.3ms frame → a 0.03ms
 blit), but that is a *cost* measurement, not a frame-rate one, and every GPU figure produced for the
 change was withdrawn. ⚠️ **The instrument inverts the work it aims at** — an uncomposited pane lets the
 browser discard frames it never shows, because each frame's opaque background `fillRect` overwrites the
@@ -3536,10 +3699,11 @@ actually composited and cannot be discarded. Until then the honest claim is *"a 
 rasterisation, unverified on GPU"* — and ⚠️ **any copy or commit body asserting a frame-rate improvement
 is asserting something nobody has measured.** See *Feel → The sky cache*.
 
-**The instrument now exists. The number still does not.** `__orbital.fps()` returns a count of composited
-frames plus wall time, `SKY.every` is a live knob (1 = no cache), and the iOS shell has a DEBUG-only JS
-probe so both can be driven on a device. Three attempts were made on the iPhone 17 simulator and **none
-of them is admissible**:
+**The instrument now exists, and so does the number — see the 🟢 above.** `__orbital.probe()` supersedes
+`fps()` for this question (three accumulators, histograms, `localStorage` flush; see *Feel → The frame
+probe*). `SKY.every` is still the live knob (1 = no cache). ⚠️ **The three attempts below remain
+inadmissible and are kept as the record of how**, because the admissible run only differs from them by
+using the fix this item proposed:
 
 | rig | E8 (cache) | E1 (no cache) | "gain" |
 |---|---|---|---|
@@ -3558,7 +3722,17 @@ separate, later launch reads it, so nothing touches the machine while it measure
 ⚠️ **And a clean simulator number would still not close this item.** The simulator composites, which is
 the defect the open question names — but it runs on the host Mac's GPU, and the cache was bet on
 *fill-rate-bound* hardware. A Mac result can show the cache helps when frames genuinely composite; it
-cannot speak for an iPhone. **Closing this needs a real device.**
+cannot speak for an iPhone. **Closing this needs a real device.** *(2026-08-11: this paragraph was
+written before the admissible run and it called the outcome exactly. The run happened, the cache is worth
+~13fps where frames composite, and the item is still open for the reason stated here.)*
+
+**🟡 Can the game hold 120fps? Unknown, and this Mac cannot ever say.**
+`CADisableMinimumFrameDurationOnPhone` is now set, and the two frame-counted behaviours that would have
+been wrong at 120Hz are fixed (see *Feel → ProMotion*). But the host is a **60Hz MacBook Air**, and the
+simulator inherits the host's refresh — so **every 60fps ceiling in this file is the laptop's display,
+not the game's**, before and after every change. Worse, vsync clamps a healthy frame to 16.7ms, so the
+true work time of a cached frame is hidden: it could be 3ms or 14ms, and only the second of those fails
+at 120. **Needs a real ProMotion device, and the probe already writes somewhere a phone can be read.**
 
 **🟡 The grind exploit, restated without the cliff that was never there.** This item spent months
 reasoned as a threshold — a line at 18 HP, a *trigger condition*, a margin above it that widened and

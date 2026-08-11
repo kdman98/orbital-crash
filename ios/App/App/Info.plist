@@ -65,5 +65,19 @@
 	<true/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<!-- PROMOTION. iOS clamps ALL animation — including a WKWebView's requestAnimationFrame — to 60Hz
+	     unless this key says otherwise, so on a 120Hz phone the game would render at 60 no matter how
+	     much headroom it had. With it true, rAF is free to run at the panel's real rate.
+	       ⚠️ IT CANNOT BE VERIFIED IN THE SIMULATOR. The simulator takes its refresh rate from the host
+	     Mac's display, and the Mac this was added on is a 60Hz MacBook Air — so every "60fps" measured
+	     there was the LAPTOP's ceiling, not the game's. This key only shows an effect on real ProMotion
+	     hardware, and that is the only place it can be signed off.
+	       What made it safe to add: the simulation is fixed-step (`acc += dt; while(acc>=1/60) step()`),
+	     so a faster render rate draws the same game more often rather than running it faster. The two
+	     places that counted RENDERED frames instead of seconds — the sky cache cadence and the death
+	     shatter drift — were converted to wall-clock at the same time as this. Anything added later that
+	     ticks per frame rather than per dt will be twice as fast here and correct at 60. -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 </dict>
 </plist>
