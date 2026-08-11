@@ -12,6 +12,114 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-11
+
+### Skins get their own panel, and the locked slot finally says what unlocks it `v2`
+Out of the Settings row, into a **Skins** link on the menu — second in the row, next to Records, because
+Records is where the thing that unlocks them lives. Each slot draws the actual star through `STAR_FACE`,
+so what you pick is what the field draws, at a swatch size rather than as a word.
+
+⚠️ **The row's locked pill carried its trigger in `title=`, which needs a hover — so on iOS it said
+"Locked" and nothing else, forever.** Not a smaller version of the feature: the feature absent, on the
+only device this ships on. A panel has room to print the sentence under the slot, so it does. **A
+tooltip is not a fallback on a touchscreen; it is a deletion.**
+
+Locked art is **shown, dimmed** rather than withheld. A cosmetic has no secret to keep, and a locked
+slot's whole job is to be wanted.
+
+Two measured fixes came out of building it:
+
+- **The four-link row wrapped, exactly as the CSS comment said it would last time** — 348px of English
+  against 331px usable on a 375px phone, with SETTINGS alone on a second line. The gap had nothing left
+  (10px would be needed and reads as jammed); the width was in the **tracking**, `.13em` across 28
+  characters being ~47px of pure air. `.06em` under 560px → a measured **316px**, one line. Korean never
+  wrapped at all: 158px.
+- **`word-break:keep-all` was scoped to `.setrow .sd`, and the new panel reuses `.sd` outside a
+  `.setrow`** — so the Korean note split 무늬 across two lines on its first render, the exact defect that
+  rule exists to prevent, in a class that already had the fix. **A container-scoped rule does not follow
+  a class into a new container.**
+
+The swatch is always cyan, the pole the colourblind palette leaves alone, so it reads identically in
+both palettes. No repaint poll: Settings polls at 400ms because a key can move a switch while it is
+open, and nothing here changes without a click here.
+
+### The baited charge is trimmed 20% because of what it is, not what it costs `v2`
+`CHARGE_DMG` **12 → 10**. Nothing about the boss pool moved this time — every previous move here was a
+repricing against a pool that had changed under it. This one is about the channel's *role*.
+
+The baited charge appears in no player copy, in no tutorial and in no hint; it is found by accident or
+not at all. Author: *"it was an easter egg but it deals too much damage."* A route almost nobody knows
+about should not also be the shortest way through the fight for the few who do.
+
+**In share it is the lowest this channel has ever been — 40 / 33 / 29 / 25 / 22% of a bar across the five
+Epochs. In baits it is the original design.** 3 / 3 / 4 / 4 / 5 against the current pool, against
+2 / 3 / 4 / 4 / 5 for the 8-vs-15 the game shipped with: identical from Epoch II onward, one dearer at
+Epoch I. The whole 20% buys **one extra bait at Epoch III and one at Epoch V**; Epochs I, II and IV do
+not move. A percentage and a bait count pointed in opposite directions here, and the bait count is the
+one a player can feel.
+
+The Bastion has its own row, because ×0.75 lands it off every round number: 19 / 23 / 26 / 30 / 34 HP is
+2/2/3/3/3 baits at 12 and **2/3/3/3/4** at 10. The lowest Bastion the game can actually spawn — the Epoch
+II one at 23 — goes from two baits to three.
+
+Nothing that makes a bait *feel* like a bait is priced off this constant: the hitstop, the trauma kick,
+the twin impact rings and the gold `fx.poked` line are all flat. The arithmetic moved and the moment did
+not. **11 lands on the same bait table as 10**, so the value is the requested 20% and not a figure
+derived from bait counts — noted at the constant so nobody reconstructs it backwards and concludes 10
+was forced.
+
+Three stale claims fell out of walking this. `ETYPE.charger.dmg` became 13 in the −20% Dot pass and the
+comment pricing the misread still said **16**. `MECHANICS.md` still called 4× a live coincidence in one
+section and, three screens away in *Open*, still required *"any further move must carry the
+`CHARGE_DMG` = 4 × `VOLLEY_DMG` pin"* — a pin retired in the same file. **A retired rule survives
+wherever it was repeated**, and the copy nobody is looking at is the copy that stays wrong.
+
+### The receipt says what killed you, not how much meter you spent `v2`
+The Overdrive ride row and the Anomaly fight row are **off the death screen**. In their place, one row of
+chips naming every **kind** that landed on you and how often — `떠돌이 ×6` · `변이체 창 ×5` · `덩치 ×4` —
+most-frequent first, ties in first-hit order.
+
+**A tally, not a trace.** No damage numbers and no order of arrival: the cause line already names the last
+hit, and what the receipt was missing is the shape of the whole bleed. It is worth showing *now* because
+Integrity no longer comes back — every hit in that row is still on the bill at the end, which was not true
+of a build that healed you between them.
+
+⚠️ **Colour is dropped, and that is accuracy rather than brevity.** A Dot of your own colour passes through
+the core harmlessly, so every Dot that ever lands is the opposite colour *by construction* — splitting
+`Drifter (red)` from `Drifter (cyan)` would print your own polarity history back at you as two species.
+Hence `srcKind()` beside `srcName()` rather than a flag on it: the cause line is a sentence and wants the
+colour, a tally is a column of nouns where the same parenthesis repeats down every row.
+
+**It slides instead of capping.** Bounded at **15 rows by construction** — nine species plus six missile
+kinds — so it can never reach the wallpaper problem `CHIP_SHOW` exists for, and a `+N` here would hide
+*names* the total cannot reconstruct. `.chiplog.slide` is the only chiplog that does not wrap.
+⚠️ `justify-content:safe center` is load-bearing **only in the overflow case**, and the obvious reading of
+it is wrong: the row looks centred when it fits because `#dead` is `align-items:center` and the box is
+shrink-to-fit — measured at 375px, a two-chip row is a 172px box at x=102 with `justify-content`
+distributing nothing. It matters once the box clamps to `max-width`, where plain `center` would push the
+first chips off the left edge with no scroll position able to reach them — and the first chip is the
+most-frequent killer.
+
+**This also settles the overflow entry below it.** That fix shrank the score because *"the death screen got
+worse the better you played"* — the overflow **was** the two logs. The receipt's height is now constant:
+13 kinds render on the same one line as 1. Measured at the shipping WebView viewport **874×402**, Korean,
+new best, 13 distinct kinds and 34 hits: panel 402 against 402 available, Reforge at 299, chip row
+scrollWidth 1111 over clientWidth 560 on a single line. The earlier failure was 515 against 382.
+
+⚠️ **NOTHING WAS DELETED TO MAKE ROOM.** `odLog` · `odCount` · `odTotal` · `anomLog` are still built every
+run and the **pause panel still shows both rows** — mid-run "how much Capacitor have I spent" is a decision
+you can act on, and post-mortem it is trivia. `anomLog` also grants **Untouched**, so a tidy-up that
+removes it on the grounds that the death screen no longer reads it breaks an achievement.
+*This retires an invariant MECHANICS stated as absolute* — "a stat that appears in one and not the other is
+a bug, not a decision" — recorded there rather than edited away, because a rule that strong gets
+re-derived by whoever next notices the panels disagree.
+
+**The share card truncates at 4** where the receipt scrolls, because a canvas has no scroll to offer — the
+one place `cardChipRow`'s `+N` stub earns its keep. Cap 4 rather than the 5–6 the old rows used because a
+species chip is a *name*: `불안정한 행성 ×2` is three times the width of `2.4s`.
+
+---
+
 ## 2026-08-10
 
 ### Reforge was below the fold on the device, and so were Quit and Settings `v2`

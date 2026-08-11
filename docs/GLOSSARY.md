@@ -249,14 +249,21 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Pattern Lab** — practice mode: a live field with no Anomaly, shapes fired on demand.
   (`labMode`, `LAB_SHAPES`)
 - **Game states** — `menu` · `play` · `ready` · `paused` · `dead`.
-- **Run summary** — the panel read on pause and on death: score, cause, time, peak combo, then a chip
-  row per ride and per Anomaly fight. Both panels are built by one function against different ids.
-  (`showRunLogs`, `fillChips`, `CHIP_SHOW`)
+- **Run summary** — score, cause, time and peak combo on both the pause panel and the death receipt,
+  then a chip row that **differs between them by design**: rides and Anomaly fights on pause, the hit
+  tally on death. They were one panel until the surfaces were found to answer different questions — see
+  *The run summary* in MECHANICS, which records the retired invariant.
+  (`showRunLogs`, `showHitLog`, `fillChips`, `CHIP_SHOW`)
 - **Ride log** — one entry per completed Overdrive, in run order. A log rather than a total, because
-  four sips and a redline is a different run from two full burns and they sum the same.
+  four sips and a redline is a different run from two full burns and they sum the same. **Pause only.**
   (`odLog`, `odCount`, `odTotal`)
 - **Anomaly log** — one entry per Anomaly fight, holding **every** point of damage taken while that
-  Anomaly was alive — not only damage the Anomaly itself dealt. (`anomLog`)
+  Anomaly was alive — not only damage the Anomaly itself dealt. **Pause only, and still load-bearing:**
+  it grants **Untouched**, so it outlives its own chip row. (`anomLog`)
+- **Hit tally** — the death receipt's chip row: one entry per *kind* that landed on you, counted, most
+  frequent first. A tally, not a trace — no damage numbers and no order of arrival. Colour is dropped
+  because a same-colour Dot cannot hit you at all, so it would only restate your own polarity.
+  Bounded at 15 rows by construction, so it slides rather than capping. (`hitLog`, `srcKind`)
 - **Cause line** — the death receipt's *Lost to* line: the species that killed you, by display name,
   and the Epoch it happened in. The name is resolved at render time from a `{t,c}` key pair, never
   stored — see *A damage source is a key pair, not a name* in MECHANICS. (`lastDmg`, `srcName`,
@@ -285,8 +292,11 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   opens a Mini by +55.7px, a Drifter by +30.8px and a Brute by +24.7px. (`P.eddy`, `P.ringMul`, `maxsp`)
 - **Achievement** — an in-run feat listed in **Records**. Eleven rows, one hidden. Earned in Survival
   only. Some gate a **Skin**, so they no longer "unlock nothing".
-- **Skin** — an earned look, chosen in **Settings**. Cosmetic only, draw-time only, and it never changes
-  hue: colour means polarity. One category (`star`) with **Core** and **Redoubt** today.
+- **Skin** — an earned look, chosen in **Skins**, its own menu panel. Cosmetic only, draw-time only, and
+  it never changes hue: colour means polarity. One category (`star`) with **Core** and **Redoubt** today.
+  Each slot draws its own art through `STAR_FACE` — the third caller of that seam, after the field and
+  the run card — and a locked slot shows the art dimmed with its trigger printed underneath.
+  (`SKINS`, `skinPick`, `skinSwatch`, `paintSkins`)
 - **Run card** — the shareable 1080×1350 PNG built from the run you just finished. Drawn on a canvas,
   never screenshotted, and it touches no network. (`buildRunCard`, `shareRunCard`)
   (`ACHV`, `store.achv`)

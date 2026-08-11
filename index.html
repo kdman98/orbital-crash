@@ -442,6 +442,24 @@
   /* A locked pill still occupies its slot — the shape of the row tells you there IS more, which is the
      only job it has before you earn it. It carries the trigger as its tooltip rather than as a label. */
   .dp.lock{opacity:.38;cursor:default;} .dp.lock:hover{border-color:rgba(255,255,255,.14);}
+  /* THE WARDROBE. A card stacks swatch → name → requirement, in that order because the art is what you
+     are choosing between and the words are what you read second. It borrows `.dp`'s selected treatment
+     exactly — same border, same wash — so a card and a pill say "this one" the same way. */
+  .skinsec{margin-bottom:16px;}
+  .skincat{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-bottom:8px;}
+  .skinrow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .skincard{font:inherit;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px 9px;cursor:pointer;width:136px;color:var(--dim);
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    transition:border-color .12s ease,background .12s ease;}
+  .skincard:hover{border-color:rgba(255,255,255,.32);}
+  .skincard.on{color:var(--ink);border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.08);}
+  /* Dimmed, never hidden: the art is the invitation, and there is no secret in a cosmetic worth keeping. */
+  .skincard.lock{cursor:default;}
+  .skincard.lock:hover{border-color:rgba(255,255,255,.14);}
+  .skincard.lock canvas{opacity:.34;}
+  .skinnm{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+  .skinreq{font-size:10px;line-height:1.35;color:var(--dim);opacity:.72;letter-spacing:.02em;}
   /* gap 16, set when this was four links: at 28 they totalled 373px against 331px of usable width on a
      375px phone and wrapped Settings onto a line of its own. Three links now — 278.5px at this gap — so
      the value is no longer load-bearing, but it is what the row was measured at and there is no reason
@@ -474,6 +492,15 @@
     color:var(--ink);font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
     border-bottom:1px solid rgba(255,255,255,.24);transition:color .12s ease,border-color .12s ease;}
   .ref:hover{color:var(--cyan);border-color:var(--cyan);}
+  /* FOUR LINKS IS THE COUNT THIS ROW WRAPPED AT BEFORE, and it wrapped again the moment SKINS arrived —
+     measured, not feared: 348px of English against 331px of usable width on a 375px phone, with SETTINGS
+     alone on a second line. Exactly the failure the gap was cut to 16 for the first time round.
+       The gap has nothing left to give: 10px would be needed and that reads as a jammed row. The width is
+     in the TRACKING. `.13em` across 28 characters is ~47px of pure air, so .06em under 560px brings the
+     row to a measured 316px — one line, 15px of headroom — with the uppercase treatment intact.
+       Korean is untouched and never wrapped — 158px for 기록·외형·도감·설정, because it already carries
+     .04em from the `html[lang="ko"]` block and its labels are two glyphs each. */
+  @media (max-width:560px){ .refs{gap:14px;} .ref{letter-spacing:.06em;} }
 
   /* SETTINGS. A row is a sentence and a switch, and the sentence is the load-bearing half — a toggle
      whose name is its only explanation is exactly how "reduced motion" comes to mean nothing to the
@@ -569,6 +596,24 @@
      Four rows can stack here, so the bottom margin is tight on purpose: at 22px the death panel pushed
      Reforge off a short phone screen. Wrapping is what keeps a 12-chip row honest at 375px. */
   .chiplog{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:min(560px,90vw);margin:0 0 14px;}
+  /* THE HIT TALLY SLIDES INSTEAD OF WRAPPING, and it is the only chiplog that does. The rows above carry
+     short uniform chips — "2.4s", "III 40" — which wrap into a tidy block; this one carries SPECIES NAMES,
+     and in Korean one chip is `불안정한 행성 ×2`. Four of those wrap to three ragged lines and push Reforge
+     off a phone screen, which is the exact failure the note above says the tight bottom margin exists for.
+       ⚠️ `safe center` GOVERNS ONLY THE OVERFLOW CASE, and it is worth being exact about that because the
+     obvious reading is wrong. The row LOOKS centred when it fits for a different reason entirely: `#dead`
+     is `flex-direction:column; align-items:center`, so this box is shrink-to-fit and the PARENT centres it
+     — measured at 375px, a two-chip row is a 172px box sitting at x=102 with `justify-content` distributing
+     nothing. `justify-content` only starts to matter once content exceeds `max-width` (337.5px at 375px)
+     and the box is clamped, and there plain `center` would push the FIRST chips off the left edge with no
+     scroll position able to reach them — the first chip being the most-frequent killer, which is the whole
+     point of the row. `safe` drops to start-alignment exactly then: measured 5 chips, scrollWidth 429 over
+     clientWidth 331, first chip flush at the left edge. An engine that does not know the keyword drops the
+     declaration and inherits `center` above, so the fallback is the old bad case, not a broken row. */
+  .chiplog.slide{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;justify-content:safe center;}
+  .chiplog.slide::-webkit-scrollbar{display:none;}
+  .chiplog.slide>*{flex:0 0 auto;}   /* chips must not be squeezed to fit — squeezing is what scrolling replaces */
   .loglab{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
   .bchip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:100px;font-size:11.5px;font-weight:700;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#dfe6f2;}
@@ -776,6 +821,7 @@
   html[lang="ko"] .rcT .h{letter-spacing:.06em;}
   html[lang="ko"] .rcH{letter-spacing:.1em;}
   html[lang="ko"] .ref{letter-spacing:.04em;}
+  html[lang="ko"] .skinnm{letter-spacing:.04em;}
   html[lang="ko"] .doornote{letter-spacing:.06em;}
   html[lang="ko"] .loglab{letter-spacing:.1em;}
   html[lang="ko"] .hint{letter-spacing:.02em;}
@@ -783,11 +829,18 @@
   html[lang="ko"] .sw{letter-spacing:.04em;}
   html[lang="ko"] .newbest{letter-spacing:.06em;}
   html[lang="ko"] .rcWipe{letter-spacing:.04em;}
+  /* ⚠️ THIS LIST IS SCOPED BY CONTAINER, SO A NEW SURFACE DOES NOT INHERIT IT. `.sd` earned keep-all as
+     `.setrow .sd`; the Skins panel reuses `.sd` outside a `.setrow` and broke 무늬 across two lines on
+     its first render — the exact defect this rule exists to prevent, in a class that already had the
+     fix. When you reuse a class in a new container, walk the ko block for its selector. */
   html[lang="ko"] .setrow .sd,
+  html[lang="ko"] #skins .sd,
+  html[lang="ko"] .skinreq,
   html[lang="ko"] .rcEmpty,
   html[lang="ko"] #tutBar,
   html[lang="ko"] .acv{word-break:keep-all;}
-  html[lang="ko"] .setrow .sd{line-height:1.68;}
+  html[lang="ko"] .setrow .sd,
+  html[lang="ko"] #skins .sd{line-height:1.68;}
   /* The live counter, on its own line so a changing number never reflows the sentence above it —
      "3 / 4" becoming "4 / 4" must not shift the words a player is mid-way through reading. */
   #tutBar .p{display:block;margin-top:5px;color:var(--cyan);font-weight:800;font-size:11px;
@@ -919,6 +972,9 @@
        2x2 fallback that carried four on a phone went with the fourth. -->
   <div class="refs">
     <button class="ref" id="recordsBtn" data-t="ref.records">Records</button>
+    <!-- SECOND, not last: this row runs you → you → the world → the machine. Skins are earned from Feats,
+         which live one link to the left, so the two halves of the same loop sit next to each other. -->
+    <button class="ref" id="skinsBtn" data-t="ref.skins">Skins</button>
     <button class="ref" id="bestiaryBtn" data-t="ref.bestiary">Bestiary</button>
     <button class="ref" id="settingsBtn" data-t="ref.settings">Settings</button>
   </div>
@@ -955,6 +1011,25 @@
   <div id="recordsBody"></div>
 </div>
 
+<!-- SKINS. Its own room, on the author's call, and the room has to earn the link it took. What it earns it
+     with is the thing a settings ROW could not hold: the art itself, and the requirement in plain text.
+       ⚠️ THE TOOLTIP WAS UNREACHABLE ON THE ONLY DEVICE THIS SHIPS ON. The locked pill carried its trigger
+     in `title=`, which needs a hover, which a touchscreen does not have — so on iOS the lock said "Locked"
+     and nothing else, forever. That is not a smaller version of the feature, it is the feature missing.
+     A panel has room to print the trigger under the slot, so it does.
+       Locked art is SHOWN, dimmed, not withheld. A cosmetic has no secret to keep and the whole job of a
+     locked slot is to be wanted; a grey box is an absence, and an absence recruits nobody.
+       Menu only. There is no pause entry: a wardrobe is not something you fix mid-run, and the run behind
+     the panel is drawing the very star you would be changing. -->
+<div class="overlay hidden" id="skins" style="z-index:20;background:rgba(4,6,15,.97);">
+  <button class="btn sm ghost" id="skinsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <div class="final" data-t="skins.kicker" style="letter-spacing:.3em;margin-top:8px;">Skins</div>
+  <h2 data-t="skins.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 6px;">The look of your star</h2>
+  <div class="sd" data-t="skins.note" style="max-width:460px;margin:0 auto 16px;">Colour always means polarity, so a
+    skin never changes hue — only what is drawn inside the hull. Achievements unlock them.</div>
+  <div id="skinsBody"></div>
+</div>
+
 <!-- SETTINGS. Reachable from the menu AND from the pause panel: comfort and volume are both things you
      discover you want DURING a run, and a settings screen you can only reach by abandoning the run is
      not much of a fallback.
@@ -982,17 +1057,9 @@
     <button class="sw" id="swMotion">Off</button>
   </div>
 
-  <!-- SKINS LIVE IN SETTINGS, NOT IN A ROOM OF THEIR OWN. One question per surface: Settings answers
-       "how does this reach my eyes and ears", and which star you are looking at is exactly that. A
-       fourth entry in the menu's link row would have made a two-item wardrobe look like a system. -->
-  <div class="setrow">
-    <div class="st">
-      <div class="sn" data-t="set.skin">Star</div>
-      <div class="sd" data-t="set.skinD">Looks you have earned. Colour always means polarity, so a skin
-        never changes hue — only what is drawn inside the hull.</div>
-    </div>
-    <span class="depthpills" id="skinPills"></span>
-  </div>
+  <!-- (The Star skin row stood here, on the argument that Settings answers "how does this reach my eyes
+       and ears" and a two-item wardrobe in its own room would look like a system pretending to be one.
+       Moved out on the author's call — see the #skins panel, which is where that argument is answered.) -->
 
   <!-- SOUND IS A LEVEL, AND THE SWITCH BESIDE IT IS STILL A SWITCH. The row keeps both because they are
        not the same verb: the level is set once, mute is done for a moment and undone. Collapsing them
@@ -1040,13 +1107,17 @@
     <div class="ds"><div class="k" data-t="dead.time">Time Survived</div><div class="v" id="deadTime">0:00</div></div>
     <div class="ds"><div class="k" data-t="dead.combo">Peak Combo</div><div class="v" id="deadCombo">0</div></div>
   </div>
-  <!-- The receipt is a LOG, not a scoreboard. Four sips and one long burn is a different run from two
-       medium ones and they total the same, so the rides are listed one by one; likewise each Anomaly
-       fight is priced separately. Both rows hide themselves when the run had none of that event. -->
-  <div id="deadOdLogLab" class="loglab hidden"><span data-t="log.od">Overdrive · </span><span id="deadOdLogSum"></span></div>
-  <div id="deadOdLog" class="chiplog"></div>
-  <div id="deadAnomLogLab" class="loglab hidden"><span data-t="log.anom">Anomalies · </span><span id="deadAnomLogSum"></span></div>
-  <div id="deadAnomLog" class="chiplog"></div>
+  <!-- The receipt is a LOG, not a scoreboard, and this row is what keeps it one: a run killed by six
+       Drifters is a different run from one killed by six Seekers, and the four numbers above cannot tell
+       them apart. It is a TALLY, not a trace — the cause line already names the last hit, so what this adds
+       is the shape of the whole bleed. Hides itself when the run took no hits, which is a real run.
+       ⚠️ THE OVERDRIVE AND ANOMALY LOGS ARE NOT GONE. They are still built, and the PAUSE panel still shows
+       both — they left the RECEIPT because mid-run "how much Capacitor have I spent" is a decision you can
+       still act on, and post-mortem it is trivia. That is a question about the surface, not about whether
+       the data earns its keep, and the two answers are allowed to differ. Do not "tidy up" `odLog` /
+       `anomLog` on the strength of this row: `anomLog` also grants `untouched`. -->
+  <div id="deadHitLab" class="loglab hidden"><span data-t="log.hits">Hits Taken · </span><span id="deadHitSum"></span></div>
+  <div id="deadHitLog" class="chiplog slide"></div>
   <button class="btn" id="againBtn" data-t="dead.again">Reforge</button>
   <!-- Share sits BESIDE Menu and below Reforge, never above it. One tap to play again is the thing this
        screen is for, and a card is a garnish; putting a second solid button here would make the player
@@ -1396,12 +1467,17 @@ const L={ en:{
   'menu.depth':'Begin at',
   'card.from':'Started at Epoch {e}',
   'dead.share':'Share',
-  'set.skin':'Star',
-  'set.skinD':'Looks you have earned. Colour always means polarity, so a skin never changes hue — only what is drawn inside the hull.',
+  // ⚠️ THE NOTE NAMES A PANEL, SO IT HAS TO NAME THE ONE THE GAME PRINTS. It is `rc.achv` —
+  // "Achievements" here, "업적" in Korean. It read "Feats" for as long as it took to check: a rename
+  // that was considered, recorded in MECHANICS, and never applied. Copy that points at another surface
+  // is the cheapest kind of lie to write and the least likely to be caught, because nothing breaks.
+  'skins.kicker':'Skins',  'skins.h2':'The look of your star',
+  'skins.note':'Colour always means polarity, so a skin never changes hue — only what is drawn inside the hull. Achievements unlock them.',
+  'skins.cat.star':'Star',
   'skin.locked':'Locked',
   'skin.star.core':'Core',
   'skin.star.turret':'Redoubt',
-  'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',
+  'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',  'ref.skins':'Skins',
   'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
   'menu.contact':'Contact',
   'bestiary.frame':'ORBITAL CRASH Bestiary',
@@ -1420,6 +1496,7 @@ const L={ en:{
   'pause.kicker':'Paused',  'pause.resume':'Resume',  'pause.quit':'Quit to menu',
   'pause.hint':'<kbd>P</kbd> or <kbd>Esc</kbd> to resume',
   'log.od':'Overdrive · ',  'log.anom':'Anomalies · ',  'log.left':' left',
+  'log.hits':'Hits Taken · ',
 
   // ---- death ----
   'dead.kicker':'Core Lost',  'dead.best':'New Best!',  'dead.again':'Reforge',
@@ -1561,12 +1638,13 @@ const L={ en:{
   'menu.depth':'시작 단계',
   'card.from':'{e}단계에서 시작한 판',
   'dead.share':'공유하기',
-  'set.skin':'별 외형',
-  'set.skinD':'지금까지 얻은 별 외형입니다. 색은 극성을 나타내니, 외형은 색을 그대로 두고 테두리 안쪽 무늬만 바꿉니다.',
+  'skins.kicker':'외형',  'skins.h2':'별의 겉모습',
+  'skins.note':'색은 극성을 나타내니 외형이 색을 바꾸는 일은 없습니다. 테두리 안쪽 무늬만 달라집니다. 업적을 채우면 하나씩 열립니다.',
+  'skins.cat.star':'별',
   'skin.locked':'잠김',
   'skin.star.core':'코어',
   'skin.star.turret':'보루',
-  'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',
+  'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',  'ref.skins':'외형',
   'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
   'menu.contact':'문의',
   'bestiary.frame':'ORBITAL CRASH 도감',
@@ -1587,6 +1665,9 @@ const L={ en:{
   'pause.kicker':'일시정지',  'pause.resume':'계속하기',  'pause.quit':'메뉴로 나가기',
   'pause.hint':'<kbd>P</kbd> 또는 <kbd>Esc</kbd>로 계속',
   'log.od':'오버드라이브 · ',  'log.anom':'변이체 · ',  'log.left':' 남음',
+  // 피격 — 맞은 횟수이지 받은 피해가 아니다. `dead.cause`의 '당함'과 같은 사건을 가리키지만 그쪽은
+  // 서술어라 명사 자리에 올 수 없고, 옆 라벨들(오버드라이브 · 변이체)이 전부 맨 명사라 결도 맞는다.
+  'log.hits':'피격 · ',
 
   // ---- death ----
   // ⚠️ THE COLOUR MOVES IN FRONT OF THE NOUN, and this is the clearest case in the file for why a
@@ -2074,24 +2155,43 @@ const RING_GRIND_DMG=1;
 // everything. Above a volley Dot on purpose: a volley is one of a dozen fired from a hoard you already
 // had, this is a single Dot you kept alive, read, and then stood in front of. The lane locks at wind-up
 // along the charger→YOU ray, so the only way it crosses the Anomaly is to put the Anomaly on that line —
-// STANDING IN THE KILL LANE and leaving it late, for 16 damage and a broken streak if you misread it.
-// THE PIN TO VOLLEY_DMG IS RELEASED, DELIBERATELY, AND IT IS 4 × AGAIN BY ACCIDENT.
+// STANDING IN THE KILL LANE and leaving it late, for 13 damage and a broken streak if you misread it.
+// (That read "16 damage" until the -20% Dot pass moved ETYPE.charger.dmg to 13 and did not walk this
+//  line with it. The cost of the misread is quoted here because it is half of what prices the channel.)
+// TRIMMED 12 → 10 FOR WHAT THE CHANNEL IS, NOT FOR WHAT IT COSTS. Nothing about the pool moved this
+// time; the channel's ROLE did. Author: "it was an easter egg but it deals too much damage." It is
+// stated in no player copy, hinted at in no tutorial, and found by accident — and a route almost nobody
+// knows about must not also be the shortest way through the fight for the few who do. 12 × 0.8 = 9.6,
+// integer because the readout prints integers.
+//   ⚠️ 11 LANDS ON THE SAME BAIT TABLE AS 10 (see below), so this value is the requested 20%, NOT a
+// figure derived from bait counts. Do not reconstruct it from the table and conclude 10 was forced.
+// None of what makes a bait FEEL like a bait is priced off this constant — the hitstop, the trauma, the
+// twin rings and the gold line in stepAnnihilation are all flat — so the trim moves the arithmetic and
+// leaves the moment intact. That separation is the reason a trim here is cheap; keep it.
+// THE PIN TO VOLLEY_DMG IS RELEASED, DELIBERATELY, AND THE ACCIDENTAL 4 × HAS NOW GONE WITH IT.
 // ⚠️⚠️ READ THIS BEFORE TRUSTING THE RATIO. This sat at 8 = 4 × VOLLEY_DMG with the ratio called the
 // constant. The pool doubled; 8 stayed; the block's two rules came apart — "pinned at 4 ×" said leave it,
 // "if the pool moves, move this with them" said raise it — and only one of them was ever the point. The
 // ratio existed to keep a bait worth a FIXED SHARE OF A BAR, which is the thing a player feels. 4 × was
 // how you reached that share at a pool of 15, not a law. The share is what is preserved.
 //   It then became 12 while VOLLEY_DMG was 2 (= 6 ×), and VOLLEY_DMG later went to 3 for its OWN reason —
-// so 12 / 3 = 4 × once more. THAT IS A COINCIDENCE OF TWO INDEPENDENT DECISIONS, NOT THE PIN RETURNING.
-// Anyone who reads the restored 4 × as the rule and re-derives this from VOLLEY_DMG on the next pool move
-// reintroduces the exact defect that cost a full pass to find. The pool is the reference. Not the volley.
+// so 12 / 3 = 4 × once more. THAT WAS A COINCIDENCE OF TWO INDEPENDENT DECISIONS, NOT THE PIN RETURNING,
+// and it sat here as a warning for exactly as long as it was true: anyone who read the restored 4 × as the
+// rule and re-derived this from VOLLEY_DMG on the next pool move would have reintroduced the defect that
+// cost a full pass to find. 10 / 3 = 3.33 ×. The coincidence is spent, the warning is now history rather
+// than a live hazard, and 3.33 must never be tidied into anything. The pool is the reference. Not the volley.
 //   Reprice against the pool in spawnBoss:
 //     was  8 vs 15/20/25/30/35 → 53% / 40% / 32% / 27% / 23% of a bar, 2/3/4/4/5 baits
 //     then 8 vs 30/35/40/45/50 → 27% / 23% / 20% / 18% / 16%,          4/5/5/6/7 baits  (the buff, unfixed)
-//     now 12 vs 25/30/35/40/45 → 48% / 40% / 34% / 30% / 27%,          3/3/3/4/4 baits
-// A partial restoration on purpose: Epoch I is 3 baits rather than the old 2, because the pool was raised
-// for difficulty and the bait should not undo that — it should stay the answer a stripped player has, not
-// become the fast way past the fight.
+//     then 12 vs 25/30/35/40/45 → 48% / 40% / 34% / 30% / 27%,         3/3/3/4/4 baits
+//     now  10 vs 25/30/35/40/45 → 40% / 33% / 29% / 25% / 22%,         3/3/4/4/5 baits
+// ⚠️ READ THE BAIT COLUMN, NOT THE PERCENTAGE, AND THE TRIM READS AS THE OPPOSITE OF WHAT IT LOOKS LIKE.
+// In share terms 10 is below every figure this channel has ever held. In BAITS — the only unit a player
+// can experience, because nobody spends 0.4 of a charge — it is the ORIGINAL 8-vs-15 design from Epoch II
+// onward, exactly, and one dearer at Epoch I. The whole 20% buys a single extra bait at Epoch III and one
+// at Epoch V; Epochs I, II and IV do not move at all. 12 was the outlier row, not this one.
+// Epoch I stays at 3 rather than the original 2 because the pool was raised for difficulty and the bait
+// should not undo that — it should stay the answer a stripped player has, not the fast way past the fight.
 //   ⚠️⚠️ 12 WAS EXCLUDED FOR MONTHS BY AN ARGUMENT THAT WAS NEVER VALID, not by one the pool later
 // invalidated. The rejection was "12 would one-shot an Epoch I Bastion with 11 hp" — and an Epoch I Bastion
 // has never been reachable in any commit of this repo. `pickAnomalyVariant` returns the Emitter
@@ -2103,11 +2203,15 @@ const RING_GRIND_DMG=1;
 // irrelevant to it. Recorded rather than quietly replaced, because the failure is the interesting part —
 // a constraint computed from a state the game cannot produce reads exactly like a finished argument, and
 // gets obeyed for months. Nothing fails; the number is simply never revisited.
-//   Today: the weakest reachable Bastion is the Epoch II one at 23 hp. One bait leaves 11, two finish it.
-// The Epoch I arithmetic of 19 is a seam artefact — spawnBoss('bastion') will build it, play will not.
+//   Today: the weakest reachable Bastion is the Epoch II one at 23 hp. One bait leaves 13 and it takes
+// three; it took two at 12. THE BASTION HAS ITS OWN BAIT ROW and it is not the base one, because the ×0.75
+// lands it off every round number — 19 / 23 / 26 / 30 / 34 across the five Epochs, which is 2/2/3/3/3 baits
+// at 12 and 2/3/3/3/4 at 10. Two of its five rows move where the base pool's move at III and V; do not
+// quote the base table at a Bastion. The Epoch I arithmetic of 19 is a seam artefact — spawnBoss('bastion')
+// will build it, play will not.
 //   PRICE A VARIANT AGAINST THE EPOCH IT CAN FIRST APPEAR IN, NOT AGAINST THE FORMULA. The formula is
 // defined for every Epoch; the roster is not. Check the gate before quoting a row.
-const CHARGE_DMG=12;
+const CHARGE_DMG=10;
 // EMPTY ON PURPOSE, and the empty table is the signpost. The obvious per-kind bonus — pay more for the
 // Sentinel, since it spends the fight circling — measures backwards: closing on the Sentinel is the
 // CHEAPEST of the three, costing -27 HP for 5s of contact (its orbit carries it away from you) against
@@ -5554,9 +5658,33 @@ function srcName(s){
 // the tables carry no markup in the msl/dot/col/dead.src families. A row saved by an old build is the
 // one value here that never passed through a table, so it is the one that gets escaped.
 const escHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// THE BARE NAME, no colour and no sentence — what the hit tally prints. `srcName` above builds a SENTENCE
+// ("Brute (cyan)" / 청록색 덩치) because the cause line is one; a tally is a column of nouns, where a
+// parenthesised colour on every row is the same word repeated straight down it. Deliberately NOT a third
+// mode on `srcName`: that function's whole comment is about having two consumers that want opposite
+// things, and a flag would make it three.
+//   No legacy-string branch, and that is not an oversight — unlike `srcName` this never reads a saved row.
+// `hitLog` is built live from `breakStreak` and dies with the run, so every `src` here is this build's.
+const srcKind=s=> s.m ? T('msl.'+s.m) : T('dot.'+s.t);
 let lastDmg=null; // {src, act, phase} — death receipt
+// WHAT HIT YOU, GROUPED BY KIND AND COUNTED — one row per species or missile kind, in first-hit order,
+// re-sorted at render time. Fed from `breakStreak` because that is already the single funnel every real
+// hit passes through: Dot contact, mine and missile all arrive there, so a fourth damage path cannot be
+// added without landing here too.
+//   ⚠️ COLOUR IS DROPPED ON PURPOSE, and dropping it is the accurate choice rather than the cheap one. A
+// Dot of YOUR colour passes through the core harmlessly (`stepPlayerContact` continues past it), so every
+// Dot that ever lands on you is the OPPOSITE colour by construction — splitting `Drifter (red)` from
+// `Drifter (cyan)` would print your own polarity history back at you under two names for one species, and
+// the player would read it as two things. Neutrals and the Anomaly ignore polarity anyway.
+//   Bounded at 15 rows by construction — nine species plus six missile kinds — so this never needs the
+// `+N` truncation `fillChips` exists for. The row SCROLLS instead; see `.chiplog.slide`.
+let hitLog=[];    // [{k, src, n}] — k is the grouping key, src the first one seen, n the count
 function breakStreak(src){
   lastDmg={src, act, phase:wavePhase};
+  // `m:` / `t:` prefixes, not the bare value: a missile kind and a species are different namespaces that
+  // happen to be strings, and nothing guarantees they stay disjoint.
+  const hk = src ? (src.m ? 'm:'+src.m : 't:'+src.t) : null;
+  if(hk){ const row=hitLog.find(r=>r.k===hk); if(row) row.n++; else hitLog.push({k:hk, src, n:1}); }
   if(combo>=25){
     const bonus=Math.min(0.20, combo*0.0015*P.chargeGain); // cap AFTER Overcharge — 20% is a hard ceiling
     // The grant used to carry `!unstable` while the text below did not, so a hit taken mid-Collapse
@@ -6069,7 +6197,7 @@ function die(){
   el('deadCombo').textContent=peakCombo;
   el('deadBest').classList.toggle('hidden',!nb);
   lastRunBest=nb;   // the card says so too, and `nb` is local to this function
-  showRunLogs('dead',false);   // endOverdrive() above already closed the final ride into odLog
+  showHitLog();   // the receipt's one log row; the Overdrive and Anomaly rows live on the pause panel now
 
   // the shatter
   spawnBurst(P.x,P.y,COL[P.polarity],26,5.2); spawnBurst(P.x,P.y,'#fff',18,3.6);
@@ -6176,17 +6304,19 @@ function buildRunCard(){
   stat(T('dead.time'),fmtTime(elapsed),CARD_W*0.30);
   stat(T('dead.combo'),String(peakCombo),CARD_W*0.70);
 
-  // ⚠️ 116 PER BLOCK AND THE STAR PARKED BELOW BOTH. The rhythm is set by the WORST case — a run with
-  // an Overdrive log AND an Anomaly log — because that is the run worth sharing. At the first spacing
-  // the star's halo washed straight over the Anomaly chips on exactly those cards and nowhere else.
+  // ⚠️ THE CARD FOLLOWS THE RECEIPT — one log row, the hit tally, where two used to stack. The old note
+  // here said the 116 rhythm was set by the worst case, "a run with an Overdrive log AND an Anomaly log",
+  // and that case no longer exists: one block is now also the maximum, so the star at `sy=1212` simply
+  // gets more air. Kept as one `y` block rather than a fixed offset because that is what a second row
+  // would need again, and inlining the constant is how the next person learns the wrong lesson.
+  //   ⚠️ AND HERE IT TRUNCATES, where the receipt scrolls — a canvas has no scroll to offer. That is the
+  // one place `cardChipRow`'s `+N` stub earns its keep, and the cap is 4 rather than the 5-6 the old rows
+  // used because a species chip is a NAME: `불안정한 행성 ×2` is three times the width of `2.4s`.
   let y=876;
-  if(odCount>0){
-    cardText(g,T('log.od')+'×'+odCount+' · '+odTotal.toFixed(1)+'s',CARD_W/2,y,24,'700','rgba(255,227,107,.75)');
-    cardChipRow(g,odLog.map(v=>v.toFixed(1)+'s'),y+22,6); y+=116;
-  }
-  if(anomLog.length){
-    cardText(g,T('log.anom')+'×'+anomLog.length,CARD_W/2,y,24,'700','rgba(190,150,255,.8)');
-    cardChipRow(g,anomLog.map(v=>Math.round(v)+' HP'),y+22,5); y+=116;
+  if(hitLog.length){
+    const rows=hitLog.slice().sort((a,b)=>b.n-a.n);
+    cardText(g,T('log.hits')+'×'+rows.reduce((a,r)=>a+r.n,0),CARD_W/2,y,24,'700','rgba(255,150,150,.8)');
+    cardChipRow(g,rows.map(r=>srcKind(r.src)+' ×'+r.n),y+22,4); y+=116;
   }
 
   // The star, in the skin that was on it, drawn by the SAME code the field uses.
@@ -7630,8 +7760,10 @@ function titleOrbit(tt){
 // =====================================================================
 
 // ---------- the run's event logs, as chip rows ----------
-// Both panels show the same two rows, so they are built in one place. Ids are `<prefix>OdLog…` /
-// `<prefix>AnomLog…` with the prefix 'dead' or 'p'.
+// `showRunLogs` builds the Overdrive and Anomaly rows, ids `<prefix>OdLog…` / `<prefix>AnomLog…`. ⚠️ THE
+// PREFIX IS NOW ALWAYS 'p'. Both rows used to appear on the death receipt too, which is why this is
+// parameterised at all; the receipt carries `showHitLog` instead. The parameter stays because the pause
+// panel is a panel and a second one is a plausible future, not because two callers exist today.
 function chip(html,cls,op){
   const c=document.createElement('span');
   c.className=cls||'bchip'; c.innerHTML=html;
@@ -7666,6 +7798,28 @@ function showRunLogs(pfx,live){
   // that in Arabic now, so the old reason is gone and the choice stands on the quantity being different.)
   fillChips(el(pfx+'AnomLog'), anomLog, anomLog.length, (v,i)=>`${roman(i+1)} <span class="n">${Math.round(v)}</span>`);
 }
+// THE HIT TALLY, and it is DEATH-ONLY on purpose — see the receipt markup for why the two rows above stay
+// on the pause panel and this one does not join them there. (If that judgement ever flips it is a `pfx`
+// parameter and one call inside showRunLogs; the ids are already prefixed to the same scheme.)
+//   Not routed through `fillChips`, which exists to TRUNCATE a long row down to CHIP_SHOW with a `+N`
+// stub. This row is bounded at 15 by construction and every entry is a different species — a `+3` here
+// would hide three names the player cannot recover, where in an Overdrive log it hides three durations
+// the total already accounts for. Different rows, different honest failure.
+function showHitLog(){
+  const wrap=el('deadHitLog');
+  el('deadHitLab').classList.toggle('hidden', hitLog.length===0);
+  wrap.innerHTML='';
+  if(!hitLog.length){ el('deadHitSum').textContent=''; return; }
+  el('deadHitSum').textContent='×'+hitLog.reduce((a,r)=>a+r.n,0);
+  // MOST-FREQUENT FIRST, ties in first-hit order. `sort` is stable by spec (ES2019), which is the only
+  // reason that tie-break is a rule rather than an accident — do not replace this with a comparator that
+  // "also" orders ties, and do not sort `hitLog` in place: its own order IS the tie-break.
+  for(const r of hitLog.slice().sort((a,b)=>b.n-a.n))
+    wrap.appendChild(chip(`${srcKind(r.src)} <span class="n">×${r.n}</span>`));
+  // A previous run's scroll offset survives inside the hidden overlay, so the next receipt would open
+  // mid-row with the most-frequent killer already off the left edge.
+  wrap.scrollLeft=0;
+}
 
 // `mode`: falsy = a normal run · 'boss' = Boss Rush · 'lab' = Pattern Lab.
 // It was a boolean; a third testing mode is worth one string compare, and every existing caller
@@ -7691,7 +7845,7 @@ function startRun(mode, startAct){
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
   resetAchvCounters();   // one call; see the note on AC for why they are not a dozen loose lets
-  gildTimer=14;lastDmg=null;
+  gildTimer=14;lastDmg=null;hitLog.length=0;   // the receipt's tally is per-run and must not carry over
   motes.length=0;moteN=0;moteT=0;stormCol=null;stormShiftT=0;
   chargeReady=false;deathRevealT=0;deadCountT=0;
   odOn=false;                                      // never start a run already burning
@@ -7940,6 +8094,7 @@ function applyLang(){
   //  already repainted all three — the steering row stopped being a special case when tilt did.)
   if(P) updateHUD();
   if(!el('settings').classList.contains('hidden')) paintSettings();
+  if(!el('skins'   ).classList.contains('hidden')) paintSkins();     // names AND the requirement lines are T()
   if(!el('records' ).classList.contains('hidden')) openRecords();
   if(!el('bestiary').classList.contains('hidden')) openBestiary();   // re-points the frame at the new ?lang=
   // ⚠️ NOT REPAINTED: the pause/death run-log CHIPS. Their labels are data-t and follow, but the chip
@@ -7953,29 +8108,64 @@ function applyLang(){
 }
 
 let setPoll=0;
-// A locked pill is present and dim rather than absent, which is the opposite call from the Epoch
+// A locked slot is present and dim rather than absent, which is the opposite call from the Epoch
 // selector — and deliberately so. The depth selector hides entirely because it gates a MODE a new
 // player cannot use and would only be confused by; a wardrobe gates nothing, so showing the empty slot
-// is the whole invitation. The trigger goes in the tooltip, not the label: a row of instructions is a
-// quest log, and this is a settings panel.
+// is the whole invitation. What changed with the move out of Settings is only WHERE the trigger goes:
+// it is printed under the slot now, because `title=` needs a hover and the shipping device has none.
+const SKIN_SW=72;   // css px. The swatch is square; the star inside it is 0.33 of that.
+// ⚠️ DRAWS THROUGH STAR_FACE, NEVER ITS OWN COPY OF THE ART. Third caller of the same seam, after the
+// field and the run card — which is exactly what that seam's "parameters, not globals" note is for.
+// A wardrobe that draws its own version of a skin is a wardrobe that eventually shows you the wrong one.
+//   CYAN, always, and not the polarity you happened to hold: cyan is the pole the colourblind palette
+// leaves alone, so the swatch reads identically in both palettes and cannot become a second, quieter
+// statement about what colour means.
+function skinSwatch(faceId){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const cv=document.createElement('canvas');
+  cv.width=SKIN_SW*dpr; cv.height=SKIN_SW*dpr;
+  cv.style.width=SKIN_SW+'px'; cv.style.height=SKIN_SW+'px';
+  const g=cv.getContext('2d'); g.scale(dpr,dpr);
+  const x=SKIN_SW/2, y=SKIN_SW/2, r=SKIN_SW*0.33, c=COL.cyan;
+  const halo=g.createRadialGradient(x,y,0,x,y,r*2);
+  halo.addColorStop(0,hexA(c,0.16)); halo.addColorStop(1,hexA(c,0));
+  g.fillStyle=halo; g.beginPath(); g.arc(x,y,r*2,0,TAU); g.fill();
+  // r*0.147 is the field's 2.2 rim against its 15 radius, carried as a RATIO so this and the run card
+  // scale the same way. A literal here would be a second number to keep in step with drawPlayer.
+  (STAR_FACE[faceId]||STAR_FACE.core)(g,c,r*0.147,x,y,r);
+  return cv;
+}
 function paintSkins(){
-  const host=el('skinPills'); if(!host) return;
+  const host=el('skinsBody'); if(!host) return;
   host.innerHTML='';
-  const cur=skinPick('star');
-  for(const s of SKINS.star){
-    const owned=skinOwned(s);
-    const b=document.createElement('button');
-    b.type='button';
-    b.className='dp'+(s.id===cur?' on':'')+(owned?'':' lock');
-    b.textContent = owned ? T('skin.star.'+s.id) : T('skin.locked');
-    if(owned) b.onclick=()=>{ store.skin.star=s.id; save(); paintSkins(); };
-    else b.title=T('achv.'+s.req+'.ds');
-    host.appendChild(b);
+  for(const cat of Object.keys(SKINS)){
+    const cur=skinPick(cat);
+    const sec=document.createElement('div'); sec.className='skinsec';
+    const lab=document.createElement('div'); lab.className='skincat'; lab.textContent=T('skins.cat.'+cat);
+    const row=document.createElement('div'); row.className='skinrow';
+    for(const s of SKINS[cat]){
+      const owned=skinOwned(s);
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='skincard'+(s.id===cur?' on':'')+(owned?'':' lock');
+      b.appendChild(skinSwatch(s.id));
+      const nm=document.createElement('div'); nm.className='skinnm';
+      nm.textContent = owned ? T('skin.'+cat+'.'+s.id) : T('skin.locked');
+      b.appendChild(nm);
+      if(owned) b.onclick=()=>{ store.skin[cat]=s.id; save(); paintSkins(); if(typeof sfx!=='undefined') sfx.buy(); };
+      else { const rq=document.createElement('div'); rq.className='skinreq'; rq.textContent=T('achv.'+s.req+'.ds'); b.appendChild(rq); }
+      row.appendChild(b);
+    }
+    sec.appendChild(lab); sec.appendChild(row); host.appendChild(sec);
   }
 }
+// No poll. Settings repaints on a 400ms timer because a switch there can be moved by a KEY while the
+// panel is open (mute); nothing in here can change without a click in here, and rebuilding a row of
+// canvases twice a second to discover that would be pure waste.
+function openSkins(){ paintSkins(); el('skins').classList.remove('hidden'); }
+function closeSkins(){ el('skins').classList.add('hidden'); }
 function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=T(on?'sw.on':'sw.off'); };
-  paintSkins();
   sw('swCb', store.cb);
   sw('swMotion', store.reduceMotion);
   sw('swSound', !store.mute);
@@ -7999,6 +8189,11 @@ function closeSettings(){ el('settings').classList.add('hidden'); clearInterval(
 el('settingsBtn').onclick=openSettings;
 el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without ending the run
 el('settingsClose').onclick=closeSettings;
+el('skinsBtn').onclick=openSkins;
+el('skinsClose').onclick=closeSkins;
+// Same stopImmediatePropagation as the other two panels, and for the same reason — see the note at the
+// Bestiary handler. Menu-only today, which is what makes it latent rather than a bug.
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('skins').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSkins(); }});
 // Repaints on the spot rather than at the next run: this panel opens from the pause screen, so the
 // field it is judged against is usually sitting right behind it.
 // ONE entry point. The Settings row was removed on the author's call: language is a first-screen
@@ -8794,7 +8989,7 @@ window.__orbital=window.__polaris=window.__flux={
   ACHV, grantAchv, get feat(){ return FEAT; }, TURRET_R, TURRET_T,
   // SKINS. `skinPick` is the one the fingerprint test needs: it is the only thing drawPlayer consults,
   // so a test can swap faces and assert the sim did not move.
-  SKINS, skinPick, skinOwned, paintSkins,
+  SKINS, skinPick, skinOwned, paintSkins, openSkins, closeSkins, skinSwatch,
   // THE RUN CARD. `buildRunCard` returns the canvas, so a test can assert its pixels without opening a
   // share sheet — the export path is the only part that needs a human and a device.
   buildRunCard, shareRunCard, CARD_W, CARD_H,
@@ -8832,7 +9027,7 @@ window.__orbital=window.__polaris=window.__flux={
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
       odOn, odCd:+odCd.toFixed(3), odCount, odTotal:+odTotal.toFixed(2), odT:+odT.toFixed(2)}; },
-  get odLog(){return odLog;}, get anomLog(){return anomLog;},
+  get odLog(){return odLog;}, get anomLog(){return anomLog;}, get hitLog(){return hitLog;},
   // TILT. `raw` is the untouched sensor reading and `vec` the smoothed [-1,1] result, so a mirrored or
   // dead axis can be told apart on a real phone: raw moving while vec stays 0 is a dead zone or a
   // permission that never landed; vec moving the wrong way is a sign error in tiltMap for THIS angle.

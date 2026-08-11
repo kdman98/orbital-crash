@@ -1378,25 +1378,34 @@ only ever how you reached the share at the pool of the day. When the pool was ra
 came apart: *hold the ratio* said leave the number alone, *reprice with the pool* said raise it, and
 only the second was ever the point. **The share is the invariant. The ratio was a way of computing it.**
 
-⚠️ **And the ratio is now 4× again, by coincidence, which is the worst possible outcome for a rule that
-was just retired.** Two independent decisions — raising the bait for the pool, then raising the volley
-for the same reason — happened to land back on the old number. Nothing was restored and no pin came
-back. **A coincidence that reproduces a discarded rule is more dangerous than the rule was**, because
-the rule at least had an argument attached and the coincidence arrives looking like confirmation. The
-next reader to "tidy" 4× back into a rule reintroduces exactly the defect this section exists to
-record, and the next pool move is when it bites. `index.html` carries the same warning at the constant;
-it is repeated here because the person who re-pins the ratio will be reading about the *pricing rule*,
-not standing at the definition.
+⚠️ **The ratio spent a while sitting back at 4× by coincidence, which was the worst possible outcome for
+a rule that had just been retired.** Two independent decisions — raising the bait for the pool, then
+raising the volley for the same reason — happened to land back on the old number. Nothing was restored
+and no pin came back. **A coincidence that reproduces a discarded rule is more dangerous than the rule
+was**, because the rule at least had an argument attached and the coincidence arrives looking like
+confirmation. It is now 3.33×, and the hazard is spent — but the *pattern* is what this paragraph is
+for, and it will recur the next time two unrelated decisions land on a round number. **Do not tidy
+3.33× into anything.**
 
-The bait is deliberately restored **short of** where it stood, because the pool went up for difficulty
-and the answer to a harder fight should not undo the difficulty. It is the one erosion channel costing
+The bait is deliberately kept **short of** where it stood, because the pool went up for difficulty and
+the answer to a harder fight should not undo the difficulty. It is the one erosion channel costing
 **no ammunition and no Capacitor**, which makes it — with the grind — what a stripped player has left,
 and the same reason `RING_GRIND_DMG` is protected from being halved.
+
+⚠️ **The most recent trim was priced on the channel's ROLE, and it is the first move here that the pool
+had nothing to do with.** The baited charge appears in no player copy, in no tutorial, and in no hint;
+it is found by accident or not at all. A route almost nobody knows about must not also be the shortest
+way through the fight for the few who do — so 12 went to 10 as a flat 20%, with the pool untouched.
+**Read that trim in baits, not in share.** In share it is the lowest the channel has ever been. In
+baits — the only unit a player can experience, since nobody spends 0.4 of a charge — it is the original
+design from Epoch II onward *exactly*, and one dearer at Epoch I. Twenty percent buys one extra bait at
+Epoch III and one at Epoch V; three of the five Epochs do not move at all. **A percentage and a bait
+count can point in opposite directions, and the bait count is the one a player feels.**
 
 *The ceiling that was once rejected is now the fix* — and the rejection turns out to have been invalid
 from the start, which is a sharper lesson than the one recorded here before.
 
-The current value was argued down for one-shotting an **Epoch I Bastion**. That fight does not exist and
+The value **12** was argued down for one-shotting an **Epoch I Bastion**. That fight does not exist and
 never has: `pickAnomalyVariant` gates the Bastion behind `act>=2` in the repo's first commit and every
 one since, `bossN===0` is unconditionally the Emitter, and Boss Rush pins `act=2`. The 11 HP figure the
 rejection used needs `act=1`, which is reachable only by calling `spawnBoss` directly from a harness.
@@ -1749,8 +1758,26 @@ III" has to mean you travelled there.
 ### Skins
 The second thing that crosses a run boundary, and the second that grants **access, never power**. One
 category today (`star`), two faces: **Core** (default) and **Redoubt**, gated on the Turret achievement.
-They live in Settings rather than in a room of their own — *one question per surface*, and "which star am
-I looking at" is Settings' question.
+They have **their own menu panel**, second in the link row so that Records and the thing Records unlocks
+sit next to each other. *(They lived in a Settings row first, on "one question per surface" — Settings
+answers "how does this reach my eyes and ears" and a two-item wardrobe in its own room looks like a
+system pretending to be one. Moved out on the author's call.)*
+
+⚠️ **The row could not carry the trigger, and on the shipping device it carried nothing.** A locked pill
+put its requirement in `title=`, which needs a hover — so on iOS the lock read "Locked" and stopped
+there, permanently. That is not a reduced version of the feature, it is the feature absent, and the
+panel exists partly because a panel has room to print the sentence. **A tooltip is not a fallback on a
+touchscreen; it is a deletion.** Audit `title=` anywhere it is the only copy of something.
+
+Two calls the panel makes that the row could not:
+
+- **Locked art is shown, dimmed, never withheld.** A cosmetic has no secret to keep and a locked slot's
+  entire job is to be wanted; a grey box is an absence, and an absence recruits nobody.
+- **Each slot draws itself through `STAR_FACE`.** Third caller of that seam after the field and the run
+  card, which is exactly what its *parameters, not globals* note was written for. A wardrobe holding its
+  own copy of the art is a wardrobe that eventually shows you a skin the field does not draw. The swatch
+  is always **cyan** — the pole the colourblind palette leaves alone — so it reads identically in both
+  palettes and never becomes a second, quieter statement about what colour means.
 
 Two properties hold the category honest, and both are structural rather than promises:
 
@@ -1809,14 +1836,32 @@ measured. Do not quote −23.5% as though it were the current gap.
 **Game states:** `menu` · `play` · `ready` (GET READY) · `paused` · `dead`.
 
 ### The run summary
-The panel you read on **pause** and the one you read on **death** are the same panel, built by one
-function against a different id prefix — a stat that appears in one and not the other is a bug, not a
-decision. It carries score, cause, time and peak combo, then two rows of chips: **one per Overdrive
-ride, one per Anomaly fight**.
+Both panels carry score, cause, time and peak combo. Below that they now differ, and ⚠️ **the difference
+is deliberate — this paragraph used to say the opposite.** It read *"the panel you read on pause and the
+one you read on death are the same panel, built by one function against a different id prefix — a stat
+that appears in one and not the other is a bug, not a decision."* That invariant was retired on purpose,
+not eroded, and it is written down here rather than deleted because a rule this file once stated as
+absolute will otherwise be re-derived by whoever notices the panels disagree.
 
-**Both rows are logs, not totals**, and that is the point of them. Four sips and a redline is a
-different run from two full burns, and the two sum to the same number — a total reports them as
-identical. The row shows *shape*: how the meter was spent, in order.
+| | |
+|---|---|
+| **Pause** | the Overdrive ride row and the Anomaly fight row — `showRunLogs('p', …)` |
+| **Death** | the hit tally — `showHitLog()` |
+
+**What changed the answer is that the two panels are asked different questions.** Mid-run, *how much
+Capacitor have I spent* is a decision you can still act on; on the receipt it is trivia. *What has been
+hitting me* is the reverse: during a run you are watching it happen, and after one it is the only thing
+on the screen that the four numbers above cannot tell you. Same data, different surface, and the
+surfaces are allowed to disagree — the old rule collapsed those into one question.
+
+⚠️ **Nothing was deleted to make room.** `odLog`, `odCount`, `odTotal` and `anomLog` are still built
+every run, still shown on pause, and `anomLog` still grants **Untouched**. The rows left the *receipt*;
+the data did not leave the game, and a tidy-up that removes them because "the death screen no longer
+uses them" breaks an achievement.
+
+**Every row here is a log, not a total**, and that is the point of all three. Four sips and a redline is
+a different run from two full burns, and the two sum to the same number — a total reports them as
+identical. The row shows *shape*.
 
 **The ride row.** One chip per completed Overdrive, in run order, each carrying its own length. A tap
 too brief to be a ride is not logged. On pause the ride still under way is prepended as its own
@@ -1847,6 +1892,26 @@ part you cannot answer by watching one enemy.
 wallpaper, so the remainder collapses into one `+N` — and `N` reads the **counter**, never the length
 of the log, because the log stops growing well before a marathon run does. Reading the array would let
 a long run quietly under-report how much it was hiding.
+
+**The hit tally is a TALLY, not a trace** — one chip per *kind* that landed on you, counted,
+most-frequent first, ties in first-hit order. `떠돌이 ×6` and `변이체 추적탄 ×7`, not a sequence of
+damage numbers. The cause line already names the last hit; what this adds is the shape of the whole
+bleed, and it is newly worth showing because Integrity does not come back — every hit in the row is
+still on the bill at the end.
+
+**Colour is dropped from the tally, and that is accuracy rather than brevity.** A Dot of *your* colour
+passes through the core harmlessly, so every Dot that ever lands is the opposite colour by construction.
+Splitting `Drifter (red)` from `Drifter (cyan)` would print your own polarity history back at you as two
+species. Neutrals and the Anomaly ignore polarity anyway. This is why the tally renders through
+`srcKind()` and not `srcName()` — the cause line is a *sentence* and wants the colour; a tally is a
+column of nouns where the same parenthesis repeats down every row.
+
+**It slides; it does not cap.** The tally is bounded at **15 rows by construction** — nine species plus
+six missile kinds — so it can never reach the wallpaper problem `CHIP_SHOW` exists for, and a `+N` here
+would hide *names*, which the total cannot reconstruct, where in a ride row it hides durations the total
+already accounts for. One line, horizontally scrollable. Measured at 375px with five Korean rows:
+scrollWidth 429 against clientWidth 331, one line, most-frequent chip flush at the left edge.
+⚠️ **The share card is the exception and truncates at 4**, because a canvas has no scroll to offer.
 
 **The cause line names species, never internals.** It names the Dot that killed you by display name plus
 the Epoch it happened in — *Lost to Charger (red) · Epoch III*, and in Korean *빨간색 쐐기에 당함 · 3단계*.
@@ -2663,7 +2728,7 @@ overlay at the time. There is no error attached to this: it is a plain false PAS
 is visible before believing any geometry read off it.
 
 **A rig state the game cannot reach produces numbers that look exactly like findings.** Two of these
-landed on the same day from opposite directions. The value now in `CHARGE_DMG` was rejected for one-shotting an 11 HP
+landed on the same day from opposite directions. A `CHARGE_DMG` of 12 was rejected for one-shotting an 11 HP
 Bastion — a fight requiring `act=1`, which the variant gate has forbidden since the first commit; at the
 lowest Bastion the game can spawn it never one-shot anything. And four grind rigs read a clean zero,
 which looked like *grinding does nothing* and was really the rig: rings capture **like** charge while
@@ -3266,10 +3331,10 @@ weight of the hoard-and-don't-flip incentive fell and its strength did not move 
 and which one your decision needs** — *what does a player do next* is a strength question, *how much is
 a run distorted* is a weight question, and a design change usually turns on the first.
 
-**A rejection is as perishable as a measurement, and nothing in this process re-checks it.** The current
-`CHARGE_DMG` was once rejected in its own comment block, on the grounds that it would one-shot an Epoch
-I Bastion. The pool later doubled, and that same value became the one that *preserves* what the rejection
-was protecting — two baits, exactly what the old number took against the old Bastion. **The rejection was
+**A rejection is as perishable as a measurement, and nothing in this process re-checks it.** A
+`CHARGE_DMG` of 12 was once rejected in its own comment block, on the grounds that it would one-shot an
+Epoch I Bastion. The pool later doubled, and that same value became the one that *preserves* what the
+rejection was protecting — two baits, exactly what the old number took against the old Bastion. **The rejection was
 never wrong; the thing it was measured against moved.** Measurements here get re-run as a matter of
 course. Rejected candidates get filed with their reason and never looked at again, which makes them the
 stalest thing in the file. When a premise moves, re-derive what it ruled out.
@@ -3383,8 +3448,15 @@ only Anomaly answer needing neither a flip nor a meter, so it is what a stripped
 **Raising boss HP does not fix it either:** HP is a scalar on every channel at once, so it slows the
 exploit and the intended loop by the same factor and moves no ratio. **The pool has since been raised
 anyway**, for difficulty rather than for this, and nothing above changes as a result — which is the
-prediction working, not a coincidence. Any further move still has to carry the `CHARGE_DMG` =
-4 × `VOLLEY_DMG` pin with it, or the bait silently stops being worth the risk that earns it.
+prediction working, not a coincidence.
+
+⚠️ *That paragraph used to end "any further move still has to carry the `CHARGE_DMG` = 4 × `VOLLEY_DMG`
+pin with it".* **There is no such pin, and there was none when that sentence was written** — it was
+retired under *The Anomaly*, and this section went on quoting it as a live constraint from three
+screens away. That is the section's own lesson turned on itself: a retired rule survives wherever it
+was *repeated*, and the copy nobody is looking at is the copy that stays wrong. The bait is priced as a
+**share of a bar** against the pool, never against the volley. Grep the identifier, not the section,
+whenever a rule is retired.
 
 ⚠️ **Removing passive regeneration is a move in exactly that direction, and it was not made for this
 item.** The orbit's price was already known — a median **94 HP a fight** off `anomLog` — and it was
