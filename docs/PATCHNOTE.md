@@ -75,6 +75,15 @@ section and, three screens away in *Open*, still required *"any further move mus
 wherever it was repeated**, and the copy nobody is looking at is the copy that stays wrong.
 
 ### The receipt says what killed you, not how much meter you spent `v2`
+⚠️ **This one has no commit body, and the file's opening rule promises it does.** The work landed inside
+`d8389b9`, whose subject is *"Skins get a room of their own, and the baited charge gets 20% off"* — a
+concurrent session staged it out of a shared tree along with its own, so `git show d8389b9` is the long
+version of a different change. **Nothing is missing from the diff**; what is missing is the argument, and
+this entry is the whole of it rather than a summary of somewhere better. Read it as the commit body.
+*The general case is worth more than this instance:* in a contended tree the entry you write here may be
+the only place the reasoning survives, and **git reports nothing when that happens** — a swept commit is
+clean by every check there is. Write it long enough to stand alone before the commit exists.
+
 The Overdrive ride row and the Anomaly fight row are **off the death screen**. In their place, one row of
 chips naming every **kind** that landed on you and how often — `떠돌이 ×6` · `변이체 창 ×5` · `덩치 ×4` —
 most-frequent first, ties in first-hit order.
