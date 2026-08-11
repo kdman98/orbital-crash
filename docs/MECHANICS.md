@@ -1767,11 +1767,37 @@ III" has to mean you travelled there.
 ### Skins
 The second thing that crosses a run boundary, and the second that grants **access, never power**.
 
-**Two tiers, and the second one wins.** *Per-element* skins dress one species at a time and are chosen
-independently of each other — `star` with **Core** and **Redoubt** (gated on Turret), and `drift` with
-**Plain** and **Bead** (gated on the dev lock, so unreachable in play). An *overall* skin dresses the
-whole game at once and **suppresses** every per-element choice while worn. First one declared: **Pixel
-Graphic**.
+**The star is per-element. Everything else is themed. The two never overlap.** `star` has **Core** and
+**Redoubt** (gated on Turret); the field is dressed by a **theme**, of which **Pixel Graphic** is the
+first, declared and locked. A theme cannot reach the star, and there are no per-element categories left
+for the field.
+
+⚠️ **The line is where it is because of a measurement, and the first version of that measurement was
+wrong.** Changed pixels at 874×402, across five sim states carrying 2 to 19 Drifters, control 0 in each:
+
+| | per body | total |
+|---|---|---|
+| Drifter, Bead vs Plain | **88–115 px** | 225 / 336 / 669 / 1062 / 2185 over 2 / 3 / 6 / 12 / 19 bodies |
+| Star, Redoubt vs Core | **312–341 px** | one body |
+
+The star is **~3× the per-body change** (2.8–3.9 across the five), at 15 design units against the
+Drifter's 11, centred, and the one body your eyes are locked to for a whole run — while a Dot is one of
+dozens in peripheral vision and a Dot face may change only its **interior**. So a per-species wardrobe is
+~17 face tables' work for the least visible bodies on screen, and the achievement roster (11 earnable
+rows) could not pay for it. Themes get the field for one change; the star keeps the tier worth looking at.
+
+⚠️ **This block previously quoted 102 px and ~33 px — both roughly 3× too small, from a single unrepeated
+reading.** The *ratio* survived re-measurement and the decision rests on the ratio, so the conclusion did
+not move; but the figures were wrong in a code comment, here, and in a commit message for a full pass.
+**One reading with a passing control is still one reading.** Repeat across states before a number becomes
+an argument.
+
+**What the split buys back** is the one honest cost of the winner-takes-all tier it replaced: nobody has
+to give up a look they earned in order to wear a theme. The star is *yours* in a way the field is not.
+
+⚠️ **`OVERALL_FACE` must never carry a `star` key.** `skinPick` refuses to consult it for the star at
+all, so an entry would be dead rather than obeyed — which is worse than forbidden, because it would read
+as live. Verified: planting `OVERALL_FACE.pixel.star` and rendering leaves the player's pick in place.
 
 **A category key is the thing's own name in the engine** — `star`, then the `e.type` string for every
 species — which is what lets a Dot row label itself from `dot.<type>`, the table the Bestiary, the cause
@@ -1796,19 +1822,17 @@ with the sky already on it, so the cut goes through the sky too and leaves a tra
 field. Additive blending needs no erasing — the ring's hole is the body's own colour, never drawn over.
 Negative space here means **not drawing**, which is exactly how the Planet's plate gaps work.
 
-⚠️ **Suppresses, not overwrites.** `store.skin` keeps the per-element selections untouched underneath, so
-removing an overall skin restores the exact wardrobe you had. This is why there are **two resolvers**:
-`skinPick(cat)` is what the drawing code asks and `elementPick(cat)` is what the wardrobe asks. They
-disagree by design while an overall skin is worn, and a test that cannot tell them apart cannot prove the
-suppression is suppression rather than a silent overwrite. Measured: wearing Pixel Graphic over a stored
-Redoubt gives `star_drawn: core`, `star_stored: turret`, and removing it returns both to `turret`.
+**A theme answers alone for the field, including where it has nothing to say** — its own face if it
+supplies one, otherwise the species default. Never a per-element pick: there are none left for the field,
+and reinstating one would put a hand-chosen Bead inside a pixel field for exactly the categories a theme
+had not covered *yet*, so the mixture would **appear and disappear as art landed** — the worst schedule a
+bug can keep.
 
-**Winner-takes-all rather than a merge**, and the overall tier answers even where it has nothing to say —
-its own face if it supplies one, otherwise the category **default**, never the player's pick. An overall
-skin is a claim about the whole screen: a hand-picked smooth star inside a pixel field is not a
-customisation, it is the skin failing. Falling through to the per-element pick for uncovered categories
-is the obvious-looking alternative, and it would make that bug **appear and disappear as art landed** —
-the worst schedule a bug can keep.
+*(A winner-takes-all tier stood here, with `elementPick` beside `skinPick` so the wardrobe could show a
+suppressed pick while the field drew something else, and a `.off` card state to render it. All of it is
+gone with the split: the tiers are disjoint, so what is drawn and what is stored can no longer disagree,
+and two names for one answer is how they drift apart. The suppression note went too — it was shipped copy
+describing something a player could watch not happening.)*
 
 **A lock that cannot open, by construction.** `{id:'devlock', dev:true}` is an achievement with no path:
 `grantAchv` refuses the id outright rather than relying on nothing calling it. "No caller today" is a fact

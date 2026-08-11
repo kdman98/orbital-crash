@@ -14,6 +14,48 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-11
 
+### The star is yours, the field is themed, and the number that decided it was wrong `v2`
+The two tiers stop overlapping. **The star is per-element; everything else is themed.** A theme cannot
+reach the star, and the field has no per-element categories left — the `drift` wardrobe row is gone after
+one commit, having done its job as the test case that proved `DOT_FACE` works. The faces stay in
+`DOT_FACE`, where a theme is now the only thing that can reach them.
+
+⚠️ **The measurement behind the decision was re-run and the first version of it was wrong.** Changed
+pixels at 874×402, five sim states carrying 2 to 19 Drifters, control 0 in every one:
+
+| | per body | totals |
+|---|---|---|
+| Drifter, Bead vs Plain | **88–115 px** | 225 / 336 / 669 / 1062 / 2185 |
+| Star, Redoubt vs Core | **312–341 px** | one body |
+
+Previously quoted as **102 px** and **~33 px** — both roughly **3× too small**, from a single unrepeated
+reading, and written into a code comment, MECHANICS *and* a commit message. The **ratio** survived
+(2.8–3.9×, still ~3×) and the decision rests on the ratio, so nothing about the design moved. But **one
+reading with a passing control is still one reading** — the control being clean is what made it feel
+finished. Repeat across states before a number becomes an argument.
+
+**What the split buys back** is the honest cost of winner-takes-all: nobody gives up a look they earned in
+order to wear a theme.
+
+Three things came out with the tier, rather than being left inert:
+
+- **`elementPick`.** It existed so the wardrobe could show a stored pick while the field drew something
+  else. The tiers are disjoint now, so the two answers cannot disagree — and two names for one answer is
+  how they drift apart.
+- **The `.off` card state**, styled deliberately unlike `.lock` so "not earned" and "asleep" could not be
+  confused. Nothing is asleep any more.
+- **The suppression note.** *"{name} is dressing the whole game"* described something a player could now
+  watch not happening.
+
+⚠️ **`OVERALL_FACE` must never carry a `star` key**, and `skinPick` enforces it by answering the star
+before themes are consulted at all — so an entry there would be **dead while reading as live**, which is
+worse than forbidden. Verified by planting one and rendering: the player's pick stays.
+
+Two labels went stale the moment the star was exempted, both fixed. **"Everything" → "Theme"**: a tier
+label is a claim about coverage, and coverage is exactly what moved — the same failure that killed this
+panel's heading twice. And the theme row **previews on a Drifter, not on the star**: it was showing a
+picture of the one body the choice does not affect.
+
 ### A Drifter skin, a shorter Turret, and the wardrobe stops having a heading `v2`
 **Turret is 30 seconds, down from 60.** `TURRET_T` is quoted in `achv.turret.ds` in both languages and the
 string cannot follow it automatically — every other row's description is a sentence rather than a number,

@@ -466,15 +466,9 @@
   .skincard.lock canvas{opacity:.34;}
   .skinnm{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
   .skinreq{font-size:10px;line-height:1.35;color:var(--dim);opacity:.72;letter-spacing:.02em;}
-  /* SUPPRESSED IS NOT LOCKED, and the two must not look alike: a lock is something you have not earned,
-     `off` is something you own that an overall skin is currently answering for. Locked keeps its full
-     border and dims only the art, because it is an advertisement. `off` dims the WHOLE card and drops
-     its border to near-nothing, because it is asleep — and it sits under a sentence saying which skin
-     put it to sleep, so the state never has to be inferred from the styling alone. */
-  .skinsec.off{opacity:.5;}
-  .skincard.off{cursor:default;border-color:rgba(255,255,255,.07);background:transparent;}
-  .skincard.off:hover{border-color:rgba(255,255,255,.07);}
-  .skinnote{font-size:10px;letter-spacing:.02em;color:var(--dim);opacity:.8;margin-top:7px;}
+  /* (A `.off` state lived here — dimmed, borderless, click-proof — for a card a theme was answering for,
+     styled deliberately unlike `.lock` so "not earned" and "asleep" could not be confused. It has nothing
+     left to describe: themes dress the field, the star is picked by hand, and the two never overlap.) */
   /* gap 16, set when this was four links: at 28 they totalled 373px against 331px of usable width on a
      375px phone and wrapped Settings onto a line of its own. Three links now — 278.5px at this gap — so
      the value is no longer load-bearing, but it is what the row was measured at and there is no reason
@@ -694,7 +688,6 @@
     .skincat{margin-bottom:5px;}
     .skincard{width:118px;padding:7px 10px 6px;gap:4px;}
     .skincard canvas{width:56px !important;height:56px !important;}
-    .skinnote{margin-top:4px;}
     /* The menu paragraph this branch used to reflow is gone; what needs the height back now is the
        tutorial door, which is a button and buys it by shrinking rather than by rewrapping. */
     .titlewrap{margin-bottom:20px;}   /* the rings shrink with the type here, so the clearance can too */
@@ -866,7 +859,6 @@
   html[lang="ko"] .setrow .sd,
   html[lang="ko"] #skins .sd,
   html[lang="ko"] .skinreq,
-  html[lang="ko"] .skinnote,
   html[lang="ko"] .rcEmpty,
   html[lang="ko"] #tutBar,
   html[lang="ko"] .acv{word-break:keep-all;}
@@ -1509,14 +1501,21 @@ const L={ en:{
   'skins.kicker':'Skins',
   // (`skins.note` stood here — the hue law and where skins come from, under the heading. Removed with
   //  the element it filled; the cards state both without a sentence about it.)
-  'skins.cat.overall':'Everything',  'skins.cat.star':'Star',
-  'skins.off':'{name} is dressing the whole game.',
+  // ⚠️ "Everything" WAS TRUE FOR ONE COMMIT AND STOPPED BEING TRUE THE MOMENT THE STAR WAS EXEMPTED.
+  // A theme dresses the field; the star is picked by hand and no theme reaches it. A tier label is a
+  // CLAIM ABOUT COVERAGE, so it goes stale the same way the panel's heading did — twice, before it was
+  // removed for exactly this. "Theme" names what the thing IS rather than how much of the screen it owns.
+  // (`skins.off` went with it: "{name} is dressing the whole game" described a suppression that no longer
+  //  happens, and copy promising something the player can see not happening is worse than no copy.)
+  'skins.cat.overall':'Theme',  'skins.cat.star':'Star',
   'skin.locked':'Locked',
-  'skin.overall.none':'Own picks',   'skin.overall.pixel':'Pixel Graphic',
+  'skin.overall.none':'None',   'skin.overall.pixel':'Pixel Graphic',
   'skin.star.core':'Core',
   'skin.star.turret':'Redoubt',
-  'skin.drift.plain':'Plain',
-  'skin.drift.bead':'Bead',
+  // (`skin.drift.plain` / `.bead` stood here to name a per-element Drifter row. The faces are still in
+  //  DOT_FACE — a theme is the only thing that can reach them now — but a theme card is named by the
+  //  THEME, so nothing reads these. Dead strings in a table this size are how a translator ends up
+  //  translating a screen that does not exist.)
   'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',  'ref.skins':'Skins',
   'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
   'menu.contact':'Contact',
@@ -1684,16 +1683,11 @@ const L={ en:{
   'card.from':'{e}단계에서 시작한 판',
   'dead.share':'공유하기',
   'skins.kicker':'외형',
-  'skins.cat.overall':'전체',  'skins.cat.star':'별',
-  // {name} 뒤에 조사가 붙지 않도록 '외형'을 받침으로 세웠습니다. '{name}이(가)'는 화면에 그대로 노출되고,
-  // 이름마다 조사를 고르는 코드는 이 한 줄을 위해 만들 만한 것이 아닙니다.
-  'skins.off':'{name} 외형이 게임 전체를 덮고 있습니다.',
+  'skins.cat.overall':'테마',  'skins.cat.star':'별',
   'skin.locked':'잠김',
-  'skin.overall.none':'개별 선택',   'skin.overall.pixel':'픽셀 그래픽',
+  'skin.overall.none':'없음',   'skin.overall.pixel':'픽셀 그래픽',
   'skin.star.core':'코어',
   'skin.star.turret':'보루',
-  'skin.drift.plain':'민무늬',
-  'skin.drift.bead':'고리',
   'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',  'ref.skins':'외형',
   'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
   'menu.contact':'문의',
@@ -1824,7 +1818,7 @@ const L={ en:{
   'achv.wombo.fl'       :'세계를 충격에 빠트릴 콤보',
   'achv.makeawish.nm'   :'소원을 빌어요!',   'achv.makeawish.ds'   :'유성우 단계까지 가기',
   'achv.makeawish.fl'   :'뭐든 멀리에서 보면 희극이죠',
-  'achv.kameha.nm'      :'카메하!',         'achv.kameha.ds'      :'오버드라이브 한 번에 멀쩡한 변이체 잡기',
+  'achv.kameha.nm'      :'에네르기파!',     'achv.kameha.ds'      :'오버드라이브 한 번에 멀쩡한 변이체 잡기',
   'achv.kameha.fl'      :'이거나 먹어라!',
   'achv.friendlyfire.nm':'오인 사격',        'achv.friendlyfire.ds':'쐐기 돌진을 변이체에 맞히기',
   'achv.friendlyfire.fl':'내 잘못은 아닌 듯 함..',
@@ -1947,31 +1941,44 @@ function grantAchv(id){
 // `starHull`, in the open, rather than by quietly drawing something else — the door is not bolted, it
 // has a sign on it. What is not negotiable is hue: colour means polarity everywhere in this game, so a
 // face is handed `c` and never picks one.
-// TWO TIERS, AND THE SECOND ONE WINS. Per-ELEMENT skins dress one species at a time — the star today,
-// Dots later — and are chosen independently of each other. An OVERALL skin dresses the whole game at
-// once and SUPPRESSES every per-element choice while it is worn, rather than merging with them.
-//   ⚠️ SUPPRESSES, NOT OVERWRITES. `store.skin` keeps the per-element selections untouched underneath, so
-// taking an overall skin off restores exactly the wardrobe you had. An overall skin that wrote through
-// to the per-element keys would be indistinguishable while worn and destructive on removal.
-//   WHY WINNER-TAKES-ALL RATHER THAN A MERGE: an overall skin is a claim about the whole screen. Pixel
-// Graphic means the field is pixel art; a hand-picked smooth star sitting in it is not a customisation,
-// it is the skin failing. The tier is the unit of coherence, so the tier is the unit of selection.
+// THE DIVISION OF LABOUR, AND IT IS NOT A COMPROMISE BETWEEN TWO SYSTEMS — it is one line drawn where the
+// measurements put it. THE STAR IS PER-ELEMENT. EVERYTHING ELSE IS THEMED. Neither half overlaps the other.
+//   ⚠️ THIS REPLACED A WINNER-TAKES-ALL TIER, and the argument that was retired is worth keeping because
+// it was RIGHT about the field and wrong about the star. It ran: a theme is a claim about the whole
+// screen, so a hand-picked smooth star inside a pixel field is not a customisation, it is the skin
+// failing. True of Dots. False of the star, for a reason that is measured rather than felt — changed
+// pixels at 874×402, across five sim states carrying 2 to 19 Drifters, control 0 in every one:
+//     Bead vs Plain    →  88-115 px PER BODY   (225 / 336 / 669 / 1062 / 2185 over 2 / 3 / 6 / 12 / 19)
+//     Redoubt vs Core  → 312-341 px on the ONE star
+// The star is ~3× the per-body change (2.8-3.9 across the five), and it is 15 design units against the
+// Drifter's 11, centred, and the single body your eyes are locked to for a whole run. A Dot is one of
+// dozens in peripheral vision, and a Dot face may change only its INTERIOR — silhouette is species,
+// colour is polarity — so the ceiling on Dot variety is low as well as the visibility.
+//   ⚠️ AN EARLIER VERSION OF THIS BLOCK QUOTED 102 AND ~33, both roughly 3× too small, from a single
+// unrepeated reading. The RATIO survived re-measurement and the decision rests on the ratio, so the
+// conclusion did not move — but the figures were wrong in a comment, in MECHANICS and in a commit
+// message for a full pass. One reading with a passing control is still one reading.
+//   So: a per-species wardrobe is ~17 face tables' work for the least visible bodies on screen, and the
+// achievement roster (11 earnable rows) could not pay for it anyway. Themes get the field for one change;
+// the star keeps the tier that is actually worth looking at. Author's call, on those figures.
+//   WHAT THIS BUYS BACK is the one honest cost of winner-takes-all: nobody has to give up a look they
+// earned in order to wear a theme. The star is YOURS in a way the field is not.
 // ⚠️ A CATEGORY KEY IS THE THING'S OWN NAME IN THE ENGINE — `star`, then the `e.type` string for every
-// species. That is what lets the wardrobe label a Dot row from `dot.<type>`, the table the Bestiary, the
-// death receipt and the hit tally already read, instead of growing a second copy of "Drifter" that drifts
-// from the first. The one place this game has been bitten by duplicated copy is species names.
+// species. That is what lets a themed Dot be looked up by the same key the Bestiary, the death receipt
+// and the hit tally already read, instead of growing a second copy of "Drifter" that drifts from the first.
+// The one place this game has been bitten by duplicated copy is species names.
 const SKINS={
+  // ⚠️ STAR ONLY, AND KEEP IT THAT WAY UNLESS THE FIGURES ABOVE CHANGE. A `drift` category lived here
+  // for exactly one commit and was the test case that proved DOT_FACE works; the faces survive in
+  // DOT_FACE for THEMES to use, which is now the only route a Dot skin has. Adding a category back means
+  // re-arguing the 33-pixels-per-body number, not just adding an entry.
   star:[
     {id:'core'},                    // no `req` — always yours
     {id:'turret', req:'turret'},    // earned by standing still for TURRET_T seconds
   ],
-  drift:[
-    {id:'plain'},                   // the disc the game has always drawn
-    {id:'bead', req:'devlock'},     // shipped locked — see OVERALL's note on `devlock`
-  ],
 };
-// THE OVERALL TIER. `none` is a real row rather than an absence, because "wearing nothing" has to be a
-// thing you can click back to; a tier you can only enter is a trap.
+// THEMES. `none` is a real row rather than an absence, because "wearing nothing" has to be a thing you
+// can click back to; a tier you can only enter is a trap.
 const OVERALL=[
   {id:'none'},
   // ⚠️ SHIPPED VISIBLE AND UNWEARABLE, ON PURPOSE — `devlock` is the achievement that cannot be granted.
@@ -1989,43 +1996,41 @@ function overallPick(){
   const want=(store.skin&&store.skin.overall)||null;
   return (OVERALL.find(s=>s.id===want && skinOwned(s)) || OVERALL[0]).id;
 }
-// FACES AN OVERALL SKIN SUPPLIES, keyed by category. An overall skin is not required to answer for every
-// category — one that answers for none is inert, which is what `pixel` is until its art is written.
-//   ⚠️ AN OVERALL SKIN'S FACE IDS LIVE IN THE SAME TABLE AS THE PER-ELEMENT ONES (`STAR_FACE` for the
-// star), because skinPick's whole contract is that it returns ONE id that the drawing code looks up. A
-// parallel table would mean every draw site learns which tier it is in, and there is no version of that
-// which stays correct across eight species.
+// FACES A THEME SUPPLIES, keyed by category. A theme is not required to answer for every category — one
+// that answers for none is inert, which is what `pixel` is until its art is written.
+//   ⚠️ NO `star` KEY HERE, EVER. The star is not a theme's to dress; a `star` entry would silently
+// re-create the winner-takes-all behaviour that was deliberately retired, and it would do it in the one
+// place nobody would think to look for it. skinPick refuses to consult this table for the star at all,
+// so an entry would in fact be dead — which is worse than forbidden, because it would READ as live.
+//   ⚠️ A THEME'S FACE IDS LIVE IN THE SAME TABLES AS THE PER-ELEMENT ONES (`DOT_FACE` per species),
+// because skinPick's whole contract is that it returns ONE id the drawing code looks up. A parallel table
+// would mean every draw site learns which tier it is in, and no version of that stays correct across
+// eight species.
 const OVERALL_FACE={
-  // pixel: { star:'pixelStar', drifter:'pixelDrifter', … }   ← what shipping Pixel Graphic looks like
+  // pixel: { drift:'pixelDrift', charger:'pixelCharger', … }   ← what shipping Pixel Graphic looks like
   pixel:{},
 };
-// The PER-ELEMENT answer, with the overall tier deliberately not consulted. Split out because the
-// wardrobe has to show what you picked for a category even while an overall skin is suppressing it —
-// asking `skinPick` there would move the highlight onto the default and quietly rewrite your choice on
-// screen. What is drawn and what is stored are different questions; this answers the second.
-function elementPick(cat){
-  const list=SKINS[cat]||[];
-  const want=(store.skin&&store.skin[cat])||null;
-  // A selection you no longer own falls back to the default rather than failing to draw. Reachable by
-  // erasing a save by hand, and the failure mode of the alternative is an invisible star.
-  return (list.find(s=>s.id===want && skinOwned(s)) || list[0] || {}).id || null;
-}
 function skinPick(cat){
-  const list=SKINS[cat]||[];
-  const dflt=list.length?list[0].id:null;   // an unknown category resolves to null, and every draw site
-                                            // already reads `TABLE[skinPick(x)] || TABLE.default`
-  const ov=overallPick();
-  if(ov!=='none'){
-    // ⚠️ THE OVERALL TIER ANSWERS ALONE, INCLUDING WHERE IT HAS NOTHING TO SAY. Its own face if it
-    // supplies one, otherwise the category DEFAULT — never the player's per-element pick. Falling
-    // through to that pick is the obvious-looking alternative and it is exactly wrong: it would put a
-    // hand-chosen Redoubt inside a pixel field, i.e. reintroduce the mixture the tier exists to forbid,
-    // and it would do so only for the categories the overall skin had not covered YET. So the bug would
-    // appear and disappear as art landed, which is the worst schedule a bug can keep.
-    const face=OVERALL_FACE[ov] && OVERALL_FACE[ov][cat];
-    return face || dflt;
+  // ⚠️ THE STAR IS ANSWERED BEFORE THEMES ARE EVEN CONSULTED, and the early return is the rule rather
+  // than an optimisation of it. Whatever a theme carries, it cannot reach the star — see OVERALL_FACE.
+  if(cat!=='star'){
+    const ov=overallPick();
+    if(ov!=='none'){
+      // A THEME ANSWERS ALONE FOR THE FIELD, INCLUDING WHERE IT HAS NOTHING TO SAY: its own face if it
+      // supplies one, otherwise the species default. Never a per-element pick — there are none left for
+      // the field, and reinstating one would put a hand-chosen Bead inside a pixel field for exactly the
+      // categories the theme had not covered YET, so the mixture would appear and disappear as art
+      // landed. That is the worst schedule a bug can keep.
+      const face=OVERALL_FACE[ov] && OVERALL_FACE[ov][cat];
+      if(face) return face;
+    }
   }
-  return elementPick(cat);
+  const list=SKINS[cat]||[];
+  // A selection you no longer own falls back to the default rather than failing to draw. Reachable by
+  // erasing a save by hand, and the failure mode of the alternative is an invisible star. An unknown
+  // category resolves to null, and every draw site already reads `TABLE[skinPick(x)] || TABLE.default`.
+  const want=(store.skin&&store.skin[cat])||null;
+  return (list.find(s=>s.id===want && skinOwned(s)) || list[0] || {}).id || null;
 }
 
 // =====================================================================
@@ -5448,7 +5453,16 @@ function stepAnnihilation(){
         const dx=o.x-e.x,dy=o.y-e.y, rr=e.r+o.r;
         if(dx*dx+dy*dy<rr*rr){
           if(e.type==='boss'||o.type==='boss'){
-            // only OPPOSITE-colour motes chip the anomaly; its own same-colour minis never hurt it
+            // ⚠️ THIS GATE IS A PRECONDITION, NOT THE RULE, and the line that stood here said otherwise
+            // in three ways at once. It read "only OPPOSITE-colour motes chip the anomaly; its own
+            // same-colour minis never hurt it": `mote` is the word this file used for a Dot before
+            // `mote` came to mean annihilation loot, `mini` is a species deleted with the Splitter in
+            // `6324914`, and the claim itself is the exact form — "opposite-charge contact hurts it" —
+            // that the block below exists to refuse, because a boss that crosses a full field would
+            // then damage itself by travelling. Passing this gate earns a Dot nothing except the right
+            // to be asked WHICH of the two channels it arrived by. The Anomaly sheds Darts in both
+            // colours (`kinds=['fast']`, 62% opposite), so the same-colour half is filtered here and
+            // the opposite-colour half still pays zero one branch down unless you aimed or carried it.
             const B=e.type==='boss'?e:o, X=e.type==='boss'?o:e;
             const chips=(X.color!=='neutral' && X.color!==B.color);
             if(chips){
@@ -8359,27 +8373,28 @@ function skinSwatchEmpty(){
 // it — locked skins show their art. Drawing the default star under a label that says "Pixel Graphic"
 // would be showing art you do NOT have, which is a claim about a thing that does not exist. Nothing is
 // the only honest picture of nothing.
-function skinCard({cat, faceId, on, owned, name, req, off, pick}){
+function skinCard({cat, faceId, on, owned, name, req, pick}){
   const b=document.createElement('button');
   b.type='button';
-  b.className='skincard'+(on?' on':'')+(owned?'':' lock')+(off?' off':'');
+  b.className='skincard'+(on?' on':'')+(owned?'':' lock');
   b.appendChild(faceId ? skinSwatch(cat,faceId) : skinSwatchEmpty());
   const nm=document.createElement('div'); nm.className='skinnm';
   nm.textContent = owned ? name : T('skin.locked');
   b.appendChild(nm);
   if(!owned && req){ const rq=document.createElement('div'); rq.className='skinreq'; rq.textContent=T('achv.'+req+'.ds'); b.appendChild(rq); }
-  // `off` is suppressed-by-the-overall-tier, not locked: the card is still yours, it is just not what the
-  // game is drawing right now. It does not take a click, because a click that silently does nothing is
-  // worse than a control that is visibly asleep.
-  if(owned && !off) b.onclick=pick;
+  // (An `off` state lived here — a card you own that a theme was answering for, dimmed and click-proof.
+  //  It has nothing to describe now that the two tiers do not overlap: a theme cannot reach the star, and
+  //  the field has no per-element cards to put to sleep. Removed rather than left inert, because dead UI
+  //  state that still reads as live is exactly what this file spends its comments warning about.)
+  if(owned) b.onclick=pick;
   return b;
 }
 function paintSkins(){
   const host=el('skinsBody'); if(!host) return;
   host.innerHTML='';
   const ov=overallPick();
-  const section=(into, label, cards, off)=>{
-    const sec=document.createElement('div'); sec.className='skinsec'+(off?' off':'');
+  const section=(into, label, cards)=>{
+    const sec=document.createElement('div'); sec.className='skinsec';
     const lab=document.createElement('div'); lab.className='skincat'; lab.textContent=label;
     const row=document.createElement('div'); row.className='skinrow';
     for(const c of cards) row.appendChild(c);
@@ -8387,13 +8402,16 @@ function paintSkins(){
     into.appendChild(sec);
   };
 
-  // ---- the overall tier, first, because it decides whether anything below it applies ----
+  // ---- themes: the field, and nothing the player picks by hand ----
+  // ⚠️ PREVIEWED ON A DRIFTER, NOT ON THE STAR, and that is a correctness fix rather than a taste one.
+  // This row showed a star while themes still dressed everything; a theme cannot touch the star any more,
+  // so a star swatch here would be a picture of the one body the choice does not affect. A preview has to
+  // show something the thing being previewed actually changes. The Drifter is the most common body on the
+  // field and the one species with a face table, so it is both honest and available.
+  const TH_PREVIEW='drift';
   section(host, T('skins.cat.overall'), OVERALL.map(s=>skinCard({
-    // The overall row previews itself with the STAR, which is the one body every player already knows is
-    // theirs. `none` shows the star your per-element choice resolves to; an overall skin shows its own
-    // star face, or an empty slot when it has none yet.
-    cat:'star',
-    faceId: s.id==='none' ? elementPick('star') : ((OVERALL_FACE[s.id]||{}).star || null),
+    cat:TH_PREVIEW,
+    faceId: s.id==='none' ? 'plain' : ((OVERALL_FACE[s.id]||{})[TH_PREVIEW] || null),
     on: s.id===ov,
     owned: skinOwned(s),
     name: T('skin.overall.'+s.id),
@@ -8401,34 +8419,25 @@ function paintSkins(){
     pick: ()=>{ store.skin.overall=s.id; save(); paintSkins(); if(typeof sfx!=='undefined') sfx.buy(); },
   })));
 
-  // ---- per-element tiers, asleep while an overall skin is worn ----
-  // ONE NOTE, ONCE, BETWEEN THE TIERS. It used to hang under each suppressed section, which was fine at
-  // one category and becomes the same sentence printed N times as the roster grows. It explains the whole
-  // lower half, so it belongs at the boundary rather than repeated inside it.
-  const note = ov!=='none' ? T('skins.off',{name:T('skin.overall.'+ov)}) : null;
-  if(note){ const n=document.createElement('div'); n.className='skinnote'; n.textContent=note; host.appendChild(n); }
-  // ⚠️ COLUMNS, NOT ROWS, AND THE VIEWPORT IS THE WHOLE ARGUMENT. The shipping WebView is 874×402 —
-  // very wide and very short — so stacking one full-width row per category spends the scarce axis and
-  // wastes the plentiful one. Three tiers stacked overflowed by 32px in English and 39px in Korean,
-  // measured, with the heading already gone. As a wrapping row of columns the same three fit with room,
-  // and the fourth category wraps instead of pushing anything past the fold.
+  // ---- the per-element tier: the star, and only ever the star ----
+  // (A suppression note stood between the two, saying which theme had put the lower half to sleep. There
+  //  is no lower half to put to sleep now — the tiers are disjoint — so the sentence would have been
+  //  shipped copy describing something that visibly does not happen.)
+  // The wrapping row of columns stays: it is one column today, and it is what keeps the panel inside a
+  // 402px-tall screen if a second per-element category is ever argued back in. See the 32px/39px
+  // overflow measured when three tiers were stacked as full-width rows.
   const els=document.createElement('div'); els.className='skinels'; host.appendChild(els);
   for(const cat of Object.keys(SKINS)){
-    const cur=elementPick(cat);          // what you PICKED, not what is being drawn — see elementPick
-    // ⚠️ A SPECIES ROW IS LABELLED FROM `dot.<type>` AND NOT FROM A STRING OF ITS OWN. That table is
-    // already the one name the Bestiary, the cause line and the hit tally all read, and the single most
-    // expensive copy defect this project has had was a species called two things in two places. `star`
-    // is the exception because it is not a species and has no row there.
-    section(els, cat==='star' ? T('skins.cat.star') : T('dot.'+cat), SKINS[cat].map(s=>skinCard({
+    const cur=skinPick(cat);
+    section(els, T('skins.cat.'+cat), SKINS[cat].map(s=>skinCard({
       cat,
       faceId: s.id,
       on: s.id===cur,
       owned: skinOwned(s),
       name: T('skin.'+cat+'.'+s.id),
       req: s.req,
-      off: !!note,
       pick: ()=>{ store.skin[cat]=s.id; save(); paintSkins(); if(typeof sfx!=='undefined') sfx.buy(); },
-    })), !!note);
+    })));
   }
 }
 // No poll. Settings repaints on a 400ms timer because a switch there can be moved by a KEY while the
@@ -9269,10 +9278,10 @@ window.__orbital=window.__polaris=window.__flux={
   ACHV, grantAchv, get feat(){ return FEAT; }, TURRET_R, TURRET_T,
   // SKINS. `skinPick` is the one the fingerprint test needs: it is the only thing drawPlayer consults,
   // so a test can swap faces and assert the sim did not move.
-  // Both tiers, and both resolvers. `skinPick` is what the drawing code asks; `elementPick` is what the
-  // wardrobe asks; they disagree by design whenever an overall skin is worn, and a test needs to be able
-  // to tell the two apart or it cannot prove the suppression is suppression rather than an overwrite.
-  SKINS, OVERALL, OVERALL_FACE, STAR_FACE, DOT_FACE, skinPick, elementPick, overallPick, skinOwned,
+  // Both tiers. ONE resolver now: `elementPick` existed to answer "what did the player pick" separately
+  // from "what is drawn", and the two cannot disagree any more — a theme never reaches the star, and the
+  // field has no per-element pick to be overridden. Two names for one answer is how they drift apart.
+  SKINS, OVERALL, OVERALL_FACE, STAR_FACE, DOT_FACE, skinPick, overallPick, skinOwned,
   paintSkins, openSkins, closeSkins, skinSwatch,
   // THE RUN CARD. `buildRunCard` returns the canvas, so a test can assert its pixels without opening a
   // share sheet — the export path is the only part that needs a human and a device.
