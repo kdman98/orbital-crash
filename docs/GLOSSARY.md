@@ -143,16 +143,12 @@ paragraph goes in MECHANICS and this line points at it.
   never velocity. (`SAME_PUSH`)
 - **Gilded Bounty** — a periodic gold-ringed Dot worth a jackpot if popped inside its window. Only ever
   a Drifter or a Dart. (`e.gild`, `gildTimer`)
-- **Mote** — annihilation loot carrying the popped Dot's colour. Worth points where it lands, and one
-  unit of the **Wish bank**. A **Neutral sheds one of each colour** — it wears both poles, so "the dead
-  Dot's colour" has no single answer for it, and it is the only drop that cannot be the wrong colour.
-  (`motes`, `moteCap`)
-- **Wish** — the help you call when the bank fills: **Allies**, **Integrity**, **Shockwave** or
-  **Gilded Storm**, chosen from a picker that opens by itself and cannot be dismissed. Instant, spent on
-  use, never a lasting flag — see *This is not the powerup roster* in MECHANICS. (`wishBank`,
-  `WISH_COST`, `openWish`, `pickWish`)
-- **Wish gauge** — the experience-bar line across the very top. A length, never a count.
-  (`#wishGauge`, `wishI`)
+- **Mote** — annihilation loot carrying the popped Dot's colour. Worth points where it lands. A
+  **Neutral sheds one of each colour** — it wears both poles, so "the dead Dot's colour" has no single
+  answer for it, and it is the only drop that cannot be the wrong colour. (`motes`, `moteCap`)
+- ~~**Wish**~~ — a Mote bank spent on called help. **Built, verified and removed the same day for
+  tempo**: an auto-opening picker stops a continuous game, and no threshold fixes that. Deleted rather
+  than switched off, per `0b408c4` — git keeps it, at `fdcafc1`. See *The Wish* in MECHANICS.
 
 ## Laws and rules
 

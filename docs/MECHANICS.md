@@ -1726,8 +1726,7 @@ including the ones that move standing population the most.
   each paying a Capacitor chunk. Breaking a streak past the first tier **bursts** it into Capacitor
   instead of vanishing.
 - **Mote** — annihilation loot carrying the popped Dot's colour. Same-polarity Motes hoover to you;
-  opposite ones lie inert until a reversal vacuums them. Collecting one pays score where it lands, and
-  one unit of the **Wish bank**.
+  opposite ones lie inert until a reversal vacuums them. Collecting one pays score where it lands.
   ⚠️ **A Neutral sheds one of each colour**, and that follows from what a Neutral is rather than being a
   bonus: it wears both poles and is the one Dot the colour law does not reach, so *"the colour of the Dot
   that died"* has no single answer for it. One red and one cyan is the same rule every other species
@@ -1737,43 +1736,26 @@ including the ones that move standing population the most.
   Dot's charge, so through hold-a-pole play most sit inert, while a Neutral always leaves one you can
   hoover on the polarity you are already holding.
 
-### The Wish
-**Motes bank. At `WISH_COST` the bank opens a picker by itself and you call for help** — *Allies*
-(matter arrives in your polarity), *Integrity*, *Shockwave* (arena-wide) or *Gilded Storm*.
+### ~~The Wish~~ — built, measured, and taken out for tempo
+**Motes banked; at a threshold the bank opened a picker by itself** — Allies, Integrity, an arena
+Shockwave, a Gilded Storm — with an experience-bar gauge across the top. It worked and it was verified.
+⚠️ **What it cost was TEMPO, and no threshold fixes that.** An auto-opening modal in a game whose whole
+texture is continuous stops the run several times a minute; the interruption *is* the pause, not how
+often it comes, so tuning the cost only changes how often you are stopped.
 
-⚠️ **This is not the powerup roster returning**, and the screen looks exactly like it, so the distinction
-has to be stated. `0b408c4` deleted 245 lines of arsenal, and what it deleted were **dormant passive
-flags**: `P.*` fields set by a field pickup and read forever after, behind flags `freshRun()` zeroed and
-nothing wrote. A Wish is an **instant** effect, bought with a resource banked by playing and spent the
-moment it is chosen — no pickup, no flag, nothing persists past the frame. **It must stay instant**: the
-moment one leaves a lasting `P.*` behind, this paragraph becomes false. Delete it citing `0b408c4` and
-you have deleted a different thing for the first thing's reasons.
+⚠️ **It is deleted rather than switched off, and that is this file's rule rather than a preference.**
+`0b408c4` removed 245 lines of arsenal that had been "written, tuned, switched off" and stated the
+principle: **git keeps them instead.** A dormant mechanic behind a false constant is exactly what that
+commit exists to prevent — nothing runs it, nothing checks it, and the next reader cannot tell whether it
+still works. **The working copy is `fdcafc1`**, whole and verified; `git show fdcafc1` restores it.
 
-**It clears the bar the last Mote bank failed.** `motesBank` fed `mult` and went in `71c961e` for
-measuring **bimodal** — median ×1.9 over 12 runs that took hits, ×15 inside 46s in 6 of 6 that took
-none, nothing between, for a **1.30× total effect**. The bar set there is that anything reintroduced
-*"must separate outcomes, not decorate them."* A Wish changes whether you live, which a multiplier never
-could. It also inverts the old halve-on-hit coupling, which drained the resource of the player already
-struggling; a Wish is spent to recover *from* hits.
+*Kept from that commit, because both are independent of the Wish:* the Neutral shedding one Mote of each
+colour, and the Comet telegraph.
 
-**No input of its own, and no dismiss.** Touch is a full partition (`zoneOf` — move / Overdrive / flip)
-with no fourth zone, and every scheme overloading the flip reintroduces the press-latency the file
-removed on purpose, so the bank opens the picker itself. It cannot be dismissed because it opens
-*because* the bank is full: a close that spends nothing would re-open on the next Mote. Guarded on
-`state==='play'`, `!tutMode`, and `!testMode && !labMode` — the same condition the best score and the
-records list share, since Boss Rush and the Lab could farm Wishes off matter that is not comparable.
-
-**The gauge is a length, never a count.** An experience bar across the very top, inside `#hud` so it
-already sits under `env(safe-area-inset-top)`. `n / 40` invites arithmetic mid-run; the only fact it
-owes the player is *how close*, which a length already answers.
-
-⚠️ **Every constant here is a placeholder.** Nothing has measured Mote income in this build. The only
-figure that exists is the **761 motes in a clean run** from `71c961e`, which predates the −20% Dot damage
-pass and the current cap and life, and was one reading — pricing on it is the trap recorded in `759ae0f`
-verbatim. `WISH_COST` 40 fires after 11.6s of *scripted continuous harvest*, which is a ceiling on
-income and not a rate. `MOTE_SCORE` is deliberately **not** removed yet: score has two persisted
-consumers (`store.best`, `store.runs`), and `71c961e` shows the correct way to cut a term — reprice the
-flat values against the measured median, which held final score at 0.88×.
+*Worth keeping if it is ever rebuilt.* The design cleared the bar `71c961e` set for this slot — "separate
+outcomes, not decorate them" — where the old `mult` did not. What it never solved is **when** a choice
+may interrupt a continuous game, and that is the question any second attempt has to answer first, before
+any of the four effects or the pricing matter.
 - **Score is addition, and there is no multiplier.** A kill (`KILL_SCORE` 20) and a Mote (`MOTE_SCORE`
   5) each pay a flat amount wherever they happen. A kill is the unit, a Mote is a quarter of one, and a
   kill sheds 1–2 of them — so hoovering your own debris is worth about a third again on top of the kill

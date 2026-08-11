@@ -44,6 +44,22 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### The Wish is out of the live path, one commit after landing `v2`
+Played, and it **cuts the tempo of the whole game**. An auto-opening picker in a game whose texture is
+continuous stops the run several times a minute, and ⚠️ **no threshold fixes the shape of that** — the
+interruption is the pause itself, not its frequency, so pricing it higher only changes how often you are
+stopped. That is a verdict about *when a choice may interrupt*, not about the four effects or the numbers,
+and it is the question any second attempt has to answer before either of those matter.
+
+⚠️ **Deleted, not flagged off, and that is this file's own rule.** `0b408c4` removed 245 lines of arsenal
+that had been *"written, tuned, switched off"* and said why: **git keeps them instead.** A mechanic parked
+behind a false constant is precisely what that commit exists to prevent — nothing runs it, nothing checks
+it, and the next reader cannot tell whether it still works. **The working copy is `fdcafc1`**, whole and
+verified; `git show fdcafc1` restores it, and the entry below is its argument.
+
+**Kept from `fdcafc1`, both independent of the Wish:** the Neutral shedding one Mote of each colour, and
+the Comet telegraph. `MOTE_SCORE` never changed, so scoring is exactly where it was.
+
 ### The Wish: Motes bank into called help `v2`
 Motes now also bank; at `WISH_COST` the bank opens a picker by itself and you call for help — **Allies**
 (matter arrives in your polarity), **Integrity**, **Shockwave** (arena-wide push, never an erase) or
