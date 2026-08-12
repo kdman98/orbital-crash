@@ -14,6 +14,62 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-12
 
+### The fourth Anomaly restricts movement, and one clamp makes that mean the same on a mouse and a thumb `v2`
+The parked `bossBody` arm is reachable at last. **The Singularity** ambles at you forever, breathes matter
+off itself with the **Wind**, and periodically **Draws** — a speed cap plus a tax on retreating, while it
+closes. Its verb is restricting movement, so the thing that kills you is the **field**: the other three
+kinds ask where you are standing, this one asks whether you can still get there. It **throws nothing**,
+which is how it clears the roster ceiling rather than waiving it — the old argument was that a fourth kind
+firing aimed shots from a hover is the Emitter with a gimmick, and that is still true, so this one is not
+on that axis at all. Contact is 20 rather than 30 and it is the only kind that does not recoil; those two
+are one decision, not two.
+
+⚠️ **The Draw is a cap rather than a force, and that is what makes it portable.** Retreating, a mouse at a
+wide pointer gap moves **92.3 units/frame and is unbounded**, a thumb at full deflection **14.00** and is
+hard-capped — because one is a position control whose restoring force grows with the gap while the hand
+does nothing, and the other is a rate control with nothing left to give. A pull sized for a phone is
+invisible on a desktop. Clamping the frame's *total* displacement is what makes "the player's top speed"
+a defined quantity at all, and it is the only reason the retreat tax can be a ratio. Measured after:
+**1.860 on both devices, a 1.00× gap.** The clamp is therefore a prerequisite for any future force on the
+Star, not an alternative to one.
+
+⚠️ **Three faults, each found by measuring rather than reading, and each already answered somewhere in the
+repo.** *Clamp-before-tax* was dead code that measured identical — every raw displacement is above the
+cap, so taxing first removes a share of a number the clamp discards, and it would have bitten only below
+the cap, taxing gentle movement and leaving full-speed retreat alone. *The Wind did nothing* (14.5px at
+r=60, against a 26px contact) because it left seek running — which the Fling's own entry in MECHANICS
+already forbids in as many words; it now takes the existing `e.flung` path and measures 98.3px. *The push
+drew itself pulling*: `spawnRing`'s default converges, and a converging ring is already this game's word
+for **arrival** — the danger sign and the mine's arming ring both mean it — so the cue was borrowing the
+vocabulary of its own opposite. Author: *"push telegraph is pulling."*
+
+`inhale` and `release` were **orphans** in the sound bank, defined with no call site anywhere. Taken as
+the kind's matched pair, which is what the sound rule prefers over two variations on one idea.
+
+**Proven inert until a Singularity spawns:** ambient / emitter / sentinel / bastion × 2 seeds × 900
+frames, all 8 bit-identical to the pre-change build. That needed the two new `rand()` calls guarded on
+the variant — unconditional in the shared boss literal they drew from the seeded stream on *every* spawn
+in the game and moved all three existing kinds.
+
+### The Singularity gets an entrance, because the amble was still above the HUD floor when the clamp armed `v2`
+Reported as a teleport at the start of the fight, and it was: **111.6px in one frame, at frame 96 =
+1.600s exactly**, against the Emitter's 3.4px. `stepEnemyForces` clamps `boss.y` to ≥138 once
+`bossTime > 1.6`, and its comment says it runs *"once its entrance dive is done"* — an **assumption about
+every kind rather than something it tests**. The Emitter and Bastion sit at y≈141 by then so it is a
+no-op for them; the Singularity ambles at 0.9 and was at y≈13. The amble was doing two jobs and is only
+good at the second: it now has an entrance, and only ambles once on station.
+
+⚠️ **The entry drives `y` at a fixed rate rather than easing toward the Star**, because an ease has no
+guaranteed vertical component — with the Star high and off to one side the approach is nearly horizontal
+and can still be short of the floor at 1.6s. Verified position-independent: 3.4px max frame delta at three
+Star positions including that worst case, floor cleared at frame 58 against a guard arming at 96.
+
+⚠️ **It reproduces only in real play, which is why it shipped.** `bossTime` advances inside `director()`,
+so a harness calling `spawnBoss` directly never arms the guard and traces a perfectly smooth walk — eight
+times. The rig agreed with itself while measuring a state the game does not run in. ⚠️ **And the margin on
+the existing kinds is four frames**: the Emitter clears 138 at frame 92. Nothing is wrong today and
+nothing warns.
+
 ### The Sentinel throws two patterns on one beat, and never both at once `v2`
 It had **one** firing routine and had never had more — `firePincer` on a free timer, no branch, no
 alternation, no Epoch escalation past one extra Dart. It was also the only Anomaly whose fire **never

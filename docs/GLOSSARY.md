@@ -223,7 +223,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 
 - **Anomaly** — the boss. Immune to your pole reversal, position-controlled, and it never leaves.
   (`boss`)
-- **Anomaly kind** — which one you drew. Three, one verb each. (`boss.variant`, `ANOM`)
+- **Anomaly kind** — which one you drew. **Four**, one verb each. (`boss.variant`, `ANOM`)
 - **Emitter** *(volleys)* — hovers, alternating a hexagon burst with a sweeping stream; dashes from
   Epoch II. (`b.emitMode`, `fireHexVolley`)
 - **Sentinel** *(chase)* — circles the arena on a wandering rate, alternating a seeker **pincer** with a
@@ -231,8 +231,22 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   close on, and now the one that charges you for the approach. (`orbA`, `orbW`, `pinLeft`)
 - **Bastion** *(ground denial)* — erupts radial rings with one seam, and lobs mines around you.
   (`novaCharge`, `fireMines`)
+- **Singularity** *(movement denial)* — the fourth kind, and the only one that **throws nothing**. It
+  ambles at you forever, breathes matter off itself with the **Wind**, and periodically **Draws**: a
+  speed cap that makes the ordinary field lethal. Contact is damage-per-second, not one hit, and it is
+  the one kind that does not recoil on touching you. (`singularity`, `SING_FOLLOW`, `DRAW_CAP`)
+- **The Wind** — the Singularity's exhale: one radial impulse shoving matter off it. Ejects your rings
+  for about a second and carries loose matter toward whoever is standing outside. Does **not** touch the
+  Star at all. (`WIND_R`, `WIND_V`, `WIND_HOLD`)
+- **The Draw** — the Singularity's inhale: your top speed is capped and moving *away from it* is taxed
+  on top of the cap, while it closes. Answered by **Overdrive**, because the cap scales with
+  `P.moveMult`. Strafing is free; retreating is not. (`DRAW_T`, `DRAW_CAP`, `DRAW_AWAY`, `b.drawT`)
+- **The entrance** — the Singularity's dive to station. Distinct from the amble because the amble is a
+  *steady state*: the shared HUD floor clamp arms at 1.6s assuming every kind has already arrived, and a
+  body still climbing when it fires gets teleported. (`SING_ENTRY`, `SING_ENTRY_Y`)
 - **The Hunt** — an Anomaly leaving station and *walking* onto your core, landing one hit and breaking
-  off. (`b.hunt`, `HUNT_SPD`, `HUNT_BREAK`)
+  off. The Singularity has none: its Draw *is* its hunt, and it drives `b.hunt` itself.
+  (`b.hunt`, `HUNT_SPD`, `HUNT_BREAK`)
 - **The Dash** — the Emitter's one committed move: it locks its lane at wind-up and drives past the
   locked point. (`LUNGE_TEL`, `aimLunge()`)
 - **Missile** — anything the Anomaly throws. Launches from its own body; hurts you regardless of your
