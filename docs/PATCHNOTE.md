@@ -45,6 +45,18 @@ fingerprints move without any behaviour regressing. That is the documented prope
 adds or removes an RNG-consuming call, not a regression.
 
 ### Two showers, two signs — and the mark is bigger `v2`
+⚠️ **`6724ab2` carries someone else's change and does not mention it.** Of its 202 added lines, about
+**seven** are this entry's; the rest is the Epoch cue and the `--grantop` grant overlay, swept out of a
+shared working tree by a `git add index.html` and pushed under a subject about comet signs. Nothing was
+lost or broken — but `git show 6724ab2` is not the long version of *either* change, and the Epoch cue has
+no commit body at all. Read this entry for the sign, and the *Epoch cue* material in MECHANICS for that.
+*The rule this broke is already in this repo twice over:* an explicit path takes every hunk in the file,
+so a contended file is staged hunk-level or not at all. What disarmed it was a `git status` run minutes
+earlier showing only my own files — **true when it ran, false by commit time**, which is the very hazard
+the check exists to catch. Run it inside the same block as the `git add`, and never let "this edit is
+small" decide the staging method: the method guards against the *other* session's write, whose size has
+nothing to do with yours.
+
 ⚠️ **The live renderer took the *first* anchor it found in `enemies`.** With two crossings overlapping,
 that picked whichever group came first in an array whose order changes as bodies spawn and are culled —
 so the single badge **flickered between the two crossings**, and carried the brighter of their two alphas
