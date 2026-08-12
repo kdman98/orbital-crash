@@ -1805,6 +1805,7 @@ const L={ en:{
   'anom.emitter.tip3':'EMITTER · DASH · DODGE',
   'anom.sentinel.tip':'SENTINEL · SEEKERS · CHASE',
   'anom.bastion.tip'  :'BASTION · WALL · THE SEAM',
+  'anom.singularity.tip':'SINGULARITY · THE DRAW · BREAK OUT',
   'achv.turret.nm'      :'Turret',          'achv.turret.ds'      :'Hold one spot for 30 seconds',
   'achv.turret.fl'      :'Thought this was tower defense?',
   'achv.flappystar.nm'  :'Flappy Star',     'achv.flappystar.ds'  :'Reverse polarity 40 times in one Epoch',
@@ -1992,6 +1993,9 @@ const L={ en:{
   'anom.emitter.tip3':'방출체 · 돌진 · 회피',
   'anom.sentinel.tip':'감시자 · 추적탄 · 추격',
   'anom.bastion.tip'  :'바스티온 · 탄막벽 · 틈새',
+  // 특이점 is the native astronomy word, not a transliteration — 감시자/방출체's register, not 바스티온's.
+  // 흡입 over 흡인: 흡인 is the medical one (흡인기), 흡입력 is what a thing that pulls you in has.
+  'anom.singularity.tip':'특이점 · 흡입 · 돌파',
   // ⚠️ THE `.ds` LINES ARE OBJECTIVES, SO THEY TAKE THE `-기` FORM, not the `-한다` the first draft used.
   // `-한다` is the shape an English infinitive falls into when it is carried across word by word ("reach
   // a Meteor Shower Epoch" → "유성우 시대에 진입한다"), and it reads as a manual rather than as a game.
@@ -4213,12 +4217,24 @@ const ANOM={
   // around you. It carries 25% less HP because it is the kind that MOVES you rather than out-damaging
   // you: its answer is footwork, so it should not also be the longest fight.
   bastion: {tip:'anom.bastion.tip'},
+  // SINGULARITY — the movement boss, and the only kind that throws nothing. It ambles at you forever,
+  // shoves matter off itself with the WIND, and periodically DRAWS: a speed cap plus a tax on retreating,
+  // so what kills you is the ordinary field arriving while you cannot get out of its way. Its tip names a
+  // movement answer for the same reason the Hunt's line does — the answer is Overdrive, which beats the
+  // cap because the cap is scaled by `P.moveMult`.
+  singularity:{tip:'anom.singularity.tip'},
 };
 let lastVariant=null;
 function pickAnomalyVariant(){
   if(bossN===0) return 'emitter';             // the first Anomaly always teaches the loop (its tip names the Volley)
   const pool=['emitter','sentinel'];
   if(act>=2) pool.push('bastion');             // Epoch II+: the bullet-hell kind joins
+  // ⚠️ EPOCH III, ONE LATER THAN THE BASTION, AND THE GATE IS ABOUT LEGIBILITY RATHER THAN DIFFICULTY.
+  // Every other kind is answered with a verb the player already owns from the ambient field — dodge,
+  // chase, thread. This one is answered with OVERDRIVE, the only verb a player can reach Epoch II without
+  // ever having spent, and a Draw met by somebody who has never held the button is not a hard fight, it
+  // is an unreadable one. III is also where `pace` pins, so it arrives at full speed or not at all.
+  if(act>=3) pool.push('singularity');
   let v=pool[irand(0,pool.length-1)];         // Epoch II+ escalation now lives INSIDE the Emitter (it lunges)
   if(v===lastVariant && pool.length>1) v=pool[(pool.indexOf(v)+1)%pool.length]; // avoid back-to-back repeats
   lastVariant=v; return v;
@@ -4226,7 +4242,7 @@ function pickAnomalyVariant(){
 // ---- BOSS RUSH: a testing ground where Anomalies come one after another over a LIVE ambient field
 //      (dots still spawn, like a real Epoch fight). Cycle on kill; 1-3 jump to a kind. Real damage. ----
 let testMode=false, lastWasTest=false, lastStartAct=1, testIdx=0;
-const TEST_ORDER=['emitter','sentinel','bastion'];
+const TEST_ORDER=['emitter','sentinel','bastion','singularity'];
 function beginTestRun(){
   act=2; boss=null; bossTime=0; testIdx=0; wavePhase='boss';
   palCur.bg1=hx(ACTS[2].bg1); palCur.bg2=hx(ACTS[2].bg2); palCur.tint=hx(ACTS[2].tint);
@@ -4557,7 +4573,13 @@ function spawnBoss(forceVariant){
                  spd: 0.75+0.25*pt,     // MULTIPLIES projectile speed: 0.75 / 0.875 / 1.0
                  pat: VAR_PAT[variant]||1 };  // MULTIPLIES the gap on FIRING timers only — smaller is faster
   const pcad = pace.cad*pace.pat;       // the firing gap; updateBoss derives the same product per frame
-  boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0, dmg:30, pace,
+  // ⚠️ CONTACT IS PER-KIND NOW, and 30 is not a shared constant that happens to suit three bodies — it is
+  // priced against RECOIL. The three older kinds land one hit and break off (see the hunt branch in
+  // stepPlayerContact), so 30 is one readable hit you could have walked away from. The Singularity does
+  // NOT recoil, so the same 30 would be 37.5 unanswerable dps parked on your skin — the exact object that
+  // branch's comment forbids. 20 against a body you outrun 15:1 is a rate you choose to pay.
+  boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0,
+    dmg:(variant==='singularity'?DRAW_DMG:30), pace,
     x:W/2, y:-60, vx:0, vy:0, dead:false, queued:false, ph:0, hexRot:rand(0,TAU), variant, spiral:null,
     // ⚠️ These are FIRST intervals and they need `pace.cad` as much as the resets in updateBoss do —
     // without it Epoch I's opening shot of every kind still arrives at full speed, which is the one the
@@ -4574,6 +4596,18 @@ function spawnBoss(forceVariant){
     // countdown to the next resample. Seeded at the midpoint so frame one is not a lurch.
     orbW:(ORB_W0+ORB_W1)/2, orbWT:0, orbWTgt:(ORB_W0+ORB_W1)/2,
     novaT:rand(2.4,3.4)*pcad, novaCharge:0,            // bastion: telegraphed radial bursts
+    // singularity: the Wind's clock, and the Draw's three states — waiting, winding up, drawing.
+    //   ⚠️ `drawWait` TAKES `pace.cad` AND NOT `pcad`, for the same reason `huntT` does one line down:
+    // the Draw schedules MOVEMENT, not fire. Sliding it onto the firing multiplier would couple "its
+    // patterns feel sluggish" to "it grabs me less often", which is the split pcad exists to keep.
+    //   ⚠️ BOTH ARE SHORT-CIRCUITED ON THE VARIANT, AND THAT IS NOT TIDINESS — IT IS THE ORACLE. This
+    // literal runs for EVERY kind, so two unconditional `rand()` calls here draw from the seeded stream on
+    // every boss spawn in the game and shift every fingerprint after it. Measured with them unconditional:
+    // ambient stayed bit-identical on both seeds and all three existing kinds MOVED, on both seeds — a
+    // behaviour-preserving change that could no longer prove it. Guarded, the whole feature is inert until
+    // a Singularity actually spawns, which is a claim worth more than the two calls cost.
+    windT:(variant==='singularity'?rand(WIND_EVERY0,WIND_EVERY1)*pcad:0),
+    drawWait:(variant==='singularity'?rand(6,9)*pace.cad:0), drawTel:0, drawT:0,
     lungeT:rand(4,6)*pcad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
     // sentinel: the rotating node screen (replaced the swarmer trail). `screen` is the pattern's own
     // clock; `pinLeft` is how many pincers are owed before the next one opens.
@@ -5042,8 +5076,95 @@ function mineBlast(L){
 // px/frame, sized so a hunt from a real ~400px station arrives in ~5s — still a walk you can stroll away
 // from. Slower than this and the Bastion runs out of hunt window without reaching the core, which makes
 // the whole approach a bluff.
-const HUNT_SPD={emitter:1.15, sentinel:1.3, bastion:1.05};
+// ⚠️ EVERY ROW HERE IS THE SAME QUANTITY — "how fast it closes when it is trying to reach you" — and the
+// Singularity's row is only homogeneous with the other three because its DRAW *is* its hunt. It ambles at
+// SING_FOLLOW the rest of the time, which is a different number for a different job and is NOT in this
+// table. Putting the amble here would make one row mean something its neighbours do not, which is the
+// defect this file catches in measured tables about once a month.
+const HUNT_SPD={emitter:1.15, sentinel:1.3, bastion:1.05, singularity:3.2};
 const HUNT_BREAK=1.1;                                          // seconds it recoils after landing its hit
+// ============================================================================================
+//  THE SINGULARITY — the fourth kind. Its verb is RESTRICTING MOVEMENT, so the thing that kills you is
+//  the FIELD: with your speed capped and your retreat taxed, ordinary matter you would have walked away
+//  from arrives. The other three ask "where are you standing"; this one asks "can you still get there".
+//
+//  Two moves, each attacking one half of the only thing you are doing:
+//    THE WIND  shoves matter off it — the anti-grind interrupt, and a resupply for anyone standing out.
+//    THE DRAW  caps your speed and taxes retreat while it closes at HUNT_SPD.singularity — the anti-kite.
+//
+//  ⚠️ THE DRAW IS A CAP, NOT A FORCE, AND THAT IS WHAT MAKES IT PORTABLE. The three input models produce
+//  wildly different speeds — mouse is `(pointer-P)*0.185`, GAP-PROPORTIONAL AND UNBOUNDED (74 units/frame
+//  at a 400px gap), the stick is 14 hard-capped at 64px of deflection, the keyboard nudge is 6.5. A pull
+//  sized to be escapable on a phone is invisible on a desktop, and one sized for the desktop is a
+//  cutscene on a phone. Clamping the frame's TOTAL displacement is what makes "the player's top speed" a
+//  well-defined quantity at all — on mouse there is no such number otherwise — and it is the only reason
+//  DRAW_AWAY below can be expressed as a ratio. See the clamp in stepPlayer.
+const SING_FOLLOW=0.9;    // px/frame. It never stops walking at you and you outrun it 15:1, which is what
+                          // makes a body that deals damage-per-second rather than one hit survivable at
+                          // all. It is the Draw that takes the escape away, never the amble.
+const DRAW_TEL=0.9;       // wind-up. Sits inside the band the game's other telegraphs were tuned into
+                          // (CHG_WIND 0.9, LUNGE_TEL 1.3) — the answer to a Draw is Overdrive, and a
+                          // shorter tell would price a button press the player cannot reach in time.
+const DRAW_T=2.2;         // seconds the cap is up, and therefore how long the chase runs — `b.hunt` is set
+                          // to exactly this, so one clock owns both halves and they cannot drift apart.
+                          // ⚠️ 1.5 FIRST, AND LENGTHENING IT IS A DIFFICULTY CHANGE, NOT A PACING ONE. The
+                          // whole point of the kind is that the FIELD kills you while you are slow, so
+                          // seconds under the cap is the difficulty dial — every extra 0.1s is another
+                          // 0.1s of ordinary matter arriving at a Star that cannot dodge it. Author asked
+                          // for a longer chase; this is that, and the arithmetic under DRAW_AWAY moved
+                          // with it rather than being left to describe the old value.
+const DRAW_CAP=6.2;       // px/frame ceiling on TOTAL input displacement while drawing — 44% of the
+                          // stick's 14. ⚠️ SCALED BY `P.moveMult`, deliberately: an absolute cap would
+                          // make Overdrive inert here and the Draw would become a thing that happens TO
+                          // you rather than a thing you answer. 6.2 idle, 8.68 burning.
+const DRAW_AWAY=0.30;     // the OUTWARD-RADIAL component of that displacement is scaled by this, so
+                          // retreat is expensive and strafing is free. ⚠️ The clamp is on total
+                          // magnitude, so speed spent sideways is speed not spent resisting: you cannot
+                          // both fight the Draw and choose which arc you arrive on, and WHICH ARC decides
+                          // what colour of matter you are dragged through. That trade is the whole point
+                          // of taxing the component instead of adding a force.
+                          //   The arithmetic it produces, against HUNT_SPD.singularity 3.2 over DRAW_T's
+                          //   2.2s = 132 frames:
+                          //     idle    retreat 6.2*0.30=1.86 vs 3.2  → closes 1.34/f → 177px over a Draw
+                          //     burning retreat 8.68*0.30=2.60 vs 3.2 → closes 0.60/f →  79px
+                          //   So untouched without burning needs ~229px of standoff, and the grind band is
+                          //   66-162 — which means at 2.2s YOU CANNOT GRIND AND ALSO SIT OUT THE DRAW, at
+                          //   any range in the band. That is a real change from the 1.5s version, where
+                          //   173px of standoff sat inside the band's far edge and the trade was a choice.
+                          //   It is now: grind and pay, or leave the band entirely. Burning does not buy
+                          //   the choice back, it halves the bill (177 → 79).
+                          //   ⚠️ These six numbers are one derivation and none of them is independent —
+                          //   re-derive the whole block if DRAW_T, DRAW_CAP, DRAW_AWAY, HUNT_SPD.singularity
+                          //   or `P.moveMult`'s 1.4 moves. The band's own 66-162 comes from the ring shell
+                          //   and `boss.r + dot.r`, so it moves with the eddy coefficient too.
+const WIND_EVERY0=3.6, WIND_EVERY1=5.4;
+const WIND_R=560;         // reach of the shove. ⚠️ 250 FIRST, AND IT WAS BARELY A THIRD OF WHAT IS NEEDED:
+                          // `S` pins the arena's SHORT axis at REF_SHORT on every device, so 560 is ~70%
+                          // of the short axis everywhere and the wave reads as weather over the field
+                          // rather than as a nudge around the body. Author: *"not pushing dots all around."*
+const WIND_V=5.5;         // px/frame of outward velocity at the body. Half a Fling (FLING_V0 10.8), which
+                          // is the relationship that matters: the boss's exhale must never read as strong
+                          // as the player's own throw.
+const WIND_HOLD=0.45;     // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
+                          // The first version added velocity and left seek running, on the argument that a
+                          // shove should let bodies steer home immediately. MECHANICS says of the Fling:
+                          // "seek at zero — dead straight, OR ITS OWN SEEK WOULD CANCEL THE IMPULSE and
+                          // drag it back onto the core." Measured before the fix: net displacement 14.5px
+                          // at r=60 and 9.9px at r=120, against a 26px contact diameter — invisible.
+                          //   `e.flung` is the existing, tested seek-suppression path (no seek, no field,
+                          // friction 0.985 instead of 0.86, no speed clamp), and the boss bounce-out
+                          // already uses it in exactly this shape at 0.2s. This is that idiom, longer.
+                          //   ⚠️ It therefore EJECTS RING DOTS, because a thrown Dot is not a ring member
+                          // by construction. That is the anti-grind interrupt working, and it is bounded
+                          // rather than a strip: RING_GRACE reels them back the whole time.
+const WIND_FALL=0.5;      // exponent on the falloff. Linear (1.0) hands a body at 0.9R only a tenth of the
+                          // push, which is what made the edge of the wave read as nothing; at 0.5 it gets
+                          // a third. The wave has to arrive everywhere it is drawn or the ring is a lie.
+const DRAW_DMG=20;        // contact, per IFRAME window. ⚠️ NOT 20 DPS — `IFRAME` is 0.8, so this is 25
+                          // effective dps delivered in 20-point bites, and the bite is what the player
+                          // reads. A smooth gradient would need a sub-IFRAME tick of its own and would
+                          // cost the "one immunity window for every source" property; that is a real
+                          // trade and it has not been made.
 // The Sentinel spirals rather than walks, and a spiral has two ways to move much faster than the walk
 // the Hunt is supposed to be. Both are capped here, in px/frame rather than in rates:
 //   HUNT_ORB   the angular rate, now only an UPPER BOUND. A fixed rad/s makes tangential speed scale
@@ -5134,6 +5255,20 @@ function bossMove(b,dt){
     b.x+=dx/d*s; b.y+=dy/d*s;                                  // no standoff: it closes all the way
     b.vx=b.vy=0; return;
   }
+  // THE SINGULARITY AMBLES. It has no station to hold and no orbit to fly — it simply walks at you, all
+  // the time, at a fifteenth of your speed. That is not a threat on its own and is not meant to be: what
+  // it buys is that you are NEVER far from it when a Draw lands, so the Draw never has to teleport
+  // anything. The pressure is cumulative across the fight rather than inside one grab.
+  //   ⚠️ `Math.min(d, …)` matters at contact — without it the walk overshoots your core every frame and
+  // the body jitters across you instead of resting on you, which reads as a rendering fault rather than
+  // as a boss sitting on your skin. (It cannot reach the top of the arena at all: the `boss.y>=138` HUD
+  // guard in updateBoss outranks this, so the top strip is a partial refuge. Left as found — that guard
+  // is protecting the integrity bar, and a body that walks under the HUD is the worse fault.)
+  if(b.variant==='singularity' && P){
+    const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1;
+    const step=Math.min(d, SING_FOLLOW);
+    b.x+=dx/d*step; b.y+=dy/d*step; b.vx=b.vy=0; return;
+  }
   if(b.variant==='sentinel'){                                  // circle the arena
     // Slower than the other kinds on purpose. A moving target is far harder to line a straight radial
     // shot on than a hovering one, and at 0.55 this kind measured 0-for-8 while the Emitter and Bastion
@@ -5195,7 +5330,12 @@ function updateBoss(dt){
   if(b.hunt>0) b.hunt-=dt;
   else {
     b.huntT-=dt;
-    if(b.huntT<=0 && b.lunging<=0 && b.novaCharge<=0){
+    // ⚠️ THE SINGULARITY IS EXCLUDED BECAUSE ITS DRAW *IS* ITS HUNT — it drives `b.hunt` itself, from its
+    // own arm below, so the generic scheduler running as well would hand it two overlapping approaches on
+    // two unrelated clocks. Its HUNT_SPD row is real and is what the Draw closes at; what it does not have
+    // is a second, untelegraphed walk. (It has no station to leave either, which is the other half of why
+    // the generic version has no referent here.)
+    if(b.huntT<=0 && b.lunging<=0 && b.novaCharge<=0 && b.variant!=='singularity'){
       // 3.0-4.2s was sized for a walk that stopped 117px short. Now that it closes all the way it needs
       // long enough to actually arrive from its station (~250-350px) at the slowed HUNT_SPD.
       b.hunt=rand(6,8); b.huntT=rand(9,14)*cadence;
@@ -5285,6 +5425,75 @@ function updateBoss(dt){
       // the peak WOULD have moved. A guard expressed as a ratio survives a tempo change; one expressed as
       // a constant does not, and nothing would have failed to say so.
       b.fireT=rand(2.6,3.6)*pcad*(box?2.2:1);
+    }
+  } else if(b.variant==='singularity'){
+    // ---- THE SINGULARITY: two moves, and NO MISSILES AT ALL. It is the only kind that adds nothing to
+    // `lances`, which is why it costs no new dodge vocabulary: everything it does, it does to matter and
+    // to your steering. Law 11 is untouched because there is nothing here for a missile to pass through.
+
+    // ---- THE WIND: shoves matter off it. The anti-grind interrupt — ring Dots on its near side are
+    // pushed out of contact — and simultaneously a resupply for anyone standing outside, since everything
+    // it throws off arrives at whoever is out there. It answers your answer without deleting it.
+    b.windT-=dt;
+    if(b.windT<=0){
+      b.windT=rand(WIND_EVERY0,WIND_EVERY1)*pcad;
+      for(const e of enemies){
+        if(e.dead||e.queued||e.type==='boss'||e.hold>0) continue;   // held formation bodies write x/y every
+        const dx=e.x-b.x, dy=e.y-b.y, d=Math.hypot(dx,dy);          // frame, so a push would be overwritten
+        if(d>WIND_R||d<0.001) continue;                             // — the same exemption law 13 states
+        const f=Math.pow(1-d/WIND_R, WIND_FALL)*WIND_V;
+        e.vx+=dx/d*f; e.vy+=dy/d*f;
+        // The seek suppression is the whole difference between a shove and a rounding error — see
+        // WIND_HOLD. `max` rather than assignment so a body already mid-Fling keeps the longer window;
+        // the Wind must never SHORTEN a throw the player has already paid a hold for.
+        e.flung=Math.max(e.flung||0, WIND_HOLD);
+      }
+      // ⚠️ `out` IS NOT OPTIONAL HERE — THE CUE RAN BACKWARDS WITHOUT IT, AND IT SHIPPED THAT WAY.
+      // `spawnRing`'s default closes from R to a point; only `out` travels 0 -> R. So the Wind drew a
+      // ring COLLAPSING ONTO THE BOSS on the exact frame it threw every Dot outward — the cue stating
+      // the reverse of the mechanic. Author: *"push telegraph is pulling."*
+      //   It was wrong twice over, because a converging ring is already a WORD in this game: the danger
+      // sign converges onto a footprint and the mine's arming ring closes to nothing, so both mean
+      // "something is arriving here". The Wind was borrowing the vocabulary of its own opposite.
+      // drawParticles' comment names the right primitive outright — `out` is "the universal read for a
+      // detonation" — which is what an exhale is. It also carries the `a^0.4` fade an outward ring
+      // needs to still be legible when it arrives at the radius that means something, and at WIND_R
+      // 560 that travel is long enough for the default fade to have vanished before it got there.
+      spawnRing(b.x,b.y,COL[b.color],WIND_R,true);   // drawn at the reach it actually has, travelling OUT
+      // (The Draw's ring at the top of this arm is deliberately left converging: that one really does
+      //  pull, so the default is the correct word for it. The two cues are now each other's opposites,
+      //  which is the same thing `inhale`/`release` do in the sound bank.)
+      // ⚠️ `release` AND `inhale` WERE BOTH ORPHANS — defined in the bank with no `sfx.` call site
+      // anywhere in the file. They are taken as a matched pair here, which is the sound rule's own
+      // preference: a falling let-go against a rising suck, tellable apart with your eyes on the field
+      // rather than two variations on one idea. Neither had to be written, only found.
+      sfx.release();
+    }
+
+    // ---- THE DRAW: wait → telegraph → cap. It sets `b.hunt` so bossMove closes at HUNT_SPD.singularity
+    // for exactly as long as the cap is up; the player-side half is the clamp in stepPlayer.
+    if(b.drawT>0){
+      b.drawT-=dt;
+      if(b.drawT<=0){ b.drawT=0; b.hunt=0; b.drawWait=rand(6,9)*cadence; }
+    } else if(b.drawTel>0){
+      b.drawTel-=dt;
+      if(b.drawTel<=0){
+        b.drawTel=0; b.drawT=DRAW_T; b.hunt=DRAW_T;   // one clock drives the cap and the approach together
+        spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*3.2);
+        sfx.inhale();
+      }
+    } else {
+      b.drawWait-=dt;
+      if(b.drawWait<=0){
+        b.drawTel=DRAW_TEL;
+        // ⚠️ THE TELEGRAPH IS A SOUND AND A FLASH, NEVER A DRAWN RADIUS. A ring outside a hull states a
+        // reach — law 3 — and the Draw's reach is the whole arena, so any mark for it would be a lethal
+        // lie at every radius it was not drawn at. `closing()` is the same descending voice the hunt
+        // breaks station on, which is correct rather than lazy: both mean "it is coming to you", and the
+        // sound rule asks a taking cue to fall.
+        sfx.closing();
+        bossFlash=0.6;
+      }
     }
   } else {   // EMITTER (default / teaching): ALTERNATES a hexagon crossfire BURST and a sweeping spiral
              // STREAM — and from Epoch II it LUNGES too (this absorbed the old separate 'lunger' kind,
@@ -5606,6 +5815,38 @@ function stepPlayer(dt){
   if(keys['a']||keys['arrowleft'])kx-=1; if(keys['d']||keys['arrowright'])kx+=1;
   if(keys['w']||keys['arrowup'])ky-=1; if(keys['s']||keys['arrowdown'])ky+=1;
   if(kx||ky){ const sp=6.5*P.moveMult; const l=Math.hypot(kx,ky); P.x+=kx/l*sp; P.y+=ky/l*sp; }
+  // ---- THE DRAW: one clamp, every input model ----------------------------------------------------
+  // ⚠️ THIS SITE IS LOAD-BEARING AND IT IS NOT ARBITRARY. `P.lastX/lastY` are written ONLY at the foot of
+  // this function, and the only four writes to `P.x/P.y` in the whole file are the stick (stepStick, which
+  // runs immediately above this in step()), the pointer chase, the keyboard nudge, and the arena clamp on
+  // the next line. So `(P.x-P.lastX, P.y-P.lastY)` HERE is this frame's total input displacement across
+  // mouse, touch and keyboard at once. Transforming it here is what makes the Draw one mechanic instead of
+  // three, and it is why touch does not need its own tuning: a mouse player's unbounded gap-proportional
+  // chase and a thumb at full deflection arrive at this line as the same quantity and leave it clamped to
+  // the same ceiling. ⚠️ Anything added later that moves P must land ABOVE this line or it bypasses the Draw.
+  // State lives on the boss, never in a module-level flag: it dies with the Anomaly, so no reset path can
+  // leak a cap into the next run — the fault `FEAT`'s single reset and the warn-clearing rule both exist for.
+  if(boss && !boss.dead && boss.drawT>0 && P.lastX!==undefined){
+    let dx=P.x-P.lastX, dy=P.y-P.lastY;
+    // ⚠️ CLAMP FIRST, THEN TAX — AND THE OTHER ORDER IS SILENTLY DEAD CODE. Taxing before the clamp looks
+    // identical and measures identical, because every input model's raw displacement is already far above
+    // the cap (mouse 92 units/frame at a wide gap, stick 14, cap 6.2): removing 70% of 92 leaves 27.6, the
+    // clamp cuts that back to 6.2, and the tax has changed NOTHING. It would have bitten only where the
+    // raw move was already under the cap — i.e. it would tax a gentle nudge and leave a full-speed
+    // retreat alone, which is exactly backwards. Measured before the fix: away and tangential both 6.200.
+    const cap=DRAW_CAP*P.moveMult, len=Math.hypot(dx,dy);
+    if(len>cap){ const s=cap/len; dx*=s; dy*=s; }   // total magnitude, never per-axis: per-axis notches
+                                                    // the diagonals, the fault STICK.dead was fixed for
+    const bx=P.x-boss.x, by=P.y-boss.y, bd=Math.hypot(bx,by);
+    if(bd>0.001){
+      // Split the CAPPED move into the component pointing away from the Anomaly and the rest. Only the
+      // away half is taxed; sideways and inward keep the full cap, which is what leaves the player an arc
+      // to choose while it reels them in — and what makes speed spent sideways speed not spent resisting.
+      const ux=bx/bd, uy=by/bd, out=dx*ux+dy*uy;
+      if(out>0){ const k=out*(1-DRAW_AWAY); dx-=ux*k; dy-=uy*k; }
+    }
+    P.x=P.lastX+dx; P.y=P.lastY+dy;
+  }
   P.x=clamp(P.x,P.r,W-P.r); P.y=clamp(P.y,P.r,H-P.r);
   // the Star is steered by position, not velocity, so nothing recorded how fast it was going. Missiles
   // that LEAD you need that, or a "leading" shot just aims where you already are and asks nothing.
@@ -6290,12 +6531,19 @@ function stepPlayerContact(){
         if(e.gild>0) grantAchv('headbutt');
         queueKill(e);                       // boss is not consumed on contact
       }
-      else if(e.hunt>0 || e.huntBreak>0){
+      else if((e.hunt>0 || e.huntBreak>0) && e.variant!=='singularity'){
         // A HUNT LANDS ONCE, THEN BREAKS OFF. This is the whole reason the Anomaly is allowed to reach
         // the core at all. Its touch is 30 and it is never consumed, so a boss that simply stopped on
-        // your skin would deal 30 every 0.55s of i-frames — about 55 dps, an unanswerable hit rather
+        // your skin would deal 30 every 0.8s of i-frames — about 37 dps, an unanswerable hit rather
         // than a threat. Recoiling on contact treats that directly, and where it lives: the hunt is one
         // big readable hit you could have walked away from, never a grinder parked on the core.
+        //   ⚠️ THE SINGULARITY IS THE ONE KIND THAT DOES NOT RECOIL, and it is exempt on the strength of
+        // this comment's own arithmetic rather than in spite of it. The objection is to a hit you cannot
+        // answer; it is not to contact. That kind ambles at SING_FOLLOW 0.9 against a Star doing 14, so
+        // walking off it is always available and always free — outside a Draw. Inside one it is 20 a
+        // window by design, and the answer is the Overdrive that beats the cap. Price is the exemption:
+        // its `dmg` is 20 rather than 30, set per-kind in spawnBoss for exactly this reason.
+        //   ⚠️ This branch is what would otherwise END a Draw early — `e.hunt=0` is the Draw's own clock.
         e.hunt=0; e.huntBreak=HUNT_BREAK; e.huntR=undefined;
       }
     }
