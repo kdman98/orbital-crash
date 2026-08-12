@@ -325,6 +325,34 @@ repeating it two hundred lines away.**
 
 ## 2026-08-11
 
+### Touch steering gets a sensitivity slider, and it can only be the zone's width `v2-ios`
+Author: *"make sensitivity option then"* — after being told the absolute map costs 2× the pre-v2
+sensitivity. Settings → **Touch steering**, 60–100%, default 100, coarse pointers only, persisted.
+
+⚠️ **It moves the ZONE'S WIDTH, because nothing else was available to move.** An absolute map's scale is
+pinned by "the zone shows the whole arena" — `k = zoneWidth / W` — so arena-units-per-pixel is not a free
+parameter. Turning it down any other way would either stop the thumb reaching the arena edges or start
+bending the diagonals. Widening the steering half IS narrowing the Overdrive and flip quarters, and the
+setting's own copy says so instead of hiding it.
+
+| setting | zone width | sensitivity |
+|---|---|---|
+| 100% *(default)* | 437px — half | 3.98 u/px |
+| 80% | 546px | 3.18 u/px |
+| 60% | 728px | 2.39 u/px |
+
+Capped at 85% of the width so the action quarters stay above ~131px. ⚠️ **Even 60% does not reach the
+pre-v2 1.99**: that number needed the whole screen, which is exactly what the partition spends.
+
+⚠️ **The value lives on `ZONE`, not on `store`, and the reason is boot order.** `resize()` is called at
+line 1467 and `store` is declared at 1550, so reading `store.touchSens` from `resize()` is a
+temporal-dead-zone `ReferenceError` at load — caught by reading the ordering before trusting it, not by
+running it, because it is exactly what `node --check` misses.
+
+Verified at 874×402: slider sweeps 437→546→728px of zone and 3.98→3.18→2.39 u/px, both arena edges stay
+reachable at every setting (15 and 1724 of 1739), flip and Overdrive still fire in the narrowed
+quarters, the value persists, the row is hidden on a fine pointer, and both languages render.
+
 ### The move zone is an absolute map now, and that is the third model `v2-ios`
 Author: *"still i dont feel natural. alternative stick control would solve the problem? idk"* — after the
 rate stick, and after the displacement drag that replaced it. Two models, one complaint, and it turns

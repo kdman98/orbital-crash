@@ -500,6 +500,29 @@ bot can settle it.
 the same arena is exactly 2× the sensitivity, and that is arithmetic rather than a tuning choice — the
 only ways out are giving up the partition or giving up isotropy.
 
+**`store.touchSens` is the first of those two, sold to the player as a slider.** Settings → *Touch
+steering*, 60–100%, default 100. ⚠️ **It moves the ZONE'S WIDTH, and it could not have moved anything
+else**: an absolute map's scale is pinned by "the zone shows the whole arena" (`k = zoneWidth / W`), so
+arena-units-per-pixel is not a free parameter. A slider that pretended otherwise would either stop the
+thumb reaching the arena edges or start bending the diagonals. Widening the steering half is the same
+act as narrowing the Overdrive and flip quarters, and the copy says so rather than hiding it.
+
+| setting | zone width | sensitivity |
+|---|---|---|
+| 100% *(default)* | 437px — half | 3.98 u/px |
+| 80% | 546px | 3.18 u/px |
+| 60% | 728px | 2.39 u/px |
+
+Capped at 85% of the width so the action quarters cannot be squeezed below ~131px, which is about where
+a thumb stops finding a target it cannot see. ⚠️ **Even at 60% it does not reach the pre-v2 1.99** — that
+number needed the whole screen, and the whole screen is what the partition spends.
+
+⚠️ **The sensitivity lives on `ZONE`, not on `store`, and that is an ORDER constraint rather than a
+style choice.** `resize()` runs at load and `store` is declared ~80 lines below it, so reading
+`store.touchSens` from `resize()` is a temporal-dead-zone `ReferenceError` at boot — the class of fault
+`node --check` does not catch and this file has been bitten by before. `store` copies its value into
+`ZONE.sens` once it exists; `applyTouchSens` writes both.
+
 *Verified at 874×402:* thumb (100,200) → star (398, 396); sweep to (380,260) → star (1512, 635); return
 to the **same** thumb spot → star (398.6, 396.2), back within **0.6 units** — no drift. Thumb x=3 pins
 the star at 15 and x=434 reaches 1724 of a 1739-wide arena, so the whole field is reachable. Flip,

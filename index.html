@@ -259,7 +259,10 @@
      for two reasons: that zone is pressed a small fraction as often as the flip zone, and a HELD press
      lands in the middle of a quarter rather than on its extreme corner. ⚠️ This is the one part of the
      scheme argued from ergonomics rather than measured — it wants a real thumb on a real phone. */
+  /* A row describing a control this device does not have is the same lie #controls was hidden for. */
+  #setSens{display:none;}
   @media (pointer:coarse){
+    #setSens{display:flex;}
     #muteBtn,#motionBtn{display:none;}
     #pauseBtn{top:16px;bottom:auto;}
     /* ⚠️ FOUND ON THE DEVICE, NOT IN THE BROWSER: the Overdrive button rendered "오버드라이브 SHIFT 유지"
@@ -1199,6 +1202,19 @@
        and ears" and a two-item wardrobe in its own room would look like a system pretending to be one.
        Moved out on the author's call — see the #skins panel, which is where that argument is answered.) -->
 
+  <!-- TOUCH STEERING SENSITIVITY. Hidden on a fine pointer, because it describes a control that device
+       does not have — the same rule #touchCtl and the keyboard legend already follow.
+         ⚠️ NO SWITCH BESIDE IT, unlike Sound. There is no "off" for steering. -->
+  <div class="setrow" id="setSens">
+    <div class="st">
+      <div class="sn"><span data-t="set.sens">Touch steering</span> <span class="snv" id="sensReadout">100%</span></div>
+      <div class="sd" data-t="set.sensD">How far the star travels for a given sweep of your thumb. Lower is finer: it
+        widens the steering half of the screen, so the Overdrive and Flip corners get narrower to match.</div>
+      <input type="range" id="sensRange" class="rng" min="60" max="100" step="5" value="100"
+             data-ta="set.sensA" aria-label="Touch steering sensitivity">
+    </div>
+  </div>
+
   <!-- SOUND IS A LEVEL, AND THE SWITCH BESIDE IT IS STILL A SWITCH. The row keeps both because they are
        not the same verb: the level is set once, mute is done for a moment and undone. Collapsing them
        would mean the M key has to guess a volume to come back to.
@@ -1307,7 +1323,13 @@ let W=REF_SHORT,H=REF_SHORT,DPR=1,S=1;   // seeded finite: a 0-viewport at boot 
 // seeded finite for the same reason W and H are: a harness that reports innerWidth 0 would otherwise
 // put both seams at 0 and drop EVERY touch into the same zone, which is a control scheme that looks
 // like it is working right up until nothing steers. See `zoneOf`.
-const ZONE={x:REF_SHORT/2,y:REF_SHORT/2};
+const ZONE={x:REF_SHORT/2, y:REF_SHORT/2,
+  // ⚠️ THE SENSITIVITY LIVES HERE, NOT ON `store`, AND THE REASON IS ORDER. `resize()` is called at load
+  // (see the bottom of this block) and `store` is declared ~80 lines further down, so reading
+  // `store.touchSens` from resize() is a temporal-dead-zone ReferenceError at boot — the exact class of
+  // fault this file has been bitten by before and the one `node --check` does not catch. `store` copies
+  // its value in here once it exists, and the settings row writes both.
+  sens:100};
 function resize(){
   const vw=window.innerWidth, vh=window.innerHeight;   // the real viewport, in CSS pixels
   // A DEGENERATE VIEWPORT MUST NOT REACH THE DIVIDE. A phone reports 0x0 transiently — mid orientation
@@ -1320,7 +1342,9 @@ function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);
   S=Math.min(1, Math.min(vw,vh)/REF_SHORT);
   W=vw/S; H=vh/S;                                      // the same viewport, in design units
-  ZONE.x=vw*0.5; ZONE.y=vh*0.5;                        // ...and the touch partition, still in CSS px
+  // ...and the touch partition, still in CSS px. Capped at 0.85 so the action quarters cannot be
+  // squeezed to nothing by a slider: below ~15% of the width they stop being targets a thumb can find.
+  ZONE.x=vw*Math.min(0.85, 0.5*100/ZONE.sens); ZONE.y=vh*0.5;
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
   ctx.setTransform(S*DPR,0,0,S*DPR,0,0);               // one transform carries both scales
@@ -1560,6 +1584,14 @@ const store={
   //   It is also the better model for a player. Mute is a thing you do for a moment and undo; a level is
   // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
   vol:clamp(num('orbitalcrash_vol',1),0,1),
+  // TOUCH STEERING SENSITIVITY, 60-100, where 100 is the shipped geometry.
+  //   ⚠️ IT IS THE ZONE'S WIDTH, AND IT COULD NOT HAVE BEEN ANYTHING ELSE. The move zone is an ABSOLUTE
+  // map of the arena (see the STICK block), so its scale is not a free parameter — it is pinned by
+  // "the zone shows the whole arena", `k = zoneWidth / W`. The only way to move arena-units-per-pixel is
+  // to move the zone's width, and widening it is the same thing as narrowing the Overdrive and flip
+  // quarters. A slider that pretended otherwise would either stop the thumb reaching the arena edges or
+  // start bending the diagonals.
+  touchSens:clamp(num('orbitalcrash_touchsens',100),60,100),
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
   cb:LS.getItem('orbitalcrash_cb')==='1',                     // red-green colourblind palette — see PAL
   // ⚠️ THE BROWSER DECIDES ONCE, AND ONLY ONCE. A stored choice is never second-guessed: a Korean
@@ -1595,12 +1627,18 @@ const store={
                    return (o&&typeof o==='object'&&!Array.isArray(o)) ? o : {}; }catch(e){ return {}; } })(),
 };
 const RUNS_KEPT=10;
+// The one-way copy the ZONE comment above describes. Runs after `store` exists and before any settings
+// row can change it; `applyTouchSens` is what keeps them in step from then on.
+ZONE.sens=store.touchSens; resize();
+function applyTouchSens(v){ store.touchSens=clamp(Math.round(v),60,100); ZONE.sens=store.touchSens; resize(); save(); }
+
 function save(){
   try{                                                      // Safari private mode throws on write even when reads work
     LS.setItem('orbitalcrash_best2',store.best);
     LS.setItem('orbitalcrash_achv',JSON.stringify([...store.achv]));
     LS.setItem('orbitalcrash_mute',store.mute?'1':'0');
     LS.setItem('orbitalcrash_vol',store.vol);
+    LS.setItem('orbitalcrash_touchsens',store.touchSens);
     LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
@@ -1664,6 +1702,9 @@ const L={ en:{
   //   `tc.drag` also carried a clause explaining that the star rides above your fingertip, which was a
   // legend apologising for a layout: TOUCH_LIFT existed because absolute steering parked your thumb on
   // the star. The stick does not, so there is nothing to explain.
+  'set.sens':'Touch steering',
+  'set.sensD':'How far the star travels for a given sweep of your thumb. Lower is finer: it widens the steering half of the screen, so the Overdrive and Flip corners get narrower to match.',
+  'set.sensA':'Touch steering sensitivity',
   'tc.move':'<b>Left half</b> Steer star',
   'tc.od':'<b>Top right</b> Hold: Overdrive',
   'tc.flip':'<b>Bottom right</b> Reverse poles',
@@ -1852,6 +1893,9 @@ const L={ en:{
   'ctl.od':'<kbd>Shift</kbd><kbd>우클릭</kbd> 유지: 오버드라이브',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> 일시정지 &nbsp;·&nbsp; <kbd>M</kbd> 음소거',
   // 세 구역을 위치로 부릅니다. 동작이 아니라 자리를 말하는 편이 지도에 가깝고, 화면을 보면 바로 확인됩니다.
+  'set.sens':'터치 조종',
+  'set.sensD':'엄지를 같은 거리만큼 움직였을 때 별이 얼마나 가는지를 정합니다. 낮출수록 조종이 섬세해지고, 대신 조종 영역이 넓어져서 오버드라이브와 색 반전 구역이 그만큼 좁아집니다.',
+  'set.sensA':'터치 조종 감도',
   'tc.move':'<b>왼쪽 절반</b> 별 조종',
   'tc.od':'<b>오른쪽 위</b> 유지: 오버드라이브',
   'tc.flip':'<b>오른쪽 아래</b> 색 반전',
@@ -9941,6 +9985,9 @@ function paintSettings(){
   // assigning `value` mid-drag snaps the handle back under the finger to whatever the last committed
   // number was — the control fights you, and only on slow drags, which is the hardest kind of bug to
   // reproduce on purpose.
+  const sr=el('sensRange');
+  if(sr && document.activeElement!==sr) sr.value=store.touchSens;
+  const so=el('sensReadout'); if(so) so.textContent=store.touchSens+'%';
   const r=el('volRange'), pct=Math.round(store.vol*100);
   if(document.activeElement!==r) r.value=pct;
   el('volReadout').textContent=pct+'%';
@@ -9981,6 +10028,9 @@ el('volRange').addEventListener('input',e=>{ audioInit(); setVolume(+e.target.va
 // One blip on release, not on every input event — a cue per step would be a burst of ~20 during a drag,
 // which is both unpleasant and useless as a level reference. Skipped at zero, where it is a lie.
 el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
+// `input`, not `change`: the zone seam moves as the slider moves, so a player dragging it can see the
+// steering half widen under their thumb instead of guessing and committing.
+el('sensRange').addEventListener('input',e=>{ applyTouchSens(+e.target.value); paintSettings(); });
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSettings(); }});
 
 // =====================================================================
