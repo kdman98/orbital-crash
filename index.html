@@ -1364,9 +1364,16 @@ const STAR_LAYERS=[
   // every layer AFTER it too. This is not the same sky minus 26 stars; it is a new arrangement at a
   // lower density. Nothing depends on the old one — the seed exists to keep the sky stable across
   // reloads, not across edits.
-  {n:135, r:[0.5,1.1], a:[0.20,0.45], par:0.012, flow:1.6},   // far: dust, barely moves
-  {n:70,  r:[0.9,1.7], a:[0.35,0.70], par:0.032, flow:4.2},
-  {n:27,  r:[1.4,2.5], a:[0.55,0.95], par:0.075, flow:9.0},   // near: the ones that sell the motion
+  //   ⚠️ AND THE ALPHAS CAME DOWN WHEN THE BLOOM WENT IN — this is not an independent look decision and
+  // it must not be reverted on its own. bloomPass() reads the whole backing store, stars included, and
+  // the threshold is a square: the near layer at 0.95 survives squaring at 0.90 and every one of those
+  // 27 stars grew a halo, turning the backdrop into the competing fog that drawNebula's own comment
+  // exists to prevent. Pulled so that POST-bloom apparent brightness lands roughly where the old
+  // pre-bloom numbers did. Flipping BLOOM.on off without putting these back gives a flat, dim sky;
+  // putting these back without the bloom gives a shouting one. The pair is the setting.
+  {n:135, r:[0.5,1.1], a:[0.18,0.40], par:0.012, flow:1.6},   // far: dust, barely moves
+  {n:70,  r:[0.9,1.7], a:[0.30,0.58], par:0.032, flow:4.2},
+  {n:27,  r:[1.4,2.5], a:[0.42,0.72], par:0.075, flow:9.0},   // near: the ones that sell the motion
 ];
 let stars=[];
 function initStars(){
@@ -7260,6 +7267,13 @@ function render(){
     drawBoss();
     drawLances();
     drawPlayer();
+    // THE BLOOM, here and nowhere else. Everything that is a light source has now been laid down, and
+    // nothing that is TYPE has. drawTexts() below stays outside it deliberately: a floating damage
+    // number is a readout, not an object in the world, and blooming one costs legibility to say
+    // something false about it. drawReady() and the flash sit further down, outside the shake, for the
+    // same reason. The sky IS included — it is inside the backing store this reads — which is the whole
+    // point, but it is also why STAR_LAYERS' near alpha had to come down in the same commit.
+    bloomPass();
     ctx.globalCompositeOperation='source-over';
     drawTexts();
   }
@@ -7441,6 +7455,124 @@ function blitSky(){
   // steps, which is the one way this change could actually be seen.
   ctx.save(); ctx.setTransform(1,0,0,1,0,0);
   ctx.drawImage(skyCv,0,0,skyCv.width,skyCv.height,0,0,canvas.width,canvas.height);
+  ctx.restore();
+}
+// ---------- THE BLOOM ----------
+// Every bright mark in this game is a light source — a star, a plasma body, an annihilation — and none
+// of them lit anything. The play layer composites with 'lighter', which ADDS, but addition alone gives
+// a flat disc at full brightness ending in a hard edge where the fill stops. What was missing is the
+// FALLOFF: the continuous ramp around a bright mark that says "this is emitting". That ramp is also the
+// scene's missing MIDTONE — the value step between a near-black sky and a saturated body that nothing
+// else was producing, which is why the field read as empty rather than deep. It is spatially attached
+// to the entity, so unlike a brighter background it cannot compete with the Dots for attention.
+//
+// ⚠️ IT IS NOT ctx.filter, AND THAT IS A CORRECTNESS CHOICE RATHER THAN A PERFORMANCE ONE. Canvas2D
+// `filter` shipped in iOS 16.4; ios/App/Podfile and project.pbxproj both pin 13.0. On iOS 13 through
+// 16.3 the property does not exist on the prototype, so `c.filter='blur(5px)'` quietly creates a plain
+// own-property that READS BACK CORRECTLY — a round-trip feature test passes and the blur never runs,
+// leaving this function compositing an unblurred squared copy of the frame: a hard-edged brightness
+// doubling, on exactly the devices least able to argue about it. The only honest test is
+// `'filter' in CanvasRenderingContext2D.prototype`, which is what BLOOM.ok reads and nothing else.
+//   So the default is THE LADDER: successive halvings through drawImage's bilinear filter, a wide soft
+// kernel built from the one primitive every engine has had for twenty years. The sky cache already
+// makes this argument for itself — "every one of them is a smooth gradient, so bilinear upscaling has
+// nothing to destroy" — and it applies twice over here, because a bloom kernel is by definition the
+// smoothest thing on the screen. `filter` stays reachable as an opt-in upgrade for A/B, not as the
+// shipping path.
+//
+// ⚠️ `radius` IS IN DESIGN UNITS, NOT PIXELS, and it is the one number here that would silently ship
+// two different games. A fixed pixel blur is 0.63% of frame width on a desktop 800px canvas and 1.28%
+// on a 390pt phone — 2.05x wider in world terms, i.e. tuned at a desk and smeared on a phone. It goes
+// through S*DPR at draw time like every other length in this file.
+//
+// ⚠️ `strength` HAS A CEILING SET BY LAW 1, NOT BY TASTE. Bloom spreads a body's own white core back
+// across its coloured fill, which costs hue separation — the thing polarity is read by. Measured on a
+// live 19-Dot field (8 samples at 0.70r per Dot, red: R-max(G,B); cyan: min(G,B)-R; legible above 18):
+// no bloom is 19/19 with a worst case of 60. A wide kernel at 0.95 was 15/19 with a worst case of ZERO
+// — three Dots blown to achromatic white — and it was the best-looking setting on the screen. Nothing
+// but the pixel measurement catches that. Re-run the probe after moving `strength`, `pow` or `radius`.
+const BLOOM={
+  on:true,
+  scale:0.5,       // buffer resolution vs the backing store — same knob and same units as SKY.scale
+  radius:10,       // DESIGN UNITS. px = radius * S * DPR * scale
+  // ⚠️ pow IS 4, NOT 2, AND IT IS THE THRESHOLD THAT PAYS FOR `strength`. Passes of 'multiply': 2 is
+  // x^2, 4 is x^4, integer because a canvas cannot be raised to a fractional power. x^2 leaves too
+  // much of the sky above the floor, and the bloom it produces is a wash over the whole frame rather
+  // than a halo on the things emitting. Measured on one frozen 31-Dot field at 390pt, sampling mean
+  // luminance of the sub-40 (i.e. background) pixels — "haze" — alongside the hue probe:
+  //     off          worst hue 60   median 106   haze 23.88
+  //     pow 2 @0.62  worst hue 33   median  76   haze 25.02   <- lifts the background
+  //     pow 4 @0.62  worst hue 51   median  93   haze 23.86
+  //     pow 4 @0.85  worst hue 41   median  90   haze 23.91   <- shipped
+  // The second row is the trap: it looks like the strongest setting because everything is brighter,
+  // and what it actually did was raise the floor. x^4 buys back both the background AND 18 points of
+  // worst-case hue, which is then spent deliberately on a harder `strength`. Every figure above moves
+  // if `radius` or `scale` moves — re-run both probes together, never one alone.
+  pow:4,
+  strength:0.85,   // globalAlpha of the additive composite back. See the Law 1 ceiling above.
+  mode:'auto',     // 'auto' (= ladder) | 'ladder' | 'filter'
+  get ok(){ return typeof CanvasRenderingContext2D!=='undefined'
+                   && 'filter' in CanvasRenderingContext2D.prototype; },
+};
+let bloomA=null,bloomAx=null,bloomB=null,bloomBx=null;
+function bloomFit(cv,w,h){ if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; } }
+function bloomPass(){
+  if(!BLOOM.on) return;
+  // Sized off canvas.width/height through BLOOM.scale, not a recomputed W*S*DPR — the same
+  // one-source-of-truth rule the sky cache states, and the same Math.max(1,…) guard against the 0x0
+  // boot viewport that resize() returns early on.
+  const cw=Math.max(1,Math.round(canvas.width*BLOOM.scale)),
+        ch=Math.max(1,Math.round(canvas.height*BLOOM.scale));
+  if(!bloomA){ bloomA=document.createElement('canvas'); bloomAx=bloomA.getContext('2d');
+               bloomB=document.createElement('canvas'); bloomBx=bloomB.getContext('2d'); }
+  bloomFit(bloomA,cw,ch); bloomFit(bloomB,cw,ch);
+  // 1 — the frame, copied down. 'copy' rather than clearRect+draw: one pass, and it discards the
+  // previous frame's contents as a side effect of writing this one.
+  bloomAx.globalCompositeOperation='copy';
+  bloomAx.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,cw,ch);
+  // 2 — THE THRESHOLD. Multiplying the surface by itself squares every channel, so a sky at 0.08 falls
+  // to 0.006 while a core at 1.0 stays at 1.0. That is what keeps the background out of the bloom
+  // without a per-pixel branch.
+  //   `multiply` is legal here in a way `destination-*` is not: it runs on a private scratch surface
+  // and has no shared sky to cut through. ⚠️ It behaves as a plain per-channel square ONLY because the
+  // source is fully opaque, which holds because blitSky writes a full-canvas opaque drawImage every
+  // frame. If the sky blit ever becomes partial, this silently becomes alpha-weighted instead.
+  bloomAx.globalCompositeOperation='multiply';
+  for(let p=2;p<=BLOOM.pow;p*=2) bloomAx.drawImage(bloomA,0,0);
+  bloomAx.globalCompositeOperation='source-over';
+  // 3 — THE BLUR.
+  const px=Math.max(1,BLOOM.radius*S*DPR*BLOOM.scale);
+  let src=bloomA, sw=cw, sh=ch;
+  if(BLOOM.mode==='filter' && BLOOM.ok){
+    bloomBx.globalCompositeOperation='copy';
+    bloomBx.filter='blur('+px.toFixed(2)+'px)';
+    bloomBx.drawImage(bloomA,0,0);
+    bloomBx.filter='none';
+    src=bloomB;
+  } else {
+    // Each halving is a 2x2 bilinear box, so k of them reach roughly 2^k source pixels. Solving for
+    // the requested radius rather than hardcoding a depth is what makes `radius` mean the same thing
+    // in both modes — otherwise the A/B compares two different treatments and reports it as taste.
+    //   The two buffers ping-pong at a FIXED allocation, drawing each smaller level into the top-left
+    // corner and reading it back as a sub-rect, because resizing a canvas clears it.
+    const levels=Math.max(1,Math.min(4,Math.round(Math.log2(px))));
+    let w=cw,h=ch;
+    for(let i=0;i<levels;i++){
+      const nw=Math.max(1,w>>1), nh=Math.max(1,h>>1);
+      const from=(i%2===0)?bloomA:bloomB, toX=(i%2===0)?bloomBx:bloomAx;
+      toX.globalCompositeOperation='copy';
+      toX.drawImage(from,0,0,w,h,0,0,nw,nh);
+      w=nw; h=nh;
+    }
+    src=(levels%2===1)?bloomB:bloomA; sw=w; sh=h;
+  }
+  // 4 — back onto the frame, additively. save/restore rather than manual bookkeeping: it carries the
+  // CTM, globalAlpha, globalCompositeOperation AND filter, so the ambient 'lighter' the play layer is
+  // running under is put back exactly as it was. Smoothing stays on — this upscale is the blur.
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalCompositeOperation='lighter';
+  ctx.globalAlpha=BLOOM.strength;
+  ctx.drawImage(src,0,0,sw,sh,0,0,canvas.width,canvas.height);
   ctx.restore();
 }
 // The gas. Sits between the starfield and the play layer, and takes a small parallax of its own so the
@@ -10574,6 +10706,13 @@ window.__orbital=window.__polaris=window.__flux={
   // (see THE SKY CACHE) — and `fps()` hands back a COMPOSITED frame count with the wall time it took.
   // Two samples and a subtraction, rather than an average whose window this file would have had to pick.
   SKY,
+  // THE BLOOM'S INSTRUMENT, beside SKY because they are the same kind of object — a cache with a
+  // resolution knob and a cadence of its own — and a reader who finds one should find the other.
+  // `BLOOM.on=false` / `true` across two launches is the A/B, the same protocol SKY.every documents.
+  //   ⚠️ The check that matters here is not fps, it is HUE. Sweeping `strength` without re-running the
+  // channel-separation probe is how a setting that blows three Dots to white gets shipped for looking
+  // good. See the Law 1 ceiling in THE BLOOM.
+  BLOOM,
   fps(){ return {frames:frameN, ms:Math.round(performance.now()-frameT0), every:SKY.every}; },
   // THE FRAME PROBE (see its block above frame()). `probe()` reads the live accumulators; `probeArm()`
   // sets the flag and reloads, because arming has to happen before the first frame to be worth reading.
