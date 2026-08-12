@@ -3769,11 +3769,14 @@ function formComet(){
   // `drawCometLanes` reads it back — so the sign the player finds during the warning is the same sign,
   // in the same place, right up until the last member is on screen.
   const sgn=cometAnchor(bodies);
-  const draw=f=>{
-    ctx.save();
-    if(sgn) cometSign(sgn.x,sgn.y,sgn.ux,sgn.uy,f);   // ONE SIGN, no path, fixed place
-    ctx.restore();
-  };
+  // ⚠️ THE TELEGRAPH DRAWS NOTHING ITSELF, and that is the fix for the last flicker. It used to call
+  // `cometSign` directly from here — one sign per WARN, outside the per-side grouping — so a shower
+  // still telegraphing and another already flying on the SAME side each drew their own badge, and the
+  // pair collapsed to one the instant the second spawned. Two marks, then one, at every overlap: which
+  // is exactly "it flickers when multiple comet patterns run in one session".
+  //   A sign is now decided in exactly ONE place (`drawCometLanes`), over both sources — pending warns
+  // and live bodies. Anything that draws its own outside that pass reopens this bug.
+  const draw=()=>{};
   const spawn=()=>{
     for(const b of bodies){
       const e=spawnEnemy('heavy', b.color, b.x, b.y);
@@ -3781,7 +3784,8 @@ function formComet(){
       if(e){ e.comet=1; e.sgn=sgn; }   // every member carries the SAME anchor object, so it cannot drift
     }
   };
-  warnForm(COMET_TEL, draw, spawn);
+  const w=warnForm(COMET_TEL, draw, spawn);
+  if(w) w.sgn=sgn;                 // discoverable by the one pass that decides signs
 }
 // The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
 // like any other — and a comet should read as a thing that happens to the sky, not as this turn's
@@ -8212,6 +8216,16 @@ function drawCometLanes(){
   // change under you. Lowest id is the earliest-announced group still live on that side, so the mark
   // holds still while that shower lasts and moves only when it finishes — an event, not a flicker.
   const sides=new Map();
+  // BOTH SOURCES, ONE PASS. A shower is announced by a warn and then flown by bodies; the sign has to be
+  // the same mark across that handoff, and it can only be that if one pass sees both. The warn's alpha
+  // is its own progress (0 at the announcement, 1 at arrival), which is exactly where the live side's
+  // alpha starts, so the two meet at the same brightness.
+  for(const w of warns){
+    if(!w.sgn) continue;
+    const a=clamp(1-w.life/w.max,0,1), k=w.sgn.side||'?', cur=sides.get(k);
+    if(!cur) sides.set(k,{s:w.sgn, a});
+    else { cur.a=Math.max(cur.a,a); if(w.sgn.id<cur.s.id) cur.s=w.sgn; }
+  }
   for(const e of enemies){
     if(!e.comet || e.dead || !(e.hold>0)) continue;
     const sp=Math.hypot(e.fvx||0, e.fvy||0); if(sp<0.01) continue;

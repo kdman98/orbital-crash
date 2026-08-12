@@ -1098,6 +1098,16 @@ the un-clamped coordinate says which one, and afterwards a corner entry is indis
 mid-edge one. Measured with ten showers airborne across three sides: **three signs, zero reversals** over
 120 frames with the entity array churned by kills.
 
+⚠️ **The telegraph draws no sign of its own, and one pass decides them all.** `formComet`'s `warnForm`
+used to call the mark directly — one per *warn*, outside the per-side grouping — so a shower still
+telegraphing and another already flying on the **same side** each drew a badge, and the pair collapsed to
+one the instant the second spawned. Two marks, then one, at every overlap: which is what "it flickers when
+multiple comet patterns run in one session" actually was. `drawCometLanes` now walks **both** sources,
+pending warns and live bodies, in a single grouping pass. There is exactly **one** `cometSign` call site,
+and that is what makes the measurement below mean anything — anything drawing its own outside that pass
+reopens the bug. Measured over 400 frames with ten showers fired through a run so telegraphs and live
+showers overlap constantly: max 3 signs, 20 set changes, **zero reversals**.
+
 ⚠️ **The side's representative is chosen by announcement `id`, never by position in `enemies`.** That is
 the whole lesson of the first bug below: any ordering derived from the entity array is re-derived every
 frame and changes under you. Lowest id is the earliest-announced group still live on that side, so the

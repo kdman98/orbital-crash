@@ -44,6 +44,25 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### The telegraph drew its own sign, so overlaps flickered `v2`
+The last one. `formComet`'s `warnForm` called the mark **directly** — one sign per *warn*, outside the
+per-side grouping — so a shower still telegraphing and another already flying on the **same side** each
+drew a badge, and the pair collapsed to one the instant the second spawned. **Two marks, then one, at
+every overlap**, which is why it only showed once several comet patterns ran in a single session.
+
+`drawCometLanes` now walks **both** sources in one grouping pass: pending warns and live bodies. The
+warn's alpha is its own progress — 0 at the announcement, 1 at arrival — which is exactly where the live
+side's alpha starts, so the handoff meets at the same brightness with no step.
+
+⚠️ **There is now exactly one `cometSign` call site, and that is what makes the measurement mean
+anything.** Signs drawn per frame therefore equals the number of side entries, so counting the grouping
+counts the drawing. Measured over 400 frames with ten showers fired through a run so telegraphs and live
+crossings overlap constantly: **max 3 signs, 20 set changes, zero reversals.**
+
+*Diagnosed from a 3.8MB Save-Page-As capture, which could not show the flicker — the sign is on the
+canvas — but did settle the question that mattered: it carried `sides=new Map()`, `cometSeq` and
+`SIGN_R=23`, confirming the report was against the current build and not a stale one.*
+
 ### One sign per border side, not per shower `v2`
 Ten comets fired back to back put **ten badges on the border.** Per-shower grouping was the fix for the
 original flicker and it created the opposite failure: a wall of marks instead of a warning.
