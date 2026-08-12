@@ -491,43 +491,40 @@ duplicate and moves to the top-right corner, into the less-pressed zone and onto
 **This is the one part of the scheme argued from ergonomics rather than measured** — it wants a real
 thumb on a real phone.
 
-### Tilt, retired
+### Tilt, removed
 
-**Tilt no longer steers anything, on any device.** `stepTilt` is deleted; the three-zone touch control
-above replaced it, and `stepStick` occupies its slot in `step()` by the same route — a rate added to P
-directly rather than a target fed through the position chase.
+**Tilt is gone — all of it.** `stepTilt`, `onTilt`, `tiltMap`, `tiltCurve`, `tiltCalibrate`, the `TILT`
+constants, `tiltVec`/`tiltRaw`, `window.__nativeTilt`, `#tiltDiag` and `updateTiltDiag`; and on the
+native side the CoreMotion bridge, which took `MotionBridgeViewController` with it — that file is now
+`AppViewController` and carries only the DEBUG JS probe. About 180 lines of JS and 60 of Swift.
 
-⚠️ **The bridge is kept intact and unwired, not deleted.** `MotionBridgeViewController.swift` still reads
-CoreMotion at 60Hz and still calls `window.__nativeTilt`; `onTilt` still calibrates, remaps and smooths;
-`tiltVec` is still maintained and still readable from the seam. What no longer exists is a **consumer**.
-That is deliberate — the bridge is ~40 lines of verified Swift and `TILT.tau` took two passes and a
-measurement to settle, so it is worth keeping whole rather than re-derived.
+**It went in two steps, and the second one is the interesting one.** It stopped *steering* when the
+three-zone touch control landed, and was deliberately **kept intact and unwired** on the argument that
+the bridge was ~40 lines of verified Swift and `TILT.tau` had taken two passes and a measurement to
+settle — worth preserving rather than re-deriving. That was right at the time and was overtaken by the
+next change: **the control tilt would return to no longer exists.** The move zone is a *displacement*
+now and tilt is a *rate*, so putting it back is not re-enabling a feature — it is designing a second
+steering model and deciding what happens when it and a finger both ask for the star. **The decision is
+the work; the code was never the work**, which is what made keeping the code stop being worth it.
 
-⚠️ **So `tiltVec` is now an observation, not a control.** Anything reading it is reading a sensor, not
-the input the player is using. Do not reintroduce a consumer without deciding what happens when it and a
-finger both ask for the star — the old answer was STRICT TILT-ONLY, and that answer went with the control.
+⚠️ **The measured finding outlives the deleted code, and it is the reason not to start from
+`requestPermission`.** On a real iPhone in this WebView, `DeviceOrientationEvent.requestPermission()`
+exists and its promise **rejects**, and attaching the listener anyway delivers **nothing** — even though
+Capacitor implements the documented host hook (`webView(_:requestDeviceOrientationAndMotionPermissionFor:)`)
+and answers `.grant`. Nor is it the scheme: `iosScheme` cannot be https, and `localhost` already confers
+secure-context privileges. **The web sensor path is a dead end on this stack.** That is why the bridge
+was native, and anyone reviving tilt should start from `git log -- ios/App/App/*ViewController.swift`
+rather than from the web API.
 
-**What went with it, and why each one had to.** `touchSteers` and `refreshTouchSteer()` existed to make
-tilt and touch mutually exclusive, and there is nothing left to be exclusive of. `#tiltDiag`,
-`TILT_STALE_MS`, `tilt.stale` and `tilt.ok` existed because a dead feed meant an **unplayable game** —
-strict tilt-only meant a tilt device did not steer by touch at all. Touch cannot stop working now, so
-warning about a silent sensor would be reporting a fault in a component nothing depends on, which trains
-players to ignore the band this game keeps clear for real news. The tutorial's third device case
-(`tut.*.tilt`) went the same way.
+⚠️ **`orbitalcrash_tilt` in localStorage is inert and there is now nothing that could read it.**
 
-**The rate argument outlived the sensor and is now the stick's.** An offset means *keep going this way*,
-not *be there*; feeding a rate through the 18.5%-of-the-gap chase would weld the control's speed to that
-coefficient, so retuning the mouse would silently change touch. See *Touch* above.
+**Two things tilt taught that are still load-bearing, and both now live in the STICK block.** The *rate*
+argument — an angle means "keep going this way", not "be there" — survives as the explanation of why
+that model was wrong for a finger. And the *sample-rate scar*: tilt's smoothing was a per-event fraction,
+so a bridge change from 30Hz to 60Hz silently halved the control speed and was reported as "tilt reaction
+is a little slow". That is why the stick banks its displacement and applies it on the fixed tick instead
+of writing `P` from a pointer handler.
 
-⚠️ **`orbitalcrash_tilt` is still deliberately not read**, and there is now nothing that could read it.
-The key is inert, not migrated.
-
-⚠️ **There is still no `requestPermission` call anywhere in the file, and the reason has not changed.**
-The web sensor path was measured and abandoned: on Android Chrome `requestPermission` does not exist, so
-arming attached the listener and readings simply flowed. Inside the Capacitor WebView the promise rejects
-outright even though Capacitor's `WKUIDelegate` answers the real permission with `.grant` — the JS
-permission API and the native sensor gate are two different doors, and the JS one is nailed shut. **This
-is why the bridge was native in the first place**, and it stays true whether or not anything consumes it.
 
 **LANDSCAPE is enforced natively, both ways round.** ⚠️ **This section said "portrait" until 2026-08-10,
 five days after the code stopped agreeing with it** — `c6b59b5` moved the plist and the manifest to

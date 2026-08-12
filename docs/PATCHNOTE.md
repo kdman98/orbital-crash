@@ -14,6 +14,35 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-11
 
+### Tilt is removed outright, because the control it would come back to no longer exists `v2-ios`
+Author: *"we might remove tilt from now on."* Gone: `stepTilt`, `onTilt`, `tiltMap`, `tiltCurve`,
+`tiltCalibrate`, the `TILT` constants, `tiltVec`/`tiltRaw`, `window.__nativeTilt`, `#tiltDiag` and
+`updateTiltDiag`, plus the CoreMotion bridge on the native side. ~180 lines of JS and ~60 of Swift.
+`MotionBridgeViewController` is now **`AppViewController`** — the motion is gone and a class named for
+it would be a name that lies; it carries only the DEBUG JS probe. Storyboard and pbxproj follow.
+
+⚠️ **This retires *"The bridge is kept intact and unwired"* from the port entry below.** That was a real
+argument — ~40 lines of verified Swift, and a `TILT.tau` that took two passes and a measurement to
+settle, both worth preserving rather than re-deriving. It was overtaken by the very next change rather
+than by anyone changing their mind: **the move zone is a *displacement* now and tilt is a *rate***, so
+restoring it would not be re-enabling a feature, it would be designing a second steering model and
+arbitrating between it and a finger. **The decision was always the work; the code never was** — which is
+exactly what stopped the code being worth keeping.
+
+⚠️ **The measured finding outlives the deleted code.** On a real iPhone in this WebView,
+`DeviceOrientationEvent.requestPermission()` exists and its promise **rejects**, and attaching the
+listener anyway delivers **nothing** — even though Capacitor implements the documented host hook and
+answers `.grant`. Anyone reviving tilt starts from `git log -- ios/App/App/*ViewController.swift`, not
+from the web API. Two lessons stay behind in the STICK block: the **rate argument** (why that model was
+wrong for a finger) and the **sample-rate scar** (per-event smoothing meant a 30→60Hz bridge change
+silently halved the control speed — the reason the stick banks its displacement and applies it on the
+fixed tick).
+
+Verified at 874×402: `__orbital.tilt`, `__orbital.TILT` and `window.__nativeTilt` are all `undefined`,
+`#tiltDiag` is gone, no seam key matches `/tilt/i`, and steer / flip / Overdrive all still fire
+(50px → exactly 159.2 units) with **zero console errors**. `BUILD SUCCEEDED` on iPhone 17 after the
+rename.
+
 ### The move zone follows your finger now, because a finger is not an angle `v2-ios`
 Author, from the device: *"moving is not following my finger movement, acceleration is applied little
 late."* Both halves were real, and both trace to one mistake — **the virtual stick inherited tilt's rate
