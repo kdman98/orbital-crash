@@ -405,7 +405,7 @@
   /* ⚠️ BOTH WORDS TAKE THE SAME WIDTH, and that is the lockup — it is what the old rules were buying
      with letter-spacing:.24em on ORBITAL and -.012em on CRASH. Here the tracking is baked into the
      advances, so "same measure" is literally one shared width and cannot drift when the type scales.
-       The cap heights fall out of the viewBoxes: 611:100 and 355:100, so at one width the two caps
+       The cap heights fall out of the viewBoxes: 614:100 and 356.5:100, so at one width the two caps
      land in a 1.72 ratio — the same 79/46 the old lockup was tuned to, arrived at independently. */
   .logo .wm1,.logo .wm2{width:clamp(208px,52vw,292px);}
   .logo .l1{stroke:#8fa4c8;margin-bottom:13px;}
@@ -1089,15 +1089,16 @@
            ⚠️ STILL COLOURLESS, and the old argument stands unchanged: hue belongs to polarity, so a
          gradient on the words would put colour where it means nothing while leaving red — half the
          game — off its own title screen. The ramp below is neutral grey by construction.
-           The stroke is 17 and the paths are CENTRELINES, so ink overflows a centreline box by 8.5 all
-         round; both viewBoxes start at -2 to hold it. Change the weight and those numbers move.
+           The stroke is 13 and the paths are CENTRELINES, so ink overflows a centreline box by 6.5 all
+         round; the advances below are true INK widths and already carry it. Change the weight and
+         every advance, every `use x` and both viewBox widths move with it.
            ⚠️ CAPS ARE BUTT, NOT ROUND, and that is the whole register of the mark. Rounded terminals
          made ten geometric letters read as a friendly children's face — wrong for a game whose verb
          is annihilation. Joins stay round so the A's apex does not spike: at a 31 degree apex the
          miter runs 3.7x the half-stroke and would shoot ~23 units out of the box.
            ⚠️ AND BECAUSE CAPS ARE BUTT, THE ROUND LETTERS CARRY THEIR OWN ry. A stem's ink ends where
          its centreline ends, but a closed curve's ink overshoots by half the stroke — so O, C and S
-         are built on ry 36/18 rather than the stems' 43.5, leaving ~1 unit of overshoot, which is the
+         are built on ry 37.5/18.75 rather than the stems' 43.5, leaving ~1 unit of overshoot, the
          optical correction a round letter wants anyway. Give them the stems' radius and they stand
          10% taller than the I beside them.
            ⚠️ The `<defs>` live in the first SVG and the second one references them across elements.
