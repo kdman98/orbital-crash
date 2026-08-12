@@ -1194,11 +1194,118 @@ restated again** — see *Traps*.
 | | |
 |---|---|
 | **Emitter** | hovers and alternates a six-way **burst** (one arm leads you, the other five close your escape angles) with a sweeping **stream** of leading fans. From Epoch II it also **dashes** |
-| **Sentinel** | circles the arena firing pincers **and sheds swarmers as it goes**, so its orbit writes a **trail** you have to run down |
+| **Sentinel** | circles the arena on a **rate that wanders**, alternating a seeker **pincer** with a rotating **screen** of five nodes on its own body. One beat, one pattern — never both |
 | **Bastion** | telegraphs a collapsing charge-ring, then erupts a **radial wall with one seam** — be in the seam. Between rings it lobs **mines** onto the ground around *you*. Carries less HP: the kind that moves you rather than out-damaging you |
 
 The first Anomaly of a run is always the **Emitter**, whose opening hex burst teaches the loop. Drawn
 `source-over` inside the additive pass (law 12).
+
+#### The Sentinel's two patterns, and the one beat that separates them
+
+For most of this game's life the Sentinel had **one** firing routine and had never had more: `firePincer`
+on a free-running timer, no branch, no alternation, no Epoch escalation beyond one extra Dart. It was
+also the only Anomaly whose fire **never aimed** — `hexRot += 0.7` is a blind 40° precession with no term
+in it for where the player is standing, while every other kind reaches for `leadAngle` or targets `P`.
+The seeker's own homing hid that for months, because the missile corrects for a launch bearing that means
+nothing. What it cost was the **read**: compare `fireHexVolley`'s *"one arm is for you, the other five
+close your exits"*, a launch you can learn from. The pincer's told you nothing.
+
+**The swarmer trail is gone**, and the half of its defence that sounded strongest is the half that failed
+checking. It was *"half threat, half ammo — chasing it through its own trail should feed you."* But
+`doSpawns` has **no boss suppression**: it runs the whole fight, already leans 65% toward the Anomaly's
+opposite colour for exactly this reason, and holds the arena at `cap` bodies regardless. The trail was a
+top-up on a supply that was never interrupted. As a *pattern* it asked nothing the ambient swarm was not
+already asking — which is why it is out, not its cost.
+
+**The orbit screen** replaces it. Five nodes open from the boss body out to `SCR_R` = 340px over 0.45s,
+ride the boss for 3.2s, then sling off on the **tangent**. The Sentinel is the one Anomaly you have to
+*close on* — a Ring only erodes it if you put the Ring between you and it — and it had nothing that
+charged you for the approach. Now it does.
+
+⚠️ **The spin-up is a real telegraph: a node cannot hit you while it is opening.** Measured over 300s the
+expanding ring sweeps across the Star and deals **zero** damage doing so. The handoff is exact —
+`maxRadiusWhileStillOpening` and `minRadiusOnceLive` both measure **340**, so there is no gap where it is
+harmless at full size and no overlap where it is lethal while growing.
+
+⚠️ **A hosted node is exempt from the off-screen cull, and at this radius that is load-bearing.** The
+Sentinel's own arena orbit reaches `H*0.42 ± 196`, so a node 340px out swings to y = −204 and y = 876
+against an 800-unit field. The generic `L.seen && !inb` rule means *"it crossed the arena and left"* —
+true of every other missile, false of a node pinned to a circle on a moving boss. Measured: the old
+predicate fires on **1281 node-frames per 180s**, so the screen would have visibly shed a third of itself
+every revolution. Released nodes cull normally. At the original 150px radius this never came up, which is
+why it had to be found by arithmetic rather than by watching it.
+
+**It is a sweep, not a gate, and the door arithmetic says so.** `2*SCR_R*sin(π/SCR_N) − 2*r`:
+
+| | door | reading |
+|---|---|---|
+| R=150, N=5, r=9 | 158px | a **gate** you time |
+| R=300, N=5, r=9 | 335px | a sweep |
+| **R=340, N=5, r=14** | **372px** | a sweep, wider, heavier nodes |
+
+At 372px against a 30px Star you drive through without planning. What it buys instead is a 680px rotating
+hazard covering the ground you *retreat* into. **If it should be a gate again the lever is `SCR_N`, never
+`SCR_R`** — 11 nodes restores a ~164px door at this radius.
+
+⚠️ **`SCR_W` tracks `SCR_R` and must be re-solved whenever the ring is resized.** Tangential speed is
+`SCR_W*SCR_R` — the thing the player actually dodges — so widening at a fixed angular rate speeds the
+sweep up *silently, in the units that matter*. 1.6 at R=340 would be 544px/s against a Star doing 372;
+the screen would outrun the player, which this constant may never do. It sits at 0.62 for 211px/s.
+
+**One beat, one pattern.** `fireT` is the kind's only firing clock and `pinLeft` says how many pincers are
+owed before a screen. A screen **consumes its own duration** out of the next gap, so the beat after one is
+measured from when the nodes *release*, not when they opened — it is not possible to schedule two patterns
+into the same window, and no guard has to catch it later.
+
+⚠️ **Suppression was not enough, and the metric that said it was, was measuring the wrong thing.** The
+first version kept two independent timers and had the screen suppress seeker fire. That measured
+*perfectly* — zero seekers born during any screen, every run — and was still wrong, because it only
+stopped the pattern that had not started yet. **A seeker fired 0.2s before a screen opens is in the air
+for its whole 9.6s life.** Author: *"Two patterns are done together currently."* The question was never
+what the timers **allow**, it was what they **schedule**.
+
+`pinLeft` is rolled `irand(1,3)` at spawn and after every screen, so the count is not learnable and the
+opening is not fixed. The pincer still goes **first** whatever the roll — it is the kind's signature and
+teaches what a seeker does before the screen complicates the read.
+
+⚠️ **The hunt defers a screen; it never skips one.** `pinLeft` is already 0 when a screen is blocked, and
+the pincer branch cannot take it negative, so the screen is the very next thing that happens once the hunt
+ends. This has a measurable side effect worth knowing before you retune anything: **a deferral fires a
+pincer without spending `pinLeft`**, so deferrals land as *extra* pincers. That is why the
+pincers-per-screen histogram skews to 2–3 rather than sitting flat on `irand(1,3)`, why the opening
+measured **1–4** across 25 spawns, and why an arithmetic estimate of seeker volume came in **12% low**.
+**`SEN_PIN` must be measured, not solved.**
+
+**Seeker tracking, and the threshold it crossed twice:**
+
+| `seekFor` | turn authority | what changed |
+|---|---|---|
+| 0.85 | 160.7° | could not come about; the pincer's rear arm was an afterthought |
+| 1.15 | 217.4° | past 180° — it can reverse from any bearing, so both arms went live |
+| **1.45** | **274.2°** | enough left over to follow your dodge |
+
+The 180° crossing changed the pattern's *identity*; 274° changes the **answer**. At 217° a late cut across
+a seeker still beat it; at 274° there is authority to spare to follow that cut, so the honest counter is
+distance again — which is the sentence `MSL.seeker` has always rested on (*"the answer is to run, not to
+juke"*). **That holds only while seeker `sp` 3.3 stays under the Star's 6.2. That is the number that must
+never move.** `life` did not need to change: the arc grows to 287px at full pace and 215px at Epoch I,
+against budgets of 1901px and 1426px — recomputed, then confirmed with **zero** seekers reaching life-end.
+
+**Measured — 300s, boss pinned, seeded, rAF frozen:**
+
+| | two timers | strict alternation | **shipped** |
+|---|---|---|---|
+| seekers/min | 23.3 | 14.8 | **24.0** |
+| screen period | 12.0s | 9.4s | **10.9s** |
+| full cycle | — | 9.08s | **11.11s** |
+| screen duty | 30.6% | 37.9% | **33%** |
+| min gap between patterns | ~0 | 2.38s | **2.0s** |
+| pincers during a live screen | — | 0 | **0** |
+
+⚠️ **These are Epoch II figures and the rig is why.** `spawnBoss` from the seam lands in **Boss Rush**,
+which pins `act=2`, so `pcad` is 0.9 rather than 0.8. Setting `__orbital.act` does not move it either —
+`pace` freezes at spawn from the internal `act`. Epoch III runs the same patterns ~11% tighter on both
+timers, so the duty barely moves, but **do not quote these as Epoch III numbers.**
 
 **The bodies are cosmic, not geometric.** Emitter = a **star** (limb-darkened photosphere, granulation,
 six prominences on `hexRot`). Sentinel = a **vortex** (three spiral arms, because this is the kind that
@@ -1247,6 +1354,17 @@ circle), its **tangential** speed is capped rather than its angular rate (or it 
 furthest, which is backwards for something closing on you), and the follow is a **capped step** rather
 than a proportion of the gap (a proportion would move the boss 40px in one frame on a long player flick).
 The cap must stay above the target point's own speed, or the Dot trails its own target and never arrives.
+
+⚠️ **THE HUNT TELEGRAPH IS PER-KIND, BECAUSE FOR ONE KIND OF THREE IT WAS A LIE.** The dashed line drawn
+from the Anomaly to the Star is *true* of the Emitter and the Bastion — they hunt with `b.x += dx/d*s`,
+literally that line, one step per frame — and it deliberately shares its grammar with the dash telegraph.
+**The Sentinel never flew it.** Its branch spirals, moving tangentially the whole way, so the line
+described a path it takes only at the instant it arrives. Same defect class as a hull drawn inside its
+own collider, and it was the loudest, most confident mark on screen.
+
+It now draws the **circle it is actually coming around** — radius `huntR`, centred on the Star, squashed
+to 0.8 to match the ellipse `bossMove` walks, collapsing to contact. Strictly *more* information than the
+line: the radius is the countdown. Verified live at `huntR` 164 against a true separation of 161.3.
 
 **It is telegraphed**, because it is the moment the Anomaly is closest: a bright long wake, a dashed lane
 drawn to your core in the same grammar as the dash telegraph, a descending tone as it breaks station, a
@@ -1570,9 +1688,15 @@ and a Capacitor chunk.
 
 ### What still deletes matter near an Anomaly
 Worth naming, because none of it is the Anomaly's fire and all of it gets blamed on the Anomaly's fire.
-**Ambient opposite-colour traffic** is overwhelmingly the answer — ordinary matter meeting matter. The
-**Sentinel's swarmers** are the only boss-emitted eraser, and they are *matter* rather than shots, so the
-colour law owns them like anything else.
+**Ambient opposite-colour traffic** is overwhelmingly the answer — ordinary matter meeting matter, and it
+is now the *whole* answer.
+
+⚠️ **NO ANOMALY EMITS MATTER ANY MORE.** This paragraph used to name the **Sentinel's swarmers** as the
+one boss-emitted eraser — matter rather than shots, so the colour law owned them. That trail is gone,
+replaced by the orbit screen, whose nodes are **missiles**: they pass through every Dot, kill none, and
+are stopped by none (law 11). So every deletion of matter near an Anomaly is now ambient traffic or the
+Anomaly's own body, with nothing in between. If a future kind sheds matter again, this is the paragraph
+that has to be reopened — and the boss-contact gate in `stepAnnihilation` is the code that depends on it.
 
 The Anomaly's **body** is the one exception, and it is not fire: it consumes matter that actually chips
 it, or a flung Dot parked inside its skin would chip every frame. Matter that pays zero — ordinary

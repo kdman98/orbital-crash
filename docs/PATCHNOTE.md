@@ -14,6 +14,45 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-12
 
+### The Sentinel throws two patterns on one beat, and never both at once `v2`
+It had **one** firing routine and had never had more — `firePincer` on a free timer, no branch, no
+alternation, no Epoch escalation past one extra Dart. It was also the only Anomaly whose fire **never
+aimed**: `hexRot += 0.7` is a blind 40° precession with no term for where you are standing. The seeker's
+own homing hid that for months, because the missile corrects for a launch bearing that means nothing.
+
+**The swarmer trail is out, and the orbit screen replaces it** — five nodes that open to 340px, ride the
+boss for 3.2s, then sling off on the tangent. The trail's defence was *"half threat, half ammo"*, but
+`doSpawns` never pauses for a boss and already leans 65% to the Anomaly's opposite colour, so it topped up
+a supply that was never interrupted. As a *pattern* it asked nothing the ambient swarm was not asking.
+
+**One inner timer.** `fireT` is the only firing clock; `pinLeft` (rolled `irand(1,3)`) counts the pincers
+owed before a screen, and a screen consumes its own duration out of the next gap. ⚠️ **The first version
+kept two timers and had the screen suppress seeker fire — and that measured perfectly, zero seekers born
+during any screen, and was still wrong.** Suppression only stops the pattern that has not started; a
+seeker fired 0.2s before a screen opens is in the air for its whole 9.6s life. Author: *"Two patterns are
+done together currently."* The question was never what the timers allow, it was what they schedule.
+
+Seeker tracking 0.85 → **1.45** (turn authority 160° → **274°**), and the arena orbit rate now wanders in
+`[0.40, 0.50]` instead of sitting on 0.40.
+
+**The hunt telegraph was lying, for one kind of three.** The dashed line to the Star is true of the
+Emitter and the Bastion — they hunt with `b.x += dx/d*s`, literally that line. The Sentinel spirals and
+never flew it. It now draws the **circle it is actually coming around**, collapsing to contact.
+
+Measured, 300s, boss pinned, Epoch II pace: **24.0 seekers/min** (23.3 before any of this, 14.8 at strict
+alternation) · screen every **10.9s** · **0** pincers launched during a live screen · min gap between any
+two patterns **2.0s**. ⚠️ Two estimates came in low and both had one cause: a deferred screen fires a
+pincer *without* spending `pinLeft`, so hunt deferrals add pincers on top of the roll. `SEN_PIN` must be
+measured, not solved.
+
+⚠️ **`2e73c06` carries two blank-line deletions in `formComet` that are not mine.** They were another
+session's uncommitted whitespace tidy, and I swept them in by finishing with `git commit --only
+index.html` — **`--only` takes the content from the WORKING TREE and silently discards what you staged**,
+so a carefully filtered index counted for nothing. The commit was pushed before I noticed, so it stands
+rather than being rewritten: force-pushing a shared branch over two blank lines is the worse trade. The
+change is applied and not lost, only misattributed. *Use `git add` + a pathless `git commit` when
+splitting a contended file; `--only` and `--include` both re-read the working tree.*
+
 ### A Neutral sheds both colours, and the Comet announces itself `v2`
 **A Neutral drops one red Mote and one cyan.** It wears both poles and is the one Dot the colour law does
 not reach, so *"the colour of the Dot that died"* has no single answer for it — one of each is the same

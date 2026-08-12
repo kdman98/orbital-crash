@@ -137,8 +137,21 @@ paragraph goes in MECHANICS and this line points at it.
   and shared: all seven reverse in the same 5 frames whatever their `seek`. Turn **radius** is `seek` in
   direct proportion. Only in the ring does the third thing happen — `ARC_FR` lets momentum outlast
   steering altogether, which is a different mechanism, not more of this one. (`ARC_FR`)
-- **Swarmer** — a Dot the Sentinel sheds while orbiting. Matter, not a shot, so the colour law owns it.
-  (`seedT`)
+- **Swarmer** — *removed.* Was a Dot the Sentinel shed while orbiting — matter, not a shot, so the colour
+  law owned it. Replaced by the **Orbit screen**. It was defended as half threat and half ammo, but
+  `doSpawns` never pauses for a boss and already leans 65% to the Anomaly's opposite colour, so the trail
+  topped up a supply that was never interrupted. **No Anomaly emits matter any more.** (was `seedT`)
+- **Orbit screen** — the Sentinel's second pattern: five **nodes** that open out to 340px, ride the boss
+  for 3.2s, then sling off on the tangent. A sweep covering the ground you retreat into, not a gate you
+  time — the door is 372px against a 30px Star. Widen it and you must re-solve `SCR_W`, because
+  tangential speed is `SCR_W*SCR_R` and the screen may never outrun the Star. (`fireOrbScreen`, `SCR_R`)
+- **Node** — one bullet of the Orbit screen, and the biggest projectile in the game at r=14. Harmless
+  while it is still opening (that is its telegraph), and exempt from the off-screen cull while hosted —
+  it is pinned to a circle on a moving boss, not crossing the arena. (`MSL.orb`, `L.ohold`, `L.oup`)
+- **Beat** — the Sentinel's single firing clock. One beat throws one pattern; a screen consumes its own
+  duration out of the next gap, so two patterns cannot be scheduled into one window. `pinLeft` counts the
+  pincers owed before the next screen, rolled `irand(1,3)` so the count is not learnable.
+  (`fireT`, `pinLeft`, `SEN_BEAT0`)
 - **Same-charge shove** — like-charge overlaps resolved **positionally**, split by mass. Positions only,
   never velocity. (`SAME_PUSH`)
 - **Gilded Bounty** — a periodic gold-ringed Dot worth a jackpot if popped inside its window. Only ever
@@ -213,8 +226,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Anomaly kind** — which one you drew. Three, one verb each. (`boss.variant`, `ANOM`)
 - **Emitter** *(volleys)* — hovers, alternating a hexagon burst with a sweeping stream; dashes from
   Epoch II. (`b.emitMode`, `fireHexVolley`)
-- **Sentinel** *(chase)* — circles the arena firing pincers and shedding swarmers, leaving a trail.
-  (`orbA`, `seedT`)
+- **Sentinel** *(chase)* — circles the arena on a wandering rate, alternating a seeker **pincer** with a
+  rotating **screen** of nodes on its own body. One beat, one pattern, never both. The kind you must
+  close on, and now the one that charges you for the approach. (`orbA`, `orbW`, `pinLeft`)
 - **Bastion** *(ground denial)* — erupts radial rings with one seam, and lobs mines around you.
   (`novaCharge`, `fireMines`)
 - **The Hunt** — an Anomaly leaving station and *walking* onto your core, landing one hit and breaking
