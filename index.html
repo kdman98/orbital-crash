@@ -3983,17 +3983,36 @@ function director(dt){
 // was a Dot you could walk through; contact is back at Drifter parity (8) but the death blast now clears
 // a 120px hole in your hoard, so the old weight was paying for the wrong property.
 //   `wchoice` sums weights as floats, so a fractional weight is exact, not rounded.
-//   ⚠️ THESE ARE SHARES IN A BAG, NOT RATES. Halving one weight shrinks the bag, so every other species
-// gains a little and the real drop lands just under half. Measured over 4 matched 240s runs, counting
-// every spawned body by identity: 293 Bombers -> 153, i.e. −47.8%. By band, share of all arrivals went
-// 8.61% -> 4.95% (t 80–125) and 7.15% -> 3.76% (t ≥ 125). Do not "fix" the shortfall by compensating
-// elsewhere — the bag IS the model, and the arithmetic is 4.5/95.5, not 4.5/100.
-//   The measured mix is wider than this table because formations and storm surges also arrive.
-//   ⚠️ That used to end "and Splitter fragments also arrive; Minis are ~12% of all bodies and appear in
-// no table at all." Both clauses died with the Splitter — and note WHICH kind of staleness this was: the
-// 12% was a correct measurement of a population that no longer exists, i.e. exactly the sort of figure
-// that survives the thing it described and goes on being quoted. Re-measure the mix; do not carry it.
-const BOMB_RARITY=0.5;
+//   ⚠️ THESE ARE SHARES IN A BAG, NOT RATES. A weight change never moves the body COUNT — the table
+// always draws `count` bodies a tick — so it only ever moves the MIX, and every other species absorbs
+// what this one gives up. Do not "fix" an apparent shortfall by compensating elsewhere: the bag IS the
+// model, and the arithmetic is 4.5/95.5, not 4.5/100.
+//   0.5 -> 0.42, a slight thinning rather than a rebalance. Pooled over 9 x 300s runs per arm, counting
+// every spawned body by identity, share of ALL arrivals:
+//     t 80-125   4.46% -> 3.78%   (-15.2%)
+//     t >= 125   6.04% -> 5.18%   (-14.2%)
+//     overall    5.68% -> 4.83%   (-15.0%)   589 Bombers / 10,370 bodies -> 441 / 9,121
+// The exact share of a TABLE DRAW is computable and agrees: 9R/(79+9R) is 5.389% -> 4.566% in the mid
+// band, -15.3%, and the late band lands within a third of a point of that at every Act. Nothing here
+// needed a judgement call — 0.42 was picked because it holds ~15% across every band and Epoch, where a
+// round 0.4 would have been -19% and read as a nerf.
+//   ⚠️ A 4-SEED READ OF THIS SAID -8%, AND IT WAS NOISE. Matched seeds do NOT give matched runs here:
+// `wchoice` draws once whatever the weights are, so the RNG stays in step, but the OUTCOME differs from
+// the first Bomber decision onward and the two arms diverge into different runs. n=233 vs 216 Bombers
+// could not separate -8% from -15%. Pool seeds before believing a spawn-mix delta.
+//   The measured mix is wider than this table because formations and storm surges also arrive — they
+// are in the denominator and no weight here touches them, which is why the share of all arrivals is
+// lower than the share of a table draw.
+//   ⚠️ THE PREVIOUS FIGURES HERE WERE STALE, and this is the third time this comment has recorded that
+// happening. It read "8.61% -> 4.95% (t 80-125) and 7.15% -> 3.76% (t >= 125)" for the 1.0 -> 0.5 pass.
+// Re-measured at 0.5 today those bands are 4.46% and 6.04% — the late one nearly DOUBLE what was
+// written, because the Planet and the Harrier joined that table and the Splitter left it since. The
+// numbers were correct when taken and describe a roster that no longer exists.
+//   ⚠️ It ended, before that, "and Splitter fragments also arrive; Minis are ~12% of all bodies and
+// appear in no table at all." Both clauses died with the Splitter. Note WHICH kind of staleness this
+// keeps being: a correct measurement of a population that has since changed, quoted long after. Any
+// share in this comment is a reading, not a constant. Re-measure the mix; do not carry it.
+const BOMB_RARITY=0.42;
 // THE NEUTRAL IS A JOKER, NOT A SPECIES YOU FIGHT. It is the one body polarity cannot answer — the
 // magnetic loop and ring capture both skip it by type, and the hungry flip skips it too ("uncharged is
 // not the other colour — that's the Shockwave's job"), so the ONLY tool that clears one is a flip

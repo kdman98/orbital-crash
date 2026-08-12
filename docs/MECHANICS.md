@@ -4026,13 +4026,30 @@ which already holds.
 **A chase reward for the Sentinel that is not contact damage.** The obvious version measures backwards
 (see *No per-kind bonus*), so the idea needs a different vehicle, not a different number.
 
-**Bomber spawn weight vs. its role — ANSWERED, watch the feel.** The weight had been priced when a Bomber
-was a Dot you could walk through; contact went back to Drifter parity while the death blast kept clearing a
-large hole in your hoard, so it was paying for the wrong property. `BOMB_RARITY` now scales it in both
-bands. Measured over 4 matched 240s runs, counting every arrival by identity, Bombers fell **293 → 153**
-(−47.8%); share of all arrivals went 8.61% → 4.95% in the intro band and 7.15% → 3.76% past it. What is
-*not* settled is whether the blast is now rare enough to read as an event rather than a tax — that is a
-feel judgement and the bot cannot make it, because the median scripted pilot dies before the first Bomber
+**Bomber spawn weight vs. its role — ANSWERED TWICE, still watch the feel.** The weight had been priced
+when a Bomber was a Dot you could walk through; contact went back to Drifter parity while the death blast
+kept clearing a large hole in your hoard, so it was paying for the wrong property. `BOMB_RARITY` scales it
+in both bands. The first pass took it 1.0 → 0.5 and halved the species; a second, **0.5 → 0.42**, thinned
+it slightly again.
+
+Pooled over 9 × 300s runs per arm, counting every arrival by identity — share of all arrivals **5.68% →
+4.83% overall (−15.0%)**, by band 4.46% → 3.78% (t 80–125) and 6.04% → 5.18% (t ≥ 125). 0.42 was chosen
+because it holds ~15% at every band and Epoch, where a round 0.4 is −19% and reads as a nerf rather than
+a thinning.
+
+⚠️ **The figures this entry used to carry were stale, and by a lot.** It quoted 8.61% → 4.95% and 7.15% →
+3.76% for the first pass. Re-measured at 0.5 those bands are 4.46% and 6.04% — the late one nearly
+**double** what was written, because the Planet and the Harrier joined that table and the Splitter left it
+since. Correct when taken, describing a roster that no longer exists. Any share quoted here is a reading
+with a date on it, not a constant.
+
+⚠️ **Do not read a spawn-mix delta off four seeds.** Matched seeds do not give matched runs: `wchoice`
+draws once whatever the weights are, so the RNG stays in step, but the outcome diverges from the first
+Bomber decision onward. A 4-seed read of this same change said −8%; at n=233 vs 216 Bombers it could not
+separate that from −15%.
+
+What is still *not* settled is whether the blast is now rare enough to read as an event rather than a tax
+— a feel judgement the bot cannot make, because the median scripted pilot dies before the first Bomber
 can spawn.
 
 **🟡 Missile reach is fixed and the arena is not, so "nothing expires on screen" is a claim about one
