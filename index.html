@@ -1795,6 +1795,7 @@ const L={ en:{
   'dot.boss':'Anomaly',
   'msl.volley':'Anomaly Volley',  'msl.seeker':'Anomaly Seeker',  'msl.ring':'Anomaly Ring',
   'msl.mine':'Anomaly Mine',      'msl.spear':'Anomaly Spear',    'msl.other':'Anomaly Missile',
+  'msl.orb':'Anomaly Screen',
   'act.0':'Nebula',  'act.1':'Aurora',  'act.2':'Eclipse',  'act.3':'Meteor Shower',
   'lab.wall':'Wall',  'lab.noose':'Noose',  'lab.pulse':'Pulse',
   'lab.cross':'Cross','lab.comet':'Comet',  'lab.drift':'Drift',
@@ -1982,6 +1983,7 @@ const L={ en:{
   'dot.boss':'변이체',
   'msl.volley':'변이체 일제사격',  'msl.seeker':'변이체 추적탄',  'msl.ring':'변이체 고리',
   'msl.mine':'변이체 지뢰',        'msl.spear':'변이체 창',       'msl.other':'변이체 발사체',
+  'msl.orb':'변이체 방벽',
   'act.0':'성운',  'act.1':'극광',  'act.2':'월식',  'act.3':'유성우',
   'lab.wall':'장벽',  'lab.noose':'올가미',  'lab.pulse':'파동',
   'lab.cross':'십자',  'lab.comet':'혜성',    'lab.drift':'표류',
@@ -3824,11 +3826,9 @@ function formComet(){
   // is how long the earliest-arriving member takes to reach the border, so COMET_TEL + tFirst is exactly
   // "until there is something to see", with the fade on top.
   if(sgn) cautionRaise(sgn.x, sgn.y, sgn.ux, sgn.uy, sgn.side, COMET_TEL + sgn.tFirst + CAUTION_FADE);
-
   // The warn still exists — it owns the SPAWN, which is the half `warnForm` is for — but it draws
   // nothing. The caution above is the entire visual, and it outlives this warn by design.
   const draw=()=>{};
-
   const spawn=()=>{
     for(const b of bodies){
       const e=spawnEnemy('heavy', b.color, b.x, b.y);
@@ -4200,9 +4200,14 @@ const ANOM={
   // ⚠️ These are L KEYS, not the text. `updateHUD` renders them; the `tip3 &&` test still reads as
   // "does this kind have a grown-up line", because only the Emitter carries the second key.
   emitter:{tip:'anom.emitter.tip', tip3:'anom.emitter.tip3'},
-  // SENTINEL — the chase boss. Circles the arena AND sheds swarmers as it goes, so the swarm is strung
-  // out along its orbit. Movement and adds now reinforce each other: chasing it means running down the
-  // trail it just laid, instead of the old Seeder's tidy pile dropped at a stationary point.
+  // SENTINEL — the chase boss. Circles the arena on a RATE THAT WANDERS (ORB_W0..ORB_W1) and alternates
+  // two patterns that never overlap: the seeker pincer, and a rotating screen of nodes on its own body
+  // that suppresses the seekers while it is up. The screen is the point of the kind — it is the one
+  // Anomaly you have to CLOSE ON, and it is now the one that charges you for the approach.
+  //   ⚠️ IT NO LONGER SHEDS SWARMERS, and this comment used to be built on that: "chasing it means
+  // running down the trail it just laid" was the argument for why movement and adds reinforced each
+  // other. The trail was 2-3 Darts every ~2.3s and asked nothing `doSpawns` was not already asking —
+  // see the block in updateBoss for why the ammo half of its defence did not survive checking either.
   sentinel:{tip:'anom.sentinel.tip'},
   // BASTION — the dodge boss. A radial wall of 13 with one seam, plus mines lobbed onto the ground
   // around you. It carries 25% less HP because it is the kind that MOVES you rather than out-damaging
@@ -4560,11 +4565,25 @@ function spawnBoss(forceVariant){
     // the raised tempo, or its first beat is the only slow one in the fight and reads as a stutter.
     //   ⚠️ `huntT` TAKES `pace.cad` AND NOT `pcad`, and that is the line that keeps the two axes apart.
     // It is the only entry here that schedules MOVEMENT rather than fire.
-    fireT:2.2*pcad, emitMode:true,            // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
+    // ⚠️ THE OPENING GAP IS PER-KIND NOW, because the Sentinel's beat is no longer the shared 2.2. Its
+    // pincer runs on 3.2-4.2 (see updateBoss), and a first shot on the old interval would be the only
+    // fast one in the fight — the same stutter `pat` is documented above as having to avoid.
+    fireT:(variant==='sentinel'?SEN_BEAT0:2.2)*pcad, emitMode:true,   // emitter: alternates hex burst / spiral stream — starts TRUE so the first toggle lands on the teaching hex
     orbA:-Math.PI/2,                          // sentinel: start at the top of its circle
+    // THE ARENA ORBIT IS NO LONGER A CONSTANT RATE — see bossMove. `orbW` is the live rate, `orbWT` the
+    // countdown to the next resample. Seeded at the midpoint so frame one is not a lurch.
+    orbW:(ORB_W0+ORB_W1)/2, orbWT:0, orbWTgt:(ORB_W0+ORB_W1)/2,
     novaT:rand(2.4,3.4)*pcad, novaCharge:0,            // bastion: telegraphed radial bursts
     lungeT:rand(4,6)*pcad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
-    seedT:rand(2.6,3.8)*pcad,                  // sentinel: swarmers shed along its orbit
+    // sentinel: the rotating node screen (replaced the swarmer trail). `screen` is the pattern's own
+    // clock; `pinLeft` is how many pincers are owed before the next one opens.
+    //   ⚠️ IT IS ROLLED AT SPAWN, NOT FIXED AT 1, and that is the whole point of the opening. A constant
+    // here would make every fight's first thirty seconds identical — pincer, screen, pincer, screen — and
+    // the first cycle is where the player forms their model of the kind. Rolling it means the fight opens
+    // on 1-3 pincers and you cannot count your way to the screen. The pincer still goes FIRST whatever
+    // the roll, because it is the kind's signature and teaches what a seeker does before the screen
+    // complicates the read; same reasoning as the Emitter's `emitMode:true` opening on the teaching hex.
+    screen:0, pinLeft:irand(SEN_PIN0,SEN_PIN1),
     hunt:0, huntT:rand(6,10)*pace.cad, huntBreak:0, huntR:undefined };   // every kind: periodically leaves station and walks onto your core
   enemies.push(boss);
   trauma=Math.min(1,trauma+0.45); flash=0.5; flashCol=COL[col];
@@ -4616,9 +4635,26 @@ const MSL={
   // designed. Count by kind, or the metric describes the wrong mechanic.
   volley:{sp:5.4, r:9,  life:6.0},
   // seeker turn radius is v/w = 3.3/0.055 = 60px — it out-TURNS you easily, but at 3.3px/frame it cannot
-  // out-RUN a Star doing 6.2, so the answer is to run, not to juke. Tracking was 1.1s and the Sentinel
-  // (seekers + swarmers + orbit) went 0-for-2 against a bot the other two kinds lost to 0-for-4; 0.85s
-  // lets a late cut beat them without making them ignorable.
+  // out-RUN a Star doing 6.2, so the answer is to run, not to juke.
+  // ⚠️ 1.15 IS A RESTORATION, AND THE THING THAT FORCED IT DOWN HAS BEEN REMOVED. Tracking was 1.1s and the
+  // Sentinel went 0-for-2 against a bot the other two kinds lost to 0-for-4, so it was cut to 0.85. But the
+  // stack that measurement indicted was "seekers + SWARMERS + orbit", and the swarmer trail is gone —
+  // replaced by the orbit screen, which does not stack, because it SUPPRESSES seeker fire while it is up.
+  // The pressure 0.85 was paying for no longer exists. Read the old number as a debt settled elsewhere.
+  //   TURN AUTHORITY IS THE REAL DIAL, AND IT CROSSES A THRESHOLD ON THE WAY UP. `seekFor*60*turn` is the
+  // total angle a seeker can bend through:
+  //     0.85s -> 160.7°     could not quite come about; the pincer's rear arm arrived as an afterthought
+  //     1.15s -> 217.4°     past 180°, so it can REVERSE from any bearing — both pincer arms went live
+  //     1.45s -> 274.2°     three quarters of a turn; it can come about AND correct for a dodge after
+  // The 180° crossing was the one that changed the pattern's identity. 274° changes the ANSWER instead:
+  // at 217° a late cut across the seeker still beat it, and at 274° there is enough authority left over
+  // to follow that cut, so the honest counter is once again distance rather than a juke. That is the
+  // sentence the table's own note has always rested on — "the answer is to run, not to juke" — and it
+  // holds only while `sp` 3.3 stays under the Star's 6.2. THAT is the number that must never move.
+  //   ⚠️ `life` DOES NOT MOVE FOR THIS, and it was recomputed rather than assumed. Reach is `sp*60*life`
+  // and only the ARC grows: 87 frames of curve is 287px at full pace, 215px at Epoch I, against budgets
+  // of 1901px and 1426px. That leaves 1614px / 1210px of straight commit — the binding case is still the
+  // Epoch I crossing, not the curve. If `turn`, `sp` or `seekFor` move again, redo this division.
   // ⚠️ THE SEEKER NEEDS THE MOST LIFE OF ANYTHING, 5.2 -> 9.6, because it is the only kind that CURVES.
   // It spends 0.85s turning toward you before committing, so its PATH is far longer than the distance it
   // closes, and reach has to pay for the arc as well as the approach. The straight flyers do not.
@@ -4629,10 +4665,27 @@ const MSL={
   // setting reach in the table rather than patching it at the muzzle.
   //   The general form, now that reach is `sp × 60 × life` and nothing corrects it: A TABLE VALUE MUST
   // BE SIZED FOR THE SLOWEST PACE IT WILL EVER FLY AT, not for the nominal one.
-  seeker:{sp:3.3, r:9,  life:9.6, turn:0.055, seekFor:0.85},
+  seeker:{sp:3.3, r:9,  life:9.6, turn:0.055, seekFor:1.45},
   ring:  {sp:4.6, r:9,  life:6.0},
   mine:  {sp:0.9, r:11, life:3.4, arm:1.2, blast:104},   // FUSE, not reach — see the block above
   spear: {sp:9.2, r:8,  life:4.0, tel:0.55},
+  // ⚠️ THE SCREEN'S NODE IS THE SECOND ENTRY IN THIS TABLE WHOSE `life` IS NOT REACH, and for a different
+  // reason than the mine's fuse: a node spends `SCR_UP+SCR_HOLD` = 3.65s riding a circle at ZERO net
+  // displacement, then slings off the tangent at `SCR_W*SCR_R/60` and has to clear the arena from there.
+  // So the budget is pattern-length PLUS an exit, and BOTH TERMS MOVE whenever the ring is resized:
+  //     R=150, W=1.6    release 4.00px/frame   ->  ~3.8s to clear   ->  7.5s needed   (8.5 was fine)
+  //     R=300, W=0.70   release 3.50px/frame   ->  ~4.3s to clear   ->  8.0s needed   (8.5 was NOT fine)
+  //     R=340, W=0.62   release 3.51px/frame   ->  ~4.3s to clear   ->  8.0s needed   (10.0 holds)
+  // 8.5 covered the R=300 case on paper and would have looked correct in every ordinary test, with ~0.5s
+  // of margin. This is the `life` trap the seeker's note already states in general form — A TABLE VALUE
+  // MUST BE SIZED FOR THE SLOWEST CASE IT WILL EVER FLY AT — arriving via geometry instead of via `pace`.
+  //   ⚠️ THE R=340 ROW IS WHY W TRACKS R. Release speed is `SCR_W*SCR_R/60`, so holding the TANGENTIAL
+  // speed constant across a resize holds the release speed constant too, and this budget stops needing
+  // to be re-derived every time the ring moves. Widen R without re-solving W and both numbers drift.
+  //   `sp` IS DEAD WEIGHT HERE and is kept only because `fireMissile` reads the table unconditionally —
+  // `stepLances` overwrites the velocity every frame while the node is hosted. It tracks the release
+  // speed so that anything reading the table for a rough tempo is not lied to.
+  orb:   {sp:3.5, r:14, life:10.0},
 };
 // Aim that LEADS the Star's current motion. Without this a "straight shot at you" only ever asks you
 // to keep doing what you were already doing, which is not a dodge.
@@ -4717,6 +4770,90 @@ function firePincer(b){                                        // SENTINEL: two 
   b.hexRot += 0.7;
   fireMissile(b, b.hexRot, 'seeker'); fireMissile(b, b.hexRot+Math.PI, 'seeker');
   spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*1.9); bossFlash=0.35; sfx.lance();
+}
+// ---------------------------------------------------------------------
+//  THE ORBIT SCREEN — the SENTINEL's second pattern, and its first answer to its own weakness
+// ---------------------------------------------------------------------
+// The Sentinel is the kind you have to CLOSE ON: it flees around the arena and a Ring only erodes it if
+// you put the Ring between you and it. It had nothing that punished the approach. This does — a rotating
+// ring of nodes on the boss itself, so the last 150px is a door you have to time rather than a stroll.
+//   ⚠️ IT IS A SWEEP NOW, NOT A GATE, AND THAT IS A DELIBERATE RESCOPE RATHER THAN A TUNING NUDGE. It was
+// built at SCR_R=150 — a tight collar you had to time a door through, sized against your ring radius
+// (`fieldR*0.6` = 114) so you could not park at weapon range and wait it out. Author, on seeing it:
+// "bullet spin orbit should be much larger. 2x larger, and slower." At 300 the geometry stops supporting
+// the gate reading and the paragraph that justified it had to go rather than be edited around:
+// The door is `2*SCR_R*sin(PI/SCR_N) - 2*MSL.orb.r`, and it has moved twice:
+//     R=150, N=5, r=9    chord 176   ->  door 158px against a 30px Star   (a gate)
+//     R=300, N=5, r=9    chord 353   ->  door 335px                        (a sweep)
+//     R=340, N=5, r=14   chord 400   ->  door 372px                        (a sweep, wider, heavier nodes)
+// A 372px door is not a timing question; you drive through it without planning. What the pattern buys at
+// this size is different and worth having on its own terms: a 680px-wide rotating hazard that covers the
+// ground you RETREAT into, not just the ground you advance over. The old reading is gone. If it should be
+// a gate again the lever is SCR_N, not SCR_R — 11 nodes restores a ~164px door at this radius.
+//   ⚠️ THE NODE IS THE BIGGEST PROJECTILE IN THE GAME AT r=14, against volley/seeker/ring 9, mine 11,
+// spear 8. That is deliberate and it is the one place a screen node should outweigh a bullet: it is the
+// slowest thing the Anomaly throws, it announces itself for 0.45s before it can touch you, and it holds
+// station for three seconds afterwards. Size is how a hazard you are meant to READ AND ROUTE AROUND
+// distinguishes itself from one you are meant to react to. It costs 21% on the contact envelope
+// (`L.r+P.r` goes 24 -> 29), which is a real difficulty change and not just art.
+//   SCR_W IS BOUNDED BY YOUR OWN TOP SPEED, AND IT TRACKS SCR_R RATHER THAN STANDING STILL. Tangential
+// speed is SCR_W*SCR_R — the thing the player actually dodges — so widening the ring at a fixed angular
+// rate SPEEDS THE SWEEP UP, silently, in the units that matter. 1.6 at R=300 would have been 480px/s
+// against a Star doing 6.2px/frame = 372px/s: the screen would have outrun the player, which this
+// constant may never do. And holding 0.7 while going 300 -> 340 would have quietly clawed back 13% of
+// the slowdown that was asked for. 0.62*340 = 211px/s, against 210 at the previous size — the widening
+// is free of speed, which is what "a little wider" should mean. WIDEN THIS RING AND YOU MUST RE-SOLVE W.
+//   ⚠️ A HOSTED NODE IS EXEMPT FROM THE OFF-SCREEN CULL, AND AT THIS RADIUS THAT IS LOAD-BEARING RATHER
+// THAN TIDINESS. The Sentinel's own arena orbit reaches y = H*0.42 ± 196, so a node 300px out swings to
+// y = -160 and y = 832 against an 800-unit field. The generic `L.seen && !inb` cull would have deleted
+// those nodes MID-PATTERN and the screen would visibly shed a third of itself every revolution. At 150 it
+// never came up, which is exactly why it had to be found by arithmetic rather than by watching it.
+const SCR_N=5, SCR_R=340, SCR_W=0.62, SCR_UP=0.45, SCR_HOLD=3.2;
+// THE SENTINEL'S ONE BEAT — the gap between patterns, whichever pattern just ended. See updateBoss for
+// why there is only one of these instead of a countdown per pattern.
+//   SHORTER THAN THE PINCER GAP IT REPLACES (3.2-4.2), and the two numbers are not comparable directly,
+// which is the trap in tuning this. The old gap ran a pincer against a screen timer that was ALSO
+// running, so the kind threw something more often than either number said.
+// ---- SEN_PIN: HOW MANY PINCERS BUY A SCREEN, AND WHY IT IS A RANGE ----
+// Strict alternation shipped first — one pincer, one screen, forever — and it was metronomic in the way
+// any fixed count is: two beats in and you know the third. Author: "random pincers before first Ring
+// pattern? Currently it spawns Ring after one pincer." The observation was about the OPENING, which is
+// where you meet a rhythm first, but the fault was general: EVERY screen followed exactly one pincer, not
+// just the first. `pinLeft` counts down and the screen is what happens when it hits zero.
+//   ⚠️ THE COUNTER IS ALSO THE SEEKER-VOLUME DIAL, which is the second thing it fixes. One pincer per
+// cycle had cut seekers 23.3 -> 14.8/min (-36%) when the shared beat went in; a mean of 2 per cycle puts
+// that back without touching the seeker's own gap. Widen this range to make the kind throw more seekers.
+// DO NOT reach for SEN_BEAT to do that — the beat pulls the SCREEN in with it and the screen is the
+// expensive half. Both levers look like tempo and they are not interchangeable.
+//   The cycle is `pinLeft x (pincer + BEAT) + screen(3.65s) + BEAT`. MEASURED, 300s, boss pinned, at the
+// Epoch II pace the seam produces — see the rig note in updateBoss for why it is not Epoch III:
+//     full cycle         11.11s   (strict alternation: 9.08s)
+//     screen period      10.91s   (two independent timers: 12.0s;  strict alternation: 9.4s)
+//     seekers/min        24.0     (two timers: 23.3;  strict alternation: 14.8)
+//     pincers per screen  1:4  2:14  3:8   over 27 screens — spread, not a count you can learn
+//     gap between any two patterns   2.0s min — never zero, which is the whole point
+//     pincers launched while a screen was live:  0
+//   ⚠️ THE HISTOGRAM SKEWS ABOVE THE RANGE AND THAT IS THE HUNT GUARD, NOT A BUG. `irand(1,3)` is flat,
+// but a screen deferred by a hunt fires a pincer in its place without spending `pinLeft`, so deferrals
+// land as extra pincers on that cycle — which is why 2 and 3 outnumber 1, and why the OPENING measured
+// 1-4 across 25 spawns rather than 1-3. Do not "correct" the range to compensate; the deferral is the
+// behaviour and flattening it would make hunts silently eat screens instead.
+//   ⚠️ AND THE THREE NUMBERS ABOVE WERE PREDICTED AT 10.6 / 10.9 / 21.5 BEFORE THEY WERE RUN. Cycle and
+// period came in close; SEEKERS CAME IN 12% ABOVE THE ESTIMATE, for the same reason the histogram skews.
+// An arithmetic mean over `irand(1,3)` cannot see the deferrals, so it under-counts pincers every time.
+// Any future retune of this range has to be measured rather than solved.
+const SEN_BEAT0=2.2, SEN_BEAT1=2.9;
+const SEN_PIN0=1, SEN_PIN1=3;
+function fireOrbScreen(b){
+  const base=rand(0,TAU);
+  for(let i=0;i<SCR_N;i++){
+    // launched on its OWN bearing so `fireMissile` places it at the muzzle it will expand out of. The
+    // velocity is thrown away immediately — stepLances writes position through vx/vy every frame while
+    // the node is hosted, so a launch velocity would only fight it for one frame.
+    const L=fireMissile(b, base+i/SCR_N*TAU, 'orb');
+    L.vx=0; L.vy=0; L.oa=base+i/SCR_N*TAU; L.oup=SCR_UP; L.ohold=SCR_HOLD;
+  }
+  spawnRing(b.x,b.y,COL[bossOpp(b.color)],b.r*2.0); bossFlash=0.4; sfx.lance();
 }
 const SPEAR_N=3, SPEAR_SPREAD=0.20;                            // three bullets, 0.20 rad apart
 function fireSpear(b){                                         // EMITTER (Epoch II): the dash, announced
@@ -4858,7 +4995,7 @@ function bossNovaRing(b){                                      // BASTION: a wal
 function fireLanceVolley(){ fireHexVolley(boss); }
 // death-cause KINDS, so the run summary says which missile actually got you. Names are `msl.<kind>` in
 // L; what travels through coreHit and into the save is the kind, never the rendered name.
-const MSLKIND={volley:1, seeker:1, ring:1, mine:1, spear:1};
+const MSLKIND={volley:1, seeker:1, ring:1, mine:1, spear:1, orb:1};
 // One place that knows how the core takes a hit, so the missile strike and the mine blast cannot drift
 // apart on i-frames, streak-breaking or the death check. Returns true if the run just ended.
 //   NOTHING BLOCKS A HIT ANY MORE. An Aegis branch sat here and in the Dot-contact path, absorbing the
@@ -4919,6 +5056,18 @@ const HUNT_BREAK=1.1;                                          // seconds it rec
 //              the target point's own speed (radial 1.17 + tangential 1.1 ≈ 1.6) or the Dot trails its
 //              own target and never arrives.
 const HUNT_ORB=0.85, HUNT_TANG=1.1, HUNT_STEP=2.0;
+// THE SENTINEL'S ARENA ORBIT IS NO LONGER A CONSTANT RATE, and the reason is that the chase IS the kind.
+// A fixed 0.40 rad/s is a metronome: you solve the intercept once and it is solved for the whole fight,
+// because the only variable left is your own position. Easing between targets resampled out of this band
+// means the gap you are closing keeps changing under you, which is the cheapest possible variety — it
+// costs no missiles, so it cannot compound the stacking problem that got this kind nerfed twice.
+//   ⚠️ THE CEILING IS 0.50 AND IT IS NOT ARBITRARY. 0.55 is a MEASURED WALL: the Sentinel sat at that rate
+// and went 0-for-8 against a bot the other two kinds lost to 8-for-4, which is why it was cut to 0.40 in
+// the first place (see the arena branch in bossMove). This band tops out below the number that broke it.
+//   ⚠️ AND THE SPREAD IS NARROW ON PURPOSE — ±11%, tangential 109 -> 136px/s against a Star doing 372.
+// It is felt as "it is not keeping time" rather than as a speed change, which is the whole intent. If it
+// ever needs to be FELT as speed, the honest lever is this band, and 0.55 is the fence to stay under.
+const ORB_W0=0.40, ORB_W1=0.50;
 // THE WALK BACK TO STATION, and the reason it needs a ceiling at all: bossMove's default branch serves
 // two completely different distances with one constant. Hovering, the boss is already at station, the
 // gap is the sway's own width, and `dt*1.6` is the gentle drift it was tuned for. Straight out of a
@@ -4987,13 +5136,25 @@ function bossMove(b,dt){
   }
   if(b.variant==='sentinel'){                                  // circle the arena
     // Slower than the other kinds on purpose. A moving target is far harder to line a straight radial
-    // shot on than a hovering one, and the Sentinel already stacks seekers (the most punishing missile)
-    // with a swarmer trail that keeps you under continuous contact. At 0.55 it measured 0-for-8 while
-    // the Emitter and Bastion sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
+    // shot on than a hovering one, and at 0.55 this kind measured 0-for-8 while the Emitter and Bastion
+    // sat at 8-for-4 — a gradient that steep is not "the hard one", it is a wall.
     // (This read "denies your regen window" when survival had a regen window. The pressure is the point
     // and it outlived the mechanism; continuous contact now spends HP that never comes back.)
+    //   ⚠️ TWO OF THE THREE PRESSURES THAT 0-for-8 MEASURED ARE GONE, AND THE CAP STAYS ANYWAY. The stack
+    // was "seekers + swarmer trail + orbit": the trail has been removed, and the seekers now stop
+    // entirely while the screen is up. So the number this cap was set against no longer describes the
+    // kind — but 0.55 is the only rate ever MEASURED as a wall, and re-opening it on the argument that
+    // the fight got easier elsewhere is exactly how a nerf gets quietly undone by inference. If the band
+    // should go higher, that needs its own measurement, not this paragraph.
     // Its identity is that you must chase it, not that it cannot be hit.
-    b.orbA += dt*0.40;
+    //   ⚠️ THE 0.40 THAT USED TO BE HERE IS NOW THE FLOOR OF A BAND — see ORB_W0/ORB_W1. Everything the
+    // paragraph above says about 0.55 being a wall still holds and still binds; the band is capped under it.
+    b.orbWT-=dt;
+    if(b.orbWT<=0){ b.orbWTgt=rand(ORB_W0,ORB_W1); b.orbWT=rand(1.8,3.2); }
+    // EASED, NOT SNAPPED. A step change in angular rate is a visible jerk on a body whose whole read is
+    // smooth circular motion, and it would land as a stutter rather than as the thing losing its rhythm.
+    b.orbW += (b.orbWTgt-b.orbW)*Math.min(1,dt*1.2);
+    b.orbA += dt*b.orbW;
     const cx=W/2, cy=H*0.42, R=Math.min(W,H)*0.34;
     const tx=cx+Math.cos(b.orbA)*R, ty=cy+Math.sin(b.orbA)*R*0.72;
     b.x+=(tx-b.x)*Math.min(1,dt*4); b.y+=(ty-b.y)*Math.min(1,dt*4); b.vx=b.vy=0; return;
@@ -5046,36 +5207,58 @@ function updateBoss(dt){
   }
   bossMove(b,dt);
   if(b.variant==='sentinel'){
-    // circles AND seeds. Because it is always moving, the swarmers land where it has just been, so its
-    // orbit writes itself into the field as a trail you have to run down to keep chasing it.
-    // seekers are the most punishing missile in the set (measured 10.5 dps naive / 6.7 dodging, vs 3.2/2.1
-    // for volleys), so the Sentinel throws them less often than it threw the old straight pincers
-    b.fireT-=dt; if(b.fireT<=0){ firePincer(b); b.fireT=rand(2.2,3.0)*pcad; }
-    b.seedT-=dt; if(b.seedT<=0){ b.seedT=rand(2.4,3.4)*pcad;
-      // the trail leans toward YOUR ammo colour, exactly as ambient spawn already does during a boss.
-      // At a flat 50/50 the Sentinel stacks three pressures at once (seekers + swarmers + its orbit) and
-      // never lets you go 3.8s untouched, so Integrity regen never started — 0-for-4 against a bot that
-      // went 4-for-4 on the other two kinds. Leaning the trail makes it half threat and half VOLLEY
-      // AMMO, which is also the better read: chasing it through its own trail should feed you.
-      //   ⚠️ HALF THIS JUSTIFICATION HAS EXPIRED, AND THE FIX STANDS ON THE OTHER HALF. The 0-for-4 was
-      // measured when survival had a regen window to deny, so "denies the window" was a real edge the
-      // Sentinel held over the other two kinds. There is no window now, which means that edge is gone —
-      // every kind denies a heal that no longer exists. What the trail still does is feed you ammo while
-      // it threatens you, and that was always the better argument. If the Sentinel is ever re-measured
-      // against the other kinds, expect the gap to have NARROWED for a reason that has nothing to do
-      // with the Sentinel; do not read that as this fix working.
-      const opp=bossOpp(b.color);
-      // ⚠️ THE SENTINEL SHEDS DARTS, and the index is derived from the array rather than written down.
-      // This was `['fast','mini','orbiter']` picked with a HARDCODED `irand(0,2)` — so removing two kinds
-      // without touching the index would have returned `undefined` two thirds of the time and handed
-      // `spawnEnemy` a type with no ETYPE entry. A literal bound on a literal array is a trap that only
-      // fires when someone shortens the array, which is precisely when nobody is looking at the index.
-      // "It sheds Darts" is also a sharper read than a three-way roll nobody could have named.
-      const n=2+(act>=3?1:0), kinds=['fast'];
-      for(let i=0;i<n && enemies.length<300;i++){ const a=rand(0,TAU);
-        const col = Math.random()<0.62 ? opp : b.color;
-        spawnEnemy(kinds[irand(0,kinds.length-1)], col, b.x+Math.cos(a)*34, b.y+Math.sin(a)*34); }
-      spawnRing(b.x,b.y,'#fff',b.r*1.7); sfx.buy();
+    // ---- TWO PATTERNS THAT TAKE TURNS, and the turn-taking is the change rather than the second pattern.
+    // This kind ran ONE firing routine forever: `firePincer` on a timer, no branch, no alternation, no
+    // Epoch gate. It was the only Anomaly whose fire never varied AND never aimed — `hexRot += 0.7` is a
+    // blind 40° precession, ~9 shots to a lap, with no term in it for where you are standing. Every other
+    // kind reaches for `leadAngle` or targets `P` directly. The seeker's own homing hid that for a long
+    // time, because the missile corrects for a launch bearing that means nothing; what it cost was the
+    // READ. Compare `fireHexVolley`'s "one arm is for you, the other five close your exits" — a launch you
+    // can learn something from. The pincer's told you nothing, so the whole kind was reaction and no plan.
+    //   THE SWARMER TRAIL IS GONE, and the ammo half of its defence does not survive checking. It shed 2-3
+    // Darts every ~2.3s (~78 bodies/min, 62% leaning to your ammo colour) and was justified as "half
+    // threat, half ammo — chasing it through its own trail should feed you". But `doSpawns` has NO boss
+    // suppression: it runs the whole fight, already leans 65% toward the Anomaly's opposite colour for
+    // exactly this reason, and holds the arena at `cap` bodies regardless. The trail was a top-up on a
+    // supply that was never interrupted. As a PATTERN it asked no question the ambient swarm was not
+    // already asking, which is the actual reason it is out — not its cost.
+    // ---- ONE INNER TIMER FOR THE WHOLE KIND, AND IT IS THE STRUCTURE RATHER THAN A TUNING PASS ----
+    // This ran on TWO independent countdowns — `fireT` for the pincer, `screenT` for the screen — with the
+    // screen suppressing seeker fire while it was up. That suppression measured perfectly (zero seekers
+    // born during any screen, across every run) and it was still the wrong shape, because it only stopped
+    // the pattern that had not started yet. Two timers free-running against each other means the SPACING
+    // between a pincer and the next screen is whatever the two phases happen to be — sometimes a beat,
+    // sometimes nothing, and a seeker fired 0.2s before a screen opens is in the air for its whole 9.6s
+    // life. Author: "Two patterns are done together currently." Suppression could not have fixed that; it
+    // was never a question about what the timers ALLOW, it was about what they SCHEDULE.
+    //   ONE BEAT, ONE PATTERN. `fireT` is now the kind's only firing clock and `pinLeft` says how many
+    // pincers are still owed before a screen (see SEN_PIN — it was a strict alternation first, and a
+    // fixed count read as a metronome). A screen CONSUMES its own duration out of the next gap
+    // (`SCR_UP+SCR_HOLD` is added to `fireT` when it opens), so the beat after a screen is measured from
+    // when the nodes RELEASE, not from when they opened. That is what makes the separation structural: it
+    // is not possible to schedule two patterns into the same window, so no guard has to catch it later.
+    //   ⚠️ `b.screen` IS NO LONGER A GATE, ONLY A CLOCK. It still drives the nodes and still tells the
+    // draw and the hunt guard what is happening, but nothing branches on it to decide whether to fire.
+    // If a third pattern is ever added it hangs off `pinLeft`, never off a new countdown of its own.
+    if(b.screen>0) b.screen-=dt;
+    b.fireT-=dt;
+    if(b.fireT<=0 && b.screen<=0){
+      // ⚠️ NEVER OPEN A SCREEN WHILE HUNTING — same law as the Emitter's `b.hunt<=0` guard on its dash, and
+      // for a sharper reason. A hunting Sentinel spirals down to CONTACT, so a screen centred on a boss
+      // sitting 50px off your hull puts nodes on top of you with nowhere to read them from. The hunt is
+      // the pressure; the screen is a gate on the approach, and there is no approach left to gate.
+      //   A DEFERRED SCREEN IS NOT A SKIPPED ONE. `pinLeft` is already 0 when this defers and the pincer
+      // branch below cannot take it negative, so the screen is the very next thing that happens once the
+      // hunt ends. Decrementing here instead would silently spend a whole cycle's worth of pincers.
+      if(b.pinLeft<=0 && b.hunt<=0){
+        fireOrbScreen(b); b.screen=SCR_UP+SCR_HOLD; b.pinLeft=irand(SEN_PIN0,SEN_PIN1);
+        b.fireT=SCR_UP+SCR_HOLD+rand(SEN_BEAT0,SEN_BEAT1)*pcad;
+      } else {
+        // seekers are the most punishing missile in the set (measured 10.5 dps naive / 6.7 dodging, vs
+        // 3.2/2.1 for volleys), and each one now bends through 274° rather than 160° — see MSL.seeker.
+        firePincer(b); if(b.pinLeft>0) b.pinLeft--;
+        b.fireT=rand(SEN_BEAT0,SEN_BEAT1)*pcad;
+      }
     }
   } else if(b.variant==='bastion'){
     // ground denial: the RING says "be in the seam", the MINES say "and not there, or there". Between
@@ -5156,6 +5339,36 @@ function stepLances(dt){
       cur += clamp(d,-L.turn,L.turn);              // capped turn rate: you can always out-turn it
       L.vx=Math.cos(cur)*L.sp; L.vy=Math.sin(cur)*L.sp;
     }
+    if(L.kind==='orb' && L.ohold>0){               // SCREEN NODE: it rides a circle on the Anomaly
+      // ⚠️ IT STEERS THROUGH `vx`/`vy` RATHER THAN WRITING `L.x` DIRECTLY, and that is the whole reason
+      // this branch is four lines instead of a parallel movement system. The generic `L.x += L.vx` below
+      // lands it exactly on the orbit point, and everything downstream — the life tick, the off-screen
+      // cull, the core-strike test, the draw's `atan2(vy,vx)` heading — keeps working untouched. Set the
+      // position here and every one of those would need its own special case.
+      if(!boss || boss.dead){
+        // its owner is gone mid-screen: sling it and let it fly out as an ordinary missile. `killBoss`
+        // clears `lances` outright so this is a guard rather than a live path, but a node holding a null
+        // host would divide the arena by nothing for the rest of its life.
+        L.ohold=0; L.vx=-Math.sin(L.oa)*SCR_W*SCR_R/60; L.vy=Math.cos(L.oa)*SCR_W*SCR_R/60;
+      } else {
+        if(L.oup>0) L.oup=Math.max(0,L.oup-dt); else L.ohold-=dt;
+        L.oa += SCR_W*dt;
+        // THE SPIN-UP IS THE TELEGRAPH, and it is a real one: the node opens from the muzzle out to
+        // SCR_R on an ease, and it CANNOT HIT YOU while it is opening (see the `oup` guard on the strike
+        // test below). Without that the screen sweeps its whole radius across anyone mid-approach — and
+        // mid-approach is exactly when this pattern is supposed to fire.
+        const R0=boss.r+14, u=1-L.oup/SCR_UP, R=R0+(SCR_R-R0)*u*u;
+        if(L.ohold>0){
+          L.vx=(boss.x+Math.cos(L.oa)*R)-L.x; L.vy=(boss.y+Math.sin(L.oa)*R)-L.y;
+        } else {
+          // RELEASE — it leaves on the tangent it was already carrying, which is the one exit that reads
+          // as physics rather than as the game deleting a threat it made. Deliberately NOT radial: an
+          // outward burst is the Bastion's nova wearing a different hat, and this pattern's job is the
+          // approach, not a second wall. A tangent mostly misses, and that is correct for an ending.
+          L.vx=-Math.sin(L.oa)*SCR_W*R/60; L.vy=Math.cos(L.oa)*SCR_W*R/60;
+        }
+      }
+    }
     if(L.kind==='mine'){                           // MINE: drifts, arms, then goes off where it sits
       if(L.arm>0){ L.arm-=dt; L.vx*=0.965; L.vy*=0.965; }
       else if(P && Math.hypot(L.x-P.x,L.y-P.y) < L.blast*0.34){   // you walked onto a live one
@@ -5192,7 +5405,10 @@ function stepLances(dt){
     // The cost is real and was accepted knowingly: Rings are not armour against the Anomaly's fire and a
     // Neutral is not cover. Nothing on the field blocks a missile. Positioning is the whole defence.
     // strike the core
-    if(!gone){
+    // `L.oup>0` is a SCREEN NODE STILL OPENING, and it is harmless for the same reason `L.tel>0` is: a
+    // telegraph cannot hit anything, including you. The spear gets that for free by `continue`-ing before
+    // this test; a node has to keep moving while it opens, so its exemption lives here instead.
+    if(!gone && !(L.oup>0)){
       const dx=L.x-P.x, dy=L.y-P.y, rr=L.r+P.r;
       if(dx*dx+dy*dy<rr*rr){
         if(coreHit(10, {m: MSLKIND[L.kind]?L.kind:'other'})) return;
@@ -5200,7 +5416,15 @@ function stepLances(dt){
       }
     }
     // cull: on hit, once it has crossed the arena and left the far side, or the safety timeout
-    if(gone || (L.seen && !inb) || L.life<=0){
+    //   ⚠️ `L.ohold>0` EXEMPTS A HOSTED SCREEN NODE FROM THE OFF-SCREEN RULE, and it is not a special case
+    // so much as the rule meeting something it was not written for. `L.seen && !inb` means "it crossed the
+    // arena and left" — true of every missile in the file, all of which travel in one direction and never
+    // come back. A hosted node is not travelling anywhere: it is pinned to a circle on a boss that is
+    // itself orbiting, so leaving the field is a normal part of its path and it returns a second later.
+    // Culling it there deletes a live pattern piecemeal. Once RELEASED (`ohold<=0`) it is an ordinary
+    // missile again and culls on this line like everything else. See SCR_R for the arithmetic that makes
+    // this bind at 300 and never bind at 150.
+    if(gone || (L.seen && !inb && !(L.ohold>0)) || L.life<=0){
       // an ARMED mine always goes off — it must never be quietly deleted by the generic timeout, or the
       // ground it was denying is silently given back and the pattern stops meaning anything
       if(L.kind==='mine' && !gone && L.arm<=0) mineBlast(L);
@@ -5837,9 +6061,15 @@ function stepAnnihilation(){
             // `6324914`, and the claim itself is the exact form — "opposite-charge contact hurts it" —
             // that the block below exists to refuse, because a boss that crosses a full field would
             // then damage itself by travelling. Passing this gate earns a Dot nothing except the right
-            // to be asked WHICH of the two channels it arrived by. The Anomaly sheds Darts in both
-            // colours (`kinds=['fast']`, 62% opposite), so the same-colour half is filtered here and
-            // the opposite-colour half still pays zero one branch down unless you aimed or carried it.
+            // to be asked WHICH of the two channels it arrived by. Same-colour matter is filtered here;
+            // opposite-colour matter still pays zero one branch down unless you aimed it or carried it.
+            //   ⚠️ THIS USED TO CITE THE SENTINEL'S SWARMER TRAIL as the source of both colours
+            // (`kinds=['fast']`, 62% opposite). That trail is gone. The gate is unchanged and still
+            // load-bearing, because `doSpawns` never stopped running during a boss and already leans 65%
+            // toward the Anomaly's opposite colour — so both colours still arrive here every fight, just
+            // from the ambient swarm rather than from the boss. A rule outliving the example that
+            // motivated it is fine; a rule still NAMING a deleted example is how the next reader
+            // concludes the branch is dead and deletes it.
             const B=e.type==='boss'?e:o, X=e.type==='boss'?o:e;
             const chips=(X.color!=='neutral' && X.color!==B.color);
             if(chips){
@@ -7531,9 +7761,29 @@ function drawBoss(){
   if(b.hunt>0 && P){
     const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1, ux=dx/d, uy=dy/d;
     ctx.save(); ctx.globalCompositeOperation='lighter';
-    // the lane it is walking — same grammar as the dash telegraph, so "this is coming HERE" is literal
-    ctx.strokeStyle=hexA(oc,0.16+0.12*Math.sin(elapsed*6)); ctx.lineWidth=2; ctx.setLineDash([6,12]);
-    ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(P.x,P.y); ctx.stroke(); ctx.setLineDash([]);
+    // ⚠️ THE LANE LINE IS DRAWN ONLY FOR THE KINDS THAT ACTUALLY WALK IT. The Emitter and the Bastion hunt
+    // with `b.x += dx/d*s` — literally this line, one step per frame — so "this is coming HERE" is true of
+    // them and shares its grammar with the dash telegraph on purpose.
+    //   THE SENTINEL NEVER FLEW IT. Its hunt branch in bossMove re-centres its orbit on your core and
+    // SPIRALS IN: it is moving tangentially at up to HUNT_TANG the whole time while `huntR` shrinks, so a
+    // straight line from boss to Star described a path it takes only at the instant it arrives. That is
+    // the same defect class as a hull drawn inside its own collider — a telegraph the game does not honour
+    // — and it was the loudest, most confident mark on screen. It gets the shape it is genuinely flying:
+    // the CIRCLE it is coming around, collapsing to contact. Strictly more information than the line was
+    // offering, because the radius is the countdown.
+    if(b.variant==='sentinel'){
+      const R=(b.huntR!==undefined)?b.huntR:d;
+      ctx.strokeStyle=hexA(oc,0.16+0.12*Math.sin(elapsed*6)); ctx.lineWidth=2; ctx.setLineDash([6,12]);
+      // squashed to 0.8 to match the ellipse bossMove actually walks (`ty` uses `R*0.8`), or the mark
+      // would be a promise the motion misses by 20% on the vertical.
+      ctx.save(); ctx.translate(P.x,P.y); ctx.scale(1,0.8);
+      ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.stroke(); ctx.restore();
+      ctx.setLineDash([]);
+    } else {
+      // the lane it is walking — same grammar as the dash telegraph, so "this is coming HERE" is literal
+      ctx.strokeStyle=hexA(oc,0.16+0.12*Math.sin(elapsed*6)); ctx.lineWidth=2; ctx.setLineDash([6,12]);
+      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(P.x,P.y); ctx.stroke(); ctx.setLineDash([]);
+    }
     ctx.lineWidth=3.5;
     for(let i=1;i<=4;i++){
       const w=(elapsed*1.5+i*0.25)%1;
@@ -8452,6 +8702,23 @@ function drawLances(){
       ctx.beginPath(); ctx.arc(0,0,L.r*0.85,0,TAU); ctx.stroke();
       ctx.strokeStyle=hexA(c,0.30); ctx.lineWidth=L.r*0.27;
       ctx.beginPath(); ctx.arc(0,0,L.r*1.40,0,TAU); ctx.stroke();
+    } else if(L.kind==='orb'){
+      // A NODE ON A CIRCLE, and the one thing its silhouette must carry is WHETHER IT IS LIVE YET. It is
+      // harmless while it opens (see the `oup` guard on the strike test), so it draws HOLLOW while opening
+      // and fills in the instant it can hurt you — the moment it starts to bite is the moment it looks
+      // solid. Every other kind is dangerous from birth and needs no such state.
+      const live=!(L.oup>0);
+      // the tangent streak, behind it: this is the only missile in the set on a curved path, so which way
+      // the screen is TURNING is the information you need to pick a door. `atan2(vy,vx)` is the tangent
+      // already, so the streak comes out right for free.
+      ctx.strokeStyle=hexA(c,live?0.5:0.18); ctx.lineWidth=L.r*0.24;
+      ctx.beginPath(); ctx.moveTo(-L.r*2.1,0); ctx.lineTo(-L.r*0.7,0); ctx.stroke();
+      ctx.strokeStyle=hexA(c,live?0.95:0.45); ctx.lineWidth=L.r*0.34;
+      ctx.beginPath(); ctx.arc(0,0,L.r*0.72,0,TAU); ctx.stroke();
+      if(live){
+        ctx.fillStyle=hexA(c,0.55); ctx.beginPath(); ctx.arc(0,0,L.r*0.72,0,TAU); ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.arc(0,0,L.r*0.30,0,TAU); ctx.fill();
+      }
     } else if(L.kind==='seeker'){
       // A SWEPT DART, and ⚠️ THE FINS STAY ON AFTER IT COMMITS. They only stop wavering. The old bracket
       // vanished at commit, which removed the identity at the exact moment the thing became unavoidable.
