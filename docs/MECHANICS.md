@@ -1088,7 +1088,22 @@ it be" is the half you can act on.
 each other is not five times the information — it is a smear on the edge you are trying to read, and it
 collides with the HUD buttons on the right rail.
 
-⚠️ **PER SHOWER, NOT ONE SIGN TOTAL — and getting that wrong flickers.** The live renderer originally took
+⚠️ **PER BORDER SIDE — at most four signs, however many showers are in the air.** This has been wrong in
+both directions. Per-shower grouping fixed the original flicker and created the opposite failure: ten
+showers fired in a row put **ten badges on the border**, which is a wall rather than a warning. The side
+is the right grain because it is the read the sign exists to deliver — *comets, from the right* — and two
+showers entering stage right are one fact to the player, not two. The side is recorded **before** the
+inset clamp, because clamping is what destroys the evidence: every crossing lands exactly on a border, so
+the un-clamped coordinate says which one, and afterwards a corner entry is indistinguishable from a
+mid-edge one. Measured with ten showers airborne across three sides: **three signs, zero reversals** over
+120 frames with the entity array churned by kills.
+
+⚠️ **The side's representative is chosen by announcement `id`, never by position in `enemies`.** That is
+the whole lesson of the first bug below: any ordering derived from the entity array is re-derived every
+frame and changes under you. Lowest id is the earliest-announced group still live on that side, so the
+mark holds still while that shower lasts and moves only when it finishes — an event, not a flicker.
+
+⚠️ **The original failure, kept because it is the reason for the rule above.** The live renderer originally took
 the *first* anchor it found in `enemies`. With two crossings overlapping that picked whichever group came
 first in an array whose order changes as bodies spawn and are culled, so the single badge **jumped between
 the two crossings** and carried the brighter of their two alphas. Members of one shower share the same

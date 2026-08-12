@@ -8128,7 +8128,12 @@ function cometEdge(x,y,ux,uy){
   // badge radius + all of that: 92. Written as 26 first (bang invisible), then 62 (streaks clipped); both
   // failures were on a right-side entry, which is the only case where being wrong is visible.
   const IN=SIGN_R*4;                      // badge + the arrow's full outboard reach, from one number
-  return {x:clamp(x+ux*t,IN,W-IN), y:clamp(y+uy*t,IN,H-IN)};
+  // The SIDE is read before the clamp, because clamping is what destroys the evidence: every crossing
+  // lands exactly on a border, so the un-clamped coordinate says which one — afterwards both are inset
+  // and a corner entry is indistinguishable from a mid-edge one.
+  const cx=x+ux*t, cy=y+uy*t;
+  const side = Math.abs(cx-W)<1 ? 'R' : Math.abs(cx)<1 ? 'L' : Math.abs(cy-H)<1 ? 'B' : 'T';
+  return {x:clamp(cx,IN,W-IN), y:clamp(cy,IN,H-IN), side};
 }
 // ONE SIGN PER SHOWER, NOT ONE PER BODY. Five chevrons stacked within a few pixels of each other is not
 // five times the information — it is a smear on the edge the player is trying to read, and it collides
@@ -8180,24 +8185,33 @@ function cometSign(px,py,ux,uy,a){
 // fastest exactly when the player was busy killing them. A sign that moves is a sign you have to re-find;
 // the whole value of it is that one glance is enough, and that is only true if the second glance lands in
 // the same place. It is stamped onto every body at spawn and read back, so members leaving cannot move it.
+let cometSeq=0;   // announcement order, so a side's representative can be chosen without reading array order
 function cometAnchor(lanes){
-  let sx=0, sy=0, ux=0, uy=0, n=0;
+  let sx=0, sy=0, ux=0, uy=0, n=0, side=null;
   for(const l of lanes){
     const e=cometEdge(l.x,l.y,l.ux,l.uy); if(!e) continue;
     sx+=e.x; sy+=e.y; ux+=l.ux; uy+=l.uy; n++;
+    if(!side) side=e.side;          // one shared heading, so the members agree; first is representative
   }
   if(!n) return null;
   const m=Math.hypot(ux,uy)||1;
-  return {x:sx/n, y:sy/n, ux:ux/m, uy:uy/m};
+  return {x:sx/n, y:sy/n, ux:ux/m, uy:uy/m, side, id:++cometSeq};
 }
 function drawCometLanes(){
   ctx.save();
-  // ⚠️ GROUPED BY SHOWER, and it used to take the FIRST anchor it found. With two showers live that
-  // picked whichever group happened to come first in `enemies` — an order that changes as bodies are
-  // added and culled — so the single sign FLICKERED between the two crossings, and its brightness was
-  // the max across both. Members of one shower share the same `sgn` OBJECT, so object identity is the
-  // grouping key and needs no id.
-  const groups=new Map();
+  // ⚠️ ONE SIGN PER BORDER SIDE — at most four, however many showers are in the air. This has now been
+  // wrong in both directions. It began as ONE sign total, taking the first anchor found while walking
+  // `enemies`: with two crossings live that picked whichever group came first in an array whose order
+  // changes as bodies spawn and are culled, so the badge flickered between them. Grouping per SHOWER
+  // fixed the flicker and created the opposite failure — ten showers fired in a row put ten badges on
+  // the border, which is a wall, not a warning.
+  //   The side is the right grain because it is the read the sign exists to deliver: *comets, from the
+  // right.* Two showers entering stage right are one fact to the player, not two.
+  //   ⚠️ THE REPRESENTATIVE IS CHOSEN BY `id`, NEVER BY POSITION IN `enemies`. That is the whole lesson
+  // of the first bug: any ordering derived from the entity array is re-derived every frame and will
+  // change under you. Lowest id is the earliest-announced group still live on that side, so the mark
+  // holds still while that shower lasts and moves only when it finishes — an event, not a flicker.
+  const sides=new Map();
   for(const e of enemies){
     if(!e.comet || e.dead || !(e.hold>0)) continue;
     const sp=Math.hypot(e.fvx||0, e.fvy||0); if(sp<0.01) continue;
@@ -8210,11 +8224,13 @@ function drawCometLanes(){
     // telegraph ended on — then fades across the last 140px, which is the body's own entrance.
     const a=clamp(out/140,0,1);
     if(!e.sgn) continue;
-    // Each shower keeps the brightness of ITS OWN furthest member still outside, so one that is nearly
-    // in does not ride on another that has just been announced.
-    groups.set(e.sgn, Math.max(groups.get(e.sgn)||0, a));
+    const k=e.sgn.side||'?', cur=sides.get(k);
+    // Brightness is the side's MAX, so a shower nearly in does not dim a warning just announced beside
+    // it; the anchor is the side's LOWEST id, which is stable frame to frame.
+    if(!cur) sides.set(k,{s:e.sgn, a});
+    else { cur.a=Math.max(cur.a,a); if(e.sgn.id<cur.s.id) cur.s=e.sgn; }
   }
-  for(const [s,a] of groups) cometSign(s.x, s.y, s.ux, s.uy, a);
+  for(const {s,a} of sides.values()) cometSign(s.x, s.y, s.ux, s.uy, a);
   ctx.restore();
 }
 function drawWarns(){

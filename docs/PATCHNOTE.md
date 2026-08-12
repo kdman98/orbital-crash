@@ -44,6 +44,24 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### One sign per border side, not per shower `v2`
+Ten comets fired back to back put **ten badges on the border.** Per-shower grouping was the fix for the
+original flicker and it created the opposite failure: a wall of marks instead of a warning.
+⚠️ **The side is the right grain**, because it is the read the sign exists to deliver — *comets, from the
+right* — and two showers entering stage right are one fact to the player, not two. At most four signs now,
+however many showers are in the air.
+
+The side is recorded **before** the inset clamp: every crossing lands exactly on a border, so the
+un-clamped coordinate says which one, and after clamping a corner entry is indistinguishable from a
+mid-edge one. ⚠️ **The side's representative is chosen by announcement `id`, never by position in
+`enemies`** — that is the whole lesson of the first flicker: any ordering derived from the entity array is
+re-derived every frame and changes under you. Lowest id is the earliest-announced group still live on that
+side, so the mark holds still while that shower lasts and moves only when it finishes.
+
+Measured with **ten showers airborne across three sides**, entity array churned by a kill every fourth
+frame over 120 frames: **three signs at once, four set changes, zero reversals** — the set only ever
+shrinks as a group finishes, which is the signature the flickering versions did not have.
+
 ### Two showers, two signs — and the mark is bigger `v2`
 ⚠️ **`6724ab2` carries someone else's change and does not mention it.** Of its 202 added lines, about
 **seven** are this entry's; the rest is the Epoch cue and the `--grantop` grant overlay, swept out of a
