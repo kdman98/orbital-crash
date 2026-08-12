@@ -162,7 +162,10 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **The two-wave release** — formations let go by polarity, one colour after the other. (`NOOSE_WAVE`)
 - **Retirement** — a Dot finishing a committed trajectory dies via `dead` alone, never `queueKill`, so
   it pays nothing.
-- **The silent world** — no centre banner; one text channel, outside the play area.
+- **The silent world** — no centre banner except the Epoch cue; one persistent text channel, outside the
+  play area.
+- **Epoch cue** — the one exception to the silent world: the new Epoch's name at 26-52px on a purge,
+  with no background and no input block, so it never takes the field. (`showEpochCue()`, `#epochcue`)
 
 ## Patterns
 
@@ -327,7 +330,11 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 
 - **Trauma** — screen-shake amount. (`trauma`)
 - **Flash** — full-screen colour flash. (`flash`)
-- **Hitstop** — a brief freeze-frame on big hits. (`hitstop`)
+- **Hitstop** — a brief freeze-frame on big hits. Three sites left, none of them a purge: the baited
+  charge, the Planet blast and the Bomber blast. (`hitstop`)
+- **Heal signal** — the three cues a purge's Integrity grant fires, since it used to fire none: a white
+  wash on the Integrity bar, a gold hoop converging on the core, and the restored amount as a gold `+N`.
+  It prints what the clamp actually gave you, so at full Integrity it says nothing. (`healSignal()`)
 - **Contact ghost** — one frozen frame of the Dot that just hit you, drawn where it actually touched.
   (`contactGhost`, `ghostT`, `GHOST_HOLD`)
 - **Floating text** — small rising labels near the core. (`pushText`)
@@ -336,7 +343,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Moment Engine** — global slow-motion dips. (`timeScale`, `slowmo()`)
 - **The sky** — three parallax depths drawn outside the shake transform. (`STAR_LAYERS`, `drawStars`)
 - **The Spheres** — the celestial harp arpeggio; a single cue, the Overdrive ignition. (`sfx.harp`)
-- **Achievement toast** — the top-centre gold text channel, and now the only one. (`showAchvToast()`)
+- **Achievement toast** — the top-centre gold text channel; the only *persistent* one. (`showAchvToast()`)
 - **Comfort mode** — removes screen shake and hitstop outright; damps flash, ring spin and parallax
   travel. (`store.reduceMotion`)
 - **Core Fault** — the crash screen; a bad frame is dropped and the loop survives. (`crashHalt()`)

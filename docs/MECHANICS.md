@@ -189,9 +189,24 @@ everywhere else — and a blanket version would quietly promote the Fling from "
 which law 2 does not allow.
 
 ### 9. The silent world
-**No centre banner, ever.** Storms, Epochs, the Anomaly's arrival, an Overdrive igniting and streak
-tiers are announced by matter, colour, ring, shake and sound. Text across the middle pulls the eyes off the
-field at exactly the wrong moment.
+**No centre banner — with exactly one argued exception.** Storms, the Anomaly's arrival, an Overdrive
+igniting and streak tiers are announced by matter, colour, ring, shake and sound. Text across the middle
+pulls the eyes off the field at exactly the wrong moment.
+
+⚠️ **The Epoch boundary is the exception, and the reason is that it is the one beat that cannot announce
+itself by doing.** Every other event on that list *does* something you can see: a storm arrives as
+bodies, Overdrive as your own ring snapping outward. An Epoch change eases the background two gradient
+stops and re-letters an 11px, 85%-opacity name in the top slot — so the single structural milestone in a
+run was also its quietest thing, landing in the same second as the biggest kill in the game. The **Epoch
+cue** (`showEpochCue`, `#epochcue`) states it at 26–52px in the Epoch's own tint, and the law it is
+answering to is not "stay small", it is **do not take the field**: no background, no panel, no dim, no
+backdrop-filter, `pointer-events:none`, and the sim runs straight through it — every Dot behind it stays
+visible and every input still lands. **Large and transparent, not small and opaque.** It sits in the band
+under the Epoch slot, the strip the tutorial bar was given because no thumb covers it in either
+orientation, and the Anomaly's own bar is guaranteed clear by then because the thing that owned it is
+what just died. Neither of its two lines is authored copy: the kicker is `fx.purged` and the name is
+`hud.epoch`, the exact string the top slot renders, so it cannot drift out of step with the HUD or need
+its own Korean. Comfort mode keeps the words and drops the movement — it is information, not an effect.
 
 **One *persistent* text channel**, outside the play area: the **achievement toast**. It was two — the
 pickup pill named a powerup's effect, the one thing you genuinely could not read off the screen. With
@@ -2184,20 +2199,30 @@ without one the receipt printed the raw internal type back at the player.
   damage path** — see *Taking damage says one thing* below. They are not one bundle, and the split is
   the grading:
 
-  | | trauma | flash | hitstop |
-  |---|---|---|---|
-  | **Purge** (`killBoss`) | ✓ | ✓ | ✓ |
-  | **Baited charge** (`stepAnnihilation`) | ✓ | ✓ | ✓ |
-  | **Bomber blast** (`bomberBlast`) | ✓ | ✓ | ✓ |
-  | **Shield block** (`coreHit`, body contact) | ✓ | ✓ | — |
-  | **Anomaly arrival** (`spawnBoss`) | ✓ | ✓ | — |
-  | **Streak milestone** | ✓ | — | — |
+  | | trauma | flash | hitstop | slow-mo |
+  |---|---|---|---|---|
+  | **Purge** (`killBoss`) | ✓ | ✓ | — | ✓ 0.35 / 0.7s |
+  | **Baited charge** (`stepAnnihilation`) | ✓ | ✓ | ✓ 0.09 | — |
+  | **Planet blast** (`planetBlast`) | ✓ | ✓ | ✓ 0.10 | — |
+  | **Bomber blast** (`bomberBlast`) | ✓ | ✓ | ✓ 0.06 | — |
+  | **Shield block** (`coreHit`, body contact) | ✓ | ✓ | — | — |
+  | **Anomaly arrival** (`spawnBoss`) | ✓ | ✓ | — | — |
+  | **Streak milestone** | ✓ | — | — | — |
 
-  **Exactly four things in the game stop the frame**, and all four are events *you* caused or walked
+  **Exactly three things in the game stop the frame**, and all three are events *you* caused or walked
   into knowingly. A shield block and an Anomaly arriving get shake and colour but never the freeze — a
   hitstop is the loudest cue the engine has, and spending it on something that happens *to* you is how
   it leaked onto the damage path the first time. When adding a cue, read down this table rather than
   copying whichever line is nearest.
+
+  ⚠️ **The purge was the fourth, and it was the largest: `hitstop=0.28`, seventeen dead frames.** It is
+  gone, on the same brief that cleared the damage path — *no frame freeze*. What it was reaching for is
+  not lost, and the distinction is the point of the new column: the Moment Engine's **dip** was already
+  firing on the same line, and a dip delivers weight with frames that keep arriving where a stop
+  delivers it by withholding them. Measured over the seventeen frames the freeze used to eat: **0.08s of
+  sim still advances**, against **0** before. Frames a player watches resolve; a stop is indistinguishable
+  from a dropped one, which is exactly the complaint the brief was written about. A purge is now the only
+  entry that dips and the only one that does not freeze — read the whole row before copying either half.
 - **Moment Engine** — global slow-motion dips.
 - **Floating text** — small rising labels near the core.
 - **The sky** — three depths drawn *outside* the shake transform, so distance reads as distance rather

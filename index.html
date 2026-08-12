@@ -267,7 +267,9 @@
     #cbKey{display:none;}
   }
 
-  /* ---- ONE persistent feedback channel now. No centre banner: the world announces itself by DOING it.
+  /* ---- ONE persistent feedback channel. The world announces itself by DOING it — with one exception,
+     and it is directly below: #epochcue, for the one beat that has nothing to do. Read that block before
+     quoting this one.
      #achv (top centre, gold) — a feat was recorded.
      The second channel was #pickup, and it was justified on the grounds that a powerup's EFFECT is the
      one thing you cannot read off the screen. Overdrive does not need it: you pressed it, and your ring
@@ -2315,10 +2317,14 @@ const GRANT_T=0.5;                    // seconds; must outlive `.bar > i`'s own 
 let grantPulse=0;
 function capGrant(){ grantPulse=1; }
 // THE INTEGRITY GRANT PULSE — the same overlay on the other bar, and it exists for a stronger version
-// of the same reason. Since passive regen was removed the purge is the ONLY thing that ever moves this
-// bar to the right (see the note at stepPlayer), so a rightward jump here is not merely uncaused, it is
-// the single most valuable event in the economy and it was landing silently under a screen-wide white
-// flash. Separate `let` rather than reusing `grantPulse` because the two grants are independent: a purge
+// of the same reason. IN SURVIVAL the purge is the only thing that ever moves this bar to the right:
+// the 2.6/s out-of-combat regen still exists but is fenced inside `if(testMode||labMode||tutMode)` (see
+// the note at stepPlayer, which is where that fence and its reasoning live). So a rightward jump here
+// is not merely uncaused, it is the single most valuable event in the economy, and it was landing
+// silently under a screen-wide white flash. The practice rooms' trickle raises no pulse at all, and
+// that is correct rather than an omission: this is driven by `healSignal`, which reports a GRANT, not
+// by the bar's width — a continuous creep has no moment to point at.
+//   Separate `let` rather than reusing `grantPulse` because the two grants are independent: a purge
 // pays both at once, and one decay counter would make whichever bar was written second borrow the
 // other's timing the moment a streak milestone landed on the same frame.
 let healPulse=0;
@@ -6837,9 +6843,13 @@ function pushText(x,y,txt,color,life,size){
   }
   texts.push({x,y,txt,color,life,max:life,vy:-0.8,size:size||14});
 }
-// THERE IS NO CENTRE BANNER. Storms, epochs, the Anomaly's arrival, Overdrive and streak tiers all land
-// as matter, colour, ring, shake and sound; a word across the middle of the screen only pulls your eyes
-// off the field at the exact moment you need them on it. The world says what it is by doing it.
+// THERE IS ONE CENTRE BANNER, AND IT IS ARGUED. Storms, the Anomaly's arrival, Overdrive and streak
+// tiers all land as matter, colour, ring, shake and sound; a word across the middle of the screen only
+// pulls your eyes off the field at the exact moment you need them on it. The world says what it is by
+// doing it — which is precisely why the EPOCH BOUNDARY is the exception: it is the one beat with nothing
+// to do, so silence there is not restraint, it is the milestone going unremarked. See #epochcue in the
+// CSS for what the exception is allowed to cost (no background, no input block, no pause) and
+// showEpochCue() for why it fires from onBossCleared rather than from the kill.
 //   THERE IS NOW ONE PERSISTENT TEXT CHANNEL, not two. The other was the pickup pill, and it was
 // justified on the grounds that a powerup's EFFECT is the one thing you cannot read off the screen. That
 // argument does not transfer to Overdrive: you pressed it, and your own matter answers — the shell snaps
