@@ -44,6 +44,20 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### Two showers, two signs — and the mark is bigger `v2`
+⚠️ **The live renderer took the *first* anchor it found in `enemies`.** With two crossings overlapping,
+that picked whichever group came first in an array whose order changes as bodies spawn and are culled —
+so the single badge **flickered between the two crossings**, and carried the brighter of their two alphas
+into whichever it landed on. Members of one shower share the same `sgn` **object**, so grouping is by
+object identity and needs no id; each group now keeps the brightness of its own furthest member, so a
+shower nearly on screen does not ride on one just announced. Verified with two overlapping showers and
+the array churned by kills: two anchors on opposite edges, and the drawn set only **shrinks** as a group
+finishes — it never alternates.
+
+**`SIGN_R` 17 → 23**, and every dimension now derives from it — arrow offset, arrowhead, streaks, bang,
+and the `cometEdge` inset (`SIGN_R*4`). The previous resize meant re-finding each by eye, and the inset
+is the one where being wrong is invisible on three of the four entry sides.
+
 ### The warning sign stops walking, and it is brighter `v2`
 ⚠️ **The anchor was the mean of whichever members were still off-screen *this frame*** — so it moved every
 time a comet entered the arena or was destroyed, which means it moved **fastest exactly when the player

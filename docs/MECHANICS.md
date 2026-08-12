@@ -1088,6 +1088,17 @@ it be" is the half you can act on.
 each other is not five times the information — it is a smear on the edge you are trying to read, and it
 collides with the HUD buttons on the right rail.
 
+⚠️ **PER SHOWER, NOT ONE SIGN TOTAL — and getting that wrong flickers.** The live renderer originally took
+the *first* anchor it found in `enemies`. With two crossings overlapping that picked whichever group came
+first in an array whose order changes as bodies spawn and are culled, so the single badge **jumped between
+the two crossings** and carried the brighter of their two alphas. Members of one shower share the same
+`sgn` **object**, so object identity is the grouping key and no id is needed; each group keeps the
+brightness of its own furthest member, so a shower nearly in does not ride on one just announced.
+
+**Every dimension derives from `SIGN_R`.** Arrow offset, arrowhead, streaks, bang and the `cometEdge`
+inset are all multiples of it, because the first resize meant re-finding each by eye — and the inset
+especially, where being wrong is invisible on three of the four entry sides.
+
 ⚠️ **The anchor is solved ONCE, when the shower is announced, and never recomputed.** It was originally the
 mean of whichever members were still off-screen *this frame* — and that mean moves every time one enters
 the arena or is destroyed, so the badge walked along the border as the shower thinned, and walked fastest

@@ -200,7 +200,13 @@
      draw your eye to and hid what it was reporting. `> i` is `scaleX(charge)`, so a pseudo-element inside
      it is clipped to exactly the filled length for free, and the wash lands on the charge rather than on
      the bar. Caught in a screenshot, not in the design; the two states have to be compared side by side. */
-  #chgbar > i::after{content:'';position:absolute;inset:0;border-radius:8px;pointer-events:none;
+  /* ⚠️ `.bar`, NOT `#chgbar`, AND THE INTEGRITY BAR IS THE REASON. A purge pays +30 Integrity, and that
+     was the one grant left in the game with no cause attached to it — the identical lurch-with-no-reason
+     this overlay was written to answer, on the other bar. `--grantop` is set per ELEMENT, so one rule
+     serves both and the two bars cannot drift into saying "you were just paid" two different ways.
+     White survives the move for free: the argument above is that it drives ANY base toward white, and
+     `#hpbar > i` is a red→red2 gradient, the base a gold or lime wash would have washed out on. */
+  .bar > i::after{content:'';position:absolute;inset:0;border-radius:8px;pointer-events:none;
     background:#fff;opacity:var(--grantop,0);mix-blend-mode:screen;}
   .barlabel{position:absolute;left:0;right:0;top:-15px;text-align:center;font-size:9px;letter-spacing:.24em;
     text-transform:uppercase;color:var(--dim);}
@@ -274,6 +280,60 @@
   #achv.show{animation:achvpop 3.4s ease-out forwards;}
   @keyframes achvpop{0%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.92)}
     10%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}85%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-4px)}}
+
+  /* ---- THE EPOCH CUE, and it is the one exception to "no centre banner" above. The exception is
+     argued rather than assumed, because that note is right about every case it was written for.
+       Its rule is "the world announces itself by DOING it", and every event it refuses to print does:
+     a storm arrives as matter, Overdrive as your own ring snapping outward, an Anomaly as a body with
+     a bar over it. AN EPOCH BOUNDARY IS THE ONE BEAT THAT DOES NOT. All it does is ease the background
+     two gradient stops and re-letter an 11px, 85%-opacity name in the top slot — so the single
+     structural milestone in a run was also the quietest thing in it, and it landed in the same second
+     as the biggest kill in the game, which drowned it outright.
+       IT NEVER BLOCKS THE FIELD, and that is exactly what buys it the size:
+       · no background, no panel, no backdrop-filter, no dim — every Dot behind it stays fully visible;
+       · `pointer-events:none`, inside #hud which is already inert, so nothing it covers stops working;
+       · the sim runs straight through it — this is not a pause, a gate or a state (see onBossCleared);
+       · it sits in the band under the Epoch slot, the strip #tutBar was given because no thumb covers
+         it in either orientation, and the Anomaly's bar (top:104px) is guaranteed clear by then: the
+         thing that owned that bar is what just died.
+     LARGE AND TRANSPARENT rather than small and opaque is the trade the "no banner" note was really
+     objecting to, and it was never offered the first half of it. ---- */
+  /* ⚠️ IT WRAPS RATHER THAN SHRINKS, AND THAT IS THE MEASURED CHOICE. At 375px the name is 27px and
+     `EPOCH XII · METEOR SHOWER` is 25 characters — no font size that fits it on one line is still
+     legible as the run's biggest word, so the long names take two lines and the short ones stay on one.
+     `width:100%` (of #hud, which is already inset by the safe area) is what gives wrapping something to
+     wrap inside; without it the box is shrink-to-fit and a long Epoch runs straight off both edges.
+     The padding is so a wrapped line never kisses the bezel. */
+  #epochcue{position:absolute;left:50%;top:118px;transform:translateX(-50%);pointer-events:none;
+    width:100%;box-sizing:border-box;padding:0 14px;text-align:center;opacity:0;}
+  #epochcue .k{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);
+    font-weight:800;margin-bottom:9px;text-shadow:0 0 16px rgba(255,207,77,.5);}
+  #epochcue .n{font-size:clamp(26px,7.2vw,52px);letter-spacing:.16em;text-transform:uppercase;
+    font-weight:900;line-height:1;color:var(--cuetint,#fff);
+    /* TWO SHADOWS, and the black one is not decoration. This text wears the EPOCH'S OWN tint, which
+       runs L*46 (Eclipse) to L*74 (Meteor Shower) — so it is asked to be legible over four different
+       skies including its own, and pale straw on the shower's bright gradient is the pair that fails
+       first. The dark halo gives it an edge on any of them; the tinted one is what makes it the
+       Epoch's colour rather than one more white word. */
+    text-shadow:0 2px 18px rgba(0,0,0,.9),0 0 34px var(--cuetint,#fff);}
+  /* Hangul is not letter-spaced the way small-caps Latin is — the same reason #actlab drops to .1em. */
+  html[lang="ko"] #epochcue .n{letter-spacing:.05em;}
+  #epochcue.show{animation:epochcue 2.6s cubic-bezier(.2,.8,.3,1) forwards;}
+  @keyframes epochcue{
+    0%{opacity:0;transform:translateX(-50%) translateY(12px) scale(.86)}
+    8%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+    68%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+    100%{opacity:0;transform:translateX(-50%) translateY(-16px) scale(1.05)}}
+  /* Comfort mode keeps the WORDS and drops the movement — the cue is information, not an effect, so
+     it is the one thing here that must not be damped away. Pure cross-fade, no scale, no travel. */
+  #epochcue.calm.show{animation:epochcuecalm 2.6s ease-out forwards;}
+  @keyframes epochcuecalm{0%{opacity:0}8%{opacity:1}72%{opacity:1}100%{opacity:0}}
+  /* The slot the cue is talking ABOUT, flaring on the same frame so the big word and the small one are
+     visibly the same statement. Nothing else in the HUD moves, so this cannot be read as anything but
+     "that field changed". */
+  #actlab.bump{animation:actbump 1.2s ease-out;}
+  @keyframes actbump{0%{transform:scale(1);opacity:.85}
+    16%{transform:scale(1.3);opacity:1;filter:brightness(2)}100%{transform:scale(1);opacity:.85}}
 
   /* ---------- overlays ---------- */
   /* `safe center` centres while the content fits and falls back to start the moment it does not.
@@ -930,6 +990,10 @@
        thumb covers in either orientation. -->
   <div id="tutBar" class="hidden"></div>
   <div id="achv"></div>
+  <!-- THE EPOCH CUE. Both lines are filled by showEpochCue() from strings that already exist —
+       `fx.purged` for the kicker and `hud.epoch` for the name — so nothing here is authored copy that
+       could drift out of step with the top-centre slot saying the same thing. See the CSS block. -->
+  <div id="epochcue"><div class="k"></div><div class="n"></div></div>
   <!-- TILT STATE. Lives in the HUD rather than the menu because it has to be readable while a run is
        going wrong, not only before one starts. Two jobs: name the failure when tilt is dead (the game
        is uncontrollable then, and silence would be cruel), and on the menu show the live vector so the
@@ -2250,6 +2314,14 @@ let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 const GRANT_T=0.5;                    // seconds; must outlive `.bar > i`'s own .1s transform tween
 let grantPulse=0;
 function capGrant(){ grantPulse=1; }
+// THE INTEGRITY GRANT PULSE — the same overlay on the other bar, and it exists for a stronger version
+// of the same reason. Since passive regen was removed the purge is the ONLY thing that ever moves this
+// bar to the right (see the note at stepPlayer), so a rightward jump here is not merely uncaused, it is
+// the single most valuable event in the economy and it was landing silently under a screen-wide white
+// flash. Separate `let` rather than reusing `grantPulse` because the two grants are independent: a purge
+// pays both at once, and one decay counter would make whichever bar was written second borrow the
+// other's timing the moment a streak milestone landed on the same frame.
+let healPulse=0;
 // ONE HIT, ONE CUE. Player brief: "too much informations are popping up then getting hit. only damage,
 // size dependent to its amount would be good. / not screen shake, for now. / no frame freeze on contact."
 // Taking damage now says exactly three things and nothing else: the hurt sound, this number, and the star
@@ -2771,6 +2843,17 @@ let bossN=0;  // Anomalies faced this run — the first always fires the teachin
 // the fight under way is always the last entry.
 let anomLog=[];
 let lances=[]; // anomaly's outer-screen projectiles: opposite-colour, hurt the core AND the anomaly
+// THE WHOLE HEAL INCOME OF A RUN, in one place. It was a literal inside killBoss while three comments
+// and two doc pages quoted "+30" at it, which is the arrangement that lets a tuning pass move the number
+// and leave the prose behind. It is also the tuning knob of record for run length — see the note at
+// stepPlayer: HP is a run-long resource now, and this is the only thing that ever puts any back.
+const PURGE_HEAL=30;
+// killBoss pays the score; onBossCleared, one tick later, is where `act` has actually advanced and so is
+// the only place the Epoch cue may be fired from. This carries the reward across that one-tick gap.
+// 0 means "no purge behind this boundary" — reachable, because onBossCleared also fires on `!boss`, i.e.
+// a boss phase that never managed to spawn one. The cue drops its kicker line in that case rather than
+// printing a reward nobody was paid.
+let purgeRew=0;
 function actInfo(){ return ACTS[(act-1)%ACTS.length]; }
 function hx(h){ const n=parseInt(h.slice(1),16); return [n>>16&255,n>>8&255,n&255]; }
 function rgbStr(a,al){ return `rgba(${a[0]|0},${a[1]|0},${a[2]|0},${al})`; }
@@ -3759,6 +3842,13 @@ function onBossCleared(){
   // The short entry roll puts the first one inside the opening calm, so the name is true immediately
   // rather than a minute in.
   cometT = isShower(act) ? rand(3,7) : rand(200,300);
+  // THE EPOCH CUE FIRES HERE AND NOWHERE ELSE, and the reason is the `act++` seven lines up. Firing it
+  // from killBoss — where it belongs by feel, since the purge is what the player just did — would mean
+  // reading `act+1`, i.e. a second copy of the advance rule sitting in a different function, going quietly
+  // false the day the boundary stops being "one Epoch per Anomaly". It would also LIE IN BOSS RUSH, which
+  // purges on a loop with `act` pinned at 2 and never reaches this line at all. One tick of latency (~16ms,
+  // and the sim is at timeScale 0.35 by then) buys a number that cannot be wrong.
+  showEpochCue(purgeRew); purgeRew=0;
   enterCalm(false);
 }
 function director(dt){
@@ -5063,11 +5153,33 @@ function killBoss(b){
   for(let i=0;i<52;i++){ const a=rand(0,TAU),s=rand(1,7.5);
     parts.push({x:b.x,y:b.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.5,1.15),max:1.15,color:i%2?'#fff':COL[col],r:rand(2,5),ring:false}); }
   spawnRing(b.x,b.y,'#fff',Math.max(W,H)*0.5);
-  const rew=200*act; score+=rew;
-  pushText(b.x,b.y-32,T('fx.purged',{n:rew}), COL.gold, 1.7, 22);
-  if(P){ P.hp=Math.min(P.maxHp,P.hp+30); P.charge=Math.min(1,P.charge+0.4*P.chargeGain); }  // the one income site that used to skip chargeGain, which made the purge 2x the value of everything else once income halved
-  // PURGE THUNDERCLAP: the game's biggest kill gets its own voice, not a reused collapse
-  trauma=1; flash=0.8; flashCol='#fff'; hitstop=0.28;
+  const rew=200*act; score+=rew; purgeRew=rew;
+  // THE PURGE'S WORDS MOVED TO THE EPOCH CUE — one statement in one place, not the same sentence twice
+  // 200px apart. onBossCleared fires it on the very next tick and carries `purgeRew` into it.
+  //   ⚠️ THE MODES THAT NEVER REACH THAT TICK STILL NEED THIS LINE. Boss Rush kills on a loop with
+  // `act` pinned and director returning before the phase block, and a Lab boss is spawned outside the
+  // phase machine entirely — in both, `wavePhase!=='boss'`, onBossCleared never runs, and dropping the
+  // world text unconditionally would have left the practice modes with no purge readout at all. The
+  // guard is the director's own condition rather than a mode list, so a new mode cannot fall through it.
+  if(testMode || wavePhase!=='boss') pushText(b.x,b.y-32,T('fx.purged',{n:rew}), COL.gold, 1.7, 22);
+  if(P){
+    // ⚠️ PRINT WHAT WAS ACTUALLY RESTORED, NOT PURGE_HEAL. The clamp is the whole point: at 88/100 this
+    // pays 12, and a hard-coded '+30' would be the game telling you it gave you something it did not.
+    // It also self-silences at full Integrity, where there is no grant to report and a cue would be noise.
+    const before=P.hp;
+    P.hp=Math.min(P.maxHp,P.hp+PURGE_HEAL);
+    P.charge=Math.min(1,P.charge+0.4*P.chargeGain);  // the one income site that used to skip chargeGain, which made the purge 2x the value of everything else once income halved
+    healSignal(Math.round(P.hp-before));
+  }
+  // PURGE THUNDERCLAP: the game's biggest kill gets its own voice, not a reused collapse.
+  //   ⚠️ NO HITSTOP. `hitstop=0.28` stood here — a 17-frame dead stop, by far the largest in the file and
+  // more than double the 0.06-0.12 the other three writes use. `407b74e` took the freeze-frame off every
+  // damage path on the brief "no frame freeze on contact", and `695779b` chased the last one out of the
+  // streak path; this was the survivor, and it froze the world on the single event the player most wants
+  // to watch resolve. The weight it was carrying is not lost — `slowmo` below already dips the sim to
+  // 0.35 for 0.7s, which is the Moment Engine doing the same job with frames that keep arriving. A dip
+  // reads as gravity; a stop reads as a dropped frame, which is precisely the complaint.
+  trauma=1; flash=0.8; flashCol='#fff';
   slowmo(0.35,0.7);
   sfx.purge();
   // `anomLog`'s last entry IS this fight's damage tab — opened at spawnBoss and fed by both damage
@@ -5076,8 +5188,26 @@ function killBoss(b){
   if(anomLog.length && anomLog[anomLog.length-1]<=0) grantAchv('untouched');
   if(odOn && FEAT.odFullBoss) grantAchv('kameha');
   // The purge used to also shed a guaranteed powerup orb. With the roster gone, the reward is the
-  // +30 Integrity and +40% Capacitor above — and 40% is now spendable on Overdrive, so the purge
+  // PURGE_HEAL Integrity and +40% Capacitor above — and 40% is now spendable on Overdrive, so the purge
   // still hands you a tool, not just a number.
+}
+// THE HEAL HAD NO SIGNAL AT ALL, and it is the largest single grant in the game. Three channels, each
+// answering a different question, none of them a new vocabulary:
+//   · the bar pulse says WHICH RESOURCE moved and that something GAVE it to you (see `.bar > i::after`);
+//   · the inward hoop says it arrived AT THE CORE. Converging-ring-at-the-star already means exactly
+//     "this was absorbed into you" — it is the Mote pickup's mark, drawn at the same consume radius,
+//     and this is the other thing in the game that gets taken in rather than fired out;
+//   · the number says HOW MUCH, and is the mirror of `hurtText` down to the anchor: same offset above
+//     the core, opposite sign. Gold, not red and not lime — every "you were paid" readout in this game
+//     is gold (fx.purged, fx.bounty, fx.poked), red is the damage number's colour and would invert the
+//     meaning at the one spot on screen where the two would be compared, and lime on the field means a
+//     Bomber's blast radius.
+// No sound: sfx.purge() is already a half-second of arpeggio and a fourth voice under it is mud.
+function healSignal(got){
+  if(!(got>0) || !P) return;
+  healPulse=1;
+  spawnRing(P.x,P.y,COL.gold,P.r+14);
+  pushText(P.x, P.y-P.r-18, '+'+got, COL.gold, 1.0, 20);
 }
 
 // =====================================================================
@@ -5889,6 +6019,7 @@ function stepDecay(dt){
   if(trauma>0) trauma=Math.max(0,trauma-dt*2.4); // decay faster — shake should punch and clear, not linger
   if(flash>0) flash=Math.max(0,flash-dt*2.4);
   if(grantPulse>0) grantPulse=Math.max(0,grantPulse-dt/GRANT_T);
+  if(healPulse>0) healPulse=Math.max(0,healPulse-dt/GRANT_T);
 }
 
 function queueKill(e){
@@ -6724,6 +6855,28 @@ function showAchvToast(txt){
   const a=el('achv'); if(!a)return;
   a.textContent=txt;
   a.classList.remove('show'); void a.offsetWidth; a.classList.add('show');
+}
+// ⚠️ NEITHER LINE IS AUTHORED COPY. The kicker is `fx.purged` and the name is `hud.epoch` — the exact
+// string the top-centre slot renders, read from L at fire time. That is deliberate and it is the lesson
+// the Lab legend taught the hard way: a second copy of a label in a second place is two lists that must
+// agree, and only one of them ever gets updated. Reusing `hud.epoch` also means Korean needs no new
+// copy and cannot drift — it takes `{n}` where English takes `{r}`, and both are passed here, so the
+// template decides which numbering the player sees exactly as it does in the HUD.
+function showEpochCue(rew){
+  const c=el('epochcue'); if(!c) return;
+  const info=actInfo(), nm=T('act.'+((act-1)%ACTS.length));
+  const k=c.querySelector('.k'), n=c.querySelector('.n');
+  k.textContent = rew>0 ? T('fx.purged',{n:rew}) : '';
+  k.style.display = rew>0 ? '' : 'none';
+  n.textContent = T('hud.epoch',{r:roman(act), n:act, name:nm.toUpperCase()});
+  // One property drives the fill AND the outer glow, so a tint can never light one and not the other.
+  c.style.setProperty('--cuetint', info.tint);
+  c.classList.toggle('calm', !!store.reduceMotion);
+  // Re-arm by reflow, same as the achievement toast: a CSS animation does not restart on a class that is
+  // already there, and back-to-back Epochs are reachable in Boss-Rush-adjacent debug and on a fast clear.
+  c.classList.remove('show'); void c.offsetWidth; c.classList.add('show');
+  const al=el('actlab');
+  if(al && !store.reduceMotion){ al.classList.remove('bump'); void al.offsetWidth; al.classList.add('bump'); }
 }
 
 // =====================================================================
@@ -7974,45 +8127,51 @@ function cometEdge(x,y,ux,uy){
   // on the side the shower is entering from, which is exactly the edge that has no room. Inset must cover
   // badge radius + all of that: 92. Written as 26 first (bang invisible), then 62 (streaks clipped); both
   // failures were on a right-side entry, which is the only case where being wrong is visible.
-  return {x:clamp(x+ux*t,92,W-92), y:clamp(y+uy*t,92,H-92)};
+  const IN=SIGN_R*4;                      // badge + the arrow's full outboard reach, from one number
+  return {x:clamp(x+ux*t,IN,W-IN), y:clamp(y+uy*t,IN,H-IN)};
 }
 // ONE SIGN PER SHOWER, NOT ONE PER BODY. Five chevrons stacked within a few pixels of each other is not
 // five times the information — it is a smear on the edge the player is trying to read, and it collides
 // with the HUD buttons that live on the right rail. The question a sign answers here is singular:
 // *comets, from over there.* The individual paths are what the lanes are for.
+// ⚠️ EVERY DIMENSION HERE DERIVES FROM `SIGN_R`, so resizing the mark is one number and not a hunt.
+// It was hand-tuned per-shape once and the arrow, streaks, bang and the `cometEdge` inset all had to be
+// re-found by eye when it grew — the inset especially, because being wrong there is invisible on three
+// of the four entry sides. Keep new parts proportional to R or the next resize reopens that bug.
+const SIGN_R=23;
 function cometSign(px,py,ux,uy,a){
   const pulse=0.84+0.16*Math.sin(elapsed*7), A=(0.74+0.26*a)*pulse;
-  const V=COL.violet;
+  const V=COL.violet, R=SIGN_R;
   // ---- the arrow, OUTBOARD of the badge and pointing the way they travel ----
   // A mark pointing back at the origin answers "where is it now" — off-screen and unreachable. Pointing
   // along the heading answers "where will it be", which is the only half you can act on. Streaks behind
   // it because these things are FAST: at COMET_SPD 7.6 a static arrowhead understates the one property
   // that makes the shower dangerous.
-  ctx.save(); ctx.translate(px-ux*34, py-uy*34); ctx.rotate(Math.atan2(uy,ux));
+  ctx.save(); ctx.translate(px-ux*R*2.0, py-uy*R*2.0); ctx.rotate(Math.atan2(uy,ux));
   ctx.fillStyle=hexA(V,A);
-  ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(-7,-8); ctx.lineTo(-7,8); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle=hexA(V,A*0.68); ctx.lineWidth=2.6; ctx.lineCap='round';
-  for(let i=0;i<3;i++){ const o=(i-1)*6;
-    ctx.beginPath(); ctx.moveTo(-11,o); ctx.lineTo(-11-(9+Math.abs(o)),o); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(R*0.53,0); ctx.lineTo(-R*0.41,-R*0.47); ctx.lineTo(-R*0.41,R*0.47);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=hexA(V,A*0.68); ctx.lineWidth=R*0.153; ctx.lineCap='round';
+  for(let i=0;i<3;i++){ const o=(i-1)*R*0.35;
+    ctx.beginPath(); ctx.moveTo(-R*0.65,o); ctx.lineTo(-R*0.65-(R*0.53+Math.abs(o)),o); ctx.stroke(); }
   ctx.restore();
-  // ---- the badge: a rounded triangle with a bang, and NEITHER ROTATES ----
+  // ---- the badge: a triangle with a bang, and NEITHER ROTATES ----
   // ⚠️ Only the arrow carries the direction. A warning triangle is a READ, not a vector — rotated with
   // the heading it stops looking like the sign it is trading on, and the bang inside it stops being an
   // exclamation mark at all (upside down on a right-to-left crossing, on its side going straight up).
-  // Rounded corners come from `lineJoin` plus a stroked path rather than three arcs: the shape is 22px
-  // tall on a canvas that is not the design space, so hand-rolled fillets buy nothing a join does not.
-  const R=17;
+  // Rounded corners come from `lineJoin` on a stroked path rather than three arcs: at this size a join
+  // buys the same read for none of the arithmetic.
   ctx.save(); ctx.translate(px,py);
   ctx.lineJoin='round'; ctx.lineCap='round';
   ctx.beginPath();
   ctx.moveTo(0,-R); ctx.lineTo(R*0.92,R*0.68); ctx.lineTo(-R*0.92,R*0.68); ctx.closePath();
   ctx.fillStyle=hexA(V,A*0.60); ctx.fill();
-  ctx.strokeStyle=hexA(V,A); ctx.lineWidth=4.5; ctx.stroke();
-  ctx.strokeStyle=hexA('#ffffff',A*0.75); ctx.lineWidth=1.6; ctx.stroke();
+  ctx.strokeStyle=hexA(V,A); ctx.lineWidth=R*0.265; ctx.stroke();
+  ctx.strokeStyle=hexA('#ffffff',A*0.75); ctx.lineWidth=R*0.094; ctx.stroke();
+  ctx.strokeStyle=hexA('#ffffff',A); ctx.lineWidth=R*0.188;
+  ctx.beginPath(); ctx.moveTo(0,-R*0.42); ctx.lineTo(0,R*0.14); ctx.stroke();
   ctx.fillStyle=hexA('#ffffff',A);
-  ctx.beginPath(); ctx.moveTo(0,-R*0.42); ctx.lineTo(0,R*0.14); ctx.lineWidth=3.2;
-  ctx.strokeStyle=hexA('#ffffff',A); ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,R*0.40,2.1,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,R*0.40,R*0.124,0,TAU); ctx.fill();
   ctx.restore();
 }
 // ⚠️ THE ANCHOR IS SOLVED ONCE, WHEN THE SHOWER IS ANNOUNCED, AND NEVER RECOMPUTED. It used to be the
@@ -8033,7 +8192,12 @@ function cometAnchor(lanes){
 }
 function drawCometLanes(){
   ctx.save();
-  let anchor=null, far=0;
+  // ⚠️ GROUPED BY SHOWER, and it used to take the FIRST anchor it found. With two showers live that
+  // picked whichever group happened to come first in `enemies` — an order that changes as bodies are
+  // added and culled — so the single sign FLICKERED between the two crossings, and its brightness was
+  // the max across both. Members of one shower share the same `sgn` OBJECT, so object identity is the
+  // grouping key and needs no id.
+  const groups=new Map();
   for(const e of enemies){
     if(!e.comet || e.dead || !(e.hold>0)) continue;
     const sp=Math.hypot(e.fvx||0, e.fvy||0); if(sp<0.01) continue;
@@ -8045,10 +8209,12 @@ function drawCometLanes(){
     // Full strength while it is far — so it takes over from the telegraph at the same brightness the
     // telegraph ended on — then fades across the last 140px, which is the body's own entrance.
     const a=clamp(out/140,0,1);
-    if(!anchor && e.sgn) anchor=e.sgn;   // the shower's own, stamped at spawn — see cometAnchor
-    if(a>far) far=a;                 // the sign keeps the brightness of the FURTHEST member still out
+    if(!e.sgn) continue;
+    // Each shower keeps the brightness of ITS OWN furthest member still outside, so one that is nearly
+    // in does not ride on another that has just been announced.
+    groups.set(e.sgn, Math.max(groups.get(e.sgn)||0, a));
   }
-  if(anchor) cometSign(anchor.x, anchor.y, anchor.ux, anchor.uy, far);
+  for(const [s,a] of groups) cometSign(s.x, s.y, s.ux, s.uy, a);
   ctx.restore();
 }
 function drawWarns(){
@@ -8275,6 +8441,9 @@ function updateHUD(){
   // linearly, and peaked at 0.55 — enough that the bar visibly whitens, short of blowing it out so you
   // cannot see where the fill actually got to, which is the thing you are being told about.
   el('chgbar').style.setProperty('--grantop', grantPulse>0 ? (grantPulse*grantPulse*0.55).toFixed(3) : '0');
+  // Same curve, same ceiling, on the bar the purge heal moved. Squaring and 0.55 are not re-derived here
+  // on purpose: two grants that whiten differently would read as two different KINDS of event.
+  el('hpbar').style.setProperty('--grantop', healPulse>0 ? (healPulse*healPulse*0.55).toFixed(3) : '0');
   // ⚠️ THE BUTTON STAYS PUT WHILE COOLING. Dropping `.show` for the second would be honest and is wrong
   // on touch: it is the only Overdrive control a thumb has, and a target that vanishes the instant you
   // release it is a target you stop trusting. It dims in place instead — unavailable, still there.
@@ -8719,6 +8888,12 @@ function startRun(mode, startAct){
   cometT=rand(90,150);
   score=0;
   trauma=0;hitstop=0;flash=0;timeScale=1;tsHold=0;contactGhost=null;ghostT=0;
+  grantPulse=0;healPulse=0;                        // a bar must not open a run mid-flash from the last one
+  // ⚠️ THE CUE IS A CSS ANIMATION, SO IT OUTLIVES THE SIM UNLESS IT IS TOLD NOT TO. Dying inside its 2.6s
+  // and hitting Reforge would have opened the next run with the last one's Epoch printed across it —
+  // naming an Epoch you are no longer in, in a 52px word. `purgeRew` goes with it: a stale reward would
+  // otherwise ride into the first purge of the new run and print the old run's number.
+  el('epochcue').classList.remove('show'); el('actlab').classList.remove('bump'); purgeRew=0;
   boss=null;bossFlash=0;lances.length=0;bossN=0;anomLog.length=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;
