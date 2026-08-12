@@ -44,6 +44,25 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### One warning sign, no path — the lane was louder than the thing it warned about `v2`
+The lane version was accurate and unusable: two violet bands across most of the arena, painting over the
+field you are trying to read, with the band doing the announcing for something **that is not here yet.**
+⚠️ **A warning about a thing that has not arrived must not cost more attention than the thing.**
+
+What replaces it is one glance — *comets, from the right.* A **single badge at the border crossing**: a
+rounded triangle with a bang, an arrow outboard of it pointing the way they travel, speed streaks behind
+it. **Only the arrow rotates** — a warning triangle is a read, not a vector, and a bang turned with the
+heading hangs upside down on a right-to-left crossing and stops being an exclamation mark. **One sign per
+shower**, at the mean of its members' border crossings: five badges within a few pixels is a smear on the
+edge you are reading, and it collides with the HUD buttons on the right rail.
+
+⚠️ **Two geometry bugs, each invisible except on one entry side.** The border solve is a slab test and the
+obvious version is wrong at a corner — smallest positive `t` per axis crosses `x=W` while the body is
+still above the top edge, so a shower from the top right planted its sign on the **bottom** border; entry
+is the **max** of the near times. And the inset has to cover the whole mark rather than the badge: the
+arrow sits 34 outboard plus tail and streaks, ~62 past the centre, on exactly the edge with no room.
+Written as 26 (bang invisible), then 62 (streaks clipped), now 92.
+
 ### The Comet's lane outlives its telegraph `v2`
 The first version marked **only the entry**, and that was worse than no warning. `warnForm` clears its
 mark the instant it fires, but a Comet spawns off-screen and `trail` pushes later bodies much further

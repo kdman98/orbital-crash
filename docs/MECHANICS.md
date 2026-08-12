@@ -1069,33 +1069,48 @@ The Comet is off-screen too — and that is exactly what made it unfair, because
 four times a Drifter's cruise, being off-screen buys about **0.2s** where an ordinary arrival gives a
 second. **Distance is only fair when it converts into time.** `COMET_TEL` is 1.1s.
 
-**A lane, not a point, and that decides which primitive it uses.** `warnSpawn`'s converging ring answers
-*"a body will be here"*, which is the wrong question for a threat whose whole shape is a line across the
-arena — and five point marks along one edge say nothing about where any of them is going. `warnForm` is
-the right tool for the same reason the Cross uses it: the shape draws its own mark **and owns its own
-spawn**, so all the geometry is solved once, up front, and the lane that is drawn comes from the very
-numbers the bodies will fly. A sign computed separately from the thing it promises is a sign that can be
-wrong. The band is drawn at the true contact envelope (`ETYPE.heavy.r + P.r`), per the danger-edge law;
-the dashes travel along the heading, because a static line states a place and omits the half you act on.
+**One sign, not a path — and it took three shapes to get there.** The first version drew the flight
+*lane*: a band at the true contact envelope with a dashed centre line, per body. It was accurate and it
+was far too loud — two violet bands across most of the arena, painting over the field you are trying to
+read, with the band doing the announcing for something that is not here yet. ⚠️ **A warning about a thing
+that has not arrived must not cost more attention than the thing.** What a player needs is one glance —
+*comets, from the right* — so the lane is gone and what remains is a **single warning badge at the border
+crossing**: a rounded triangle with a bang, plus an arrow outboard of it pointing the way they travel,
+trailing speed streaks.
+
+**Only the arrow rotates.** A warning triangle is a *read*, not a vector: turned with the heading it stops
+resembling the sign it trades on, and the bang inside it stops being an exclamation mark at all — upside
+down on a right-to-left crossing, on its side going straight up. The arrow points **along** the heading
+rather than back at the origin, because "where is it now" is off-screen and unreachable while "where will
+it be" is the half you can act on.
+
+**One sign per shower, at the mean of its members' border crossings.** Five badges within a few pixels of
+each other is not five times the information — it is a smear on the edge you are trying to read, and it
+collides with the HUD buttons on the right rail.
+
+⚠️ **THE SIGN OUTLIVES THE TELEGRAPH, AND THE FIRST VERSION DID NOT — WHICH WAS WORSE THAN NO WARNING.**
+`warnForm` clears its mark the instant it fires, but a Comet *spawns off-screen*, and `trail` pushes the
+later bodies much further out. Measured at the moment the mark vanished: **4 bodies, 616–691px outside the
+viewport, and 1.63s before the first was visible** — a warning that lasted 1.1s then withdrew its
+information for longer than it had shown it. It said *something is coming*, refused to say where, then
+made you wait. **A telegraph has to last until the thing it announces can be seen.** So it is drawn from
+**two** places: `formComet`'s `warnForm` before the bodies exist, and `drawCometLanes` after they do, for
+any Comet still off-screen. It **self-terminates** — no timer, no flag — because the off-screen test is
+the gate: in frame, a body *is* its own sign. Re-measured: **0 blind frames**, 66 of telegraph handing off
+to 176 of live sign.
+
+⚠️ **Two geometry bugs, both invisible except on one entry side.** The border crossing is a slab test, and
+the obvious version is wrong at a corner: taking the smallest positive `t` per axis crosses the `x=W` plane
+while the body is still above the top edge, so a shower arriving from the top right planted its sign on the
+*bottom* border. Entry is the **max** of the near times, not the min. And the inset that keeps the sign
+on screen has to cover the whole mark, not the badge — the arrow sits 34 outboard with its own tail and
+streaks, about 62 past the badge centre, on precisely the edge with no room. Written as 26 (bang
+invisible), then 62 (streaks clipped), now 92.
 
 ⚠️ **The lead is aimed where you were, and that is the mechanic rather than a defect.** Geometry resolves
 at telegraph time, so a shower arrives aimed at the position you held ~1.1s earlier — the same *"passes
 NEAR the Star rather than at it"* the aim jitter already builds in, now with a reason the player can act
-on. Move once the lanes are drawn and you have dodged; stand still and you have not.
-
-⚠️ **THE LANE OUTLIVES THE TELEGRAPH, AND THE FIRST VERSION DID NOT — WHICH WAS WORSE THAN NO WARNING.**
-`warnForm` clears its mark the instant it fires, but a Comet *spawns off-screen*, and `trail` pushes the
-later bodies much further out. Measured at the moment the lanes vanished: **4 bodies, 616–691px outside
-the viewport, and 1.63s before the first was visible** — a warning that lasted 1.1s then withdrew its
-information for longer than it had shown it. It said *something is coming*, refused to say where, and
-made you wait. **A telegraph has to last until the thing it announces can be seen.**
-
-So the same lane is drawn from **two** places: `formComet`'s `warnForm` before the bodies exist, and
-`drawCometLanes` after they do, for any Comet still off-screen. One shared `cometLane` helper, so the two
-halves cannot drift into drawing different lines for one flight. It **self-terminates** — no timer and no
-flag, because the off-screen test is the gate: once a body is in frame it *is* its own sign, and this
-file's rule is that a body arriving on a mark is drawn over it. Re-measured after: **0 blind frames**,
-66 of telegraph handing off to 176 of live lane.
+on. Move once the sign is up and you have dodged; stand still and you have not.
 
 ⚠️ **The spread is the whole thing, or it becomes a Wall** — which is another formation's job and a
 different demand on the player. Three separate spreads keep it a stream you weave through rather than a

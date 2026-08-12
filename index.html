@@ -3682,7 +3682,11 @@ function formComet(){
   // The true contact envelope of what is coming — a Brute's hull plus yours, the same rule `warnSpawn`
   // uses for its point mark. The band is drawn at this width and not a pixel narrower: the danger-edge
   // law says a drawing that promises a distance must promise the true one.
-  const draw=f=>{ ctx.save(); for(const b of bodies) cometLane(b.x,b.y,b.ux,b.uy,b.sp*60*b.hold,f); ctx.restore(); };
+  const draw=f=>{
+    ctx.save();
+    cometSignFor(bodies,f);          // ONE SIGN, no path — see cometSign
+    ctx.restore();
+  };
   const spawn=()=>{
     for(const b of bodies){
       const e=spawnEnemy('heavy', b.color, b.x, b.y);
@@ -7937,23 +7941,89 @@ function drawParticles(){
 //   So the same lane is drawn before the bodies exist (`formComet`'s `warnForm`) and after they do
 // (`drawCometLanes`, below, for any comet still off-screen). One helper, so the two halves cannot drift
 // into drawing different lines for the same flight.
-function cometLane(x,y,ux,uy,len,a){
-  const R=ETYPE.heavy.r+(P?P.r:15);          // the true contact envelope — danger-edge law
-  const ex=x+ux*len, ey=y+uy*len;
-  ctx.lineCap='butt';
-  // THE BAND IS THE CLAIM, faint and full width; the centre line is only where to read it. Drawn in that
-  // order so the thin line stays legible on top of its own band rather than being lost inside it.
-  ctx.strokeStyle=hexA(COL.violet,0.05+0.13*a); ctx.lineWidth=R*2;
-  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.stroke();
-  // Dashes travel ALONG the heading, so the mark states a direction as well as a place — a static line
-  // says "something crosses here" and leaves out the half you act on.
-  ctx.strokeStyle=hexA(COL.violet,0.22+0.55*a); ctx.lineWidth=2;
-  ctx.setLineDash([16,13]); ctx.lineDashOffset=-elapsed*140;
-  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.stroke();
-  ctx.setLineDash([]);
+// ⚠️ THE EDGE MARK IS THE MESSAGE; THE LANE IS ONLY THE DETAIL. The first pass had this backwards and it
+// read as two violet bands across most of the screen — the band was doing the announcing, which is far
+// too loud for a thing that is not here yet, and it painted over the field you are trying to read. What
+// a player actually needs is one glance: *comets, from the right.* That is a SIGN AT THE EDGE, pointing
+// the way they travel, and the lane behind it is the follow-up for anyone who looks.
+//   So the band drops to a whisper (0.02 + 0.05, from 0.05 + 0.13) and a chevron-plus-bang sits where the
+// lane crosses the border. The `!` is drawn rather than typed — two rounded shapes, no `ctx.font` and no
+// glyph — so it cannot inherit the font trap this file already records, and it reads identically at any
+// size and in any language.
+function cometEdge(x,y,ux,uy){
+  // Where the lane ENTERS the viewport — a proper slab test, because the obvious version is wrong at a
+  // corner. ⚠️ THE FIRST VERSION TOOK THE SMALLEST POSITIVE t PER AXIS AND CROSSED THE WRONG BORDER: a
+  // body sitting off the top-right and travelling down-left reaches the x=W plane while it is still
+  // above the top edge, i.e. still outside. Entry is where the LAST near plane is crossed, so it is the
+  // max of the two near times, not the min — the standard slab result, and the symptom was a sign
+  // planted on the bottom edge for a shower arriving from the top right.
+  const nx = ux!==0 ? Math.min((0-x)/ux,(W-x)/ux) : (x>=0&&x<=W ? -Infinity : Infinity);
+  const ny = uy!==0 ? Math.min((0-y)/uy,(H-y)/uy) : (y>=0&&y<=H ? -Infinity : Infinity);
+  const fx = ux!==0 ? Math.max((0-x)/ux,(W-x)/ux) : (x>=0&&x<=W ? Infinity : -Infinity);
+  const fy = uy!==0 ? Math.max((0-y)/uy,(H-y)/uy) : (y>=0&&y<=H ? Infinity : -Infinity);
+  const tEnter=Math.max(nx,ny), tExit=Math.min(fx,fy);
+  if(tExit<Math.max(tEnter,0)) return null;      // the lane misses the viewport entirely
+  const t=Math.max(tEnter,0);
+  if(!isFinite(t)) return null;
+  // ⚠️ INSET BY THE WHOLE SIGN, not by the badge. The arrow sits OUTBOARD of the triangle — 34 out, its
+  // own 11 of tail, and streaks reaching ~17 further — so the mark extends about 62 past the badge centre
+  // on the side the shower is entering from, which is exactly the edge that has no room. Inset must cover
+  // badge radius + all of that: 92. Written as 26 first (bang invisible), then 62 (streaks clipped); both
+  // failures were on a right-side entry, which is the only case where being wrong is visible.
+  return {x:clamp(x+ux*t,92,W-92), y:clamp(y+uy*t,92,H-92)};
+}
+// ONE SIGN PER SHOWER, NOT ONE PER BODY. Five chevrons stacked within a few pixels of each other is not
+// five times the information — it is a smear on the edge the player is trying to read, and it collides
+// with the HUD buttons that live on the right rail. The question a sign answers here is singular:
+// *comets, from over there.* The individual paths are what the lanes are for.
+function cometSign(px,py,ux,uy,a){
+  const pulse=0.74+0.26*Math.sin(elapsed*7), A=(0.5+0.5*a)*pulse;
+  const V=COL.violet;
+  // ---- the arrow, OUTBOARD of the badge and pointing the way they travel ----
+  // A mark pointing back at the origin answers "where is it now" — off-screen and unreachable. Pointing
+  // along the heading answers "where will it be", which is the only half you can act on. Streaks behind
+  // it because these things are FAST: at COMET_SPD 7.6 a static arrowhead understates the one property
+  // that makes the shower dangerous.
+  ctx.save(); ctx.translate(px-ux*34, py-uy*34); ctx.rotate(Math.atan2(uy,ux));
+  ctx.fillStyle=hexA(V,A);
+  ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(-7,-8); ctx.lineTo(-7,8); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=hexA(V,A*0.5); ctx.lineWidth=2.4; ctx.lineCap='round';
+  for(let i=0;i<3;i++){ const o=(i-1)*6;
+    ctx.beginPath(); ctx.moveTo(-11,o); ctx.lineTo(-11-(9+Math.abs(o)),o); ctx.stroke(); }
+  ctx.restore();
+  // ---- the badge: a rounded triangle with a bang, and NEITHER ROTATES ----
+  // ⚠️ Only the arrow carries the direction. A warning triangle is a READ, not a vector — rotated with
+  // the heading it stops looking like the sign it is trading on, and the bang inside it stops being an
+  // exclamation mark at all (upside down on a right-to-left crossing, on its side going straight up).
+  // Rounded corners come from `lineJoin` plus a stroked path rather than three arcs: the shape is 22px
+  // tall on a canvas that is not the design space, so hand-rolled fillets buy nothing a join does not.
+  const R=17;
+  ctx.save(); ctx.translate(px,py);
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(0,-R); ctx.lineTo(R*0.92,R*0.68); ctx.lineTo(-R*0.92,R*0.68); ctx.closePath();
+  ctx.fillStyle=hexA(V,A*0.42); ctx.fill();
+  ctx.strokeStyle=hexA(V,A); ctx.lineWidth=4.5; ctx.stroke();
+  ctx.strokeStyle=hexA('#ffffff',A*0.5); ctx.lineWidth=1.4; ctx.stroke();
+  ctx.fillStyle=hexA('#ffffff',A);
+  ctx.beginPath(); ctx.moveTo(0,-R*0.42); ctx.lineTo(0,R*0.14); ctx.lineWidth=3.2;
+  ctx.strokeStyle=hexA('#ffffff',A); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,R*0.40,2.1,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function cometSignFor(lanes,a){
+  let sx=0, sy=0, ux=0, uy=0, n=0;
+  for(const l of lanes){
+    const e=cometEdge(l.x,l.y,l.ux,l.uy); if(!e) continue;
+    sx+=e.x; sy+=e.y; ux+=l.ux; uy+=l.uy; n++;
+  }
+  if(!n) return;
+  const m=Math.hypot(ux,uy)||1;
+  cometSign(sx/n, sy/n, ux/m, uy/m, a);
 }
 function drawCometLanes(){
   ctx.save();
+  const still=[]; let far=0;
   for(const e of enemies){
     if(!e.comet || e.dead || !(e.hold>0)) continue;
     const sp=Math.hypot(e.fvx||0, e.fvy||0); if(sp<0.01) continue;
@@ -7964,8 +8034,11 @@ function drawCometLanes(){
     if(out<=e.r) continue;
     // Full strength while it is far — so it takes over from the telegraph at the same brightness the
     // telegraph ended on — then fades across the last 140px, which is the body's own entrance.
-    cometLane(e.x, e.y, e.fvx/sp, e.fvy/sp, e.hold*60*sp, clamp(out/140,0,1));
+    const a=clamp(out/140,0,1);
+    still.push({x:e.x, y:e.y, ux:e.fvx/sp, uy:e.fvy/sp});
+    if(a>far) far=a;                 // the sign keeps the brightness of the FURTHEST member still out
   }
+  if(still.length) cometSignFor(still, far);
   ctx.restore();
 }
 function drawWarns(){

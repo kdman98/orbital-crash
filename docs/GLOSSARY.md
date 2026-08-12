@@ -185,8 +185,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **The Cross** — four arms from a hub, quartering the arena. The hub is the arena's centre, and slides
   off the Star rather than bending around it. (`formCross`, `CROSS_R0`)
 - **The Comet** — a rare event: a shower of 3–5 fast Dots crossing the whole sky on one heading and
-  leaving. **Telegraphed as lanes**, not as points — the threat is a line, and the geometry is solved
-  once so the mark and the flight cannot disagree. (`formComet`, `COMET_SPD`, `COMET_TEL`, `cometT`)
+  leaving. **Telegraphed by one warning badge at the border**, with an arrow pointing the way they
+  travel — and it stays up until the bodies are visible, since they spawn far off-screen.
+  (`formComet`, `COMET_SPD`, `COMET_TEL`, `cometSign`, `cometEdge`, `cometT`)
 - **The Drift** — a rare event, not a formation: six Neutrals arriving on a telegraphed hexagon, with no
   choreography after arrival. The only spawner that places bodies *on* the field, which is why it is also
   the only one that needs a warning. (`formNeutralDrift`, `NDRIFT_N`, `NDRIFT_R`, `NDRIFT_TEL`, `ndriftT`)
