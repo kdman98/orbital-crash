@@ -325,6 +325,48 @@ repeating it two hundred lines away.**
 
 ## 2026-08-11
 
+### The move zone is an absolute map now, and that is the third model `v2-ios`
+Author: *"still i dont feel natural. alternative stick control would solve the problem? idk"* — after the
+rate stick, and after the displacement drag that replaced it. Two models, one complaint, and it turns
+out one cause.
+
+| model | what a thumb position meant | why it failed |
+|---|---|---|
+| rate stick | "keep going this way" | never says *where*; capped at 14/frame against the mouse's 74–148 |
+| displacement | "move the star this far from wherever it was" | the thumb↔star relationship **drifted** with every re-grip |
+| **absolute** *(now)* | **"the star is here"** | — |
+
+**Neither of the first two ever answered "where".** A trackpad gets away with that because the pad is
+not the screen and there is a cursor to watch; on glass, beside the thing you are steering, it does not.
+So the zone is a **miniature of the arena**: one thumb position means one arena position, the same one,
+all run. Lift and replace the thumb in the same spot and the star is where it was.
+
+It writes `pointer` rather than moving `P`, so the star is carried by **the same chase line the mouse
+uses** — touch inherits the mouse's responsiveness by construction, and the "5× slower than a mouse"
+defect cannot come back because an absolute model never names a speed.
+
+⚠️ **Your thumb is not on the star, and cannot be.** Half a screen mapped onto a whole arena means a
+thumb at zone x=200 puts the star at arena x≈796. It *points at* the star. Every absolute scheme that
+fits in a half-width zone pays that; the pre-v2 control had the star under the thumb only because it
+steered from the whole screen.
+
+⚠️ **Letterboxed, never stretched.** Zone aspect 1.09 against arena 2.17 — stretching would scale x twice
+as hard as y and send a 45° sweep off at ~63°. Fitting costs vertical range: the arena's height lands in
+the middle 201px, and outside it the star pins to the edge. **And the honest cost: 3.98 units per CSS px
+against the pre-v2 1.99 — half the width for the same arena is exactly 2× the sensitivity**, which is
+arithmetic, not tuning. The only ways out are giving up the partition or giving up isotropy.
+
+*Verified at 874×402:* thumb (100,200) → star (398,396); sweep to (380,260) → (1512,635); return to the
+same thumb spot → (398.6,396.2), **within 0.6 units — no drift**. x=3 pins at 15, x=434 reaches 1724 of
+1739, so the whole arena is reachable. Flip, Overdrive, steer-while-burning, mouse and the Draw clamp
+all unaffected.
+
+⚠️ **Caught by a symbol diff, not by reading:** the edit that installed this swallowed `zoneOf`,
+`isTouch` and `odTouchId` along with the stick internals it meant to remove — a `ReferenceError` at load
+that no syntax check sees. Comparing the top-level declaration list before and after found all three in
+one pass. ⚠️ And the dev pane's console **does not clear on navigation**: the stale error survived the
+fix and had to be disproved by asking the live page, not by reading the buffer.
+
 ### Tilt is removed outright, because the control it would come back to no longer exists `v2-ios`
 Author: *"we might remove tilt from now on."* Gone: `stepTilt`, `onTilt`, `tiltMap`, `tiltCurve`,
 `tiltCalibrate`, the `TILT` constants, `tiltVec`/`tiltRaw`, `window.__nativeTilt`, `#tiltDiag` and

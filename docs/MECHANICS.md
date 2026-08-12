@@ -465,51 +465,46 @@ in it, and it is why `TAP_SLOP`, `TAP_TIME` and `tapMoved` are gone.
 steering meant the finger had to reach every part of the arena, so it covered the arena, so the star had
 to be drawn 55px above the fingertip to stay readable. A stick does not park your thumb on the star.
 
-**The move zone is a DISPLACEMENT, not a rate.** The star travels exactly as far as your finger did on
-the glass, times `STICK.gain` (1.6). One divide by `S` is the whole mapping — the same divide
-`setPointer` performs for the mouse — so at gain 1.0 the star would move the distance your thumb moved,
-on any display. No dead zone, no ramp, no floating origin, no ceiling.
+**The move zone is an ABSOLUTE MAP of the arena.** One thumb position means one arena position, the
+same one, for the whole run. `stickSet` letterboxes the arena into the zone and writes the result into
+`pointer` — so the star is chased by the **same line in `stepPlayer` the mouse uses**, at 0.185 of the
+gap per frame, and touch inherits the mouse's responsiveness by construction rather than by tuning.
 
-⚠️ **It was a rate until 2026-08-11, and the rate argument never applied to a finger.** Reported from the
-device as *"moving is not following my finger movement, acceleration is applied little late"*, and both
-halves were real:
+⚠️ **This is the THIRD model, and the first two failed the same test for the same reason.** Both were
+reported as "not natural":
 
-| | rate model | mouse (`stepPlayer`) |
+| model | what a thumb position meant | why it failed |
 |---|---|---|
-| across a 400-unit gap | 14/frame (capped) | **74/frame** |
-| across an 800-unit gap | 14/frame (capped) | **148/frame** |
+| rate stick | "keep going this way" | never says *where*; capped at 14/frame against the mouse's 74–148 |
+| displacement | "move the star this far from wherever it was" | the thumb↔star relationship **drifted** with every re-grip — it had no fixed value at all |
+| **absolute** *(now)* | **"the star is here"** | — |
 
-In an arena 1739 × 800, that made a touch player **~5× slower across open ground than a mouse player** —
-and `cap=14` is the number `settleT` uses for the engine's *deliberate slow glide on resume*, so the
-stick ran permanently at the speed the game reserves for slowing you down. The second half was the
-floating origin: at full deflection it sat 64px behind the finger, so a full reversal cost **128px of
-thumb travel** before full speed the other way. That is what "acceleration applied a little late" is.
+A trackpad gets away with drift because the pad is not the screen and there is a cursor to watch. On
+glass, with the thing you are steering visible beside your thumb, it does not.
 
-**The root error was inheriting tilt's model along with tilt's own speed constant.** The tilt argument —
-an angle means *keep going this way*, not *be there* — is inherent to an angle, which has no position to
-offer. **A finger has a position and a displacement**, so none of it transferred; it came across because
-the code did.
+⚠️ **YOUR THUMB IS NOT ON THE STAR, AND CANNOT BE.** Half a screen is mapped onto a whole arena, so a
+thumb at zone x=200 puts the star at arena x≈796, drawn at screen x≈400 — the thumb *points at* the star
+rather than carrying it. That is the price of steering from a half-width zone and every absolute scheme
+that fits in one pays it. The pre-v2 control had the star **on** the thumb only because it steered from
+the whole screen, which is also why it needed `TOUCH_LIFT` to stop the thumb hiding it.
 
-*Verified at 874×402, `unitsPerCssPx` 3.184:* touch-down alone moves 0; a 50px delta moves exactly
-159.2; **reversal is free** — 10px back gives −31.84 on the same frame; a 2px nudge moves 6.37, so there
-is no dead zone; a re-grip 300px away moves 0 and then tracks normally; and 60 frames with the finger
-held still drift **0.000**. A 200px swipe banked in one tick moves 636.8 units, against the old ceiling
-of 14.
+⚠️ **Letterboxed, never stretched.** The zone is 437×402 CSS px against an arena of 1739×800 design
+units — aspect 1.09 against 2.17. Stretching to fill would scale x twice as hard as y, so a 45° thumb
+sweep would send the star off at **~63°** and every diagonal would lie. Fitting instead costs vertical
+range: the arena's full height lands in the middle **201px** of the zone (`stick().band`), and outside
+that the star pins to the arena edge — which the existing arena clamp already does, so the band needs no
+code. `STICK.bandY` moves the strip if a thumb rests lower than centre; it is a live object because no
+bot can settle it.
 
-⚠️ **What this gives up, deliberately: you cannot hold a heading.** A rate keeps moving while held; a
-displacement only moves while you drag, so crossing the arena costs a drag and a re-grip rather than a
-lean. Re-gripping is lossless by construction — a fresh touch sets a fresh reference and only deltas
-count — which is the trackpad behaviour every player already has in their hands.
+**The cost, stated plainly: 3.98 units per CSS px, twice the pre-v2 scheme's 1.99.** Half the width for
+the same arena is exactly 2× the sensitivity, and that is arithmetic rather than a tuning choice — the
+only ways out are giving up the partition or giving up isotropy.
 
-⚠️ **`STICK.gain` is NOT multiplied by `P.moveMult`**, and every other movement in the game is. moveMult
-scales a *speed*, and there is no speed here to scale; Overdrive lifting a displacement would mean the
-same thumb travel moved the star further while burning, changing the control under the player mid-ride.
+*Verified at 874×402:* thumb (100,200) → star (398, 396); sweep to (380,260) → star (1512, 635); return
+to the **same** thumb spot → star (398.6, 396.2), back within **0.6 units** — no drift. Thumb x=3 pins
+the star at 15 and x=434 reaches 1724 of a 1739-wide arena, so the whole field is reachable. Flip,
+Overdrive, steering-while-burning, the mouse path and the Draw clamp all unaffected.
 
-**The displacement is banked in the handler and applied in `stepStick`, on the fixed tick.** Writing `P`
-from a pointer handler would put steering on the touch sample rate — 120Hz on a ProMotion phone, bursty
-under load — and this file already has that scar: tilt's smoothing was a per-event fraction, so a bridge
-change from 30Hz to 60Hz silently halved the control speed and was reported as *"tilt reaction is a
-little slow"*. A displacement is immune to the sampling *rate* but not to being applied off-clock.
 
 **No smoothing and no dead zone, and that is not an omission.** Tilt smoothed because an accelerometer reading is noisy. A
 touch offset is two integers the compositor already resolved. Filtering would buy nothing and cost lag.
