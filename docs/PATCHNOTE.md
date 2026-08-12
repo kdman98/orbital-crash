@@ -44,6 +44,33 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### The caution is raised when the pattern fires, not derived from the comets `v2`
+⚠️ **Four versions of this sign flickered and every one failed the same way.** The mark was recomputed
+each frame from a set that changes each frame — which comets are alive, which are still off-screen, which
+group is "first", which shower owns a side. Each fix removed one source of churn and the next
+frame-derived quantity took over. **There is no stable answer down that road, because the inputs are not
+stable.** Author: *"can we show caution sign when initiating pattern, not comet-based?"*
+
+That is the correct object and a **smaller** one. A caution is raised once at `formComet` with a
+position, a heading and a clock — the same shape as `warnSpawn` and `warnForm`, and the third member of
+that family. Nothing recomputes it, so nothing can disagree with it. One per side, by **refresh** rather
+than grouping: a second shower on the same border re-arms the existing mark instead of adding one.
+
+Deleted with it: `cometSeq`, the per-body `e.sgn` stamp, the warn's `w.sgn`, the two-source grouping pass
+and `drawCometLanes` — every mechanism that existed to make a derived value hold still.
+
+**The lifetime is solved, not guessed:** `COMET_TEL + tFirst + CAUTION_FADE`, `tFirst` being how long the
+earliest-arriving member takes to reach the border. Over six runs the first body becomes visible at frame
+66–93 and the caution expires at 94–123, so the sign outlives visibility by ~30 frames every time — the
+blind-gap property from `27300ca` survives the rewrite.
+
+Measured: 480 frames, ten patterns through one run — **max 3 signs, zero reversals**, clears at the end,
+and **zero position changes** across a caution's 108-frame life.
+
+*One test of mine was wrong before the code was:* a first pass reported 33 blind frames, which turned out
+to be counting comets **leaving** on the far side, where no warning is owed. The direct measurement above
+replaced it.
+
 ### The telegraph drew its own sign, so overlaps flickered `v2`
 The last one. `formComet`'s `warnForm` called the mark **directly** — one sign per *warn*, outside the
 per-side grouping — so a shower still telegraphing and another already flying on the **same side** each

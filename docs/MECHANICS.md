@@ -1103,68 +1103,31 @@ it be" is the half you can act on.
 each other is not five times the information — it is a smear on the edge you are trying to read, and it
 collides with the HUD buttons on the right rail.
 
-⚠️ **PER BORDER SIDE — at most four signs, however many showers are in the air.** This has been wrong in
-both directions. Per-shower grouping fixed the original flicker and created the opposite failure: ten
-showers fired in a row put **ten badges on the border**, which is a wall rather than a warning. The side
-is the right grain because it is the read the sign exists to deliver — *comets, from the right* — and two
-showers entering stage right are one fact to the player, not two. The side is recorded **before** the
-inset clamp, because clamping is what destroys the evidence: every crossing lands exactly on a border, so
-the un-clamped coordinate says which one, and afterwards a corner entry is indistinguishable from a
-mid-edge one. Measured with ten showers airborne across three sides: **three signs, zero reversals** over
-120 frames with the entity array churned by kills.
+⚠️ **THE SIGN IS A TIMED OBJECT, RAISED WHEN THE PATTERN FIRES — NOT DERIVED FROM THE COMETS.** Four
+versions of it flickered and every one failed the same way: the mark was **recomputed each frame from a
+set that changes each frame** — which comets are alive, which are still off-screen, which group is
+"first", which shower owns a side. Each fix removed one source of churn and the next frame-derived
+quantity took over. There is no stable answer down that road, because the inputs are not stable.
+Author: *"can we show caution sign when initiating pattern, not comet-based?"* — which is the correct
+object, and a smaller one.
 
-⚠️ **The telegraph draws no sign of its own, and one pass decides them all.** `formComet`'s `warnForm`
-used to call the mark directly — one per *warn*, outside the per-side grouping — so a shower still
-telegraphing and another already flying on the **same side** each drew a badge, and the pair collapsed to
-one the instant the second spawned. Two marks, then one, at every overlap: which is what "it flickers when
-multiple comet patterns run in one session" actually was. `drawCometLanes` now walks **both** sources,
-pending warns and live bodies, in a single grouping pass. There is exactly **one** `cometSign` call site,
-and that is what makes the measurement below mean anything — anything drawing its own outside that pass
-reopens the bug. Measured over 400 frames with ten showers fired through a run so telegraphs and live
-showers overlap constantly: max 3 signs, 20 set changes, **zero reversals**.
+A **caution** is raised once, at `formComet`, with a position, a heading and a clock — the same shape as
+`warnSpawn` and `warnForm`, and the third member of that family. Nothing recomputes it, so nothing can
+disagree with it frame to frame. It is also the honest object: what is announced is the **pattern**,
+which happens once, not the bodies, which come and go.
 
-⚠️ **The side's representative is chosen by announcement `id`, never by position in `enemies`.** That is
-the whole lesson of the first bug below: any ordering derived from the entity array is re-derived every
-frame and changes under you. Lowest id is the earliest-announced group still live on that side, so the
-mark holds still while that shower lasts and moves only when it finishes — an event, not a flicker.
+**One per side, by refresh rather than grouping.** A second shower entering the same border re-arms the
+mark already there instead of adding one — capping the screen at four with no per-frame bookkeeping, and
+true besides: two crossings from the right are one fact to the player.
 
-⚠️ **The original failure, kept because it is the reason for the rule above.** The live renderer originally took
-the *first* anchor it found in `enemies`. With two crossings overlapping that picked whichever group came
-first in an array whose order changes as bodies spawn and are culled, so the single badge **jumped between
-the two crossings** and carried the brighter of their two alphas. Members of one shower share the same
-`sgn` **object**, so object identity is the grouping key and no id is needed; each group keeps the
-brightness of its own furthest member, so a shower nearly in does not ride on one just announced.
+⚠️ **The lifetime is solved, not guessed**, and it carries the rule the blind-gap fix exists for:
+`COMET_TEL + tFirst + CAUTION_FADE`, where `tFirst` is how long the earliest-arriving member takes to
+reach the border. Measured over six runs: the first body becomes visible at frame 66–93 and the caution
+expires at 94–123 — the sign **outlives** visibility by ~30 frames every time.
 
-**Every dimension derives from `SIGN_R`.** Arrow offset, arrowhead, streaks, bang and the `cometEdge`
-inset are all multiples of it, because the first resize meant re-finding each by eye — and the inset
-especially, where being wrong is invisible on three of the four entry sides.
-
-⚠️ **The anchor is solved ONCE, when the shower is announced, and never recomputed.** It was originally the
-mean of whichever members were still off-screen *this frame* — and that mean moves every time one enters
-the arena or is destroyed, so the badge walked along the border as the shower thinned, and walked fastest
-exactly when the player was busy killing them. **A sign that moves is a sign you have to re-find**, and the
-whole value of it is that one glance suffices — which is only true if the second glance lands in the same
-place. The anchor is stamped onto every body at spawn (`e.sgn`, one shared object) and read back, so
-members leaving cannot move it.
-
-⚠️ **THE SIGN OUTLIVES THE TELEGRAPH, AND THE FIRST VERSION DID NOT — WHICH WAS WORSE THAN NO WARNING.**
-`warnForm` clears its mark the instant it fires, but a Comet *spawns off-screen*, and `trail` pushes the
-later bodies much further out. Measured at the moment the mark vanished: **4 bodies, 616–691px outside the
-viewport, and 1.63s before the first was visible** — a warning that lasted 1.1s then withdrew its
-information for longer than it had shown it. It said *something is coming*, refused to say where, then
-made you wait. **A telegraph has to last until the thing it announces can be seen.** So it is drawn from
-**two** places: `formComet`'s `warnForm` before the bodies exist, and `drawCometLanes` after they do, for
-any Comet still off-screen. It **self-terminates** — no timer, no flag — because the off-screen test is
-the gate: in frame, a body *is* its own sign. Re-measured: **0 blind frames**, 66 of telegraph handing off
-to 176 of live sign.
-
-⚠️ **Two geometry bugs, both invisible except on one entry side.** The border crossing is a slab test, and
-the obvious version is wrong at a corner: taking the smallest positive `t` per axis crosses the `x=W` plane
-while the body is still above the top edge, so a shower arriving from the top right planted its sign on the
-*bottom* border. Entry is the **max** of the near times, not the min. And the inset that keeps the sign
-on screen has to cover the whole mark, not the badge — the arrow sits 34 outboard with its own tail and
-streaks, about 62 past the badge centre, on precisely the edge with no room. Written as 26 (bang
-invisible), then 62 (streaks clipped), now 92.
+*Measured after the rewrite,* 480 frames with ten patterns fired through one run: **max 3 signs, zero
+reversals**, clears completely at the end, and **zero position changes** across a caution's 108-frame
+life.
 
 ⚠️ **The lead is aimed where you were, and that is the mechanic rather than a defect.** Geometry resolves
 at telegraph time, so a shower arrives aimed at the position you held ~1.1s earlier — the same *"passes

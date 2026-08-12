@@ -3815,27 +3815,28 @@ function formComet(){
   // The true contact envelope of what is coming — a Brute's hull plus yours, the same rule `warnSpawn`
   // uses for its point mark. The band is drawn at this width and not a pixel narrower: the danger-edge
   // law says a drawing that promises a distance must promise the true one.
-  // SOLVED HERE AND NOWHERE ELSE. The telegraph draws from it, every body is stamped with it, and
-  // `drawCometLanes` reads it back — so the sign the player finds during the warning is the same sign,
-  // in the same place, right up until the last member is on screen.
+  // SOLVED HERE AND NOWHERE ELSE, and then handed to a clock. This is the whole shape of the fix: the
+  // anchor is computed once and becomes a CAUTION — an object with a position and a lifetime — so no
+  // later frame has to re-derive where the sign goes or which shower owns it.
   const sgn=cometAnchor(bodies);
-  // ⚠️ THE TELEGRAPH DRAWS NOTHING ITSELF, and that is the fix for the last flicker. It used to call
-  // `cometSign` directly from here — one sign per WARN, outside the per-side grouping — so a shower
-  // still telegraphing and another already flying on the SAME side each drew their own badge, and the
-  // pair collapsed to one the instant the second spawned. Two marks, then one, at every overlap: which
-  // is exactly "it flickers when multiple comet patterns run in one session".
-  //   A sign is now decided in exactly ONE place (`drawCometLanes`), over both sources — pending warns
-  // and live bodies. Anything that draws its own outside that pass reopens this bug.
+  // ⚠️ THE LIFETIME IS SOLVED, NOT GUESSED, and it encodes the rule `27300ca` exists for: the sign must
+  // outlast the blind stretch between the telegraph firing and the first body becoming visible. `tFirst`
+  // is how long the earliest-arriving member takes to reach the border, so COMET_TEL + tFirst is exactly
+  // "until there is something to see", with the fade on top.
+  if(sgn) cautionRaise(sgn.x, sgn.y, sgn.ux, sgn.uy, sgn.side, COMET_TEL + sgn.tFirst + CAUTION_FADE);
+
+  // The warn still exists — it owns the SPAWN, which is the half `warnForm` is for — but it draws
+  // nothing. The caution above is the entire visual, and it outlives this warn by design.
   const draw=()=>{};
+
   const spawn=()=>{
     for(const b of bodies){
       const e=spawnEnemy('heavy', b.color, b.x, b.y);
       holdBody(e, b.ux*b.sp, b.uy*b.sp, b.hold);
-      if(e){ e.comet=1; e.sgn=sgn; }   // every member carries the SAME anchor object, so it cannot drift
+      if(e) e.comet=1;   // no per-body sign state — the caution is its own object with its own clock
     }
   };
-  const w=warnForm(COMET_TEL, draw, spawn);
-  if(w) w.sgn=sgn;                 // discoverable by the one pass that decides signs
+  warnForm(COMET_TEL, draw, spawn);
 }
 // The comet is NOT in this rotation. In it, one formation in five was a comet, which made it a wave
 // like any other — and a comet should read as a thing that happens to the sky, not as this turn's
@@ -5317,6 +5318,7 @@ function step(){
   // it should be exactly where its sign was for one frame before anything moves it. Ordinary spawns get
   // this for free by arriving off-screen; a telegraphed one has to be given it.
   if(warns.length) stepWarns(dt);
+  if(cautions.length) stepCautions(dt);
 
   stepAnnihilation();
 
@@ -7002,7 +7004,7 @@ function render(){
     if(warns.length) drawWarns();
     // Same layer as the warns, and for the same reason: this IS a warn, continued past the moment
     // `warnForm` hands its bodies over. Guarded on nothing — the loop's own off-screen test is the gate.
-    drawCometLanes();
+    drawCautions();
     drawParticles();
     drawMotes();
     drawEnemies();
@@ -8180,9 +8182,9 @@ function drawParticles(){
 // lasted 1.1s and then took its information away for longer than it had shown it, which is a worse
 // object than no warning at all: it says "something is coming", then refuses to say where, then makes
 // you wait. A telegraph has to last until the thing it announces can be seen.
-//   So the same lane is drawn before the bodies exist (`formComet`'s `warnForm`) and after they do
-// (`drawCometLanes`, below, for any comet still off-screen). One helper, so the two halves cannot drift
-// into drawing different lines for the same flight.
+//   That rule survives, but the mechanism that satisfies it does not: the sign is a CAUTION now, raised
+// once when the pattern fires with a lifetime long enough to cover the gap, rather than something two
+// renderers had to hand off between. See the caution block below for why every derived version flickered.
 // ⚠️ THE EDGE MARK IS THE MESSAGE; THE LANE IS ONLY THE DETAIL. The first pass had this backwards and it
 // read as two violet bands across most of the screen — the band was doing the announcing, which is far
 // too loud for a thing that is not here yet, and it painted over the field you are trying to read. What
@@ -8218,7 +8220,7 @@ function cometEdge(x,y,ux,uy){
   // and a corner entry is indistinguishable from a mid-edge one.
   const cx=x+ux*t, cy=y+uy*t;
   const side = Math.abs(cx-W)<1 ? 'R' : Math.abs(cx)<1 ? 'L' : Math.abs(cy-H)<1 ? 'B' : 'T';
-  return {x:clamp(cx,IN,W-IN), y:clamp(cy,IN,H-IN), side};
+  return {x:clamp(cx,IN,W-IN), y:clamp(cy,IN,H-IN), side, t};   // `t` = distance to entry, for the lifetime
 }
 // ONE SIGN PER SHOWER, NOT ONE PER BODY. Five chevrons stacked within a few pixels of each other is not
 // five times the information — it is a smear on the edge the player is trying to read, and it collides
@@ -8270,63 +8272,49 @@ function cometSign(px,py,ux,uy,a){
 // fastest exactly when the player was busy killing them. A sign that moves is a sign you have to re-find;
 // the whole value of it is that one glance is enough, and that is only true if the second glance lands in
 // the same place. It is stamped onto every body at spawn and read back, so members leaving cannot move it.
-let cometSeq=0;   // announcement order, so a side's representative can be chosen without reading array order
+// ⚠️ A CAUTION IS A TIMED OBJECT, NOT A DERIVED ONE — AND THAT IS THE WHOLE FIX.
+// FOUR versions of this sign flickered, and every one failed the same way: the mark was RECOMPUTED each
+// frame from a set that changes each frame — which comets are alive, which are still off-screen, which
+// group is "first", which shower owns a side. Each fix removed one source of churn and the next
+// frame-derived quantity took over. There is no stable answer down that road, because the inputs are not
+// stable. Author, correctly: "can we show caution sign when initiating pattern, not comet-based?"
+//   A caution is raised ONCE, when the pattern fires, exactly like a `warn`: a position, a heading and a
+// clock. Nothing recomputes it, so nothing can disagree with it frame to frame. It is also the honest
+// object — what is announced is the PATTERN, which happens once, not the bodies, which come and go.
+// `warnSpawn` and `warnForm` are this shape for the same reason; this is the third member of that family.
+//   ⚠️ ONE PER SIDE, BY REFRESH RATHER THAN BY GROUPING. A second shower entering the same border does
+// not add a mark, it re-arms the one already there — which caps the screen at four with no per-frame
+// bookkeeping at all, and is also true: two crossings from the right are one fact to the player.
+const cautions=[];
+const CAUTION_FADE=0.45;   // seconds of fade at the END, so it leaves rather than vanishing
+function cautionRaise(x,y,ux,uy,side,secs){
+  const c=cautions.find(c=>c.side===side);
+  if(c){ c.x=x; c.y=y; c.ux=ux; c.uy=uy; c.life=Math.max(c.life,secs); c.max=Math.max(c.max,secs); return c; }
+  const n={x,y,ux,uy,side,life:secs,max:secs};
+  cautions.push(n); return n;
+}
+function stepCautions(dt){
+  for(let i=cautions.length-1;i>=0;i--){ const c=cautions[i]; c.life-=dt; if(c.life<=0) cautions.splice(i,1); }
+}
+function drawCautions(){
+  if(!cautions.length) return;
+  ctx.save();
+  // Full strength for its whole life, fading only at the last moment. A mark that ramps the whole way
+  // spends most of its time too dim to be the thing it exists to be.
+  for(const c of cautions) cometSign(c.x, c.y, c.ux, c.uy, clamp(c.life/CAUTION_FADE,0,1));
+  ctx.restore();
+}
 function cometAnchor(lanes){
-  let sx=0, sy=0, ux=0, uy=0, n=0, side=null;
+  let sx=0, sy=0, ux=0, uy=0, n=0, side=null, tmin=Infinity, spmin=1;
   for(const l of lanes){
     const e=cometEdge(l.x,l.y,l.ux,l.uy); if(!e) continue;
     sx+=e.x; sy+=e.y; ux+=l.ux; uy+=l.uy; n++;
-    if(!side) side=e.side;          // one shared heading, so the members agree; first is representative
+    if(!side) side=e.side;                   // one shared heading, so the members agree
+    if(e.t<tmin){ tmin=e.t; spmin=l.sp; }    // the FIRST body to arrive sets how long the sign is needed
   }
   if(!n) return null;
   const m=Math.hypot(ux,uy)||1;
-  return {x:sx/n, y:sy/n, ux:ux/m, uy:uy/m, side, id:++cometSeq};
-}
-function drawCometLanes(){
-  ctx.save();
-  // ⚠️ ONE SIGN PER BORDER SIDE — at most four, however many showers are in the air. This has now been
-  // wrong in both directions. It began as ONE sign total, taking the first anchor found while walking
-  // `enemies`: with two crossings live that picked whichever group came first in an array whose order
-  // changes as bodies spawn and are culled, so the badge flickered between them. Grouping per SHOWER
-  // fixed the flicker and created the opposite failure — ten showers fired in a row put ten badges on
-  // the border, which is a wall, not a warning.
-  //   The side is the right grain because it is the read the sign exists to deliver: *comets, from the
-  // right.* Two showers entering stage right are one fact to the player, not two.
-  //   ⚠️ THE REPRESENTATIVE IS CHOSEN BY `id`, NEVER BY POSITION IN `enemies`. That is the whole lesson
-  // of the first bug: any ordering derived from the entity array is re-derived every frame and will
-  // change under you. Lowest id is the earliest-announced group still live on that side, so the mark
-  // holds still while that shower lasts and moves only when it finishes — an event, not a flicker.
-  const sides=new Map();
-  // BOTH SOURCES, ONE PASS. A shower is announced by a warn and then flown by bodies; the sign has to be
-  // the same mark across that handoff, and it can only be that if one pass sees both. The warn's alpha
-  // is its own progress (0 at the announcement, 1 at arrival), which is exactly where the live side's
-  // alpha starts, so the two meet at the same brightness.
-  for(const w of warns){
-    if(!w.sgn) continue;
-    const a=clamp(1-w.life/w.max,0,1), k=w.sgn.side||'?', cur=sides.get(k);
-    if(!cur) sides.set(k,{s:w.sgn, a});
-    else { cur.a=Math.max(cur.a,a); if(w.sgn.id<cur.s.id) cur.s=w.sgn; }
-  }
-  for(const e of enemies){
-    if(!e.comet || e.dead || !(e.hold>0)) continue;
-    const sp=Math.hypot(e.fvx||0, e.fvy||0); if(sp<0.01) continue;
-    // ⚠️ OFF-SCREEN ONLY, and it self-terminates — no timer, no flag to clear. Once the body is in frame
-    // it IS its own sign, and this file's rule is that a body arriving on a mark is drawn OVER it; a lane
-    // still under a visible comet would be the sign competing with the thing it announced.
-    const dx=Math.max(0,-e.x,e.x-W), dy=Math.max(0,-e.y,e.y-H), out=Math.hypot(dx,dy);
-    if(out<=e.r) continue;
-    // Full strength while it is far — so it takes over from the telegraph at the same brightness the
-    // telegraph ended on — then fades across the last 140px, which is the body's own entrance.
-    const a=clamp(out/140,0,1);
-    if(!e.sgn) continue;
-    const k=e.sgn.side||'?', cur=sides.get(k);
-    // Brightness is the side's MAX, so a shower nearly in does not dim a warning just announced beside
-    // it; the anchor is the side's LOWEST id, which is stable frame to frame.
-    if(!cur) sides.set(k,{s:e.sgn, a});
-    else { cur.a=Math.max(cur.a,a); if(e.sgn.id<cur.s.id) cur.s=e.sgn; }
-  }
-  for(const {s,a} of sides.values()) cometSign(s.x, s.y, s.ux, s.uy, a);
-  ctx.restore();
+  return {x:sx/n, y:sy/n, ux:ux/m, uy:uy/m, side, tFirst:tmin/(spmin*60)};
 }
 function drawWarns(){
   for(const w of warns){
@@ -8985,7 +8973,7 @@ function startRun(mode, startAct){
   enemies=[];parts=[];texts=[];killQ=[];
   // ⚠️ A warn holds a PENDING SPAWN, so leaving one alive across a reset would drop a body into the next
   // run out of nowhere — the exact thing the mark exists to prevent, wearing its own sign.
-  warns.length=0;
+  warns.length=0; cautions.length=0;
   spawnTimer=0;elapsed=0;biasTimer=0;spawnBias=Math.random()<0.5?'red':'cyan';
   combo=0;peakCombo=0;streakTier=0;
   resetAchvCounters();   // one call; see the note on AC for why they are not a dozen loose lets
@@ -10325,6 +10313,10 @@ window.__orbital=window.__polaris=window.__flux={
   // `warns` until it resolves — so both the list and the primitive are exposed: without them, "does the
   // sign match the body it promised" is unaskable from outside.
   get warns(){return warns;}, warnSpawn, WARN_T,
+  // The comet caution list. Exposed because "does the sign hold still" is a question about a SEQUENCE of
+  // frames, and the only honest way to ask it is to sample the state that drives the draw — four
+  // versions of this flickered and every one of them looked fine in a screenshot.
+  get cautions(){return cautions;}, CAUTION_FADE,
   killBoss:()=>{ if(boss) killBoss(boss); },
   spawnEnemy, ETYPE,
   get motes(){return motes;}, KILL_SCORE, MOTE_SCORE,
