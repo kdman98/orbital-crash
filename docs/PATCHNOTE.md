@@ -44,6 +44,18 @@ and now consumes six, and the Comet's draws are resolved a beat earlier — so t
 fingerprints move without any behaviour regressing. That is the documented property of any change that
 adds or removes an RNG-consuming call, not a regression.
 
+### The warning sign stops walking, and it is brighter `v2`
+⚠️ **The anchor was the mean of whichever members were still off-screen *this frame*** — so it moved every
+time a comet entered the arena or was destroyed, which means it moved **fastest exactly when the player
+was busy killing them.** A sign that moves is a sign you have to re-find, and the whole value of this one
+is that a single glance suffices — only true if the second glance lands in the same place. It is now
+solved once when the shower is announced, stamped onto every body (`e.sgn`, one shared object) and read
+back, so members leaving cannot shift it. Verified across 3 kills and 40 frames of flight: 44 samples,
+**one position**.
+
+Brightness raised on every layer of the badge — base alpha `0.5+0.5a` → `0.74+0.26a`, a shallower pulse
+so it never dips as dark, and a stronger fill, inner rim and streaks.
+
 ### One warning sign, no path — the lane was louder than the thing it warned about `v2`
 The lane version was accurate and unusable: two violet bands across most of the arena, painting over the
 field you are trying to read, with the band doing the announcing for something **that is not here yet.**

@@ -1088,6 +1088,14 @@ it be" is the half you can act on.
 each other is not five times the information — it is a smear on the edge you are trying to read, and it
 collides with the HUD buttons on the right rail.
 
+⚠️ **The anchor is solved ONCE, when the shower is announced, and never recomputed.** It was originally the
+mean of whichever members were still off-screen *this frame* — and that mean moves every time one enters
+the arena or is destroyed, so the badge walked along the border as the shower thinned, and walked fastest
+exactly when the player was busy killing them. **A sign that moves is a sign you have to re-find**, and the
+whole value of it is that one glance suffices — which is only true if the second glance lands in the same
+place. The anchor is stamped onto every body at spawn (`e.sgn`, one shared object) and read back, so
+members leaving cannot move it.
+
 ⚠️ **THE SIGN OUTLIVES THE TELEGRAPH, AND THE FIRST VERSION DID NOT — WHICH WAS WORSE THAN NO WARNING.**
 `warnForm` clears its mark the instant it fires, but a Comet *spawns off-screen*, and `trail` pushes the
 later bodies much further out. Measured at the moment the mark vanished: **4 bodies, 616–691px outside the

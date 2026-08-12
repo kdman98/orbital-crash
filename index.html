@@ -3682,16 +3682,20 @@ function formComet(){
   // The true contact envelope of what is coming — a Brute's hull plus yours, the same rule `warnSpawn`
   // uses for its point mark. The band is drawn at this width and not a pixel narrower: the danger-edge
   // law says a drawing that promises a distance must promise the true one.
+  // SOLVED HERE AND NOWHERE ELSE. The telegraph draws from it, every body is stamped with it, and
+  // `drawCometLanes` reads it back — so the sign the player finds during the warning is the same sign,
+  // in the same place, right up until the last member is on screen.
+  const sgn=cometAnchor(bodies);
   const draw=f=>{
     ctx.save();
-    cometSignFor(bodies,f);          // ONE SIGN, no path — see cometSign
+    if(sgn) cometSign(sgn.x,sgn.y,sgn.ux,sgn.uy,f);   // ONE SIGN, no path, fixed place
     ctx.restore();
   };
   const spawn=()=>{
     for(const b of bodies){
       const e=spawnEnemy('heavy', b.color, b.x, b.y);
       holdBody(e, b.ux*b.sp, b.uy*b.sp, b.hold);
-      if(e) e.comet=1;
+      if(e){ e.comet=1; e.sgn=sgn; }   // every member carries the SAME anchor object, so it cannot drift
     }
   };
   warnForm(COMET_TEL, draw, spawn);
@@ -7977,7 +7981,7 @@ function cometEdge(x,y,ux,uy){
 // with the HUD buttons that live on the right rail. The question a sign answers here is singular:
 // *comets, from over there.* The individual paths are what the lanes are for.
 function cometSign(px,py,ux,uy,a){
-  const pulse=0.74+0.26*Math.sin(elapsed*7), A=(0.5+0.5*a)*pulse;
+  const pulse=0.84+0.16*Math.sin(elapsed*7), A=(0.74+0.26*a)*pulse;
   const V=COL.violet;
   // ---- the arrow, OUTBOARD of the badge and pointing the way they travel ----
   // A mark pointing back at the origin answers "where is it now" — off-screen and unreachable. Pointing
@@ -7987,7 +7991,7 @@ function cometSign(px,py,ux,uy,a){
   ctx.save(); ctx.translate(px-ux*34, py-uy*34); ctx.rotate(Math.atan2(uy,ux));
   ctx.fillStyle=hexA(V,A);
   ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(-7,-8); ctx.lineTo(-7,8); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle=hexA(V,A*0.5); ctx.lineWidth=2.4; ctx.lineCap='round';
+  ctx.strokeStyle=hexA(V,A*0.68); ctx.lineWidth=2.6; ctx.lineCap='round';
   for(let i=0;i<3;i++){ const o=(i-1)*6;
     ctx.beginPath(); ctx.moveTo(-11,o); ctx.lineTo(-11-(9+Math.abs(o)),o); ctx.stroke(); }
   ctx.restore();
@@ -8002,28 +8006,34 @@ function cometSign(px,py,ux,uy,a){
   ctx.lineJoin='round'; ctx.lineCap='round';
   ctx.beginPath();
   ctx.moveTo(0,-R); ctx.lineTo(R*0.92,R*0.68); ctx.lineTo(-R*0.92,R*0.68); ctx.closePath();
-  ctx.fillStyle=hexA(V,A*0.42); ctx.fill();
+  ctx.fillStyle=hexA(V,A*0.60); ctx.fill();
   ctx.strokeStyle=hexA(V,A); ctx.lineWidth=4.5; ctx.stroke();
-  ctx.strokeStyle=hexA('#ffffff',A*0.5); ctx.lineWidth=1.4; ctx.stroke();
+  ctx.strokeStyle=hexA('#ffffff',A*0.75); ctx.lineWidth=1.6; ctx.stroke();
   ctx.fillStyle=hexA('#ffffff',A);
   ctx.beginPath(); ctx.moveTo(0,-R*0.42); ctx.lineTo(0,R*0.14); ctx.lineWidth=3.2;
   ctx.strokeStyle=hexA('#ffffff',A); ctx.stroke();
   ctx.beginPath(); ctx.arc(0,R*0.40,2.1,0,TAU); ctx.fill();
   ctx.restore();
 }
-function cometSignFor(lanes,a){
+// ⚠️ THE ANCHOR IS SOLVED ONCE, WHEN THE SHOWER IS ANNOUNCED, AND NEVER RECOMPUTED. It used to be the
+// mean of whichever members were still off-screen THIS FRAME, and that mean moves every time one enters
+// the arena or is destroyed — so the badge walked along the border as the shower thinned, and walked
+// fastest exactly when the player was busy killing them. A sign that moves is a sign you have to re-find;
+// the whole value of it is that one glance is enough, and that is only true if the second glance lands in
+// the same place. It is stamped onto every body at spawn and read back, so members leaving cannot move it.
+function cometAnchor(lanes){
   let sx=0, sy=0, ux=0, uy=0, n=0;
   for(const l of lanes){
     const e=cometEdge(l.x,l.y,l.ux,l.uy); if(!e) continue;
     sx+=e.x; sy+=e.y; ux+=l.ux; uy+=l.uy; n++;
   }
-  if(!n) return;
+  if(!n) return null;
   const m=Math.hypot(ux,uy)||1;
-  cometSign(sx/n, sy/n, ux/m, uy/m, a);
+  return {x:sx/n, y:sy/n, ux:ux/m, uy:uy/m};
 }
 function drawCometLanes(){
   ctx.save();
-  const still=[]; let far=0;
+  let anchor=null, far=0;
   for(const e of enemies){
     if(!e.comet || e.dead || !(e.hold>0)) continue;
     const sp=Math.hypot(e.fvx||0, e.fvy||0); if(sp<0.01) continue;
@@ -8035,10 +8045,10 @@ function drawCometLanes(){
     // Full strength while it is far — so it takes over from the telegraph at the same brightness the
     // telegraph ended on — then fades across the last 140px, which is the body's own entrance.
     const a=clamp(out/140,0,1);
-    still.push({x:e.x, y:e.y, ux:e.fvx/sp, uy:e.fvy/sp});
+    if(!anchor && e.sgn) anchor=e.sgn;   // the shower's own, stamped at spawn — see cometAnchor
     if(a>far) far=a;                 // the sign keeps the brightness of the FURTHEST member still out
   }
-  if(still.length) cometSignFor(still, far);
+  if(anchor) cometSign(anchor.x, anchor.y, anchor.ux, anchor.uy, far);
   ctx.restore();
 }
 function drawWarns(){
