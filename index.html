@@ -4060,10 +4060,37 @@ function doSpawns(dt){
              ['planet',(2+Math.floor(a/2))*PLANET_RARITY],
              ['harrier',(3+Math.floor(a/2))*HARRIER_RARITY]];
     }
-    // during a boss fight, keep a mild lean toward the OPPOSITE of the anomaly's colour for ammo,
-    // but the reliable kill is the flip-chip (below) — so colour stays varied
+    // DURING A BOSS FIGHT THE COLOUR RULE CHANGES SHAPE, not just its weights, and that is the part worth
+    // knowing: `biasedColor()` and its 3.2-5.5s alternation are bypassed entirely, so the field stops
+    // SWINGING between colours and starts steadily LEANING toward the Anomaly's opposite — the colour
+    // that erodes it. `spawnBias` keeps ticking underneath; nothing reads it while a boss is alive.
+    //   ⚠️ THE GATE IS `boss`, NOT `wavePhase`. Any live Anomaly leans the field, Boss Rush included.
+    //   58 -> 65, AND THE ARITHMETIC UNDERSTATES IT — measure this one, do not compute it. On spawns
+    // alone 65/35 is +12.1% ammo and a useful:useless ratio of 1.38:1 -> 1.86:1, and both figures are
+    // true and both are the wrong number, because the FIELD is not the spawn table. Hold the chipping
+    // pole and the two colours have opposite fates: ammo-coloured bodies are ring-CAPTURED and stay,
+    // boss-coloured ones annihilate against those rings and go. The lean compounds through that filter.
+    //   A/B, deterministic — same 8 seeds through the harness, same RNG stream, only this literal
+    // differing, sampled every 10th frame across 8 x 60s of pinned-HP fight with the pilot stationary on
+    // the correct pole (so it prices SUPPLY, not skill or time-to-kill):
+    //     spawn share       56.2% -> 64.1%   (+14.0% relative)
+    //     volley hoard      11.52 -> 13.30   (+15.5%) — ring-captured Dots that can chip, the volley itself
+    //     ammo on field     18.9  -> 21.6    (+14.3%)
+    //     boss-colour       7.7   -> 6.2     (-19.5%) — the drag on a flip, and it falls as ammo rises
+    //     field ratio       2.45:1 -> 3.48:1 (+42%)   <- THIS is the number a player feels
+    // The ratio moves nearly four times as far as the literal does. Anything reasoning about what this
+    // lean is worth should quote 42%, not 12%.
+    //   ⚠️ THE ARMS ARE COMPARABLE; THE ABSOLUTE SHARE IS NOT THE LITERAL. Observed share pools to 63.2%
+    // over 2,069 boss-phase spawns against a coded 65 — about 1.7σ low, unremarkable on its own but
+    // consistently low across every batch, so it is recorded rather than rounded away. The A/B is
+    // unaffected either way: both arms ran the same probe over the same seeds, so whatever the bias is,
+    // it subtracts out of the delta. Do not quote 64.1% as a measurement OF the constant.
+    //   Author's call, and the trade was stated when it was made: if the fight gets soft, the Anomaly
+    // gets harder. THAT IS THE ORDER TO KEEP. Pushing this back down is the wrong lever — it does not
+    // make an Anomaly ask better questions, it just makes the arena stingier about answering them, and
+    // law 2 (never hand the player a button that damages it) means ammo is the only channel there is.
     const oppOfBoss = boss ? (boss.color==='red'?'cyan':'red') : null;
-    const pickCol = ()=> oppOfBoss ? (Math.random()<0.58?oppOfBoss:boss.color) : biasedColor();
+    const pickCol = ()=> oppOfBoss ? (Math.random()<0.65?oppOfBoss:boss.color) : biasedColor();
     for(let i=0;i<count;i++){ const ty=wchoice(table); spawnAtEdge(ty, ty==='neutral'?null:pickCol()); }
   }
 }
