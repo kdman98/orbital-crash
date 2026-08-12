@@ -4185,9 +4185,15 @@ function stepCharger(e,dt){
 
 // ---- boss "anomaly" ----
 const bossOpp=c=>c==='red'?'cyan':'red';   // the colour that erodes an Anomaly of colour c
-// Anomaly roster — three kinds, one verb each: CROSS the crossfire, CHASE the orbit, DODGE the rings.
-// Three kinds is the ceiling that keeps them distinct: a fourth that fires aimed shots from a hover is
-// the Emitter with a gimmick bolted on, not a fight.
+// Anomaly roster — FOUR kinds, one verb each: CROSS the crossfire, CHASE the orbit, DODGE the rings,
+// and OUTRUN the pull.
+// ⚠️ THE OLD CEILING WAS PASSED, NOT WAIVED, AND ITS TEST IS STILL THE TEST. This read "three kinds is
+// the ceiling that keeps them distinct: a fourth that fires aimed shots from a hover is the Emitter with
+// a gimmick bolted on, not a fight." That is correct and it still stands — which is exactly why the
+// Singularity FIRES NOTHING. It adds no `lances` at all, so it cannot be the Emitter with a gimmick: it
+// is not on the same axis. The first three all ask WHERE ARE YOU STANDING and are answered by moving;
+// this one asks WHETHER YOU CAN STILL GET THERE and is answered by the meter. A fifth has to clear the
+// same bar, and the bar is not "how many" — it is whether the new verb is reducible to an existing one.
 //
 // ⚠️ THESE `tip` STRINGS RENDER ON THE BOSS'S INTEGRITY BAR (see the bossbar draw), so they are the most
 // -read text in the fight and they must describe something the code can actually produce. Twice they

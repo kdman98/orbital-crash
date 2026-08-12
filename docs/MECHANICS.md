@@ -482,6 +482,49 @@ suppressed, so the star does not move at all in the direction you are pointing. 
 **No low-pass, and that is not an omission.** Tilt smoothed because an accelerometer reading is noisy. A
 touch offset is two integers the compositor already resolved. Filtering would buy nothing and cost lag.
 
+#### The two models disagree under an external force, and only a clamp reconciles them
+
+**The mouse is a POSITION control and the stick is a RATE control, and nothing had ever pushed the Star
+before, so it had never mattered.** The moment anything moves the Star that the player did not ask for,
+the two come apart completely:
+
+| retreating from a force | free | under `DRAW_CAP` |
+|---|---|---|
+| mouse, wide pointer gap | **92.3 units/frame, unbounded** | 1.860 |
+| stick, full deflection | 14.00, hard-capped | 1.860 |
+| gap between devices | **3.1–6.6×** | **1.00×** |
+
+Displace the Star and the mouse's gap grows, so its restoring force grows **without bound while the hand
+does nothing**. The stick's offset is measured from the touch origin, not from the Star, so displacement
+produces no extra force at all and a thumb at full deflection has nothing left to give. **A pull sized to
+be escapable on a phone is invisible on a desktop; one sized for the desktop is a cutscene on a phone.**
+
+**Clamping the frame's total displacement is what makes "the player's top speed" a well-defined quantity
+at all** — on mouse there is no such number otherwise — and that is the only reason `DRAW_AWAY` can be
+expressed as a ratio rather than tuned per device. ⚠️ **The clamp is therefore a PREREQUISITE for any
+future force on the Star, not an alternative to one.** With it in place an inward velocity added *after*
+it is device-neutral for free; without it, a force is unbalanceable.
+
+⚠️ **One site covers all three input models, and the site is not arbitrary.** `P.lastX/lastY` are written
+only at the foot of `stepPlayer`, and the only four writes to `P.x/P.y` in the file are the stick, the
+pointer chase, the keyboard nudge and the arena clamp — all above it. So `(P.x-P.lastX, P.y-P.lastY)`
+there is the frame's total input displacement across every device at once. **Anything added later that
+moves the Star must land above that line or it silently bypasses every such effect.**
+
+⚠️ **Clamp first, then tax; the other order is dead code that measures identical.** Every model's raw
+displacement is already far above any sane cap, so taxing before clamping removes a share of a number the
+clamp then discards. It would bite only where the raw move was *under* the cap — taxing a gentle nudge
+and leaving a full-speed retreat alone. Measured before the fix: taxed and untaxed directions both 6.200,
+indistinguishable.
+
+*Pinning the cursor to the Star was considered and is the right diagnosis of the cause* — kill the gap and
+both become rate controls. It is not taken, for two reasons that are not about elegance: Pointer Lock
+hijacks **Esc**, which is the pause key and belongs to the browser once locked, and it removes the
+corner-to-corner flick that ring hysteresis uses to shed a ring. Pinning only the internal `pointer`
+during an effect has a worse release than the thing it fixes — the physical cursor is elsewhere, so the
+next real move snaps — and the floating-origin repair `STICK` uses is **unavailable to a mouse, because
+JS cannot move the OS cursor** and so can never re-centre.
+
 ⚠️ **The utility cluster moved because the partition left it nowhere neutral.** `#muteBtn`, `#motionBtn`
 and `#pauseBtn` were stacked up the right edge at `bottom` 16/58/100 — which is **inside the flip zone**,
 the quarter a thumb taps most, so each was a hole that paused or muted instead of flipping. Mute and
@@ -1189,13 +1232,22 @@ durable claim and it survived the trim; the percentage attached to it did not, a
 commit bodies rather than here. **A number that has been restated once is a number that will be
 restated again** — see *Traps*.
 
-**Three kinds, one verb each** — volleys · chase · ground denial:
+**Four kinds, one verb each** — volleys · chase · ground denial · movement denial:
 
 | | |
 |---|---|
 | **Emitter** | hovers and alternates a six-way **burst** (one arm leads you, the other five close your escape angles) with a sweeping **stream** of leading fans. From Epoch II it also **dashes** |
 | **Sentinel** | circles the arena on a **rate that wanders**, alternating a seeker **pincer** with a rotating **screen** of five nodes on its own body. One beat, one pattern — never both |
 | **Bastion** | telegraphs a collapsing charge-ring, then erupts a **radial wall with one seam** — be in the seam. Between rings it lobs **mines** onto the ground around *you*. Carries less HP: the kind that moves you rather than out-damaging you |
+| **Singularity** | ambles at you forever and **throws nothing**. Breathes matter off itself with the **Wind**, then **Draws**: your top speed is capped and retreating is taxed while it closes. The field kills you, not the body. Epoch III+ |
+
+⚠️ **The roster ceiling was PASSED, not raised, and its test is still the test.** `index.html` argued for
+years that three was the ceiling — *"a fourth that fires aimed shots from a hover is the Emitter with a
+gimmick bolted on, not a fight."* That is still true, and it is exactly why the Singularity **fires
+nothing at all**: it adds no `lances`, so it cannot be the Emitter with a gimmick because it is not on
+the same axis. The first three all ask **where are you standing** and are answered by moving; this one
+asks **whether you can still get there** and is answered by the meter. **The bar is not a count** — it is
+whether the new verb reduces to an existing one. A fifth has to clear the same one.
 
 The first Anomaly of a run is always the **Emitter**, whose opening hex burst teaches the loop. Drawn
 `source-over` inside the additive pass (law 12).
@@ -1338,6 +1390,82 @@ tell you this.
 **Its size is its hitbox** (law 4). Everything follows the one number: the star's contact envelope, the
 volley and grind connect radius, the hunt's contact floor, the bounce-out push, the missile launch
 offset and every shock ring.
+
+#### The Singularity — the field is the weapon
+
+**It throws nothing.** No missile kind, no `lances`, no new dodge vocabulary. What it does is take away
+your ability to answer the ordinary field positionally, and the field does the rest. That is why it can
+be cheap and still be a different fight: the death census already shows ambient Dots killing as often as
+the Anomaly itself, and this kind simply removes your answer to them for a while.
+
+**Three parts.**
+
+- **The amble** — walks at you forever at `SING_FOLLOW` 0.9 against your 14. Not a threat on its own and
+  not meant to be. It buys one thing: you are never far from it when a Draw lands, so **the Draw never
+  has to teleport anything.**
+- **The Wind** — one radial impulse every `WIND_EVERY0`–`WIND_EVERY1`, out to `WIND_R`, with seek
+  suppressed for `WIND_HOLD`. See below for what it does and does not touch.
+- **The Draw** — `DRAW_TEL` of telegraph, then `DRAW_T` of speed cap while it closes at
+  `HUNT_SPD.singularity`. **Its Draw is its Hunt** — it drives `b.hunt` itself and is excluded from the
+  generic hunt scheduler, because it has no station to leave.
+
+**Contact is a rate, not a hit, and that is what makes it legal.** `dmg` is 20 rather than the shared 30,
+set per-kind, and this kind is the only one that **does not recoil** on touching you. Those two facts are
+one decision. The recoil exists because a 30-damage touch that is never consumed is ~37 unanswerable dps
+parked on your skin — the object that branch's own comment forbids. The objection is to a hit you cannot
+answer, not to contact: at 0.9 against your 14, walking off it is always available and always free,
+*outside a Draw*. Inside one it is 20 a window by design, and the answer is the Overdrive that beats the
+cap. ⚠️ **Do not "tidy" the `dmg` back to the shared 30, and do not fold this kind back into the recoil
+branch.** Either alone reintroduces the fault; they only work as a pair.
+
+⚠️ **The amble is a steady state, not an arrival, and conflating them cost a 111px teleport.**
+`stepEnemyForces` ends with `boss.y = Math.max(boss.y, 138)` once `bossTime > 1.6`, keeping the body out
+of the strip its integrity bar lives in. Its comment says it runs *"once its entrance dive is done"* —
+which is an **assumption about every kind rather than something it tests**. The Emitter and Bastion sit
+at y≈141 by then, so the clamp is a no-op for them; a body still climbing gets snapped. Hence
+`SING_ENTRY` / `SING_ENTRY_Y`, and hence the entry drives **`y` at a fixed rate rather than easing toward
+the Star**: an ease has no guaranteed vertical component, so with the Star high and off to one side the
+approach is nearly horizontal and can still be above the floor at 1.6s. Verified position-independent —
+3.4px max frame delta at three Star positions including that worst case, floor cleared at frame 58
+against a guard arming at 96.
+  ⚠️ **The margin on the existing kinds is four frames.** The Emitter clears 138 at frame 92. Nothing is
+wrong today and nothing warns; anything that slows the shared entrance dive reintroduces this teleport on
+the kinds that have always been fine.
+
+#### What the Wind touches, and what it does not
+
+**Not the Star. At all.** The loop walks `enemies`, and the Star is not in that list — measured 0.0000px
+of displacement at 80/200/400/550. It has no damage, no push and no speed term. It reaches you through
+two indirect channels instead, and both were measured rather than intended:
+
+| | |
+|---|---|
+| **your rings** | ejected wholesale inside the reach — 14 → 0, recovered to 14 by ~1.5s. An interrupt, not a strip |
+| **loose matter** | anything between it and you is carried **84–129px toward you**; anything past you gets nothing |
+
+The ring ejection is a consequence of the mechanism rather than a rule: `e.flung` means *not a ring
+member* by construction. `RING_GRACE` reels them back, which is what bounds it. ⚠️ **The reach test is
+per-Dot, not per-player** — your rings orbit ~114px out, so the wave can clip half your ring while
+missing you entirely (measured 7 of 14 at a Star standing outside `WIND_R`).
+
+⚠️ **The Wind did almost nothing on its first build, and this file had already said why.** It added
+velocity and left seek running, on an argument written into its own comment. The Fling's entry states it
+outright: *"seek at zero — dead straight, or its own seek would cancel the impulse and drag it back onto
+the core."* It cancelled — 14.5px at r=60, against a 26px contact diameter. The fix was to take the
+existing `e.flung` path (the same idiom the boss bounce-out already uses at 0.2s), widen the reach and
+soften the falloff exponent to 0.5, since a linear falloff hands a body at 0.9R only a tenth of the push.
+Re-measured: 98.3 / 48.0 / 31.2 / 20.1 px at r = 60 / 140 / 240 / 340.
+
+⚠️ **A cue drawn in the wrong direction is a lie about the mechanic, and this one shipped.** `spawnRing`'s
+default closes from R to a point; only its `out` flag travels outward. So the Wind drew a ring
+**collapsing onto the boss** on the exact frame it threw every Dot away from it. It was wrong twice over,
+because a converging ring is **already a word in this game**: the danger sign converges onto a footprint
+and the mine's arming ring closes to nothing, and both mean *something is arriving here*. The Wind was
+borrowing the vocabulary of its own opposite. `drawParticles` names the right primitive in its own
+comment — `out` is *"the universal read for a detonation."* The two cues are now each other's opposites,
+converging for the Draw and expanding for the Wind, which is the same pairing `inhale`/`release` make in
+the sound bank. **Check a new ring's direction against what the mechanic does, not against what looks
+dramatic.**
 
 ### The Hunt
 Every so often an Anomaly **leaves its station and walks onto your core**. A walk, not a dash — strolling
@@ -1677,6 +1805,13 @@ the meter, which makes it the fallback when you have been stripped of everything
 *No softlock:* the Volley closes all three kinds unaided — measured 53.1s Emitter, 39.8s Sentinel,
 33.4s Bastion. Grind alone takes the Sentinel and the Bastion but **not** the Emitter, which is the kind
 that hovers and shoots you point-blank; holding an orbit against it is the thing that does not work.
+
+⚠️ **"All three" is now literally three of four — the Singularity has never been run against this, and
+it is the kind most likely to break it.** No-softlock is the safety property of this whole section, and
+the new kind changes both terms of it: it is the only one that walks *into* your ring shell continuously,
+which should make the grind far stronger against it, and the only one that caps your speed, which cuts
+how much matter you can gather between Draws. Those pull opposite ways and neither has been measured.
+**Do not read the three numbers above as covering the roster.**
 
 ⚠️ *Those four results predate the pool buff and none has been re-run against it.* The pool doubled at
 Epoch I, so the three times are floors rather than estimates, and **whether grind-alone still closes the
@@ -2843,6 +2978,23 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 
 Things that have cost real time, in this codebase specifically.
 
+⚠️ **A HARNESS THAT CALLS `spawnBoss` DIRECTLY IS NOT IN A BOSS FIGHT, and it will agree with itself
+while it tells you nothing.** `bossTime` advances inside `director()` — the boss-phase branch and the
+Boss Rush branch — so a rig that spawns a boss by hand never accumulates it and never arms anything gated
+on it. That includes the HUD floor clamp, which fires at `bossTime > 1.6`. A kind whose entrance was too
+slow for that clamp traced a **perfectly smooth walk** across every measurement taken this way, eight
+runs of it, and teleported 111px on the first frame a human watched it. The rig was measuring a state the
+game does not run in — the same family as *a constraint derived from a state the game cannot reach*, and
+worse in one respect: that one produces a suspicious number, this one produces a **clean** one.
+**Anything gated on `bossTime`, `wavePhase` or the Director's own state is invisible to a direct spawn.**
+Drive it through `beginTestRun`, or advance the gate yourself and say that you did.
+
+⚠️ **The fingerprint rig invents regressions if you reuse a dirty page.** Re-running the eight-config
+comparison inside a page instance that had already spawned bosses, forced renders and pinned HP reported
+**all 8 MOVED**. On a fresh load with `store.achv` restored per run, all 8 were bit-identical. `.oracle.js`
+restores `achv` per run for exactly this reason and the note there says why; the lesson generalises past
+achievements to any run-scoped state. **A red suite from a page you have been poking is not evidence.**
+
 ⚠️ **Running `.oracle.js` leaves the game muted for every later page load in that profile.** The harness
 clicks the mute button, `toggleMute()` calls `save()`, and `orbitalcrash_mute` persists — so the next
 load builds `master` at `gainNow()`, which is 0. Nothing resets it and nothing reports it. Fingerprint a
@@ -3909,6 +4061,28 @@ Drive `overdrive()` by hand through the seam if you are testing anything downstr
 ## Open
 
 Questions the game has not answered. These are live; everything else in this file is settled.
+
+**🔴 The Singularity has never been played by a human, and three of its claims need one.** Everything
+about it is measured on a scripted rig, and the rig is structurally blind to all three:
+
+- **Does the Draw read as a grab, or as input lag?** It is a *speed cap*, so what it subtracts is exactly
+  what a dropped frame or a stuck pointer subtracts. The telegraph and the `inhale` are what separate the
+  two, and whether they do is a feel judgement no bot makes. ⚠️ If it reads as lag, the fix is **not** a
+  bigger cap — it is a real inward force on top of the clamp, which the clamp already makes portable.
+- **Is the top-right Overdrive zone reachable in time on a PORTRAIT phone browser?** The Draw's answer is
+  Overdrive, so this is the first mechanic that makes the portrait question a **correctness** issue rather
+  than an ergonomic one. *Touch* already records that the top-right argument is a landscape argument and
+  that the web is "settled by nothing"; native is landscape-locked and fine.
+- **Does the Draw have a persistent cue at all?** It does not. Onset gives a converging ring and a sound;
+  while the cap is up, nothing on screen says so. That is the same defect this file records against
+  `⚡ OVERDRIVE READY ⚡` — *a cue for a state that persists must itself persist*. Law 3 forbids drawing the
+  radius, so it has to ride the disc art's brightness, which is law 5's state channel. **Known and not
+  done**, rather than overlooked.
+
+**🟡 Does the Singularity break no-softlock, in either direction?** It is the only kind that walks *into*
+your ring shell continuously, which should make the grind far stronger against it, and the only one that
+caps your gathering speed, which should make it weaker. Those pull opposite ways, neither is measured,
+and the three TTK figures under *Erosion* cover the other kinds only. See the ⚠️ there.
 
 **🟢 ANSWERED FOR A COMPOSITED RIG, 2026-08-11 — still open for phone hardware.** The sky cache is worth
 **~13fps**: 56.0 against 42.5 in the same menu scene on the iPhone 17 Pro simulator, via the
