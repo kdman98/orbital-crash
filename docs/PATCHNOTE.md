@@ -12,6 +12,317 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-12
+
+### The fourth Anomaly restricts movement, and one clamp makes that mean the same on a mouse and a thumb `v2`
+The parked `bossBody` arm is reachable at last. **The Singularity** ambles at you forever, breathes matter
+off itself with the **Wind**, and periodically **Draws** — a speed cap plus a tax on retreating, while it
+closes. Its verb is restricting movement, so the thing that kills you is the **field**: the other three
+kinds ask where you are standing, this one asks whether you can still get there. It **throws nothing**,
+which is how it clears the roster ceiling rather than waiving it — the old argument was that a fourth kind
+firing aimed shots from a hover is the Emitter with a gimmick, and that is still true, so this one is not
+on that axis at all. Contact is 20 rather than 30 and it is the only kind that does not recoil; those two
+are one decision, not two.
+
+⚠️ **The Draw is a cap rather than a force, and that is what makes it portable.** Retreating, a mouse at a
+wide pointer gap moves **92.3 units/frame and is unbounded**, a thumb at full deflection **14.00** and is
+hard-capped — because one is a position control whose restoring force grows with the gap while the hand
+does nothing, and the other is a rate control with nothing left to give. A pull sized for a phone is
+invisible on a desktop. Clamping the frame's *total* displacement is what makes "the player's top speed"
+a defined quantity at all, and it is the only reason the retreat tax can be a ratio. Measured after:
+**1.860 on both devices, a 1.00× gap.** The clamp is therefore a prerequisite for any future force on the
+Star, not an alternative to one.
+
+⚠️ **Three faults, each found by measuring rather than reading, and each already answered somewhere in the
+repo.** *Clamp-before-tax* was dead code that measured identical — every raw displacement is above the
+cap, so taxing first removes a share of a number the clamp discards, and it would have bitten only below
+the cap, taxing gentle movement and leaving full-speed retreat alone. *The Wind did nothing* (14.5px at
+r=60, against a 26px contact) because it left seek running — which the Fling's own entry in MECHANICS
+already forbids in as many words; it now takes the existing `e.flung` path and measures 98.3px. *The push
+drew itself pulling*: `spawnRing`'s default converges, and a converging ring is already this game's word
+for **arrival** — the danger sign and the mine's arming ring both mean it — so the cue was borrowing the
+vocabulary of its own opposite. Author: *"push telegraph is pulling."*
+
+`inhale` and `release` were **orphans** in the sound bank, defined with no call site anywhere. Taken as
+the kind's matched pair, which is what the sound rule prefers over two variations on one idea.
+
+**Proven inert until a Singularity spawns:** ambient / emitter / sentinel / bastion × 2 seeds × 900
+frames, all 8 bit-identical to the pre-change build. That needed the two new `rand()` calls guarded on
+the variant — unconditional in the shared boss literal they drew from the seeded stream on *every* spawn
+in the game and moved all three existing kinds.
+
+### The Singularity gets an entrance, because the amble was still above the HUD floor when the clamp armed `v2`
+Reported as a teleport at the start of the fight, and it was: **111.6px in one frame, at frame 96 =
+1.600s exactly**, against the Emitter's 3.4px. `stepEnemyForces` clamps `boss.y` to ≥138 once
+`bossTime > 1.6`, and its comment says it runs *"once its entrance dive is done"* — an **assumption about
+every kind rather than something it tests**. The Emitter and Bastion sit at y≈141 by then so it is a
+no-op for them; the Singularity ambles at 0.9 and was at y≈13. The amble was doing two jobs and is only
+good at the second: it now has an entrance, and only ambles once on station.
+
+⚠️ **The entry drives `y` at a fixed rate rather than easing toward the Star**, because an ease has no
+guaranteed vertical component — with the Star high and off to one side the approach is nearly horizontal
+and can still be short of the floor at 1.6s. Verified position-independent: 3.4px max frame delta at three
+Star positions including that worst case, floor cleared at frame 58 against a guard arming at 96.
+
+⚠️ **It reproduces only in real play, which is why it shipped.** `bossTime` advances inside `director()`,
+so a harness calling `spawnBoss` directly never arms the guard and traces a perfectly smooth walk — eight
+times. The rig agreed with itself while measuring a state the game does not run in. ⚠️ **And the margin on
+the existing kinds is four frames**: the Emitter clears 138 at frame 92. Nothing is wrong today and
+nothing warns.
+
+### The Sentinel throws two patterns on one beat, and never both at once `v2`
+It had **one** firing routine and had never had more — `firePincer` on a free timer, no branch, no
+alternation, no Epoch escalation past one extra Dart. It was also the only Anomaly whose fire **never
+aimed**: `hexRot += 0.7` is a blind 40° precession with no term for where you are standing. The seeker's
+own homing hid that for months, because the missile corrects for a launch bearing that means nothing.
+
+**The swarmer trail is out, and the orbit screen replaces it** — five nodes that open to 340px, ride the
+boss for 3.2s, then sling off on the tangent. The trail's defence was *"half threat, half ammo"*, but
+`doSpawns` never pauses for a boss and already leans 65% to the Anomaly's opposite colour, so it topped up
+a supply that was never interrupted. As a *pattern* it asked nothing the ambient swarm was not asking.
+
+**One inner timer.** `fireT` is the only firing clock; `pinLeft` (rolled `irand(1,3)`) counts the pincers
+owed before a screen, and a screen consumes its own duration out of the next gap. ⚠️ **The first version
+kept two timers and had the screen suppress seeker fire — and that measured perfectly, zero seekers born
+during any screen, and was still wrong.** Suppression only stops the pattern that has not started; a
+seeker fired 0.2s before a screen opens is in the air for its whole 9.6s life. Author: *"Two patterns are
+done together currently."* The question was never what the timers allow, it was what they schedule.
+
+Seeker tracking 0.85 → **1.45** (turn authority 160° → **274°**), and the arena orbit rate now wanders in
+`[0.40, 0.50]` instead of sitting on 0.40.
+
+**The hunt telegraph was lying, for one kind of three.** The dashed line to the Star is true of the
+Emitter and the Bastion — they hunt with `b.x += dx/d*s`, literally that line. The Sentinel spirals and
+never flew it. It now draws the **circle it is actually coming around**, collapsing to contact.
+
+Measured, 300s, boss pinned, Epoch II pace: **24.0 seekers/min** (23.3 before any of this, 14.8 at strict
+alternation) · screen every **10.9s** · **0** pincers launched during a live screen · min gap between any
+two patterns **2.0s**. ⚠️ Two estimates came in low and both had one cause: a deferred screen fires a
+pincer *without* spending `pinLeft`, so hunt deferrals add pincers on top of the roll. `SEN_PIN` must be
+measured, not solved.
+
+⚠️ **`2e73c06` carries two blank-line deletions in `formComet` that are not mine.** They were another
+session's uncommitted whitespace tidy, and I swept them in by finishing with `git commit --only
+index.html` — **`--only` takes the content from the WORKING TREE and silently discards what you staged**,
+so a carefully filtered index counted for nothing. The commit was pushed before I noticed, so it stands
+rather than being rewritten: force-pushing a shared branch over two blank lines is the worse trade. The
+change is applied and not lost, only misattributed. *Use `git add` + a pathless `git commit` when
+splitting a contended file; `--only` and `--include` both re-read the working tree.*
+
+### A Neutral sheds both colours, and the Comet announces itself `v2`
+**A Neutral drops one red Mote and one cyan.** It wears both poles and is the one Dot the colour law does
+not reach, so *"the colour of the Dot that died"* has no single answer for it — one of each is the same
+rule every other species follows rather than an exception to it. It used to shed **nothing**, which was
+the other way of answering an unanswerable question and made the only Dot you kill with a reversal the
+only Dot that paid no loot for it. It is now also the one drop that **cannot be the wrong colour**:
+ordinary Motes carry the dead Dot's charge, so through hold-a-pole play most sit inert, while a Neutral
+always leaves one you can hoover on the polarity you are already holding.
+
+**The Comet is telegraphed** (`COMET_TEL` 1.1s) — and it is the arrival that most needed it. The Drift's
+note has long said every other spawner *"is fair by geometry (off-screen, past the corner, from an edge)
+and so never needed a warning."* The Comet is off-screen too, and that is precisely what made it unfair:
+at `COMET_SPD` **7.6**, four times a Drifter's cruise, off-screen buys about **0.2s** where an ordinary
+arrival gives a second. **Distance is only fair when it converts into time.**
+
+⚠️ **A lane, not a point, and that chose the primitive.** `warnSpawn`'s converging ring answers "a body
+will be *here*", the wrong question for a threat whose shape is a line across the arena — and five point
+marks along one edge say nothing about where any of them is going. `warnForm` is right for the same
+reason the Cross uses it: the shape draws its own mark **and owns its own spawn**, so the geometry is
+solved once and the lane drawn comes from the very numbers the bodies will fly. **A sign computed
+separately from the thing it promises is a sign that can be wrong.** Band at the true contact envelope
+(`ETYPE.heavy.r + P.r`) per the danger-edge law; dashes travel along the heading, because a static line
+states a place and omits the half you act on. The lead resolves at telegraph time, so a shower arrives
+aimed where you stood ~1.1s ago — move once the lanes are drawn and you have dodged.
+
+⚠️ **The oracle cannot certify this.** Both changes add and move `rand()` calls — a Neutral consumed none
+and now consumes six, and the Comet's draws are resolved a beat earlier — so the seeded stream shifts and
+fingerprints move without any behaviour regressing. That is the documented property of any change that
+adds or removes an RNG-consuming call, not a regression.
+
+### The caution is raised when the pattern fires, not derived from the comets `v2`
+⚠️ **Four versions of this sign flickered and every one failed the same way.** The mark was recomputed
+each frame from a set that changes each frame — which comets are alive, which are still off-screen, which
+group is "first", which shower owns a side. Each fix removed one source of churn and the next
+frame-derived quantity took over. **There is no stable answer down that road, because the inputs are not
+stable.** Author: *"can we show caution sign when initiating pattern, not comet-based?"*
+
+That is the correct object and a **smaller** one. A caution is raised once at `formComet` with a
+position, a heading and a clock — the same shape as `warnSpawn` and `warnForm`, and the third member of
+that family. Nothing recomputes it, so nothing can disagree with it. One per side, by **refresh** rather
+than grouping: a second shower on the same border re-arms the existing mark instead of adding one.
+
+Deleted with it: `cometSeq`, the per-body `e.sgn` stamp, the warn's `w.sgn`, the two-source grouping pass
+and `drawCometLanes` — every mechanism that existed to make a derived value hold still.
+
+**The lifetime is solved, not guessed:** `COMET_TEL + tFirst + CAUTION_FADE`, `tFirst` being how long the
+earliest-arriving member takes to reach the border. Over six runs the first body becomes visible at frame
+66–93 and the caution expires at 94–123, so the sign outlives visibility by ~30 frames every time — the
+blind-gap property from `27300ca` survives the rewrite.
+
+Measured: 480 frames, ten patterns through one run — **max 3 signs, zero reversals**, clears at the end,
+and **zero position changes** across a caution's 108-frame life.
+
+*One test of mine was wrong before the code was:* a first pass reported 33 blind frames, which turned out
+to be counting comets **leaving** on the far side, where no warning is owed. The direct measurement above
+replaced it.
+
+### The telegraph drew its own sign, so overlaps flickered `v2`
+The last one. `formComet`'s `warnForm` called the mark **directly** — one sign per *warn*, outside the
+per-side grouping — so a shower still telegraphing and another already flying on the **same side** each
+drew a badge, and the pair collapsed to one the instant the second spawned. **Two marks, then one, at
+every overlap**, which is why it only showed once several comet patterns ran in a single session.
+
+`drawCometLanes` now walks **both** sources in one grouping pass: pending warns and live bodies. The
+warn's alpha is its own progress — 0 at the announcement, 1 at arrival — which is exactly where the live
+side's alpha starts, so the handoff meets at the same brightness with no step.
+
+⚠️ **There is now exactly one `cometSign` call site, and that is what makes the measurement mean
+anything.** Signs drawn per frame therefore equals the number of side entries, so counting the grouping
+counts the drawing. Measured over 400 frames with ten showers fired through a run so telegraphs and live
+crossings overlap constantly: **max 3 signs, 20 set changes, zero reversals.**
+
+*Diagnosed from a 3.8MB Save-Page-As capture, which could not show the flicker — the sign is on the
+canvas — but did settle the question that mattered: it carried `sides=new Map()`, `cometSeq` and
+`SIGN_R=23`, confirming the report was against the current build and not a stale one.*
+
+### One sign per border side, not per shower `v2`
+Ten comets fired back to back put **ten badges on the border.** Per-shower grouping was the fix for the
+original flicker and it created the opposite failure: a wall of marks instead of a warning.
+⚠️ **The side is the right grain**, because it is the read the sign exists to deliver — *comets, from the
+right* — and two showers entering stage right are one fact to the player, not two. At most four signs now,
+however many showers are in the air.
+
+The side is recorded **before** the inset clamp: every crossing lands exactly on a border, so the
+un-clamped coordinate says which one, and after clamping a corner entry is indistinguishable from a
+mid-edge one. ⚠️ **The side's representative is chosen by announcement `id`, never by position in
+`enemies`** — that is the whole lesson of the first flicker: any ordering derived from the entity array is
+re-derived every frame and changes under you. Lowest id is the earliest-announced group still live on that
+side, so the mark holds still while that shower lasts and moves only when it finishes.
+
+Measured with **ten showers airborne across three sides**, entity array churned by a kill every fourth
+frame over 120 frames: **three signs at once, four set changes, zero reversals** — the set only ever
+shrinks as a group finishes, which is the signature the flickering versions did not have.
+
+### Two showers, two signs — and the mark is bigger `v2`
+⚠️ **`6724ab2` carries someone else's change and does not mention it.** Of its 202 added lines, about
+**seven** are this entry's; the rest is the Epoch cue and the `--grantop` grant overlay, swept out of a
+shared working tree by a `git add index.html` and pushed under a subject about comet signs. Nothing was
+lost or broken — but `git show 6724ab2` is not the long version of *either* change, and the Epoch cue has
+no commit body at all. Read this entry for the sign, and the *Epoch cue* material in MECHANICS for that.
+*The rule this broke is already in this repo twice over:* an explicit path takes every hunk in the file,
+so a contended file is staged hunk-level or not at all. What disarmed it was a `git status` run minutes
+earlier showing only my own files — **true when it ran, false by commit time**, which is the very hazard
+the check exists to catch. Run it inside the same block as the `git add`, and never let "this edit is
+small" decide the staging method: the method guards against the *other* session's write, whose size has
+nothing to do with yours.
+
+⚠️ **The live renderer took the *first* anchor it found in `enemies`.** With two crossings overlapping,
+that picked whichever group came first in an array whose order changes as bodies spawn and are culled —
+so the single badge **flickered between the two crossings**, and carried the brighter of their two alphas
+into whichever it landed on. Members of one shower share the same `sgn` **object**, so grouping is by
+object identity and needs no id; each group now keeps the brightness of its own furthest member, so a
+shower nearly on screen does not ride on one just announced. Verified with two overlapping showers and
+the array churned by kills: two anchors on opposite edges, and the drawn set only **shrinks** as a group
+finishes — it never alternates.
+
+**`SIGN_R` 17 → 23**, and every dimension now derives from it — arrow offset, arrowhead, streaks, bang,
+and the `cometEdge` inset (`SIGN_R*4`). The previous resize meant re-finding each by eye, and the inset
+is the one where being wrong is invisible on three of the four entry sides.
+
+### The warning sign stops walking, and it is brighter `v2`
+⚠️ **The anchor was the mean of whichever members were still off-screen *this frame*** — so it moved every
+time a comet entered the arena or was destroyed, which means it moved **fastest exactly when the player
+was busy killing them.** A sign that moves is a sign you have to re-find, and the whole value of this one
+is that a single glance suffices — only true if the second glance lands in the same place. It is now
+solved once when the shower is announced, stamped onto every body (`e.sgn`, one shared object) and read
+back, so members leaving cannot shift it. Verified across 3 kills and 40 frames of flight: 44 samples,
+**one position**.
+
+Brightness raised on every layer of the badge — base alpha `0.5+0.5a` → `0.74+0.26a`, a shallower pulse
+so it never dips as dark, and a stronger fill, inner rim and streaks.
+
+### One warning sign, no path — the lane was louder than the thing it warned about `v2`
+The lane version was accurate and unusable: two violet bands across most of the arena, painting over the
+field you are trying to read, with the band doing the announcing for something **that is not here yet.**
+⚠️ **A warning about a thing that has not arrived must not cost more attention than the thing.**
+
+What replaces it is one glance — *comets, from the right.* A **single badge at the border crossing**: a
+rounded triangle with a bang, an arrow outboard of it pointing the way they travel, speed streaks behind
+it. **Only the arrow rotates** — a warning triangle is a read, not a vector, and a bang turned with the
+heading hangs upside down on a right-to-left crossing and stops being an exclamation mark. **One sign per
+shower**, at the mean of its members' border crossings: five badges within a few pixels is a smear on the
+edge you are reading, and it collides with the HUD buttons on the right rail.
+
+⚠️ **Two geometry bugs, each invisible except on one entry side.** The border solve is a slab test and the
+obvious version is wrong at a corner — smallest positive `t` per axis crosses `x=W` while the body is
+still above the top edge, so a shower from the top right planted its sign on the **bottom** border; entry
+is the **max** of the near times. And the inset has to cover the whole mark rather than the badge: the
+arrow sits 34 outboard plus tail and streaks, ~62 past the centre, on exactly the edge with no room.
+Written as 26 (bang invisible), then 62 (streaks clipped), now 92.
+
+### The Comet's lane outlives its telegraph `v2`
+The first version marked **only the entry**, and that was worse than no warning. `warnForm` clears its
+mark the instant it fires, but a Comet spawns off-screen and `trail` pushes later bodies much further
+out — measured at the moment the lanes vanished: **4 bodies, 616–691px outside the viewport, 1.63s of
+blind time** before the first was visible. A 1.1s warning that then withdraws its information for longer
+than it showed it says *something is coming*, refuses to say where, and makes you wait.
+⚠️ **A telegraph has to last until the thing it announces can be seen.**
+
+Same lane now drawn from two places — `warnForm` before the bodies exist, `drawCometLanes` after, for any
+Comet still off-screen — through one shared `cometLane` helper so the halves cannot drift into drawing
+different lines for one flight. It self-terminates on the off-screen test rather than a timer: in frame,
+a body *is* its own sign. Re-measured: **0 blind frames**, 66 of telegraph handing to 176 of live lane.
+
+### The Wish is out of the live path, one commit after landing `v2`
+Played, and it **cuts the tempo of the whole game**. An auto-opening picker in a game whose texture is
+continuous stops the run several times a minute, and ⚠️ **no threshold fixes the shape of that** — the
+interruption is the pause itself, not its frequency, so pricing it higher only changes how often you are
+stopped. That is a verdict about *when a choice may interrupt*, not about the four effects or the numbers,
+and it is the question any second attempt has to answer before either of those matter.
+
+⚠️ **Deleted, not flagged off, and that is this file's own rule.** `0b408c4` removed 245 lines of arsenal
+that had been *"written, tuned, switched off"* and said why: **git keeps them instead.** A mechanic parked
+behind a false constant is precisely what that commit exists to prevent — nothing runs it, nothing checks
+it, and the next reader cannot tell whether it still works. **The working copy is `fdcafc1`**, whole and
+verified; `git show fdcafc1` restores it, and the entry below is its argument.
+
+**Kept from `fdcafc1`, both independent of the Wish:** the Neutral shedding one Mote of each colour, and
+the Comet telegraph. `MOTE_SCORE` never changed, so scoring is exactly where it was.
+
+### The Wish: Motes bank into called help `v2`
+Motes now also bank; at `WISH_COST` the bank opens a picker by itself and you call for help — **Allies**
+(matter arrives in your polarity), **Integrity**, **Shockwave** (arena-wide push, never an erase) or
+**Gilded Storm**. An experience-bar gauge across the top reports progress as a *length*, never a count.
+
+⚠️ **Not the powerup roster returning.** `0b408c4` deleted 245 lines of arsenal, and those were **dormant
+passive flags** — `P.*` fields set by a pickup and read forever after. A Wish is **instant**, bought with
+a banked resource and spent on choosing. It must stay instant: the moment one leaves a lasting `P.*`
+behind, that argument stops being true.
+
+**It clears the bar the last Mote bank failed.** `motesBank` fed `mult` and went in `71c961e` for
+measuring bimodal (median ×1.9 with hits, ×15 in 46s without, nothing between, 1.30× total effect). The
+bar set there is *"it must separate outcomes, not decorate them"* — a Wish changes whether you live, and
+it inverts the old halve-on-hit coupling that drained the resource of the player already struggling.
+
+**No input of its own and no dismiss**, both forced rather than chosen: touch is a full partition with no
+fourth zone, and the picker opens *because* the bank is full, so a close that spent nothing would re-open
+on the next Mote.
+
+⚠️ **Every constant is a placeholder.** Nothing has measured Mote income in this build; the only figure
+that exists is the 761-in-a-clean-run from `71c961e`, which predates the −20% damage pass and was one
+reading — pricing on it is `759ae0f`'s trap verbatim. `MOTE_SCORE` is deliberately **not** removed:
+score has two persisted consumers, and `71c961e` shows the right way to cut a term is to reprice the
+flat values against the measured median.
+
+*Two bugs caught by the tests rather than by reading:* `startRun` cleared every overlay except this one,
+so a picker could sit over a live run doing nothing (`pickWish` guards on state, and the state had moved
+on); and the card row used `max-width` under an `align-items:center` parent, which is shrink-to-fit — it
+settled at 570px against an 804px cap and wrapped 3+1 while reading as though it had room. **The same
+mechanism was written into `.chiplog.slide` earlier the same day and writing it down did not prevent
+repeating it two hundred lines away.**
+
+---
+
 ## 2026-08-11
 
 ### Tilt is removed outright, because the control it would come back to no longer exists `v2-ios`
@@ -83,6 +394,238 @@ there is no speed here. Overdrive lifting a displacement would change the contro
 ⚠️ **Not yet felt on the device.** The numbers are exact and the model is right; whether 1.6 is the right
 gain is a hand judgement. It is a live object, so the probe can sweep it between runs
 (`__orbital.STICK.gain=2.2`) rather than costing a rebuild per guess.
+
+### The sky cache has a number at last, and it is half the size it was `v2`
+**The open question is answered for a composited rig.** `__orbital.probe()` — a frame-interval instrument
+that flushes to `localStorage` so a later launch reads it and nothing touches the machine mid-measurement
+— gives the sky cache **~13fps** on the iPhone 17 Pro simulator: **56.0fps against 42.5** in the same
+menu scene at `every=8` vs `every=1`. It also confirms the software-raster claim the file has leaned on
+for months: with **27 entities on field, cached frames still held 61fps, p95=17ms, 0.2% over 20ms.** The
+play layer really is nearly free; the background really was all of it.
+
+⚠️ **This does not close the open item, for the reason that item already gave itself.** The simulator
+composites — the defect that voided every earlier attempt — but it draws on the host Mac's GPU, and the
+cache was bet on fill-rate-bound phone silicon. The paragraph predicting exactly this was written before
+the run and is kept.
+
+**A repaint cost +6.7 to +10.8ms over a cache hit, and an Act transition pays it on EVERY frame** for the
+150–176 frames `easePalette` takes to close — four times a lap, measured at **42fps sustained**. That was
+the finding the rest of this entry fixes.
+
+**`SKY.scale=0.5` — the cache is painted at half linear resolution and stretched on the blit**, a quarter
+of the pixels. Legal only because `paintSky` is eight full-screen fills that are *all* smooth gradients
+(a radial base, five clouds, a linear haze, the vignette — not the "gradient plus five clouds" the docs
+said), and because the one layer with crisp marks, the starfield, is drawn per frame **over** the cache.
+Repaint premium fell to **+0.8 to +1.9ms**, and a real Act transition — 149 frames caught live, against
+the 150 the ease was computed to take — ran at **17.0ms · 58.7fps with zero frames over 20ms**.
+
+**ProMotion enabled**, `CADisableMinimumFrameDurationOnPhone`. iOS clamps a WKWebView's `rAF` to 60Hz
+without it. Safe because the sim is fixed-step — but ⚠️ **two things counted RENDERED FRAMES, which is
+correct at 60 and wrong at 120**: the sky cadence (now wall-clock; a frame counter would have doubled the
+repaint rate and undone the paragraph above) and the death shatter drift, the one particle path outside
+`step()` (now `Math.pow(0.92, dt*60)`). ⚠️ **Unverified — the host Mac is a 60Hz Air, so every 60fps
+ceiling in these tables is the laptop's display, not the game's.** Needs a real device.
+
+**Starfield: 258 → 232** (135/70/27), thinned 10% uniformly so the layer ratio that carries the depth
+survives. A look decision, and it bought nothing: measured off the stars' own radii, **~101 survive the
+cull per frame for 404 device px of ink — 0.03% of ONE full-screen fill**, where the sky does eight.
+⚠️ I first reported 258 drawn per frame; **only ~101 are**, the rest sit outside the padded field.
+What actually cost was per-star bookkeeping, independent of count and brightness: a fresh `rgba(...)`
+string per star per frame — `toFixed(3)`, template literal, and a CSS parse the engine cannot cache — and
+its own `beginPath`/`fill`. Now colour tables at 1/64 alpha and one fill per bucket: **101 fills and 96
+allocations → 46 and zero**, proven output-identical (same stars, same positions, zero hue mismatches,
+worst alpha error 0.00759 against the 0.00781 bound, zero chained arcs). ⚠️ **No frame-time gain is
+claimed** — vsync hides anything under 16.7ms.
+
+⚠️ **A full 45-second measurement window was scored as data while the app ran a dead script.** The probe
+was armed by patching the gitignored device copy; the patch ended in a `//` comment that swallowed the
+rest of its line, `}catch(e){…}` included. The *source* was syntax-checked and passed; the *patched copy*
+was not. And a packaged web app with a dead script does not look dead — the static markup still rendered
+a laid-out menu. Staging now parses the artefact it is about to ship. See *Traps*.
+
+### The Anomalies are cosmic now, the missiles are five shapes, and the sky drifts `v2`
+**Anomaly bodies.** Emitter = a **star** — limb-darkened photosphere, granulation, six prominences on
+`hexRot`. Sentinel = a **vortex**, three spiral arms, because this is the kind that orbits you and a
+spiral is orbital motion made visible. Bastion = a **nebula** with its crown of rays kept on top, still
+lengthening as the nova winds up. A **singularity** is written for the fourth Anomaly and is
+**unreachable** — `spawnBoss` throws on any variant not in `HUNT_SPD`, confirmed by calling it. Giving it
+a spawn path needs a hunt speed, an `updateBoss` arm and a firing pattern; that is a gameplay change.
+
+⚠️ **The hexagon was never the telegraph its own comment claimed.** `fireHexVolley` assigns
+`b.hexRot = leadAngle(...)` **on the same line that fires the volley** — it records the shot rather than
+predicting it, so there was never anything to read in advance. I repeated that claim to the author twice
+before reading the four lines under it. What a body actually owes the volley is symmetry locked to
+`hexRot` **at the moment of firing**; `spawnRing` + `bossFlash` already carry the announcement, so the
+bodies do not repeat it and there are no permanent six-fold marks.
+
+Every core is built **from** the polarity colour rather than decorated with it — white only where it
+means heat. Measured on both poles: **72–94%** of each core's lit pixels are channel-dominated by the
+pole. That check killed an earlier fourth core (an aurora veil) which was `mix(pole, tint)` and would
+have been invisible on cyan.
+
+⚠️ **Tuned at `b.r`, and the study's radius lied.** The study drew these at R=52 on a desktop canvas; the
+Anomaly is **R=37**, and at S≈0.5 on the device it is an **eighteen-pixel disc**. The nebula collapsed
+into "crown plus a bright dot" at true size — base lightened, lobes pushed, and the centre knot **shrunk**
+0.36R → 0.26R, because a big white centre erases the cloud it is supposed to sit inside.
+
+**Missiles: five kinds, five silhouettes.** Colour was already spent — every missile is `COL.neutral` by
+rule, so a same-colour missile can never read as safe — which left shape carrying everything, and shape
+was carrying almost nothing: **volley, ring and a committed seeker were the same drawing** at the same
+radius, separated only by streak lengths of 10.8 / 9.2 / 6.6 units. Now: barbed shard, blunt slug, hollow
+annulus, swept dart, and the mine unchanged. **The seeker's fins stay on after it commits** and merely
+stop wavering — the old bracket vanished at commit, i.e. exactly when knowing what is arriving matters
+most. Same draw-call count.
+
+**Sky: it drifts.** Parallax was driven *only* by the player's position, so the sky stopped dead whenever
+you did — which is most of a boss fight. Each layer now carries a constant `flow` (1.6 / 4.2 / 9.0 design
+units/s, keeping the depth ordering). Deliberately **not** damped by reduced-motion: that mode exists to
+remove the sudden player-coupled swing, and a slow constant drift is the opposite kind of motion. Keyed
+to `elapsed`, so it correctly freezes on pause.
+
+A **depth haze** and a **vignette** join the cached sky, so both are paid once every `SKY.every` frames
+rather than per frame. ⚠️ **The vignette ships at 0.20, not the study's 0.42** — a vignette darkens the
+rim, and the rim is where every Dot *enters*. The study looked better at 0.42 because nothing flies into
+a study. Check it against incoming matter at the border, never against an empty field.
+
+⚠️ **The Anomaly's halo was a flat additive disc with a hard edge at 2.1r**, while every ordinary Dot's
+glow is a ramped sprite specifically so there is "no boundary to aim at". A pre-existing inconsistency on
+the one body you spend a whole fight judging distance to — invisible while the body under it was a flat
+hexagon of the same colour, obvious the moment the core became a bright star. Now a gradient: same
+extent, same peak alpha, ramped to zero.
+
+⚠️ **The Bestiary duplicates the art, and it went stale the moment the game changed.** `bestiary.html`
+carries `anomBody()`, a hand-copy of `bossBody()`, and it went on drawing a hexagon, a hollow pincer ring
+and a rays crown after the game stopped — teaching a body the player would never meet. Ported, along with
+the same flat-halo fix, which that file had its own copy of too. **A wrong picture in the reference is
+worse than no picture**, and unlike a wrong number it cannot be grepped for — it is not a literal.
+It cannot be shared out: the game is deliberately one self-contained file, and the Bestiary is opened
+standalone as well as in the iframe, so it cannot reach `parent.__orbital`. The duplication is now loud
+instead of silent — a warning block at `anomBody` naming `bossBody`, and a paragraph in MECHANICS.
+
+Verified: seeded runs reproduce exactly, and a run **with** rendering produces the identical fingerprint
+to one without — the whole change is draw-only. All three variants render distinctly (control 0). No
+console errors over 2,400 stepped frames. The Bestiary builds 12 cards and 19 canvases with none blank.
+
+### The star is yours, the field is themed, and the number that decided it was wrong `v2`
+The two tiers stop overlapping. **The star is per-element; everything else is themed.** A theme cannot
+reach the star, and the field has no per-element categories left — the `drift` wardrobe row is gone after
+one commit, having done its job as the test case that proved `DOT_FACE` works. The faces stay in
+`DOT_FACE`, where a theme is now the only thing that can reach them.
+
+⚠️ **The measurement behind the decision was re-run and the first version of it was wrong.** Changed
+pixels at 874×402, five sim states carrying 2 to 19 Drifters, control 0 in every one:
+
+| | per body | totals |
+|---|---|---|
+| Drifter, Bead vs Plain | **88–115 px** | 225 / 336 / 669 / 1062 / 2185 |
+| Star, Redoubt vs Core | **312–341 px** | one body |
+
+Previously quoted as **102 px** and **~33 px** — both roughly **3× too small**, from a single unrepeated
+reading, and written into a code comment, MECHANICS *and* a commit message. The **ratio** survived
+(2.8–3.9×, still ~3×) and the decision rests on the ratio, so nothing about the design moved. But **one
+reading with a passing control is still one reading** — the control being clean is what made it feel
+finished. Repeat across states before a number becomes an argument.
+
+**What the split buys back** is the honest cost of winner-takes-all: nobody gives up a look they earned in
+order to wear a theme.
+
+Three things came out with the tier, rather than being left inert:
+
+- **`elementPick`.** It existed so the wardrobe could show a stored pick while the field drew something
+  else. The tiers are disjoint now, so the two answers cannot disagree — and two names for one answer is
+  how they drift apart.
+- **The `.off` card state**, styled deliberately unlike `.lock` so "not earned" and "asleep" could not be
+  confused. Nothing is asleep any more.
+- **The suppression note.** *"{name} is dressing the whole game"* described something a player could now
+  watch not happening.
+
+⚠️ **`OVERALL_FACE` must never carry a `star` key**, and `skinPick` enforces it by answering the star
+before themes are consulted at all — so an entry there would be **dead while reading as live**, which is
+worse than forbidden. Verified by planting one and rendering: the player's pick stays.
+
+Two labels went stale the moment the star was exempted, both fixed. **"Everything" → "Theme"**: a tier
+label is a claim about coverage, and coverage is exactly what moved — the same failure that killed this
+panel's heading twice. And the theme row **previews on a Drifter, not on the star**: it was showing a
+picture of the one body the choice does not affect.
+
+### A Drifter skin, a shorter Turret, and the wardrobe stops having a heading `v2`
+**Turret is 30 seconds, down from 60.** `TURRET_T` is quoted in `achv.turret.ds` in both languages and the
+string cannot follow it automatically — every other row's description is a sentence rather than a number,
+and one templated row would be the odd one out. Both strings walked by hand; the constant now says so.
+
+**`DOT_FACE`, and it starts at one species.** `drift` gets a face table — **Plain** (the disc the game has
+always drawn, lifted out of the shared `else` branch unchanged) and **Bead** (the core opened into a
+ring). Everything else still draws inline. `drawEnemies` is the most heavily argued draw code in the file
+and a seventeen-branch extraction would put every one of those arguments at risk to serve a wardrobe.
+
+The Dot contract is `STAR_FACE`'s plus one clause the star does not need: **a Dot's silhouette is its
+species**, so a Dot face may not touch the disc at all. Interior only. A face also draws its **own core
+dot** — hence `drift` joining `noCore` — because leaving the shared 0.34r mark to be stamped on afterwards
+would put a fixed white dot inside every future Drifter skin whatever it had drawn there.
+
+⚠️ **Bead's first version punched its ring out with `destination-out`, which does not do what it looks
+like.** This is the shared world canvas with the sky already on it, so the cut goes through the sky as
+well and leaves a transparent bite in the field. Caught before it shipped. Additive blending needs no
+erasing: the hole is the body's own colour, never drawn over. **Negative space here means not drawing** —
+exactly how the Planet's plate gaps already work. Nothing in this pass may use a `destination-*` operator.
+
+Bead is gated on `devlock`, so it is unreachable in play. Proven rather than assumed: setting
+`skin.drift = 'bead'` changes **0** pixels of the rendered field and `skinPick('drift')` returns `plain`.
+Opening the lock through the harness changes **98** pixels across three Drifters, which is what makes the
+zero mean something — the same rig detects the face when the face is allowed to draw.
+
+**The heading is gone**, on the author's call, after going stale twice in two passes — *"The look of your
+star"* while the star was the only category, then *"The look of it all"* once the overall tier landed. **A
+heading is copy about scope, and scope is what moves every time this panel grows.** That is an argument
+for not having one, not for keeping one current. The kicker stays: it is the panel's name, not a claim
+about its contents.
+
+⚠️ **Three stacked tiers overflowed by 32px in English and 39px in Korean** even with the heading gone.
+The fix is not more shrinking — it is the right axis. The shipping WebView is **874×402**, wide and short,
+so one full-width row per category spends the scarce axis and wastes the plentiful one. The per-element
+tiers are now a wrapping row of **columns**: three fit with room, and a fourth category wraps instead of
+pushing anything past the fold. Columns align to the top, because a locked card is taller than an unlocked
+one and centring would stagger the category labels.
+
+The suppression note moved out of the sections and sits **once**, between the tiers. Per-section was fine
+at one category and becomes the same sentence printed N times as the roster grows.
+
+### The wardrobe grows a second tier, and a lock that cannot open `v2`
+Skins are now **two tiers**. *Per-element* skins dress one species — `star` today, Dots when the draw
+code has a seam to hang them on. An *overall* skin dresses the whole game and **suppresses** every
+per-element pick while worn. First one declared: **Pixel Graphic**.
+
+⚠️ **Suppresses, not overwrites**, which is why there are two resolvers. `skinPick` is what the drawing
+code asks; `elementPick` is what the wardrobe asks. They disagree by design while an overall skin is on,
+and a test that cannot tell them apart cannot prove the difference. Measured: Pixel Graphic over a stored
+Redoubt gives `star_drawn: core` / `star_stored: turret`, and taking it off returns both to `turret`.
+
+The overall tier **answers even where it has nothing to say** — its own face if it has one, otherwise the
+category default, never the player's pick. A hand-picked smooth star inside a pixel field is not a
+customisation, it is the skin failing. The fall-through alternative would make that bug appear and
+disappear as art landed, which is the worst schedule a bug can keep.
+
+**`devlock` is an achievement with no path**: `grantAchv` refuses the id outright rather than relying on
+nothing calling it. "No caller today" is a fact about one commit. It stays out of Records — `hid` means
+*undiscovered*, and a row nobody can ever tick is not a secret, it is a bug report with a tick box. What
+it buys is a skin that ships **visible and unwearable**, which is the honest state for art that does not
+exist yet. Pixel Graphic sits behind it.
+
+⚠️ **The empty slot is a different call from the dimmed lock.** Locked skins show their art — withholding
+art you *have* is a choice this panel declines. Drawing the default star under a label reading "Pixel
+Graphic" would be showing art you do **not** have. `skinSwatch` falls back to Core so the field never
+fails to draw; the wardrobe uses `skinSwatchEmpty`, because nothing is the only honest picture of nothing.
+
+The heading stopped saying *"The look of your star"*. It was accurate while the star was the only
+category and became the narrowest thing on the panel the moment the overall tier landed — **a heading is
+copy about scope, so it goes stale when scope moves.**
+
+The description under it is gone, on the author's call: the cards state the hue law and the unlock better
+than a sentence about them did. Losing it cost nothing and the second tier immediately spent the space —
+**23px past the fold at 874×402**, measured, so the short-screen branch now shrinks the heading, the
+sections and the swatch. The swatch needed `!important`: `skinSwatch` writes its size as an **inline**
+style (the backing store is dpr-scaled and the CSS size un-scales it), and an inline style outranks a
+media query — without the flag the rule is ignored in silence.
 
 ### Skins get their own panel, and the locked slot finally says what unlocks it `v2`
 Out of the Settings row, into a **Skins** link on the menu — second in the row, next to Records, because

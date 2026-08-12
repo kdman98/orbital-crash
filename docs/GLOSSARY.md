@@ -82,10 +82,14 @@ paragraph goes in MECHANICS and this line points at it.
   (`queueKill`, `processKills`)
 - **Pop** — to destroy a Dot.
 - **Sky cache** — the background painted once into an offscreen canvas and blitted, rather than
-  repainted every frame. Rebuilt on **four** triggers: the palette *easing* after an Epoch flip, a frame
-  counter, a canvas size change, and an explicit invalidation wherever the palette **jumps** rather than
-  eases — a jump falls between the first two and would otherwise serve the previous sky.
-  (`blitSky`, `paintSky`, `skyInvalidate`, `SKY.every`, `palMoving`)
+  repainted every frame. Rebuilt on **four** triggers: the palette *easing* after an Epoch flip, a
+  **wall-clock** interval, a canvas size change, and an explicit invalidation wherever the palette
+  **jumps** rather than eases — a jump falls between the first two and would otherwise serve the previous
+  sky. Painted at half linear resolution and stretched on the blit.
+  (`blitSky`, `paintSky`, `skyInvalidate`, `SKY.every`, `SKY.scale`, `skyPaintT`, `palMoving`)
+- **Frame probe** — the off-by-default frame-*interval* instrument, armed from `localStorage` and flushed
+  back to it so a later launch reads the result without loading the machine mid-measurement. Splits
+  frames into cache hit / routine repaint / Act transition. (`__orbital.probe`, `PROBE`)
 - **Vacuum** — what a reversal does to opposite-colour Motes lying inert on the field.
 - **Purge** — destroying an Anomaly. The word means only this. (`killBoss`)
 
@@ -133,13 +137,31 @@ paragraph goes in MECHANICS and this line points at it.
   and shared: all seven reverse in the same 5 frames whatever their `seek`. Turn **radius** is `seek` in
   direct proportion. Only in the ring does the third thing happen — `ARC_FR` lets momentum outlast
   steering altogether, which is a different mechanism, not more of this one. (`ARC_FR`)
-- **Swarmer** — a Dot the Sentinel sheds while orbiting. Matter, not a shot, so the colour law owns it.
-  (`seedT`)
+- **Swarmer** — *removed.* Was a Dot the Sentinel shed while orbiting — matter, not a shot, so the colour
+  law owned it. Replaced by the **Orbit screen**. It was defended as half threat and half ammo, but
+  `doSpawns` never pauses for a boss and already leans 65% to the Anomaly's opposite colour, so the trail
+  topped up a supply that was never interrupted. **No Anomaly emits matter any more.** (was `seedT`)
+- **Orbit screen** — the Sentinel's second pattern: five **nodes** that open out to 340px, ride the boss
+  for 3.2s, then sling off on the tangent. A sweep covering the ground you retreat into, not a gate you
+  time — the door is 372px against a 30px Star. Widen it and you must re-solve `SCR_W`, because
+  tangential speed is `SCR_W*SCR_R` and the screen may never outrun the Star. (`fireOrbScreen`, `SCR_R`)
+- **Node** — one bullet of the Orbit screen, and the biggest projectile in the game at r=14. Harmless
+  while it is still opening (that is its telegraph), and exempt from the off-screen cull while hosted —
+  it is pinned to a circle on a moving boss, not crossing the arena. (`MSL.orb`, `L.ohold`, `L.oup`)
+- **Beat** — the Sentinel's single firing clock. One beat throws one pattern; a screen consumes its own
+  duration out of the next gap, so two patterns cannot be scheduled into one window. `pinLeft` counts the
+  pincers owed before the next screen, rolled `irand(1,3)` so the count is not learnable.
+  (`fireT`, `pinLeft`, `SEN_BEAT0`)
 - **Same-charge shove** — like-charge overlaps resolved **positionally**, split by mass. Positions only,
   never velocity. (`SAME_PUSH`)
 - **Gilded Bounty** — a periodic gold-ringed Dot worth a jackpot if popped inside its window. Only ever
   a Drifter or a Dart. (`e.gild`, `gildTimer`)
-- **Mote** — annihilation loot carrying the popped Dot's colour. Worth points where it lands. (`motes`)
+- **Mote** — annihilation loot carrying the popped Dot's colour. Worth points where it lands. A
+  **Neutral sheds one of each colour** — it wears both poles, so "the dead Dot's colour" has no single
+  answer for it, and it is the only drop that cannot be the wrong colour. (`motes`, `moteCap`)
+- ~~**Wish**~~ — a Mote bank spent on called help. **Built, verified and removed the same day for
+  tempo**: an auto-opening picker stops a continuous game, and no threshold fixes that. Deleted rather
+  than switched off, per `0b408c4` — git keeps it, at `fdcafc1`. See *The Wish* in MECHANICS.
 
 ## Laws and rules
 
@@ -153,7 +175,10 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **The two-wave release** — formations let go by polarity, one colour after the other. (`NOOSE_WAVE`)
 - **Retirement** — a Dot finishing a committed trajectory dies via `dead` alone, never `queueKill`, so
   it pays nothing.
-- **The silent world** — no centre banner; one text channel, outside the play area.
+- **The silent world** — no centre banner except the Epoch cue; one persistent text channel, outside the
+  play area.
+- **Epoch cue** — the one exception to the silent world: the new Epoch's name at 26-52px on a purge,
+  with no background and no input block, so it never takes the field. (`showEpochCue()`, `#epochcue`)
 
 ## Patterns
 
@@ -176,7 +201,9 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **The Cross** — four arms from a hub, quartering the arena. The hub is the arena's centre, and slides
   off the Star rather than bending around it. (`formCross`, `CROSS_R0`)
 - **The Comet** — a rare event: a shower of 3–5 fast Dots crossing the whole sky on one heading and
-  leaving. (`formComet`, `COMET_SPD`, `cometT`)
+  leaving. **Telegraphed by one warning badge at the border**, with an arrow pointing the way they
+  travel — and it stays up until the bodies are visible, since they spawn far off-screen.
+  (`formComet`, `COMET_SPD`, `COMET_TEL`, `cometSign`, `cometEdge`, `cometT`)
 - **The Drift** — a rare event, not a formation: six Neutrals arriving on a telegraphed hexagon, with no
   choreography after arrival. The only spawner that places bodies *on* the field, which is why it is also
   the only one that needs a warning. (`formNeutralDrift`, `NDRIFT_N`, `NDRIFT_R`, `NDRIFT_TEL`, `ndriftT`)
@@ -196,15 +223,30 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 
 - **Anomaly** — the boss. Immune to your pole reversal, position-controlled, and it never leaves.
   (`boss`)
-- **Anomaly kind** — which one you drew. Three, one verb each. (`boss.variant`, `ANOM`)
+- **Anomaly kind** — which one you drew. **Four**, one verb each. (`boss.variant`, `ANOM`)
 - **Emitter** *(volleys)* — hovers, alternating a hexagon burst with a sweeping stream; dashes from
   Epoch II. (`b.emitMode`, `fireHexVolley`)
-- **Sentinel** *(chase)* — circles the arena firing pincers and shedding swarmers, leaving a trail.
-  (`orbA`, `seedT`)
+- **Sentinel** *(chase)* — circles the arena on a wandering rate, alternating a seeker **pincer** with a
+  rotating **screen** of nodes on its own body. One beat, one pattern, never both. The kind you must
+  close on, and now the one that charges you for the approach. (`orbA`, `orbW`, `pinLeft`)
 - **Bastion** *(ground denial)* — erupts radial rings with one seam, and lobs mines around you.
   (`novaCharge`, `fireMines`)
+- **Singularity** *(movement denial)* — the fourth kind, and the only one that **throws nothing**. It
+  ambles at you forever, breathes matter off itself with the **Wind**, and periodically **Draws**: a
+  speed cap that makes the ordinary field lethal. Contact is damage-per-second, not one hit, and it is
+  the one kind that does not recoil on touching you. (`singularity`, `SING_FOLLOW`, `DRAW_CAP`)
+- **The Wind** — the Singularity's exhale: one radial impulse shoving matter off it. Ejects your rings
+  for about a second and carries loose matter toward whoever is standing outside. Does **not** touch the
+  Star at all. (`WIND_R`, `WIND_V`, `WIND_HOLD`)
+- **The Draw** — the Singularity's inhale: your top speed is capped and moving *away from it* is taxed
+  on top of the cap, while it closes. Answered by **Overdrive**, because the cap scales with
+  `P.moveMult`. Strafing is free; retreating is not. (`DRAW_T`, `DRAW_CAP`, `DRAW_AWAY`, `b.drawT`)
+- **The entrance** — the Singularity's dive to station. Distinct from the amble because the amble is a
+  *steady state*: the shared HUD floor clamp arms at 1.6s assuming every kind has already arrived, and a
+  body still climbing when it fires gets teleported. (`SING_ENTRY`, `SING_ENTRY_Y`)
 - **The Hunt** — an Anomaly leaving station and *walking* onto your core, landing one hit and breaking
-  off. (`b.hunt`, `HUNT_SPD`, `HUNT_BREAK`)
+  off. The Singularity has none: its Draw *is* its hunt, and it drives `b.hunt` itself.
+  (`b.hunt`, `HUNT_SPD`, `HUNT_BREAK`)
 - **The Dash** — the Emitter's one committed move: it locks its lane at wind-up and drives past the
   locked point. (`LUNGE_TEL`, `aimLunge()`)
 - **Missile** — anything the Anomaly throws. Launches from its own body; hurts you regardless of your
@@ -293,10 +335,21 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Achievement** — an in-run feat listed in **Records**. Eleven rows, one hidden. Earned in Survival
   only. Some gate a **Skin**, so they no longer "unlock nothing".
 - **Skin** — an earned look, chosen in **Skins**, its own menu panel. Cosmetic only, draw-time only, and
-  it never changes hue: colour means polarity. One category (`star`) with **Core** and **Redoubt** today.
-  Each slot draws its own art through `STAR_FACE` — the third caller of that seam, after the field and
-  the run card — and a locked slot shows the art dimmed with its trigger printed underneath.
-  (`SKINS`, `skinPick`, `skinSwatch`, `paintSkins`)
+  it never changes hue: colour means polarity. Each slot draws its own art through `STAR_FACE` — the third
+  caller of that seam, after the field and the run card — and a locked slot shows the art dimmed with its
+  trigger printed underneath. (`SKINS`, `skinPick`, `skinSwatch`, `paintSkins`)
+- **Per-element skin** — dresses one thing, picked by hand. **`star` only**: **Core** and **Redoubt**. A
+  `drift` category existed for one commit as the test case that proved `DOT_FACE` works; the field is
+  themed now. (`SKINS`)
+- **`DOT_FACE`** — the Dot equivalent of `STAR_FACE`, extracted for **one** species so far. A Dot face
+  owns the interior and may not touch the disc: silhouette is species identity. It draws its own core dot,
+  which is why `drift` is in `noCore`. (`DOT_FACE`, `drawEnemies`)
+- **Theme** — dresses the **field**, and never the star. `none` is a real row, not an absence. **Pixel
+  Graphic** is the first, declared and locked. `OVERALL_FACE` must never carry a `star` key — `skinPick`
+  will not consult it there, so an entry would be dead while reading as live.
+  (`OVERALL`, `OVERALL_FACE`, `overallPick`)
+- **Dev lock** — an achievement with `dev:true`: refused by `grantAchv`, hidden from Records, and used to
+  ship a skin visible but unwearable. `devlock` is the only one. (`ACHV`)
 - **Run card** — the shareable 1080×1350 PNG built from the run you just finished. Drawn on a canvas,
   never screenshotted, and it touches no network. (`buildRunCard`, `shareRunCard`)
   (`ACHV`, `store.achv`)
@@ -305,7 +358,11 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 
 - **Trauma** — screen-shake amount. (`trauma`)
 - **Flash** — full-screen colour flash. (`flash`)
-- **Hitstop** — a brief freeze-frame on big hits. (`hitstop`)
+- **Hitstop** — a brief freeze-frame on big hits. Three sites left, none of them a purge: the baited
+  charge, the Planet blast and the Bomber blast. (`hitstop`)
+- **Heal signal** — the three cues a purge's Integrity grant fires, since it used to fire none: a white
+  wash on the Integrity bar, a gold hoop converging on the core, and the restored amount as a gold `+N`.
+  It prints what the clamp actually gave you, so at full Integrity it says nothing. (`healSignal()`)
 - **Contact ghost** — one frozen frame of the Dot that just hit you, drawn where it actually touched.
   (`contactGhost`, `ghostT`, `GHOST_HOLD`)
 - **Floating text** — small rising labels near the core. (`pushText`)
@@ -314,7 +371,7 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
 - **Moment Engine** — global slow-motion dips. (`timeScale`, `slowmo()`)
 - **The sky** — three parallax depths drawn outside the shake transform. (`STAR_LAYERS`, `drawStars`)
 - **The Spheres** — the celestial harp arpeggio; a single cue, the Overdrive ignition. (`sfx.harp`)
-- **Achievement toast** — the top-centre gold text channel, and now the only one. (`showAchvToast()`)
+- **Achievement toast** — the top-centre gold text channel; the only *persistent* one. (`showAchvToast()`)
 - **Comfort mode** — removes screen shake and hitstop outright; damps flash, ring spin and parallax
   travel. (`store.reduceMotion`)
 - **Core Fault** — the crash screen; a bad frame is dropped and the loop survives. (`crashHalt()`)
