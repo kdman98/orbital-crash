@@ -396,12 +396,20 @@
      pair read as a lockup rather than as a wide word above a small one. text-indent must match, or the
      trailing space after the L pushes the whole word off centre by half the tracking.
        margin-bottom is em-based too, so it halves to .35 to hold the same optical gap at 2x the type. */
-  .logo .l1{font-size:clamp(34px,7vw,46px);letter-spacing:.24em;text-indent:.24em;color:#8fa4c8;
-    margin-bottom:.35em;}
-  .logo .l2{font-size:clamp(30px,8vw,79px);letter-spacing:-.012em;
-    background:linear-gradient(178deg,#fff 12%,#c9dcf2 62%,#8fa8c8 100%);
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 10px 40px rgba(0,0,0,.7));}
+  /* ⚠️ THE SVGs ARE SIZED BY HEIGHT, AND THAT HEIGHT IS CAP HEIGHT, NOT FONT SIZE. The old rules set
+     font-size 46/79; a cap is roughly .72 of that, so the equivalents are 33/57. Feeding the old
+     numbers to an SVG height would draw the lockup about a third too large and break the .tring
+     clearance that `.titlewrap`'s margin is measured against. Width follows from the viewBox. */
+  .logo .wm{display:block;height:auto;fill:none;stroke-linecap:butt;stroke-linejoin:round;
+    stroke-width:13;}
+  /* ⚠️ BOTH WORDS TAKE THE SAME WIDTH, and that is the lockup — it is what the old rules were buying
+     with letter-spacing:.24em on ORBITAL and -.012em on CRASH. Here the tracking is baked into the
+     advances, so "same measure" is literally one shared width and cannot drift when the type scales.
+       The cap heights fall out of the viewBoxes: 611:100 and 355:100, so at one width the two caps
+     land in a 1.72 ratio — the same 79/46 the old lockup was tuned to, arrived at independently. */
+  .logo .wm1,.logo .wm2{width:clamp(208px,52vw,292px);}
+  .logo .l1{stroke:#8fa4c8;margin-bottom:13px;}
+  .logo .l2{stroke:url(#wmg);filter:drop-shadow(0 10px 40px rgba(0,0,0,.7));}
   /* Every absolute child is anchored to the lockup's OWN centre (50% / 56%), and the JS only ever
      supplies an offset from it. Two reasons, both paid for:
        · .titlewrap is a flex column, so an absolute child with no left/top falls back to its static
@@ -751,8 +759,10 @@
        and buys its vertical space by scaling both words together — 18/31 at a landscape phone against
        46/79 on the desktop, ~49px of type where the base rules want 125. The vh coefficients are in the
        same 1.72 proportion, so the ratio survives anywhere the clamp is live. */
-    .logo .l1{font-size:clamp(18px,3.4vh,26px);}
-    .logo .l2{font-size:clamp(31px,5.85vh,45px);}
+    /* Same lockup, shorter — bought by scaling BOTH words together off vh, exactly as the
+       font-size version did. One shared width keeps the 1.72 cap ratio intact for free. */
+    .logo .wm1,.logo .wm2{width:clamp(150px,33vh,232px);}
+    .logo .l1{margin-bottom:9px;}
     /* THE WARDROBE OVERFLOWED THE MOMENT IT GREW A SECOND TIER — 23px past the fold at 874x402, measured,
        with the overall row and the star row stacked. One tier fitted with room; two did not, and the
        count is going to keep rising as categories land, so this branch has to hold the SHAPE rather than
@@ -1068,7 +1078,66 @@
   <div class="titlewrap" id="titleLock">
     <div class="tring"></div><div class="tring in"></div>
     <div class="tfx"><i class="tburst"></i><i class="tshock"></i></div>
-    <h1 class="logo"><span class="l1">ORBITAL</span><span class="l2">CRASH</span></h1>
+    <!-- THE WORDMARK IS DRAWN, NOT SET. Ten glyphs, hand-authored, and they are built out of the same
+         vocabulary the game itself draws with: circular and elliptical arcs plus straight segments,
+         and nothing else. There is not a bezier in the game (82% of its path construction is `arc`,
+         and there are zero cubics, zero rounded rects) so there is not one here either — the mark is
+         OF this game rather than applied to it. The elliptical bowls are the star's own tilted rings.
+           Authored rather than licensed for a reason that outranks taste: a system font at weight 800
+         with wide tracking is the single loudest "generated" tell a product has, it is what the old
+         lockup was, and it is what every share card and store image inherited from it.
+           ⚠️ STILL COLOURLESS, and the old argument stands unchanged: hue belongs to polarity, so a
+         gradient on the words would put colour where it means nothing while leaving red — half the
+         game — off its own title screen. The ramp below is neutral grey by construction.
+           The stroke is 17 and the paths are CENTRELINES, so ink overflows a centreline box by 8.5 all
+         round; both viewBoxes start at -2 to hold it. Change the weight and those numbers move.
+           ⚠️ CAPS ARE BUTT, NOT ROUND, and that is the whole register of the mark. Rounded terminals
+         made ten geometric letters read as a friendly children's face — wrong for a game whose verb
+         is annihilation. Joins stay round so the A's apex does not spike: at a 31 degree apex the
+         miter runs 3.7x the half-stroke and would shoot ~23 units out of the box.
+           ⚠️ AND BECAUSE CAPS ARE BUTT, THE ROUND LETTERS CARRY THEIR OWN ry. A stem's ink ends where
+         its centreline ends, but a closed curve's ink overshoots by half the stroke — so O, C and S
+         are built on ry 36/18 rather than the stems' 43.5, leaving ~1 unit of overshoot, which is the
+         optical correction a round letter wants anyway. Give them the stems' radius and they stand
+         10% taller than the I beside them.
+           ⚠️ The `<defs>` live in the first SVG and the second one references them across elements.
+         That is legal in one document and it is why CRASH's R and A cost nothing to repeat. -->
+    <h1 class="logo" aria-label="ORBITAL CRASH">
+      <svg class="wm wm1 l1" viewBox="0 0 614 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="wmg" x1="0" y1="0" x2="0.035" y2="1">
+            <stop offset="12%" stop-color="#ffffff"/>
+            <stop offset="62%" stop-color="#c9dcf2"/>
+            <stop offset="100%" stop-color="#8fa8c8"/>
+          </linearGradient>
+          <!-- Centrelines only. Every path is inset 6.5 (half the 13-unit stroke) from its box, so the
+               INK lands on the cap band 0..100 and the advances below are true ink widths. -->
+          <path id="gO" d="M34.5 12.5A28 37.5 0 1 1 34.5 87.5A28 37.5 0 1 1 34.5 12.5Z"/>
+          <path id="gC" d="M50.6 19.3A28 37.5 0 1 0 50.6 80.7"/>
+          <path id="gS" d="M62.5 31.25A28 18.75 0 1 0 34.5 50A28 18.75 0 1 1 6.5 68.75"/>
+          <path id="gB" d="M6.5 6.5L6.5 93.5M6.5 6.5A38 21.75 0 0 1 6.5 50A38 21.75 0 0 1 6.5 93.5"/>
+          <path id="gR" d="M6.5 6.5L6.5 93.5M6.5 6.5A38 21.75 0 0 1 6.5 50L52 93.5"/>
+          <path id="gI" d="M6.5 6.5L6.5 93.5"/>
+          <path id="gT" d="M6.5 6.5L49.5 6.5M28 6.5L28 93.5"/>
+          <path id="gA" d="M6.5 93.5L31 6.5L55.5 93.5M15.5 66L46.5 66"/>
+          <path id="gL" d="M6.5 6.5L6.5 93.5L46 93.5"/>
+          <path id="gH" d="M6.5 6.5L6.5 93.5M55.5 6.5L55.5 93.5M6.5 50L55.5 50"/>
+        </defs>
+        <!-- ORBITAL is tracked wide so the two words come out near the same measure — the same brief
+             the old lockup solved with letter-spacing:.24em, solved here in advances instead. -->
+        <g class="wmk">
+          <use href="#gO" x="0"/><use href="#gR" x="111"/><use href="#gB" x="211.5"/>
+          <use href="#gI" x="304.5"/><use href="#gT" x="359.5"/><use href="#gA" x="457.5"/>
+          <use href="#gL" x="561.5"/>
+        </g>
+      </svg>
+      <svg class="wm wm2 l2" viewBox="0 0 356.5 100" aria-hidden="true">
+        <g class="wmw">
+          <use href="#gC" x="0"/><use href="#gR" x="69"/><use href="#gA" x="139.5"/>
+          <use href="#gS" x="213.5"/><use href="#gH" x="294.5"/>
+        </g>
+      </svg>
+    </h1>
   </div>
   <!-- NO PROSE UNDER THE TITLE AT ALL. It was five lines, then one, and now none: the six steps one
        button down do that job, and a sentence competing with them is the menu teaching the game twice —
