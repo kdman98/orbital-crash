@@ -148,7 +148,11 @@
      `text-align:center` do the centring, which is what the transform was imitating.
        `#hud` is `pointer-events:none` and this subtree opts nothing back in, so a full-width box
      intercepts nothing. (`#achv` still has the half-width bug — its `max-width:90vw` cannot exceed the
-     50vw it is actually given. Left alone: different element, different change.) */
+     50vw it is actually given. Left alone: different element, different change.)
+       ⚠️ AND FIXING THE WRAP UNCOVERED AN OVERLAP, which is the shape this pair of bugs was always
+     going to have: a box that was too narrow to fit its text became a box wide enough to reach the
+     corner blocks. Full width means it now runs UNDER `#score`'s label and `#combo`. See the gutters
+     in the 560px query below — do not widen this back without reading them. */
   #center{position:absolute;left:0;right:0;top:14px;text-align:center;}
   #actlab{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);font-weight:800;margin-bottom:6px;opacity:.85;transition:color .8s;}
   #time{font-size:13px;letter-spacing:.16em;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums;}
@@ -880,6 +884,46 @@
      across "BEST 5,165". Below the stat block instead — #best ends at ~100px — rather than narrower,
      because a 200px-wide instruction wraps to four lines and stops being glanceable. */
   @media (max-width:560px){ #tutBar{top:112px;} }
+  /* ---- THE EPOCH SLOT'S GUTTERS. Making #center full width (see the note at its declaration) cured the
+     wrap and created an overlap: the label now reaches the two corner blocks that share row 14 with it.
+       ⚠️ MEASURE WHAT ACTUALLY COLLIDES, NOT THE BLOCKS. The obvious reading is that the label fights
+     `#score`, whose box is 135px wide at 375 — and it does not. #actlab's ink is y 14-27, and the 28-50px
+     score NUMBER starts at y 32; the only things on this row are `#score`'s 10px `SCORE` label (ink ends
+     x 62) and `#combo`'s 12px streak line (ink starts x 268 at its widest, `999 STREAK`). Reserving for
+     the number instead would leave a 133px band where 206px is genuinely free, and no font size fits an
+     Epoch into 133px.
+       BOTH LIMITS ARE VIEWPORT-INDEPENDENT CONSTANTS, which is why these are px and not vw: `.k` and
+     `#combo` are fixed 10px and 12px, so their ink never grows with the screen. 66 = 62 + 4 clearance;
+     111 = (20px inset + 87px of `999 STREAK`) + 4.
+       THE ASYMMETRY IS DELIBERATE AND #center CARRIES IT WHOLE, timer included. A slot flanked by unequal
+     furniture should centre in the GAP, not in the viewport — and shifting only the label would leave the
+     timer under it visibly out of true, which reads as broken where a coherent block reads as placed.
+       Why 560 and not something tighter: without gutters a label of width L collides once the viewport
+     drops below L + 214, and the longest reachable name measures 275 — so contact begins at 489px. 560
+     clears that with room, and above it the band is 375px+ against a 275px worst case, so true centring
+     costs nothing there and is kept.
+       Type pays for the rest, and the pair below is the measured floor rather than a taste call. Against
+     the 198px band the widest name the roster can produce, `EPOCH XXXVIII · METEOR SHOWER`, measures
+     225 at 11px/.08em, 212 at 11px/.04em and 203 at 10px/.08em — all of them wrap. 10px/.04em lands it
+     at 191 with 7px spare, one pixel off the design size, and .28em was spending 74px of a 241px string
+     on air alone. (`.ref` already runs .06em at this same breakpoint.)
+       ⚠️ WRAPPING IS NOT AN ACCEPTABLE FALLBACK HERE, which is what `nowrap` is for. A second line lands
+     at y 27-40, and that is where `#score`'s 28-50px NUMBER lives — so the overflow case walks straight
+     into the one element the gutters were sized to ignore, and the graceful degradation is a worse
+     collision than the one being fixed. Measured, not assumed: at 11px/.08em `EPOCH XXXIX · METEOR
+     SHOWER` wrapped and its second line overlapped `#score .v` at x 87-135.
+       So it clips instead. Nothing reachable clips — the 7px of headroom covers every name through
+     Epoch XXXVIII and the ellipsis only appears somewhere past Epoch LXXXVIII, around two extra roman
+     characters out. A truncated name that high beats a name lying across the score at any height, and
+     `#time` can no longer be shoved down the screen by a long Epoch. */
+  @media (max-width:560px){
+    #center{left:66px;right:111px;}
+    #actlab{font-size:10px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    /* Korean needed neither concession — measured 103px against the same 198px band, because `{n}단계`
+       is four glyphs where `EPOCH XXXVIII` is thirteen — so it keeps the design size. It keeps the
+       gutters too: they cost it nothing, and one band is easier to reason about than two. */
+    html[lang="ko"] #actlab{font-size:11px;}
+  }
   /* The step counter earns its place: six steps with no progress shown is a tutorial of unknown length,
      which is the main reason people quit one. */
   #tutBar .n{display:inline-block;margin-right:9px;color:var(--cyan);font-weight:800;font-size:11px;
