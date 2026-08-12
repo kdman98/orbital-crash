@@ -5099,6 +5099,12 @@ const HUNT_BREAK=1.1;                                          // seconds it rec
 //  cutscene on a phone. Clamping the frame's TOTAL displacement is what makes "the player's top speed" a
 //  well-defined quantity at all — on mouse there is no such number otherwise — and it is the only reason
 //  DRAW_AWAY below can be expressed as a ratio. See the clamp in stepPlayer.
+// THE ENTRANCE. ⚠️ These two exist ONLY to beat a clamp in another function, and that is worth stating
+// plainly rather than dressing up: `stepEnemyForces` runs `boss.y=Math.max(boss.y,138)` once `bossTime`
+// passes 1.6, on the assumption — its word, "once its entrance dive is done" — that every kind has
+// arrived by then. The amble has not. `SING_ENTRY_Y` must therefore stay clear of that 138, and the rate
+// must clear the gap from the shared `y:-60` spawn inside 96 frames: (152+60)/3.4 = 62 frames = 1.03s.
+const SING_ENTRY_Y=152, SING_ENTRY=3.4;
 const SING_FOLLOW=0.9;    // px/frame. It never stops walking at you and you outrun it 15:1, which is what
                           // makes a body that deals damage-per-second rather than one hit survivable at
                           // all. It is the Draw that takes the escape away, never the amble.
@@ -5262,9 +5268,35 @@ function bossMove(b,dt){
   //   ⚠️ `Math.min(d, …)` matters at contact — without it the walk overshoots your core every frame and
   // the body jitters across you instead of resting on you, which reads as a rendering fault rather than
   // as a boss sitting on your skin. (It cannot reach the top of the arena at all: the `boss.y>=138` HUD
-  // guard in updateBoss outranks this, so the top strip is a partial refuge. Left as found — that guard
-  // is protecting the integrity bar, and a body that walks under the HUD is the worse fault.)
+  // guard in stepEnemyForces outranks this, so the top strip is a partial refuge. Left as found — that
+  // guard is protecting the integrity bar, and a body that walks under the HUD is the worse fault.)
+  //
+  // ⚠️ THE AMBLE IS A STEADY STATE, NOT AN ARRIVAL — AND WITHOUT THE ENTRY BELOW IT TELEPORTED 111px.
+  // Every boss spawns at `y:-60`, above the viewport, and that HUD floor guard arms at `bossTime>1.6`
+  // with a bare `Math.max(boss.y,138)`. Its own comment says it runs "once its entrance dive is done",
+  // which is an ASSUMPTION about every kind rather than something it checks: the Emitter and Bastion
+  // ease to station and are at y≈141 by frame 96, so the clamp is a no-op for them. The Singularity had
+  // no dive at all — at SING_FOLLOW 0.9 it was still at y≈13 when the guard armed, and got snapped to
+  // 138 in one frame. Measured: 111.6px at frame 96 = 1.600s exactly, against the Emitter's 3.4px.
+  //   ⚠️ It reproduces ONLY in real play, which is why the first pass shipped it. `bossTime` advances
+  // inside `director()` — the boss-phase branch and the Boss Rush branch — so a harness that calls
+  // `spawnBoss` directly never arms the guard and traces a perfectly smooth walk. The rig was measuring
+  // a condition the game does not run in. Author saw it immediately: *"somehow Singularity teleports at
+  // the start?"*
+  //   The entry drives `y` at a FIXED rate rather than easing toward the player, because an ease has no
+  // guaranteed vertical component: with the Star high and far to one side the approach vector is nearly
+  // horizontal, and a dive that merely "heads toward you" can still be above the floor at 1.6s. This
+  // clears -60 → SING_ENTRY_Y in 62 frames = 1.03s, with half a second of margin on the guard.
+  //   ⚠️ SING_ENTRY_Y IS COUPLED TO THAT 138 AND THE NUMBER LIVES IN ANOTHER FUNCTION. If the HUD floor
+  // moves, this has to move with it, and nothing will fail if it does not — the symptom is a teleport
+  // at 1.6s, in play only, on one kind.
   if(b.variant==='singularity' && P){
+    if(b.y < SING_ENTRY_Y){
+      b.y += SING_ENTRY;                                     // guaranteed vertical progress
+      const gx=P.x-b.x;                                      // and drift onto the Star's column as it falls
+      b.x += Math.max(-SING_ENTRY, Math.min(SING_ENTRY, gx*0.06));
+      b.vx=b.vy=0; return;
+    }
     const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1;
     const step=Math.min(d, SING_FOLLOW);
     b.x+=dx/d*step; b.y+=dy/d*step; b.vx=b.vy=0; return;
