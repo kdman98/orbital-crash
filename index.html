@@ -845,6 +845,13 @@
        240px sits inside either margin with clearance to spare, and they centre on the disc's own
        band so they read as flanking it rather than floating above it. If the crop ever changes, this
        number is downstream of that measurement — re-run it, do not nudge it. */
+    /* ⚠️ #depthSel MUST BE PLACED EXPLICITLY OR THE GRID GUESSES. It is a child of #menu that is
+       `hidden` until a deeper Epoch start is unlocked, so it does not exist on a fresh profile and did
+       not appear in any layout I checked — then it auto-placed into the first free cell, which was the
+       empty 1fr band, and the Epoch picker floated alone in the top-left with no relationship to the
+       button it modifies. Anything auto-placed in a grid is placed by luck; every child of a grid
+       container needs a cell, including the ones that are usually invisible. */
+    #menu #depthSel{grid-column:1;grid-row:2;justify-self:start;align-self:end;margin-bottom:9px;}
     #menu .btn:not(.sm){grid-column:1;grid-row:3;margin:0;justify-self:start;}   /* 게임 시작   */
     #menu .btn.sm.tut  {grid-column:2;grid-row:3;margin:0;justify-self:end;}     /* 튜토리얼    */
     /* ⚠️ `display:contents` DISSOLVES `.doors` SO ITS TWO CHILDREN BECOME GRID ITEMS DIRECTLY. It is
@@ -1274,8 +1281,11 @@
     <button class="door" id="arenaBtn"><span class="dn" data-t="menu.rush">Boss Rush</span></button>
     <button class="door" id="labBtn"><span class="dn" data-t="menu.lab">Pattern Lab</span></button>
   </div>
-  <!-- A real rule that the UI never stated anywhere: both practice modes are score-sandboxed. -->
-  <div class="doornote" data-t="menu.note">Practice only · neither can set your best</div>
+  <!-- ⚠️ THE "연습 전용 · 최고 기록이 남지 않습니다" NOTE IS GONE, BY REQUEST, AND IT TOOK A REAL FACT
+       WITH IT: both practice modes are score-sandboxed, and nothing in the UI says so any more. That
+       is acceptable only because the two doors are themselves scheduled for removal before production
+       — if they survive instead, the sandboxing needs a home again, because a player who sets a good
+       score in Boss Rush and finds it absent has been misled by omission. -->
   <!-- Three links, since the Codex was deleted. They fit one row at every width the game supports; the
        2x2 fallback that carried four on a phone went with the fourth. -->
   <div class="refs">
