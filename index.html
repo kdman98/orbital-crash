@@ -819,24 +819,31 @@
        shorter screen instead of the controls colliding. */
     #menu.overlay{display:grid;align-content:stretch;justify-items:center;
       grid-template-columns:1fr 1fr;
-      grid-template-rows:auto auto 1fr auto auto auto;
+      grid-template-rows:auto 1fr auto auto auto;
       column-gap:min(6vw,44px);row-gap:0;
       padding:max(10px,env(safe-area-inset-top,0px)) max(22px,env(safe-area-inset-right,0px))
               max(18px,env(safe-area-inset-bottom,0px)) max(22px,env(safe-area-inset-left,0px));}
-    #menu .titlewrap{grid-column:1/3;grid-row:1;margin-bottom:8px;}
-    #menu .btn:not(.sm){grid-column:1;grid-row:2;margin:0;}   /* 게임 시작, top-left  */
-    #menu .btn.sm.tut  {grid-column:2;grid-row:2;margin:0;}   /* 튜토리얼,  top-right */
-    #menu .doors       {grid-column:1/3;grid-row:4;width:100%;}
+    #menu .titlewrap{grid-column:1/3;grid-row:1;margin-bottom:6px;}
+    /* ⚠️ THE TWO ENTRY POINTS FLANK THE NEBULA, AND THE WIDTH IS MEASURED AGAINST IT RATHER THAN
+       CHOSEN. Sampling the shipped art column by column, the lit disc occupies 34.9%..63.5% of the
+       image — x 295..536 on an 844px screen, leaving 295px of margin on the left and 308px on the
+       right. Half-column buttons were 325px each and closed most of that, which is what "too big"
+       was: they were not overlapping the subject so much as sealing it in.
+       240px sits inside either margin with clearance to spare, and they centre on the disc's own
+       band so they read as flanking it rather than floating above it. If the crop ever changes, this
+       number is downstream of that measurement — re-run it, do not nudge it. */
+    #menu .btn:not(.sm){grid-column:1;grid-row:2;margin:0;justify-self:start;align-self:center;}
+    #menu .btn.sm.tut  {grid-column:2;grid-row:2;margin:0;justify-self:end;align-self:center;}
+    #menu .doors       {grid-column:1/3;grid-row:3;width:100%;}
     /* ⚠️ THESE WERE BOTH IN ROW 5 AND LANDED ON TOP OF EACH OTHER. Grid does not push siblings apart
        the way flow does — two items given the same row and column simply stack. Separate rows. */
     /* ⚠️ MEASURED, NOT EYEBALLED: the bottom cluster ran to 97.9% of frame height before this — the
        links row was touching the bezel and sharing that strip with the contact e-mail. The note also
        ships at 10px in --dim, which is legible on a flat wash and is not legible over a planet limb,
        so it takes a size and a step of brightness here and nowhere else. */
-    #menu .doornote    {grid-column:1/3;grid-row:5;margin-top:5px;font-size:11px;color:#a9bdd8;}
-    #menu .refs        {grid-column:1/3;grid-row:6;margin-top:3px;}
-    /* Both entry points take the full half-column so the two rows share one edge on each side. */
-    #menu .btn:not(.sm),#menu .btn.sm.tut{width:100%;padding-left:0;padding-right:0;}
+    #menu .doornote    {grid-column:1/3;grid-row:4;margin-top:5px;font-size:11px;color:#a9bdd8;}
+    #menu .refs        {grid-column:1/3;grid-row:5;margin-top:3px;}
+    #menu .btn:not(.sm),#menu .btn.sm.tut{width:min(240px,30vw);padding-left:0;padding-right:0;}
     /* ⚠️ `.ttrail` IS IN THIS LIST AND IT IS THE ONE I MISSED FIRST TIME. The trail particles are
        children of `.titlewrap`, NOT of `.tdot`, so hiding the dots left 28 of them still orbiting
        across the buttons — visible only intermittently, because they move. Hiding a parent does not
