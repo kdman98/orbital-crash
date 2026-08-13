@@ -42,3 +42,9 @@ ios/App/App/public/
 DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
+
+# The key art's SOURCE candidates — several MB of generated PNGs kept for reference while choosing.
+# The SHIPPED art is art/*.webp and those ARE tracked; this is the cutting-room floor. Ignored rather
+# than deleted because re-deriving a crop or a colour correction needs the original, and regenerating
+# it is not reproducible — the prompt is in art/KEYART-BRIEF.md but the seed is gone.
+art/candidates/

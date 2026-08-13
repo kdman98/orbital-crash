@@ -381,6 +381,40 @@
      which is 860px wide and hangs well below the text it circles. The ring is the thing to clear, not
      the letters: it is absolutely positioned and contributes nothing to layout height, so nothing warns
      you. Anyone re-tuning this must measure against `.tring`'s bottom edge, not the logo's. */
+  /* ---------- THE TITLE SCREEN'S KEY ART ----------
+     ⚠️ #menu OVERRIDES .overlay's WASH AND ITS backdrop-filter, AND IT HAS TO. The shared overlay
+     ships rgba(6,8,20,.55) rising to .94 plus blur(4px) — correct for a panel that must not compete
+     with the field behind it, and fatal here: at 94% in the corners the art is simply not visible,
+     which is exactly where the planet limb and the outer nebula live. Measured before generating
+     anything, which is the only reason a batch was not spent proving it.
+       The image is two files rather than one cropped twice. A 16:9 crop of a portrait frame throws
+     away the composition and `cover` then centre-crops whatever survived; the tall version is cut
+     around the binary at x710 rather than around the frame's own centre.
+       ⚠️ THE ART IS A LAYER, NOT A background-image ON #menu. #menu is display:flex and its wash is
+     a gradient on the same property — one of the two would have to lose. */
+  #menuArt{position:fixed;inset:0;z-index:9;pointer-events:none;
+    background:#04060d url('art/keyart-wide.webp') center center/cover no-repeat;}
+  @media (max-aspect-ratio:1/1){ #menuArt{background-image:url('art/keyart-tall.webp');} }
+  /* ⚠️ THE PADDING IS CLEARANCE FOR TWO ABSOLUTE SIBLINGS, NOT TASTE. Pushing the wordmark to the top
+     band and the controls to the bottom drove both into the two elements that are positioned against
+     the viewport rather than the flow: `.langsel` sits top-right to 46px down, and `.contact` sits
+     bottom-right. Measured at 420x860 before the fix, the wordmark's right edge was 319 against the
+     language pills' left edge of 305, and the links row ran to 286 against the e-mail's 266 — both
+     overlapping, and neither visible on a desktop viewport where there is width to spare.
+       The floors are absolute px because what they clear is absolute px; the vh keeps them honest on
+     a tall screen. */
+  #menu.overlay{background:radial-gradient(120% 90% at 50% 34%,rgba(6,8,20,.06),rgba(6,8,20,.32));
+    -webkit-backdrop-filter:none;backdrop-filter:none;justify-content:flex-start;
+    padding-top:max(3vh,60px);padding-bottom:max(3vh,48px);}
+  /* A LOCAL scrim under the controls only. The alternative — darkening the whole overlay until the
+     buttons read — is what the .55/.94 wash already was, and it flattens the picture to get there. */
+  #menuScrim{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:min(640px,94vw);
+    height:46%;pointer-events:none;z-index:0;
+    background:linear-gradient(to top,rgba(4,6,14,.88),rgba(4,6,14,.58) 42%,rgba(4,6,14,0));}
+  /* Wordmark to the top band, controls to the bottom, and the binary keeps the middle. The safe-area
+     table this was tuned against described the OLD layout; it was never a law, and the best candidate
+     "failed" it only by putting its subject where the buttons happened to be. */
+  #menu .btn.sm.tut{margin-top:auto;}
   .titlewrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
     margin-bottom:58px;}
   .logo{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
@@ -417,9 +451,12 @@
        · the earlier version measured the wrap once and centred on the cached width, while the orbit
          radius read a live window.innerWidth. On a phone the two disagreed and threw the rings 168px
          off-centre. Letting CSS do the centring removes the cache, and the whole class of bug. */
+  /* ⚠️ THE INSET box-shadow IS GONE, and it was invisible for the whole time it was wrong. Against a
+     near-black field a 40px inset glow reads as nothing; over key art it reads as a dark elliptical
+     lens smeared across the picture. Anything tuned against black has to be re-checked against art. */
   .tring{position:absolute;left:50%;top:56%;border-radius:50%;pointer-events:none;
-    border:1px solid rgba(150,190,240,.26);box-shadow:0 0 40px -8px rgba(120,180,255,.28) inset;}
-  .tring.in{border-color:rgba(150,190,240,.11);}
+    border:1px solid rgba(170,205,245,.20);opacity:.6;}
+  .tring.in{border-color:rgba(170,205,245,.09);}
   .tdot{position:absolute;left:50%;top:56%;width:13px;height:13px;border-radius:50%;
     margin:-6.5px 0 0 -6.5px;pointer-events:none;}
   .tdot.r{background:var(--red);box-shadow:0 0 14px 3px rgba(var(--redRGB),.85),0 0 40px 8px rgba(var(--redRGB),.35);}
@@ -1061,7 +1098,9 @@
 </div>
 
 <!-- MENU -->
+<div id="menuArt"></div>
 <div class="overlay" id="menu">
+  <div id="menuScrim"></div>
   <!-- LANGUAGE, ON THE FIRST SCREEN AND NOT BURIED IN SETTINGS. A player who cannot read the menu
        cannot be asked to work out which of four ghost links says "Settings" — that is the one control
        whose discoverability cannot depend on reading the language it is trying to get you out of.
@@ -4551,7 +4590,7 @@ function tutAdvance(){
 function tutFinish(){
   tutMode=false; state='menu';
   el('tutBar').classList.add('hidden');
-  el('menu').classList.add('hidden'); el('dead').classList.add('hidden');
+  el('menu').classList.add('hidden'); el('dead').classList.add('hidden'); menuChrome(false);
   el('tutDone').classList.remove('hidden');
   markTutSeen();
 }
@@ -9638,7 +9677,7 @@ function startRun(mode, startAct){
   boss=null;bossFlash=0;lances.length=0;bossN=0;anomLog.length=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;
-  el('menu').classList.add('hidden');
+  el('menu').classList.add('hidden'); menuChrome(false);
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
   el('bossbar').classList.add('hidden');
@@ -9647,11 +9686,23 @@ function startRun(mode, startAct){
   state='play'; lastT=performance.now(); acc=0;
   if(labMode) beginLabRun(); else if(tutMode) beginTutRun(); else if(testMode) beginTestRun(); else beginRun();
 }
+// THE KEY ART AND THE HUD MOVE WITH THE MENU, and the HUD half is not cosmetic.
+// The score, the Epoch line, both bars and the whole key legend have ALWAYS been rendered under the
+// menu — the shared overlay's .94 wash plus blur(4px) simply hid them. Lighten that wash so the art
+// can be seen and they all reappear, ghosting over the picture. Nothing regressed; the cover came off.
+//   ⚠️ visibility, NOT display. #hud is a fixed layer whose children are positioned against it, and
+// display:none would collapse the box the bars measure themselves in — they come back mid-transition
+// at the wrong width. visibility keeps the geometry and only stops the paint.
+function menuChrome(on){
+  const art=el('menuArt'), hud=el('hud');
+  if(art) art.classList.toggle('hidden', !on);
+  if(hud) hud.style.visibility = on ? 'hidden' : '';
+}
 function toMenu(){
   state='menu';
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
-  el('menu').classList.remove('hidden');
+  el('menu').classList.remove('hidden'); menuChrome(true);
   refreshTutBeacon();   // the flag can only have been SET since we left, so this only ever turns it off
   refreshDepth();       // and the run that just ended is the one thing that can have moved the ladder
 }
@@ -10770,6 +10821,12 @@ const sfx={
 el('best').querySelector('.v').textContent=store.best.toLocaleString();
 applyPalette();   // before the first frame, or one frame paints in the wrong pole colour
 applyLang();      // likewise: the markup ships English, and a Korean player must never see it flash
+// ⚠️ AND THE MENU'S OWN CHROME, FOR THE SAME REASON AND WITH A SHARPER EDGE. #menu is visible at boot
+// because its markup carries no .hidden — toMenu() is never called on the way in, so nothing had ever
+// had to state the menu's starting chrome before. The art layer and the HUD are toggled by state now,
+// so without this the first screen a player ever sees is the one screen with no key art and a live
+// HUD ghosting over it, and every later visit to the menu looks different from the first.
+menuChrome(!el('menu').classList.contains('hidden'));
 // idle background render before start
 
 // ---- FIRST VISIT: the tutorial runs itself, exactly once, ever ----
