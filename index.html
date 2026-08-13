@@ -5194,7 +5194,7 @@ const WIND_V=4.4;         // px/frame of outward velocity, applied ONCE as the f
                           // being overtaken, so the wave visibly stops sweeping them along. Read that as
                           // a look decision, not a correctness one, and do not "restore" the ceiling as
                           // though it were an invariant.
-const WIND_HOLD=1.2;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
+const WIND_HOLD=0.6;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
                           // The first version added velocity and left seek running, on the argument that a
                           // shove should let bodies steer home immediately. MECHANICS says of the Fling:
                           // "seek at zero — dead straight, OR ITS OWN SEEK WOULD CANCEL THE IMPULSE and
@@ -5206,15 +5206,25 @@ const WIND_HOLD=1.2;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, A
                           //   ⚠️ It therefore EJECTS RING DOTS, because a thrown Dot is not a ring member
                           // by construction. That is the anti-grind interrupt working, and it is bounded
                           // rather than a strip: RING_GRACE reels them back the whole time.
-                          //   0.45 → 1.2 with the front. Displacement is `WIND_V·(1−0.985ⁿ)/0.015`, so at
-                          // today's 4.4 over 72 frames that is ~194px, against the instant version's
-                          // 5.5-over-27 = ~75. Longer window, further travel, lower peak speed — the
-                          // shove got stronger without getting sharper. It also hands off smoothly rather
-                          // than stopping dead: ~1.48px/frame still on the body when the window closes and
-                          // ordinary friction takes over, so nothing snaps back on one frame.
-                          //   ⚠️ THIS DERIVATION READS `WIND_V` AND HAS ALREADY GONE STALE ONCE — it said
-                          // 124px, from the 2.8 that preceded it, and nothing failed. Re-derive both
-                          // numbers whenever either constant moves.
+                          //   0.45 → 1.2 → 0.6. Displacement is `WIND_V·(1−0.985ⁿ)/0.015`, so 4.4 over 36
+                          // frames is ~123px, against ~194 at 1.2s and the instant version's ~75.
+                          //   ⚠️ HALVED ON *"the delay after getting hit by a push should be halved… this is
+                          // a fast paced game"*, AND THE THING THAT WAS TOO LONG IS NOT THIS CONSTANT.
+                          // Measured before the change, ring outage — front crossing to ring restored —
+                          // ran **2.20s at 460px, 3.07s at 300px, and had not recovered inside 5s at
+                          // 140px**, against a 1.2s window. The window is a *third* of the wait. The rest
+                          // is the RETURN TRIP: a body thrown 194px has to come back 194px under ordinary
+                          // seek before it is a ring member again, so the felt recovery scales with
+                          // TRAVEL, and travel is `WIND_V × f(WIND_HOLD)`.
+                          //   That is why this is the constant that moved and `WIND_V` did not. Peak
+                          // impulse is what reads as STRENGTH in the moment — unchanged at 4.4, so the
+                          // punch is identical — while the hold and the drift after it are what read as
+                          // SLOW. Cutting the window shortens the throw and the walk home together and
+                          // leaves the hit itself alone. ⚠️ Raising `WIND_V` to "restore" the lost 71px
+                          // would put the whole wait straight back; these two are one dial for recovery
+                          // and only one of them is also the dial for force.
+                          //   ⚠️ THIS DERIVATION READS BOTH CONSTANTS AND HAS GONE STALE TWICE — 124px from
+                          // an old 2.8, then 194px from a 1.2s hold, and nothing failed either time.
 const WIND_FALL=0.5;      // exponent on the falloff. Linear (1.0) hands a body at 0.9R only a tenth of the
                           // push, which is what made the edge of the wave read as nothing; at 0.5 it gets
                           // a third. The wave has to arrive everywhere it is drawn or the ring is a lie.
