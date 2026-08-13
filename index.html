@@ -1777,6 +1777,10 @@ const L={ en:{
   'hud.lab':'PATTERN LAB',  'hud.rush':'BOSS RUSH',
   'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> Change Anomaly',
   'hud.bossHunt':'IT IS GOING TO RAM YOU!',
+  // The Singularity's Draw runs through `b.hunt`, so without these it inherited the line above and told
+  // you to dodge a thing that cannot be dodged. Both name a MOVEMENT answer, which is this line's rule.
+  'hud.bossDrawTel':'IT IS ABOUT TO PULL YOU IN!',
+  'hud.bossDraw':'BURN TO BREAK THE PULL!',
   'ctl.steer':'<kbd>Mouse</kbd> Steer star',
   'ctl.flip':'<kbd>Space</kbd><kbd>Click</kbd> Reverse poles',
   'ctl.od':'<kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive',
@@ -1968,6 +1972,10 @@ const L={ en:{
   // displaces its standing tip for exactly that window. Author's phrasing — the narrator speaking for
   // the thing, which is the voice the tutorial acknowledgements already use.
   'hud.bossHunt':'직접 부딪힐 생각이에요!',
+  // 위 줄과 같은 말투 — 설명문이 아니라 다급하게 알려주는 한마디. '흡입'은 카드에 쓰는 명사고,
+  // 이 자리에서는 동사로 풀어 쓴다. 두 줄 다 '무엇을 하라'로 끝나야 하는 자리라서 짧게 끊었다.
+  'hud.bossDrawTel':'곧 끌어당겨요!',
+  'hud.bossDraw':'오버드라이브로 뿌리쳐요!',
   // Space/Shift/Esc/P/M stay Latin because they are printed on the key. "Mouse" is not a key, it is a
   // device, and Korean writes 마우스.
   'ctl.steer':'<kbd>마우스</kbd> 별 조종',
@@ -8222,6 +8230,40 @@ function drawBoss(){
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.05+0.12*Math.sin(elapsed*26)),0,TAU); ctx.stroke();
     ctx.restore();
   }
+  // SINGULARITY — THE DRAW'S WIND-UP. The one window in which the answer is still available, so it is the
+  // one that most needed a mark: before this the whole 0.9s was a sound and a single frame of `bossFlash`,
+  // which is an announcement rather than a warning. Author: *"i want indicator before serious hunt mode."*
+  //
+  // ⚠️ IT STATES THE VERB, NOT THE REACH, AND THAT IS FORCED BY LAW 3 RATHER THAN CHOSEN. The Draw's reach
+  // is the whole arena — the speed cap applies wherever you are standing — so there is no radius that
+  // could honestly be drawn for it, and any ring placed out in the field would be a lethal lie at every
+  // distance it was not drawn at. Everything here is anchored to the BODY: a ring that converges onto the
+  // hull and streaks that fall inward. Converging is legal outside a hull precisely because it is moving
+  // and states its destination by arriving there, which is the Bastion's charge-ring idiom and the danger
+  // sign's — and it is the correct WORD besides, since converging already means "arriving here" in this
+  // game and the Draw is the one mechanic that genuinely brings you here.
+  //   White, for the Wind's reason: the Draw acts on the Star regardless of polarity, so a hue would
+  // claim something untrue. The pair stays legible on DIRECTION — the Wind expands, the Draw converges —
+  // which is the same axis `release`/`inhale` split on in the bank.
+  if(b.variant==='singularity' && b.drawTel>0){
+    const w=1-b.drawTel/DRAW_TEL;                        // 0→1 as it winds up
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.strokeStyle=hexA('#ffffff',0.20+0.55*w); ctx.lineWidth=2+3*w;
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(4.4-3.2*w),0,TAU); ctx.stroke();
+    // Streaks falling in. They TIGHTEN and brighten together, so *when* reads as clearly as *what* —
+    // the same thing the dash reticle does by collapsing onto its lock.
+    const n=10;
+    for(let i=0;i<n;i++){
+      const a=b.hexRot + i/n*TAU + elapsed*0.7;
+      const r1=b.r*(2.6-1.1*w), r0=r1+b.r*(0.55+0.85*w);
+      ctx.strokeStyle=hexA('#ffffff',0.10+0.34*w); ctx.lineWidth=1.5+1.5*w;
+      ctx.beginPath();
+      ctx.moveTo(b.x+Math.cos(a)*r0, b.y+Math.sin(a)*r0);
+      ctx.lineTo(b.x+Math.cos(a)*r1, b.y+Math.sin(a)*r1);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   // SINGULARITY — THE WIND'S FRONT, DRAWN FROM `b.windR` ITSELF. Not a particle, not a `spawnRing`: the
   // radius on screen IS the radius the push test uses, so the wave you watch arrive is the wave that
   // moves the body it arrives at. That identity is the whole cue — an instant disc with a fast ring
@@ -9360,8 +9402,17 @@ function updateHUD(){
     // The hunt outranks the standing tip, and is the only thing that may displace it: it is the one
     // time the Anomaly is actively walking onto your core, it is over in a few seconds, and the answer
     // is a movement answer — which is exactly what this line is allowed to name.
-    bb.querySelector('.bl').textContent = boss.hunt>0 ? T('hud.bossHunt') : T(tip);
-    bb.querySelector('.bl').style.color = boss.hunt>0 ? COL.red : ''; }
+    // ⚠️ THE SINGULARITY MUST BE TESTED BEFORE `hunt`, NOT AFTER, because its Draw RUNS THROUGH `b.hunt`
+    // — that is how bossMove closes at HUNT_SPD — so the generic branch below matches during a Draw and
+    // was telling the player to dodge a thing that cannot be dodged. Order is the whole fix here.
+    //   The wind-up gets its own line rather than sharing one: it is the only window in which the answer
+    // is still available, and a line that appears only once the cap is already on is a report, not a
+    // warning. Both name a MOVEMENT answer, which is this line's standing rule.
+    const drawing = boss.variant==='singularity' && (boss.drawT>0 || boss.drawTel>0);
+    const key = drawing ? (boss.drawT>0 ? 'hud.bossDraw' : 'hud.bossDrawTel')
+                        : (boss.hunt>0 ? 'hud.bossHunt' : tip);
+    bb.querySelector('.bl').textContent = T(key);
+    bb.querySelector('.bl').style.color = (drawing || boss.hunt>0) ? COL.red : ''; }
   else bb.classList.add('hidden');
   updateTiltDiag();
   // THE TOUCH LEGEND IS A REMINDER, NOT A HUD ELEMENT, and the difference is 53px of a 812px phone.
