@@ -5181,11 +5181,19 @@ const WIND_SPD=4.6;       // ⚠️ px/frame the FRONT TRAVELS, and the whole cu
                           // discontinuity. At 4.6 the front takes 122 frames = 2.03s to cross its reach,
                           // so you WATCH it come, watch it reach a Dot, and watch that Dot leave. Legibility
                           // is the entire argument for this number; raising it buys nothing else back.
-const WIND_V=2.8;         // px/frame of outward velocity, applied ONCE as the front passes a body. Gentler
-                          // than the 5.5 of the instant version and it carries further, which is the trade
-                          // asked for: *"pushed away gently but not that short."* Against WIND_HOLD's
-                          // friction that is ~124px of travel — see below. Still well under a Fling
-                          // (FLING_V0 10.8): the boss's exhale must never read as strong as your own throw.
+const WIND_V=4.4;         // px/frame of outward velocity, applied ONCE as the front passes a body. Against
+                          // WIND_HOLD's friction that is ~194px of travel — the geometric sum is
+                          // `WIND_V·(1−0.985ⁿ)/0.015`, n = WIND_HOLD·60. 2.8 → 4.4 on *"shoving away is
+                          // little weak"*; still under half a Fling (FLING_V0 10.8), which is the ratio
+                          // that matters — the boss's exhale must never read as strong as your own throw.
+                          //   ⚠️ THE 4.6 CEILING IS SOFT AND ITS REASON IS NOT WHAT IT LOOKS LIKE. Keeping
+                          // this under WIND_SPD means a pushed body cannot ride ahead of the front, which
+                          // is tidy but NOT load-bearing: the push happens on the frame the front crosses
+                          // the body, so a body can never escape *unpushed* however fast it is thrown.
+                          // Exceeding 4.6 is therefore legal — what it costs is that fast bodies stop
+                          // being overtaken, so the wave visibly stops sweeping them along. Read that as
+                          // a look decision, not a correctness one, and do not "restore" the ceiling as
+                          // though it were an invariant.
 const WIND_HOLD=1.2;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
                           // The first version added velocity and left seek running, on the argument that a
                           // shove should let bodies steer home immediately. MECHANICS says of the Fling:
@@ -5198,11 +5206,15 @@ const WIND_HOLD=1.2;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, A
                           //   ⚠️ It therefore EJECTS RING DOTS, because a thrown Dot is not a ring member
                           // by construction. That is the anti-grind interrupt working, and it is bounded
                           // rather than a strip: RING_GRACE reels them back the whole time.
-                          //   0.45 → 1.2 with the front. Displacement is `WIND_V·(1−0.985ⁿ)/0.015`, so
-                          // 2.8 over 72 frames is ~124px against the old 5.5-over-27's ~75 — SLOWER AND
-                          // FURTHER, which is the shape asked for. It also hands off smoothly instead of
-                          // stopping dead: the body still carries ~0.94px/frame when the window closes and
+                          //   0.45 → 1.2 with the front. Displacement is `WIND_V·(1−0.985ⁿ)/0.015`, so at
+                          // today's 4.4 over 72 frames that is ~194px, against the instant version's
+                          // 5.5-over-27 = ~75. Longer window, further travel, lower peak speed — the
+                          // shove got stronger without getting sharper. It also hands off smoothly rather
+                          // than stopping dead: ~1.48px/frame still on the body when the window closes and
                           // ordinary friction takes over, so nothing snaps back on one frame.
+                          //   ⚠️ THIS DERIVATION READS `WIND_V` AND HAS ALREADY GONE STALE ONCE — it said
+                          // 124px, from the 2.8 that preceded it, and nothing failed. Re-derive both
+                          // numbers whenever either constant moves.
 const WIND_FALL=0.5;      // exponent on the falloff. Linear (1.0) hands a body at 0.9R only a tenth of the
                           // push, which is what made the edge of the wave read as nothing; at 0.5 it gets
                           // a third. The wave has to arrive everywhere it is drawn or the ring is a lie.
