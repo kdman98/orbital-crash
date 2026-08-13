@@ -5153,7 +5153,22 @@ const DRAW_AWAY=0.30;     // the OUTWARD-RADIAL component of that displacement i
                           //   re-derive the whole block if DRAW_T, DRAW_CAP, DRAW_AWAY, HUNT_SPD.singularity
                           //   or `P.moveMult`'s 1.4 moves. The band's own 66-162 comes from the ring shell
                           //   and `boss.r + dot.r`, so it moves with the eddy coefficient too.
-const WIND_EVERY0=3.6, WIND_EVERY1=5.4;
+// THE PERIOD, and since the countdown was fixed to run during flight (see updateBoss) it really is the
+// period rather than a gap between waves. 3.6-5.4 → 2.8-4.4, which with `pace.cad` lands at ~4.5s mean at
+// Epoch I and ~3.6s at Epoch III, against a measured 7.45 / 6.89 before. Roughly double the rate: the
+// accounting fix supplies about a third of that and the constants the rest.
+//   ⚠️ THE OBVIOUS COST IS RING UPTIME AND I COULD NOT MEASURE IT — recorded as unresolved rather than
+// asserted, because the first version of this comment asserted it and the measurement disagreed. Each
+// wave demonstrably ejects the rings it passes (14 → 0, fully recovered by ~1.5s, measured directly), so
+// a cost is expected. But the Wind also DELIVERS matter to whoever stands outside it, and the two run in
+// opposite directions on the same quantity. Parked at 240px against an Emitter control: one run gave the
+// Singularity arm 88.3 rings against 70.2, a second gave 46.5 against 56.9 — **the two disagree in sign.**
+// Per this file's own replication rule that is not a small effect, it is no result at all.
+//   What IS separable is the shape: frames losing 3+ ring members at once ran 9 and 7 for the Singularity
+// at 240/380px against 0 and 5 for the Emitter. The interruption is real; its NET cost is unknown.
+// So if this constant wants to go lower, the honest lever is feel, and anyone who wants to price it
+// properly needs a rig that separates delivery from ejection — this one does not.
+const WIND_EVERY0=2.8, WIND_EVERY1=4.4;
 const WIND_R=560;         // reach of the shove. ⚠️ 250 FIRST, AND IT WAS BARELY A THIRD OF WHAT IS NEEDED:
                           // `S` pins the arena's SHORT axis at REF_SHORT on every device, so 560 is ~70%
                           // of the short axis everywhere and the wave reads as weather over the field
@@ -5507,14 +5522,24 @@ function updateBoss(dt){
     // front takes to cross, and a wave dragged along behind a moving centre is not a shockwave — it stops
     // being a place something happened. It also makes the band test below unsound, since a body could be
     // re-entered by a front whose centre moved toward it.
-    if(b.windR<0){
-      b.windT-=dt;
-      if(b.windT<=0){
-        b.windT=rand(WIND_EVERY0,WIND_EVERY1)*pcad;
-        b.windR=0; b.windX=b.x; b.windY=b.y;
-        sfx.wind();
-      }
-    } else {
+    // ⚠️ THE CLOCK RUNS DURING FLIGHT, AND IT USED NOT TO — WHICH MADE THE CONSTANT A LIE ABOUT ITSELF.
+    // Gating the countdown on `windR<0` charged the wave's own 2.03s of travel to the cooldown, so the
+    // real period was `gap + travel` and WIND_EVERY named neither. Measured under the old accounting:
+    // 7.45s at Epoch I and 6.89s at Epoch III, against constants that read 4.5-6.75 and 3.6-5.4.
+    // The countdown is unconditional now, so **WIND_EVERY is the period** and tuning it does what it says.
+    //   ⚠️ It is still one wave at a time — `windR` is a single front, not a list — so the launch is
+    // gated on the previous one having finished. That puts a FLOOR of 2.03s under the period no matter
+    // how low these go: at `pcad` 1.0 the shortest roll here is 2.8s, clear of it, and `pcad` never goes
+    // below 1. Take WIND_EVERY0 under ~2.2 and the floor starts binding silently — the timer will sit
+    // expired and every wave will launch the instant the last one dies, which is a different mechanic
+    // wearing the same constants. Make it a list before going there.
+    b.windT-=dt;
+    if(b.windT<=0 && b.windR<0){
+      b.windT=rand(WIND_EVERY0,WIND_EVERY1)*pcad;
+      b.windR=0; b.windX=b.x; b.windY=b.y;
+      sfx.wind();
+    }
+    if(b.windR>=0){
       const prev=b.windR;
       b.windR+=WIND_SPD;
       for(const e of enemies){
