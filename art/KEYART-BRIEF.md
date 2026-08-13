@@ -158,6 +158,85 @@ In roughly this order:
 
 ---
 
+## How to actually run this
+
+**Your part is two steps: pick a tool, paste a prompt. Everything downstream is code.**
+
+### Step 1 — pick a tool, and know the catch
+
+⚠️ **Negative prompts only work in some tools.** The negative list above is not a universal feature —
+in ChatGPT/DALL·E and Gemini it does nothing, and writing "no spaceships" can even *summon* one.
+
+| tool | negative prompt | aspect ratio | notes |
+|---|---|---|---|
+| **Midjourney** | yes, `--no a, b, c` | `--ar 16:9` | best fit for this kind of atmospheric space art |
+| **Stable Diffusion** (Automatic1111, ComfyUI, Leonardo) | yes, own field | width/height | most control, most setup |
+| **ChatGPT / DALL·E** | **no** | ask in words | easiest if you already pay for it — use the positive-only prompt below |
+| **Gemini / Imagen** | **no** | ask in words | same as above |
+
+### Step 2 — paste the right version
+
+**Midjourney** (one line):
+
+```
+deep space photograph, extremely dark near-black field, curved limb of a large planet low in frame lit only by a thin rim of light, two small distant point lights far apart one red one cyan, sparse faint starfield, very low contrast dust and nebula in cold slate blue and dim copper, heavily desaturated, empty black space across the middle of the frame, scientific astronomical photography, Hubble JWST deep field, emissive light only, no ambient fill, enormous scale, silent and cold --ar 16:9 --no text, letters, logo, watermark, UI, buttons, HUD, frame, border, spaceship, rocket, satellite, astronaut, character, lens flare, bokeh, vignette, bright background, gold, yellow, orange, purple, green, busy center, cartoon, illustration, concept art
+```
+
+Swap `--ar 16:9` for `--ar 9:16` to get the portrait version.
+
+**ChatGPT / Gemini** — negatives don't work, so everything is stated positively:
+
+```
+Generate a 16:9 image, 2560x1440.
+
+A photograph of deep space, taken from orbit. The frame is overwhelmingly black —
+about 85% of the image should be near-black, darker than you would normally make it.
+
+Composition: the curved edge of a huge planet sweeps across the LOWER THIRD of the
+frame, visible only as a thin bright rim of light along its curve; the planet itself
+is unlit and reads as a dark mass. Above it, empty black sky with a sparse scattering
+of faint stars. Two small distant point-lights sit far apart near the lower corners,
+one cool red, one cyan, each a tiny bright core with a soft glow.
+
+The MIDDLE of the frame must stay empty and black — no detail, no structure, nothing
+bright between roughly 25% and 80% of the image height.
+
+Colour: near-black with faint cold slate-blue and dim copper dust, heavily desaturated.
+The only saturated colours anywhere are the two small red and cyan point-lights.
+
+Style: real scientific astronomical photography, in the manner of Hubble and JWST deep
+field images. Light is emissive only — objects glow on their own against black, with no
+ambient fill and no cast shadows. The mood is silent, cold and enormous.
+```
+
+For the portrait version, change the first line to `9:16 image, 1440x2560` and move the planet limb
+to the lower quarter.
+
+### Step 3 — generate several, not one
+
+Make **6–8 candidates**, not one. Variation is cheap and the first result is rarely the best. Don't
+try to fix a near-miss by re-prompting the same seed; generate a fresh batch instead.
+
+Don't try to generate the whole title screen the way the reference images did — those had buttons
+baked into the picture, which cannot be used. **Background only.**
+
+### Step 4 — send them to me
+
+Save the candidates anywhere and hand them over. From that point it is code, not craft. I will:
+
+- **Audit each one against this brief** — measure the actual brightness inside the 25–80% reserved
+  band, detect any gold/violet/lime regions, and check the black point.
+- **Do the edit pass** — crush the blacks, desaturate everything that is not the two poles, flatten
+  the middle band, crop the wide and tall masters, export WebP inside the size budget.
+- **Composite the real wordmark on top** and verify it is still the brightest thing in frame.
+- **Wire it in** — the `#menu` overlay change, the build-script copy list, the `sw.js` precache entry.
+
+**What is genuinely yours to judge:** whether a candidate *feels* right, and whether anything needs
+cloning out that a filter cannot fix. If you do want to hand-edit, [Photopea](https://photopea.com) is
+free, runs in a browser and opens PSDs.
+
+---
+
 ## How to judge a candidate
 
 Ask in this order, and stop at the first no:
