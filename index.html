@@ -806,19 +806,37 @@
      centre, the lockup and controls go to a left column, and the scrim becomes a horizontal ramp
      instead of a bottom one. Nothing here changes the tall layouts. */
   @media (max-height:520px) and (min-aspect-ratio:3/2){
-    #menuArt{background-position:76% center;}
-    #menu.overlay{align-items:flex-start;justify-content:center;
+    /* ⚠️ ONLY THE VERTICAL VALUE DOES ANYTHING HERE, AND I HAD THE FIRST VERSION WRONG. This branch
+       shipped `78% center` on the theory that it pushed the subject clear of the column. It does not:
+       the art is 1152x648 against an 844x390 viewport, so `cover` scales by WIDTH — rendered 844x474.7,
+       horizontal slack exactly 0. The X value is inert at this aspect and the column clears the binary
+       because the SCRIM covers the art's left portion, which is a different mechanism entirely.
+       84.7px of vertical slack is real, and 58% spends it downward to bring the planet limb into
+       frame along the bottom edge. */
+    #menuArt{background-position:center 58%;}
+    /* ⚠️ THE COLUMN IS CENTRED IN THE LEFT REGION, NOT FLUSHED TO THE EDGE. Flush-left was the first
+       attempt and read as jammed rather than composed: the controls sat hard against the bezel with
+       ragged right edges, which is a list of links, not a menu. `padding-right` shrinks the flex box
+       to the left portion of the screen and `align-items:center` then centres the column inside THAT
+       — so it keeps air on both sides and still clears the art. */
+    #menu.overlay{align-items:center;justify-content:center;
       padding-top:max(8px,env(safe-area-inset-top,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px));
-      padding-left:max(28px,env(safe-area-inset-left,0px));}
-    #menu .titlewrap{align-items:flex-start;margin-bottom:14px;}
-    #menu .logo{align-items:flex-start;}
-    /* The orbit rings are centred on the lockup and are 860px wide; against a left column on a 844px
-       screen they become a band across the whole frame. Off here — the art carries the motion now. */
-    #menu .tring,#menu .tdot,#menu .tfx{display:none;}
-    #menu .btn.sm.tut{margin-top:14px;}
-    #menu .doors{width:min(360px,52vw);}
-    #menuScrim{left:0;bottom:0;top:0;transform:none;height:100%;width:min(470px,62vw);
-      background:linear-gradient(to right,rgba(4,6,14,.92),rgba(4,6,14,.62) 58%,rgba(4,6,14,0));}
+      padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:46vw;}
+    #menu .titlewrap{margin-bottom:15px;}
+    /* One width for every control, so the column reads as a block. Ragged widths are what made the
+       flush-left version look lopsided — it was the right edge, not the left one. */
+    #menu .btn,#menu .doors{width:min(310px,42vw);}
+    #menu .btn{padding-left:0;padding-right:0;}
+    /* The orbit rings are centred on the lockup and are 860px wide; against an off-centre column on an
+       844px screen they become a band across the whole frame. Off here — the art carries the motion. */
+    /* ⚠️ `.ttrail` IS IN THIS LIST AND IT IS THE ONE I MISSED FIRST TIME. The trail particles are
+       children of `.titlewrap`, NOT of `.tdot`, so hiding the dots left 28 of them still orbiting and
+       drifting straight across the buttons — visible as stray specks inside the tutorial pill, and
+       only sometimes, because they move. Hiding a parent does not hide a sibling. */
+    #menu .tring,#menu .tdot,#menu .ttrail,#menu .tfx{display:none;}
+    #menu .btn.sm.tut{margin-top:12px;}
+    #menuScrim{left:0;bottom:0;top:0;transform:none;height:100%;width:min(520px,66vw);
+      background:linear-gradient(to right,rgba(4,6,14,.93),rgba(4,6,14,.66) 60%,rgba(4,6,14,0));}
   }
   @media (max-height:520px){
     .overlay{padding:10px 12px;
