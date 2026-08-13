@@ -8100,14 +8100,24 @@ function drawBoss(){
   if(b.variant==='singularity' && b.windR>=0){
     const g=Math.min(1,b.windR/WIND_R);                   // 0→1 across the travel
     ctx.save(); ctx.globalCompositeOperation='lighter';
-    // Fades as it spreads, but never to nothing before it arrives — same argument as the `a^0.4` on an
-    // outward particle ring. The energy really is thinner out there (WIND_FALL), so the fade is honest.
-    ctx.strokeStyle=hexA(c,0.50*(1-0.45*g)); ctx.lineWidth=3.5;
+    // ⚠️ WHITE, NOT `c` — AND THIS IS THE COLOUR LAW, NOT A PALETTE PREFERENCE. The Wind pushes EVERY Dot
+    // regardless of polarity; it has never had a colour test. Drawing its front in the boss's own hue made
+    // it claim a polarity it does not have, and the claim was read exactly as written — author reported
+    // the Wind as pushing "only same color." Two things went wrong at once and either alone would do it:
+    // a cyan front over cyan Dots is a low-contrast blend, so you cannot SEE the ones it moves; and hue in
+    // this game means polarity everywhere, so a coloured wave says the colour is what it acts on.
+    //   The precedent is `bomberBlast`, the game's other colour-blind area effect, and it is already
+    // solved there: lime and white, deliberately not a pole. White is the right neutral here because the
+    // requirement is functional rather than aesthetic — the front must contrast against BOTH colours
+    // equally, since being able to watch a red Dot and a cyan Dot leave together is the entire cue.
+    //   ⚠️ Do not "fix" this back to the boss's colour to make it prettier. A body-coloured wave is the
+    // same defect as a mark at the wrong radius: a true thing drawn so that it states a false one.
+    ctx.strokeStyle=hexA('#ffffff',0.50*(1-0.45*g)); ctx.lineWidth=3.5;
     ctx.beginPath(); ctx.arc(b.windX,b.windY,b.windR,0,TAU); ctx.stroke();
     // A dimmer trailing edge so the front has THICKNESS and reads as a wave with a direction rather than
     // an expanding circle. Suppressed until it has cleared the hull, or it draws inside the body.
     if(b.windR>b.r+28){
-      ctx.strokeStyle=hexA(c,0.16*(1-0.5*g)); ctx.lineWidth=2;
+      ctx.strokeStyle=hexA('#ffffff',0.16*(1-0.5*g)); ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(b.windX,b.windY,b.windR-24,0,TAU); ctx.stroke();
     }
     ctx.restore();
