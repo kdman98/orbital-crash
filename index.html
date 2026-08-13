@@ -1233,7 +1233,16 @@
     <button class="ref" id="bestiaryBtn" data-t="ref.bestiary">Bestiary</button>
     <button class="ref" id="settingsBtn" data-t="ref.settings">Settings</button>
   </div>
-  <div class="hint" data-th="menu.hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
+  <!-- ⚠️ THE KEYBOARD LEGEND IS GONE FROM THE MENU, AND IT WAS THE RIGHT ROW TO LOSE. The control
+       column needs ~35% of the screen; the art's binary ends at ~65% and the planet limb starts at
+       ~80%, so there was never enough room and every layout variant just moved the shortfall around —
+       lifting the block put the tutorial button on the accretion disc, tightening it pushed the
+       primary action down to 75%.
+         This row was the cheapest 5.4%: the tutorial teaches every one of these bindings and Settings
+       lists them, so it is the only row on the menu that is pure duplication. It was also actively
+       wrong half the time — it names `mouse`, `R-click` and `shift` on a touchscreen, where none of
+       the three exists and the real controls are screen zones.
+         `menu.hint` stays in the i18n table on purpose: it is still the string the tutorial uses. -->
   <div class="contact"><span data-t="menu.contact">Contact</span> <a href="mailto:kdman98@naver.com">kdman98@naver.com</a></div>
 </div>
 
@@ -8201,6 +8210,10 @@ function bossBody(b,R,c,oc){
 }
 function drawBoss(){
   if(!boss)return; const b=boss, c=COL[b.color], oc=COL[bossOpp(b.color)];
+  // Set by the Draw's wind-up block below and consumed after `bossBody`, so the badge lands on top of the
+  // hull instead of under it. A function-local rather than a field on the boss, deliberately: it cannot
+  // survive a frame, so no early return between the two sites can leave a warning armed for the next one.
+  let drawSingWarn=-1;
   const pulse=1+0.06*Math.sin(elapsed*4);
   // LUNGER telegraph: a taut aim-line + swelling warning ring toward your core, so the dash is readable
   if(b.telegraph>0){
@@ -8234,35 +8247,26 @@ function drawBoss(){
   // one that most needed a mark: before this the whole 0.9s was a sound and a single frame of `bossFlash`,
   // which is an announcement rather than a warning. Author: *"i want indicator before serious hunt mode."*
   //
-  // ⚠️ IT STATES THE VERB, NOT THE REACH, AND THAT IS FORCED BY LAW 3 RATHER THAN CHOSEN. The Draw's reach
-  // is the whole arena — the speed cap applies wherever you are standing — so there is no radius that
-  // could honestly be drawn for it, and any ring placed out in the field would be a lethal lie at every
-  // distance it was not drawn at. Everything here is anchored to the BODY: a ring that converges onto the
-  // hull and streaks that fall inward. Converging is legal outside a hull precisely because it is moving
-  // and states its destination by arriving there, which is the Bastion's charge-ring idiom and the danger
-  // sign's — and it is the correct WORD besides, since converging already means "arriving here" in this
-  // game and the Draw is the one mechanic that genuinely brings you here.
-  //   White, for the Wind's reason: the Draw acts on the Star regardless of polarity, so a hue would
-  // claim something untrue. The pair stays legible on DIRECTION — the Wind expands, the Draw converges —
-  // which is the same axis `release`/`inhale` split on in the bank.
+  // ⚠️ IT IS THE DANGER BADGE, NOT A DIAGRAM, AND THE FIRST VERSION WAS THE DIAGRAM. That one drew a ring
+  // converging onto the hull with streaks falling inward — geometrically honest, thematically exact, and
+  // unreadable: author, *"just give danger sign on wind-up, not geometric lines. this is unable to
+  // understand."* The mistake is worth naming because it is seductive. A mark that DEPICTS the mechanic
+  // feels better designed than a mark that merely names it, and depiction is the wrong job here: a
+  // telegraph is read in peripheral vision, in under a second, while the player is tracking matter. At
+  // that budget a symbol you already know beats a picture you must interpret, however accurate the
+  // picture is. The Comet's badge had already established the symbol; this reuses it rather than teaching
+  // a second one, and `dangerBadge` is now the single copy of that shape.
+  //   No arrow — the Comet's arrow answers "which way are they crossing", and the Draw has no direction
+  // to give: it pulls from wherever you are. Nothing rotates, for the reason at `cometSign`.
+  //   ⚠️ It is drawn ABOVE the hull rather than on it, and it is the only mark this kind raises. There is
+  // no radius anywhere in it, which law 3 forces rather than merely permits: the Draw's reach is the whole
+  // arena, so any ring drawn for it states a lethal lie at every distance it is not drawn at.
   if(b.variant==='singularity' && b.drawTel>0){
     const w=1-b.drawTel/DRAW_TEL;                        // 0→1 as it winds up
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.strokeStyle=hexA('#ffffff',0.20+0.55*w); ctx.lineWidth=2+3*w;
-    ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(4.4-3.2*w),0,TAU); ctx.stroke();
-    // Streaks falling in. They TIGHTEN and brighten together, so *when* reads as clearly as *what* —
-    // the same thing the dash reticle does by collapsing onto its lock.
-    const n=10;
-    for(let i=0;i<n;i++){
-      const a=b.hexRot + i/n*TAU + elapsed*0.7;
-      const r1=b.r*(2.6-1.1*w), r0=r1+b.r*(0.55+0.85*w);
-      ctx.strokeStyle=hexA('#ffffff',0.10+0.34*w); ctx.lineWidth=1.5+1.5*w;
-      ctx.beginPath();
-      ctx.moveTo(b.x+Math.cos(a)*r0, b.y+Math.sin(a)*r0);
-      ctx.lineTo(b.x+Math.cos(a)*r1, b.y+Math.sin(a)*r1);
-      ctx.stroke();
-    }
-    ctx.restore();
+    // Grows and brightens together so *when* reads as clearly as *what* — the dash reticle's trick, on a
+    // symbol instead of on a geometry. `source-over`: the badge is layered violet under white and law 12
+    // would clamp it to a white blob under the additive pass.
+    drawSingWarn=w;   // deferred — see the call below bossBody
   }
   // SINGULARITY — THE WIND'S FRONT, DRAWN FROM `b.windR` ITSELF. Not a particle, not a `spawnRing`: the
   // radius on screen IS the radius the push test uses, so the wave you watch arrive is the wave that
@@ -8355,6 +8359,22 @@ function drawBoss(){
   ctx.save(); ctx.globalCompositeOperation='source-over';
   bossBody(b, b.r*pulse, c, oc);
   ctx.restore();
+  // ⚠️ THE DRAW'S BADGE IS RAISED HERE, AFTER THE HULL, AND THAT IS NOT TIDINESS. Drawn where the telegraph
+  // logic sits — above, with the other wind-ups — the body and its glow paint straight over it, and a
+  // warning sign occluded by the thing it is warning about is worse than none: it reads as a graphical
+  // fault rather than as information. Measured by eye the first time and it was unmistakable, with the
+  // bang's lower half swallowed. The flag is set up there and consumed here so the ORDER is explicit
+  // rather than incidental to where the `if` happens to live.
+  //   It sits a full badge-height clear of the hull and grows with the wind-up, so it never crowds the
+  // body it belongs to. `source-over` because the badge is layered violet under white and law 12 would
+  // clamp it to a white blob in the additive pass.
+  if(drawSingWarn>=0){
+    const w=drawSingWarn, pl=0.84+0.16*Math.sin(elapsed*7);
+    ctx.save(); ctx.globalCompositeOperation='source-over';
+    dangerBadge(b.x, b.y-b.r-SIGN_R*(1.9+0.5*w), (0.55+0.45*w)*pl, SIGN_R*(1.05+0.35*w));
+    ctx.restore();
+    drawSingWarn=-1;
+  }
   // INTEGRITY RING, drawn at `b.r+P.r` — the real contact envelope, and it must stay there. A ring drawn
   // outside a hull reads as "the edge where I die" whether or not it is one, so this one is made true:
   // the bar telling you how much fight is left is the same stroke as the perimeter you must not cross.
@@ -9065,6 +9085,18 @@ function cometSign(px,py,ux,uy,a){
   // exclamation mark at all (upside down on a right-to-left crossing, on its side going straight up).
   // Rounded corners come from `lineJoin` on a stroked path rather than three arcs: at this size a join
   // buys the same read for none of the arithmetic.
+  dangerBadge(px,py,A,R);
+}
+// THE DANGER BADGE — the triangle-and-bang, and the ONE copy of it in the file. Extracted from
+// `cometSign` when the Draw needed the same mark: the Comet's sign is a badge PLUS an arrow, and only the
+// arrow was ever comet-specific. Two hand-drawn copies of a symbol is how the Bestiary's body art went
+// stale against `bossBody`, and a warning sign that differs slightly between the two things that raise it
+// is worse than either version alone, because the player learns a shape and then meets a near-miss of it.
+//   `a` is the final alpha, already pulsed by the caller; `R` is the size. Nothing here rotates — see the
+// note above. It draws nothing but the sign, so any future thing that needs to say DANGER HERE calls this
+// rather than inventing a second vocabulary.
+function dangerBadge(px,py,A,R){
+  const V=COL.violet;
   ctx.save(); ctx.translate(px,py);
   ctx.lineJoin='round'; ctx.lineCap='round';
   ctx.beginPath();
