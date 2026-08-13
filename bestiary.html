@@ -159,6 +159,8 @@
     'anom.sentinel.tg':'Homing shots that never let you stand still.',
     'anom.bastion.nm':'Bastion',
     'anom.bastion.tg':'Barrages and projectiles, both attack and pressure.',
+    'anom.singularity.nm':'Singularity',
+    'anom.singularity.tg':'Raises waves that shove matter away from it. Every so often it starts a hunt that pulls your Star in!',
     'form.wall.nm':'The Wall',   'form.noose.nm':'The Noose', 'form.pulse.nm':'The Pulse',
     'form.cross.nm':'The Cross', 'form.comet.nm':'The Comet', 'form.drift.nm':'The Drift',
   }, ko:{
@@ -190,6 +192,10 @@
     'anom.sentinel.tg':'추적형 탄환으로 지속적인 움직임을 강제합니다.',
     'anom.bastion.nm':'바스티온',
     'anom.bastion.tg':'탄막과 투사체 위주의 공격 및 압박을 가합니다.',
+    // 작성자 원문 그대로. '당신(코어?)'만 확정했다 — 코어는 체력(코어 내구도)을 가리키는 말이라
+    // 여기서는 틀리고, 조종하는 대상의 이름은 게임이 이미 '별'로 쓰고 있다(HUD의 '별 조종').
+    'anom.singularity.nm':'특이점',
+    'anom.singularity.tg':'지속적으로 파장을 일으켜서 입자들을 밀어냅니다. 주기적으로 별을 빨아들이는 사냥을 시작합니다!',
     'form.wall.nm':'장벽',   'form.noose.nm':'올가미', 'form.pulse.nm':'파동',
     'form.cross.nm':'십자',  'form.comet.nm':'혜성',   'form.drift.nm':'표류',
   } };
@@ -221,6 +227,7 @@
     {kind:'anom',key:'emitter', col:'cyan'},
     {kind:'anom',key:'sentinel',col:'cyan'},
     {kind:'anom',key:'bastion',  col:'red'},
+    {kind:'anom',key:'singularity',col:'cyan'},
   ];
   // The six shapes, in Pattern Lab key order (1-6). Four are true Patterns — irregular waves that
   // arrive between the drizzle from ~0:42 onward — and two, the Comet and the Drift, are EVENTS on their
@@ -463,6 +470,41 @@
   // ============================================================================================
   function anomBody(ctx,x,y,R,key,c,oc,t){
     const D=ANOM_DETAIL;
+    // SINGULARITY — an inclined accretion disc around the one black fill in the game. ⚠️ HAND-COPIED FROM
+    // `bossBody` IN index.html, like every branch in this function, and the file's warning about that
+    // applies here in full: the two cannot be shared (the game is one self-contained inline script and
+    // this page is opened standalone as well as in the iframe), so when you touch one, WALK THE OTHER IN
+    // THE SAME PASS. A wrong picture in the reference is worse than no picture, because the player
+    // believes it — and unlike a wrong number it cannot be grepped for, since it is not a literal.
+    if(key==='singularity'){
+      ctx.save(); ctx.translate(x,y);
+      ctx.globalCompositeOperation='lighter';
+      ctx.save(); ctx.rotate(-0.42+t*0.06); ctx.scale(1,0.30);   // the card turns it slowly; in-game it is static
+      for(let k=0;k<3;k++){
+        const rr=R*(1.64-k*0.25);
+        const gg=ctx.createLinearGradient(-rr,0,rr,0);
+        gg.addColorStop(0,   mixA(c,COL.violet,0.55,0.22));
+        gg.addColorStop(0.34,hexA(c,0.62));
+        gg.addColorStop(0.60,mixA(c,'#ffffff',0.72,0.80));       // doppler-bright, still the pole's family
+        gg.addColorStop(0.80,hexA(c,0.55));
+        gg.addColorStop(1,   mixA(c,COL.violet,0.55,0.22));
+        ctx.strokeStyle=gg; ctx.lineWidth=R*0.30;
+        ctx.beginPath(); ctx.arc(0,0,rr,0,TAU); ctx.stroke();
+      }
+      ctx.restore();
+      // the event horizon — the one black fill, and it only works because this is composited source-over
+      ctx.globalCompositeOperation='source-over';
+      ctx.fillStyle='#03040a'; ctx.beginPath(); ctx.arc(0,0,R*0.50,0,TAU); ctx.fill();
+      ctx.globalCompositeOperation='lighter';
+      const pr=ctx.createRadialGradient(0,0,R*0.50,0,0,R);
+      pr.addColorStop(0,hexA(c,0.72)); pr.addColorStop(0.5,hexA(c,0.26)); pr.addColorStop(1,hexA(c,0.06));
+      ctx.fillStyle=pr; ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.arc(0,0,R*0.50,0,TAU,true); ctx.fill();
+      ctx.strokeStyle=mixA(c,'#ffffff',0.55,0.85); ctx.lineWidth=R*0.045;
+      ctx.beginPath(); ctx.arc(0,0,R*0.525,0,TAU); ctx.stroke();
+      ctx.restore();
+      ctx.globalCompositeOperation='source-over';
+      return;
+    }
     if(key==='sentinel'){
       const spin=t*0.30, rot=t*0.9;
       ctx.save();
@@ -605,6 +647,17 @@
       ctx.strokeStyle=hexA(lc,0.2+0.6*(1-prog)); ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y,r+6+(1-prog)*26,0,TAU); ctx.stroke();
       for(let i=0;i<10;i++){ const a=i/10*TAU, rr=r+8+prog*30, lx=x+Math.cos(a)*rr, ly=y+Math.sin(a)*rr;
         ctx.fillStyle=hexA(lc,0.85*(1-prog*0.5)); ctx.beginPath(); ctx.arc(lx,ly,2.5,0,TAU); ctx.fill(); }
+    } else if(s.key==='singularity'){                          // the Wind: a front travelling out, carrying matter
+      // WHITE, matching the game: the Wind pushes every Dot whatever its colour, so a front drawn in a
+      // polarity hue would claim something untrue — and the card exists to teach the mechanic correctly.
+      // Matter rides just AHEAD of the front rather than sitting on it, because that is the whole read:
+      // the wave arrives at a body and the body leaves.
+      const prog=(t*0.42)%1, rr=r+6+prog*44;
+      ctx.strokeStyle=hexA('#ffffff',0.55*(1-prog*0.45)); ctx.lineWidth=2.4;
+      ctx.beginPath(); ctx.arc(x,y,rr,0,TAU); ctx.stroke();
+      for(let i=0;i<8;i++){ const a=i/8*TAU+0.2, d=rr+7+prog*6;
+        ctx.fillStyle=hexA(i%2?COL.red:COL.cyan,0.85*(1-prog*0.5));
+        ctx.beginPath(); ctx.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,2.6,0,TAU); ctx.fill(); }
     }
     const pulse=1+0.06*Math.sin(t*4);
     ctx.fillStyle=hexA(c,0.28); ctx.beginPath(); ctx.arc(x,y,r*2.0*pulse,0,TAU); ctx.fill();

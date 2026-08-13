@@ -5257,6 +5257,22 @@ const HUNT_BREAK=1.1;                                          // seconds it rec
 // arrived by then. The amble has not. `SING_ENTRY_Y` must therefore stay clear of that 138, and the rate
 // must clear the gap from the shared `y:-60` spawn inside 96 frames: (152+60)/3.4 = 62 frames = 1.03s.
 const SING_ENTRY_Y=152, SING_ENTRY=3.4;
+const SING_ENTRY_EASE=52; // px above SING_ENTRY_Y over which the dive decays into the amble.
+                          // ⚠️ WITHOUT THIS THE ARRIVAL WAS 5.34x THE WALK AND THEN SNAPPED. Author:
+                          // *"singularity is too fast when spawned."* Measured: a flat 4.81 px/frame held
+                          // for 63 frames, then an instant drop to 0.9. Two faults compounding, and the
+                          // first one is the one that surprised me — `SING_ENTRY` was clamping the
+                          // HORIZONTAL tracking as well as the dive, so it closed diagonally at
+                          // `hypot(3.4,3.4)` while its whole identity is a body you outrun 15:1. Sideways
+                          // is now clamped to SING_FOLLOW: it drifts onto your column at walking pace
+                          // instead of charging across to it.
+                          //   The second is the snap. The dive now decays into the amble over this span
+                          // rather than switching, so it settles instead of stopping. ⚠️ The span is
+                          // keyed to the deadline it must not miss: `stepEnemyForces` clamps y to >=138 at
+                          // `bossTime` 1.6 (frame 96), and easing costs frames. At 52px the ease starts
+                          // at y=100, y=138 is reached around frame 63, and the settle completes ~75 —
+                          // still a third of the window in hand. Widen this and re-measure the frame it
+                          // crosses 138, or the teleport this whole entrance exists to prevent comes back.
 const SING_FOLLOW=0.9;    // px/frame. It never stops walking at you and you outrun it 15:1, which is what
                           // makes a body that deals damage-per-second rather than one hit survivable at
                           // all. It is the Draw that takes the escape away, never the amble.
@@ -5496,9 +5512,17 @@ function bossMove(b,dt){
   // at 1.6s, in play only, on one kind.
   if(b.variant==='singularity' && P){
     if(b.y < SING_ENTRY_Y){
-      b.y += SING_ENTRY;                                     // guaranteed vertical progress
-      const gx=P.x-b.x;                                      // and drift onto the Star's column as it falls
-      b.x += Math.max(-SING_ENTRY, Math.min(SING_ENTRY, gx*0.06));
+      // Still a guaranteed vertical rate rather than an ease toward the Star — see below — but the rate
+      // now decays into the amble across the last SING_ENTRY_EASE px, so the arrival SETTLES instead of
+      // stopping dead on a line the player cannot see.
+      const k=clamp((SING_ENTRY_Y-b.y)/SING_ENTRY_EASE,0,1);   // 1 while high, → 0 at the line
+      b.y += SING_FOLLOW + (SING_ENTRY-SING_FOLLOW)*k;
+      // ⚠️ SIDEWAYS IS CLAMPED TO THE WALK, NOT TO THE DIVE. This read `SING_ENTRY` and that made the
+      // entrance a diagonal charge at hypot(3.4,3.4)=4.81 — 5.3x the pace of the thing it was about to
+      // become. It drifts onto your column at walking speed now; the dive is the only part allowed to
+      // be fast, because the dive is the only part with a deadline.
+      const gx=P.x-b.x;
+      b.x += Math.max(-SING_FOLLOW, Math.min(SING_FOLLOW, gx*0.06));
       b.vx=b.vy=0; return;
     }
     const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1;
