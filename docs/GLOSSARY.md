@@ -235,15 +235,24 @@ Named rules, defined in full in [MECHANICS.md](MECHANICS.md#the-laws).
   ambles at you forever, breathes matter off itself with the **Wind**, and periodically **Draws**: a
   speed cap that makes the ordinary field lethal. Contact is damage-per-second, not one hit, and it is
   the one kind that does not recoil on touching you. (`singularity`, `SING_FOLLOW`, `DRAW_CAP`)
-- **The Wind** — the Singularity's exhale: one radial impulse shoving matter off it. Ejects your rings
-  for about a second and carries loose matter toward whoever is standing outside. Does **not** touch the
-  Star at all. (`WIND_R`, `WIND_V`, `WIND_HOLD`)
+- **The Wind** — the Singularity's exhale: a **front that travels**, pushing each body on the frame it
+  reaches it. Colour-blind, drawn white for that reason. Ejects the rings it crosses and carries loose
+  matter toward whoever stands outside. Does **not** touch the Star at all.
+  (`WIND_R`, `WIND_SPD`, `WIND_V`, `WIND_HOLD`, `b.windR`)
+- **The front** — the Wind's live radius, expanding from a **fixed** origin. The ring on screen is drawn
+  from this same number, so cue and mechanic cannot disagree. (`b.windR`, `b.windX/windY`)
 - **The Draw** — the Singularity's inhale: your top speed is capped and moving *away from it* is taxed
   on top of the cap, while it closes. Answered by **Overdrive**, because the cap scales with
   `P.moveMult`. Strafing is free; retreating is not. (`DRAW_T`, `DRAW_CAP`, `DRAW_AWAY`, `b.drawT`)
-- **The entrance** — the Singularity's dive to station. Distinct from the amble because the amble is a
-  *steady state*: the shared HUD floor clamp arms at 1.6s assuming every kind has already arrived, and a
-  body still climbing when it fires gets teleported. (`SING_ENTRY`, `SING_ENTRY_Y`)
+- **The wind-up** — the Draw's telegraph, and the only window in which the answer is still reachable.
+  Raises the **danger badge** and a red movement line on the integrity bar. (`DRAW_TEL`, `b.drawTel`)
+- **Danger badge** — the violet triangle-and-bang. **One shape, two callers**: the Comet's caution and the
+  Draw's wind-up. The Comet adds an arrow; nothing else differs, and nothing rotates.
+  (`dangerBadge`, `cometSign`)
+- **The entrance** — the Singularity's dive to station, and **not** the amble: the amble is a *steady
+  state*. The shared HUD floor clamp arms at 1.6s assuming every kind has arrived, so a body still
+  climbing gets teleported — and a dive fast enough to beat that clamp reads as a charge unless it decays
+  into the walk. (`SING_ENTRY`, `SING_ENTRY_Y`, `SING_ENTRY_EASE`)
 - **The Hunt** — an Anomaly leaving station and *walking* onto your core, landing one hit and breaking
   off. The Singularity has none: its Draw *is* its hunt, and it drives `b.hunt` itself.
   (`b.hunt`, `HUNT_SPD`, `HUNT_BREAK`)
