@@ -91,18 +91,27 @@ of pixels below L\*15 — far darker than a generator will give you by default.
 ## The prompt
 
 ```
-Deep space photograph, extremely dark, near-black field. The curved limb of a large
-planet low in the frame, lit only by a thin rim of light along its edge. Two small
-distant point-light sources far apart, one cool red, one cyan, each a tiny bright core
-with a soft falloff. Sparse faint starfield. Very low-contrast dust and nebula, cold
+Deep space photograph, extremely dark, near-black field. An enormous planet sits
+almost entirely below the frame — only its topmost sliver enters the very bottom edge,
+its curve so shallow it is nearly a straight line, lit only by a thin rim of light.
+Two small distant point-light sources far apart in the upper half, one crimson, one
+blue-cyan, each a tiny bright core with a soft falloff. Sparse faint starfield. Very low-contrast dust and nebula, cold
 slate blue and dim copper, heavily desaturated. Empty black space across the middle of
 the frame. Scientific astronomical photography, Hubble and JWST deep field, ESO imagery.
 Emissive light only, no ambient fill, no cast shadows. Wide vista, enormous scale,
 silent and cold.
 ```
 
-Append for the wide version: `16:9 composition, planet limb sweeping across the lower third.`
-Append for the tall version: `9:16 vertical composition, planet limb across the lower quarter, empty sky above.`
+Append for the wide version: `16:9 composition, the planet edge a shallow almost-flat arc entering the very bottom edge of the frame.`
+Append for the tall version: `9:16 vertical composition, the planet edge a shallow almost-flat arc entering the very bottom edge, empty sky filling everything above.`
+
+⚠️ **THIS LINE USED TO SAY "LOWER THIRD" AND THAT WAS WRONG.** The lower third is 67–100% of the
+frame, and the reserved band above runs to 80% — so the old wording asked for the brightest curve in
+the image to land exactly where the buttons are. The first real candidate peaked its rim at 66%,
+which is precisely what was asked for. **The limb must occupy only the bottom ~15%, peaking no higher
+than 85%.** Percentages do not steer a generator, so the phrasing that does the work is *shallow*,
+*almost-flat*, *only a sliver*, and *so large its edge is nearly a straight line* — a planet whose
+curve is visibly round is a planet small enough to climb into the composition.
 
 ### Negative prompt
 
@@ -179,7 +188,7 @@ in ChatGPT/DALL·E and Gemini it does nothing, and writing "no spaceships" can e
 **Midjourney** (one line):
 
 ```
-deep space photograph, extremely dark near-black field, curved limb of a large planet low in frame lit only by a thin rim of light, two small distant point lights far apart one red one cyan, sparse faint starfield, very low contrast dust and nebula in cold slate blue and dim copper, heavily desaturated, empty black space across the middle of the frame, scientific astronomical photography, Hubble JWST deep field, emissive light only, no ambient fill, enormous scale, silent and cold --ar 16:9 --no text, letters, logo, watermark, UI, buttons, HUD, frame, border, spaceship, rocket, satellite, astronaut, character, lens flare, bokeh, vignette, bright background, gold, yellow, orange, purple, green, busy center, cartoon, illustration, concept art
+deep space photograph, extremely dark near-black field, only the topmost sliver of an enormous planet entering the very bottom edge, its edge almost a straight line, lit only by a thin rim of light, two small distant point lights far apart in the upper half, one crimson one blue-cyan, sparse faint starfield, very low contrast dust and nebula in cold slate blue and dim copper, heavily desaturated, empty black space across the middle of the frame, scientific astronomical photography, Hubble JWST deep field, emissive light only, no ambient fill, enormous scale, silent and cold --ar 16:9 --no text, letters, logo, watermark, UI, buttons, HUD, frame, border, spaceship, rocket, satellite, astronaut, character, lens flare, bokeh, vignette, bright background, gold, yellow, orange, purple, green, teal, turquoise, busy center, cartoon, illustration, concept art
 ```
 
 Swap `--ar 16:9` for `--ar 9:16` to get the portrait version.
@@ -192,14 +201,17 @@ Generate a 16:9 image, 2560x1440.
 A photograph of deep space, taken from orbit. The frame is overwhelmingly black —
 about 85% of the image should be near-black, darker than you would normally make it.
 
-Composition: the curved edge of a huge planet sweeps across the LOWER THIRD of the
-frame, visible only as a thin bright rim of light along its curve; the planet itself
-is unlit and reads as a dark mass. Above it, empty black sky with a sparse scattering
-of faint stars. Two small distant point-lights sit far apart near the lower corners,
-one cool red, one cyan, each a tiny bright core with a soft glow.
+Composition: an ENORMOUS planet sits mostly below the frame. Only the topmost sliver
+of it enters the very bottom edge — so large that its edge is almost a straight line,
+a shallow arc rising no higher than one sixth of the way up the image. It is visible
+only as a thin bright rim of light; the planet body itself is unlit and reads as a
+solid dark mass. Everything above it is empty black sky with a sparse scattering of
+faint stars. Two small distant point-lights sit far apart in the UPPER portion of the
+frame, one cool blue-cyan, one crimson, each a tiny bright core with a soft glow.
 
 The MIDDLE of the frame must stay empty and black — no detail, no structure, nothing
-bright between roughly 25% and 80% of the image height.
+bright between roughly 25% and 80% of the image height. Nothing should rise into the
+middle from below.
 
 Colour: near-black with faint cold slate-blue and dim copper dust, heavily desaturated.
 The only saturated colours anywhere are the two small red and cyan point-lights.
