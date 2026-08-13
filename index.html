@@ -796,6 +796,30 @@
      screen: `16vw` is a sane cap when width is the scarce axis and an absurd one when height is.
        Keyed on HEIGHT rather than on a device or an orientation, because a short desktop window has
      exactly the same problem and there is no reason to make it a phone-only fix. */
+  /* ---------- THE LANDSCAPE PHONE, WHICH IS THE ONLY ORIENTATION THIS GAME SHIPS IN ----------
+     ⚠️ manifest.webmanifest declares `"orientation":"landscape"` and Info.plist allows only
+     LandscapeLeft/Right, so 844x390 IS the product and 1280x760 is a development convenience. The
+     centred stack that works on both of those FAILS here and fails invisibly: at 390px of height the
+     control column lands exactly on the binary and covers the whole subject of the picture. Verified
+     at desktop and at portrait, neither of which is a case that ships.
+       So on a short viewport the composition turns sideways: the art's subject is pushed right of
+     centre, the lockup and controls go to a left column, and the scrim becomes a horizontal ramp
+     instead of a bottom one. Nothing here changes the tall layouts. */
+  @media (max-height:520px) and (min-aspect-ratio:3/2){
+    #menuArt{background-position:76% center;}
+    #menu.overlay{align-items:flex-start;justify-content:center;
+      padding-top:max(8px,env(safe-area-inset-top,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px));
+      padding-left:max(28px,env(safe-area-inset-left,0px));}
+    #menu .titlewrap{align-items:flex-start;margin-bottom:14px;}
+    #menu .logo{align-items:flex-start;}
+    /* The orbit rings are centred on the lockup and are 860px wide; against a left column on a 844px
+       screen they become a band across the whole frame. Off here — the art carries the motion now. */
+    #menu .tring,#menu .tdot,#menu .tfx{display:none;}
+    #menu .btn.sm.tut{margin-top:14px;}
+    #menu .doors{width:min(360px,52vw);}
+    #menuScrim{left:0;bottom:0;top:0;transform:none;height:100%;width:min(470px,62vw);
+      background:linear-gradient(to right,rgba(4,6,14,.92),rgba(4,6,14,.62) 58%,rgba(4,6,14,0));}
+  }
   @media (max-height:520px){
     .overlay{padding:10px 12px;
       padding-left:max(12px,env(safe-area-inset-left,0px));
