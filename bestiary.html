@@ -28,19 +28,32 @@
 <meta property="og:locale:alternate" content="ko_KR" />
 <meta name="twitter:card" content="summary_large_image" />
 <style>
-  :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#8f9bb2;--ink:#e7ecf5;}
+  /* ⚠️ --dim AND --ink NOW MATCH index.html EXACTLY. They had drifted — #8f9bb2/#e7ecf5 here against
+     #68789e/#eaf2ff there — which is invisible until the two are seen one after the other, and the
+     Bestiary is opened FROM the menu, so they always are. */
+  :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#68789e;--ink:#eaf2ff;}
   *{box-sizing:border-box;}
   html,body{margin:0;}
-  body{background:radial-gradient(130% 100% at 50% 0%,#0d1730 0%,#060812 62%,#04060f 100%);
+  /* Centre-lit like the game's own overlay, and on --bg's value, rather than a top-lit navy of its own. */
+  body{background:radial-gradient(120% 90% at 50% 34%,#0d1730 0%,#070b18 58%,#060814 100%);
     color:var(--ink);min-height:100vh;padding:30px 20px 52px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,
                 'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;}
   .wrap{max-width:920px;margin:0 auto;}
   header{text-align:center;margin-bottom:8px;}
-  .logo{font-size:clamp(40px,10vw,72px);font-weight:900;line-height:.85;letter-spacing:.02em;
-    background:linear-gradient(180deg,#fff 0%,var(--cyan) 48%,var(--violet) 100%);
+  /* ⚠️ THE CYAN→VIOLET WORDMARK IS GONE, AND IT WAS THE LOUDEST THING IN THE PRODUCT. This page is
+     opened from the menu, so it is seen immediately after the title screen — and it arrived as a
+     bright purple-cyan web page against a composed dark one, which reads as a different product
+     rather than a second screen of the same one.
+       It also spent two colours it does not own. index.html's own note on the game's lockup says the
+     white→cyan→violet ramp was abandoned there because hue belongs to POLARITY and violet means an
+     incoming warning; leaving the same ramp here kept the retired version alive in the one place a
+     player goes to learn what the colours mean.
+       Same neutral ramp as the game's `.l2` now, same drop shadow, same reasoning. */
+  .logo{font-size:clamp(34px,8vw,58px);font-weight:900;line-height:.85;letter-spacing:-.012em;
+    background:linear-gradient(178deg,#fff 12%,#c9dcf2 62%,#8fa8c8 100%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
-    filter:drop-shadow(0 0 26px rgba(80,200,255,.4));}
+    filter:drop-shadow(0 6px 26px rgba(0,0,0,.92));}
   .sub{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-top:4px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:11px;}
   .card{background:#0a0f1c;border:1px solid rgba(120,140,180,.16);border-radius:14px;padding:9px 8px 11px;text-align:center;}
@@ -58,7 +71,11 @@
   .wide.bare .info{flex:0 0 auto;width:100%;text-align:center;}
   .wide.bare .nm{font-size:17px;}
   .wide .tag{text-align:left;min-height:0;margin-top:6px;font-size:12.5px;color:#c3ccdb;}
-  .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--violet);
+  /* ⚠️ NEUTRAL, NOT VIOLET. A section heading is chrome, and violet is a claim: it means INCOMING
+     DANGER everywhere else in this game. Spending it on the word "패턴" is the same mistake the
+     wordmark was making, and it is worse here than anywhere, because this is the one page a player
+     opens specifically to learn what the colours mean. */
+  .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--dim);
     font-weight:800;text-align:center;margin:18px 0 2px;}
   .card.anom{border-color:rgba(155,107,255,.28);}
   /* Korean, same reasoning as index.html's block: .42em and .34em are the small-caps look and Hangul
