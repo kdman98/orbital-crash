@@ -4722,6 +4722,10 @@ function spawnBoss(forceVariant){
     // behaviour-preserving change that could no longer prove it. Guarded, the whole feature is inert until
     // a Singularity actually spawns, which is a claim worth more than the two calls cost.
     windT:(variant==='singularity'?rand(WIND_EVERY0,WIND_EVERY1)*pcad:0),
+    // The travelling front. `windR<0` means no wave in flight and is the flag the whole thing keys on;
+    // `windX/windY` freeze the origin at launch so the wave stays where it happened while the body walks
+    // away from it. Plain numbers, no `rand()`, so they cost no entropy and move no fingerprint.
+    windR:-1, windX:0, windY:0,
     drawWait:(variant==='singularity'?rand(6,9)*pace.cad:0), drawTel:0, drawT:0,
     lungeT:rand(4,6)*pcad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
     // sentinel: the rotating node screen (replaced the swarmer trail). `screen` is the pattern's own
@@ -5258,15 +5262,48 @@ const DRAW_AWAY=0.30;     // the OUTWARD-RADIAL component of that displacement i
                           //   re-derive the whole block if DRAW_T, DRAW_CAP, DRAW_AWAY, HUNT_SPD.singularity
                           //   or `P.moveMult`'s 1.4 moves. The band's own 66-162 comes from the ring shell
                           //   and `boss.r + dot.r`, so it moves with the eddy coefficient too.
-const WIND_EVERY0=3.6, WIND_EVERY1=5.4;
+// THE PERIOD, and since the countdown was fixed to run during flight (see updateBoss) it really is the
+// period rather than a gap between waves. 3.6-5.4 → 2.8-4.4, which with `pace.cad` lands at ~4.5s mean at
+// Epoch I and ~3.6s at Epoch III, against a measured 7.45 / 6.89 before. Roughly double the rate: the
+// accounting fix supplies about a third of that and the constants the rest.
+//   ⚠️ THE OBVIOUS COST IS RING UPTIME AND I COULD NOT MEASURE IT — recorded as unresolved rather than
+// asserted, because the first version of this comment asserted it and the measurement disagreed. Each
+// wave demonstrably ejects the rings it passes (14 → 0, fully recovered by ~1.5s, measured directly), so
+// a cost is expected. But the Wind also DELIVERS matter to whoever stands outside it, and the two run in
+// opposite directions on the same quantity. Parked at 240px against an Emitter control: one run gave the
+// Singularity arm 88.3 rings against 70.2, a second gave 46.5 against 56.9 — **the two disagree in sign.**
+// Per this file's own replication rule that is not a small effect, it is no result at all.
+//   What IS separable is the shape: frames losing 3+ ring members at once ran 9 and 7 for the Singularity
+// at 240/380px against 0 and 5 for the Emitter. The interruption is real; its NET cost is unknown.
+// So if this constant wants to go lower, the honest lever is feel, and anyone who wants to price it
+// properly needs a rig that separates delivery from ejection — this one does not.
+const WIND_EVERY0=2.8, WIND_EVERY1=4.4;
 const WIND_R=560;         // reach of the shove. ⚠️ 250 FIRST, AND IT WAS BARELY A THIRD OF WHAT IS NEEDED:
                           // `S` pins the arena's SHORT axis at REF_SHORT on every device, so 560 is ~70%
                           // of the short axis everywhere and the wave reads as weather over the field
                           // rather than as a nudge around the body. Author: *"not pushing dots all around."*
-const WIND_V=5.5;         // px/frame of outward velocity at the body. Half a Fling (FLING_V0 10.8), which
-                          // is the relationship that matters: the boss's exhale must never read as strong
-                          // as the player's own throw.
-const WIND_HOLD=0.45;     // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
+const WIND_SPD=4.6;       // ⚠️ px/frame the FRONT TRAVELS, and the whole cue depends on it being slow.
+                          // The Wind used to be an instantaneous disc: every body inside 560 moved on one
+                          // frame, with a cue that crossed the same 560 in half a second. Nothing about
+                          // that was readable — author: *"oh what happened?" "um it was pushed a bit i
+                          // think?"* — because a cause you cannot see arriving is not a cause, it is a
+                          // discontinuity. At 4.6 the front takes 122 frames = 2.03s to cross its reach,
+                          // so you WATCH it come, watch it reach a Dot, and watch that Dot leave. Legibility
+                          // is the entire argument for this number; raising it buys nothing else back.
+const WIND_V=4.4;         // px/frame of outward velocity, applied ONCE as the front passes a body. Against
+                          // WIND_HOLD's friction that is ~194px of travel — the geometric sum is
+                          // `WIND_V·(1−0.985ⁿ)/0.015`, n = WIND_HOLD·60. 2.8 → 4.4 on *"shoving away is
+                          // little weak"*; still under half a Fling (FLING_V0 10.8), which is the ratio
+                          // that matters — the boss's exhale must never read as strong as your own throw.
+                          //   ⚠️ THE 4.6 CEILING IS SOFT AND ITS REASON IS NOT WHAT IT LOOKS LIKE. Keeping
+                          // this under WIND_SPD means a pushed body cannot ride ahead of the front, which
+                          // is tidy but NOT load-bearing: the push happens on the frame the front crosses
+                          // the body, so a body can never escape *unpushed* however fast it is thrown.
+                          // Exceeding 4.6 is therefore legal — what it costs is that fast bodies stop
+                          // being overtaken, so the wave visibly stops sweeping them along. Read that as
+                          // a look decision, not a correctness one, and do not "restore" the ceiling as
+                          // though it were an invariant.
+const WIND_HOLD=0.6;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
                           // The first version added velocity and left seek running, on the argument that a
                           // shove should let bodies steer home immediately. MECHANICS says of the Fling:
                           // "seek at zero — dead straight, OR ITS OWN SEEK WOULD CANCEL THE IMPULSE and
@@ -5278,6 +5315,25 @@ const WIND_HOLD=0.45;     // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, A
                           //   ⚠️ It therefore EJECTS RING DOTS, because a thrown Dot is not a ring member
                           // by construction. That is the anti-grind interrupt working, and it is bounded
                           // rather than a strip: RING_GRACE reels them back the whole time.
+                          //   0.45 → 1.2 → 0.6. Displacement is `WIND_V·(1−0.985ⁿ)/0.015`, so 4.4 over 36
+                          // frames is ~123px, against ~194 at 1.2s and the instant version's ~75.
+                          //   ⚠️ HALVED ON *"the delay after getting hit by a push should be halved… this is
+                          // a fast paced game"*, AND THE THING THAT WAS TOO LONG IS NOT THIS CONSTANT.
+                          // Measured before the change, ring outage — front crossing to ring restored —
+                          // ran **2.20s at 460px, 3.07s at 300px, and had not recovered inside 5s at
+                          // 140px**, against a 1.2s window. The window is a *third* of the wait. The rest
+                          // is the RETURN TRIP: a body thrown 194px has to come back 194px under ordinary
+                          // seek before it is a ring member again, so the felt recovery scales with
+                          // TRAVEL, and travel is `WIND_V × f(WIND_HOLD)`.
+                          //   That is why this is the constant that moved and `WIND_V` did not. Peak
+                          // impulse is what reads as STRENGTH in the moment — unchanged at 4.4, so the
+                          // punch is identical — while the hold and the drift after it are what read as
+                          // SLOW. Cutting the window shortens the throw and the walk home together and
+                          // leaves the hit itself alone. ⚠️ Raising `WIND_V` to "restore" the lost 71px
+                          // would put the whole wait straight back; these two are one dial for recovery
+                          // and only one of them is also the dial for force.
+                          //   ⚠️ THIS DERIVATION READS BOTH CONSTANTS AND HAS GONE STALE TWICE — 124px from
+                          // an old 2.8, then 194px from a 1.2s hold, and nothing failed either time.
 const WIND_FALL=0.5;      // exponent on the falloff. Linear (1.0) hands a body at 0.9R only a tenth of the
                           // push, which is what made the edge of the wave read as nothing; at 0.5 it gets
                           // a third. The wave has to arrive everywhere it is drawn or the ring is a lie.
@@ -5578,43 +5634,62 @@ function updateBoss(dt){
     // `lances`, which is why it costs no new dodge vocabulary: everything it does, it does to matter and
     // to your steering. Law 11 is untouched because there is nothing here for a missile to pass through.
 
-    // ---- THE WIND: shoves matter off it. The anti-grind interrupt — ring Dots on its near side are
-    // pushed out of contact — and simultaneously a resupply for anyone standing outside, since everything
-    // it throws off arrives at whoever is out there. It answers your answer without deleting it.
+    // ---- THE WIND: a shockwave that TRAVELS, and pushes each body on the frame the front reaches it.
+    // The anti-grind interrupt — ring Dots are thrown out of contact as it passes — and simultaneously a
+    // resupply for anyone standing outside, since what it carries arrives at whoever is out there.
+    //
+    // ⚠️ IT WAS AN INSTANTANEOUS DISC AND THAT IS WHY NOBODY COULD READ IT. Every body inside 560 moved on
+    // one frame while a particle ring crossed the same distance in half a second, so the cue and the
+    // effect were simultaneous, over before the eye resolved either, and unlinked — the ring was drawn
+    // from `spawnRing` and the push came from a loop, two objects that merely happened to agree.
+    // Author: *"oh what happened?" "um it was pushed a bit i think?"*
+    //   The front is now a real quantity on the boss (`windR`, from a FIXED origin `windX/windY`), it
+    // advances at WIND_SPD, and the ring is DRAWN FROM THAT SAME NUMBER in drawBoss. So the thing you see
+    // and the thing that pushes are one value: the cue cannot lead, lag or disagree with the mechanic,
+    // which is the same one-object rule `warnSpawn` is built on. There is no `spawnRing` here any more —
+    // a second ring on its own clock would be exactly the disagreement this removes.
+    //
+    // ⚠️ THE ORIGIN IS FIXED AT LAUNCH, NOT THE LIVE BOSS POSITION. It ambles ~108px over the 2.03s the
+    // front takes to cross, and a wave dragged along behind a moving centre is not a shockwave — it stops
+    // being a place something happened. It also makes the band test below unsound, since a body could be
+    // re-entered by a front whose centre moved toward it.
+    // ⚠️ THE CLOCK RUNS DURING FLIGHT, AND IT USED NOT TO — WHICH MADE THE CONSTANT A LIE ABOUT ITSELF.
+    // Gating the countdown on `windR<0` charged the wave's own 2.03s of travel to the cooldown, so the
+    // real period was `gap + travel` and WIND_EVERY named neither. Measured under the old accounting:
+    // 7.45s at Epoch I and 6.89s at Epoch III, against constants that read 4.5-6.75 and 3.6-5.4.
+    // The countdown is unconditional now, so **WIND_EVERY is the period** and tuning it does what it says.
+    //   ⚠️ It is still one wave at a time — `windR` is a single front, not a list — so the launch is
+    // gated on the previous one having finished. That puts a FLOOR of 2.03s under the period no matter
+    // how low these go: at `pcad` 1.0 the shortest roll here is 2.8s, clear of it, and `pcad` never goes
+    // below 1. Take WIND_EVERY0 under ~2.2 and the floor starts binding silently — the timer will sit
+    // expired and every wave will launch the instant the last one dies, which is a different mechanic
+    // wearing the same constants. Make it a list before going there.
     b.windT-=dt;
-    if(b.windT<=0){
+    if(b.windT<=0 && b.windR<0){
       b.windT=rand(WIND_EVERY0,WIND_EVERY1)*pcad;
+      b.windR=0; b.windX=b.x; b.windY=b.y;
+      sfx.wind();
+    }
+    if(b.windR>=0){
+      const prev=b.windR;
+      b.windR+=WIND_SPD;
       for(const e of enemies){
         if(e.dead||e.queued||e.type==='boss'||e.hold>0) continue;   // held formation bodies write x/y every
-        const dx=e.x-b.x, dy=e.y-b.y, d=Math.hypot(dx,dy);          // frame, so a push would be overwritten
-        if(d>WIND_R||d<0.001) continue;                             // — the same exemption law 13 states
-        const f=Math.pow(1-d/WIND_R, WIND_FALL)*WIND_V;
+        const dx=e.x-b.windX, dy=e.y-b.windY, d=Math.hypot(dx,dy);  // frame, so a push would be overwritten
+        // ⚠️ ONLY THE SHELL THE FRONT CROSSED THIS FRAME, and that test is what makes "once per body per
+        // wave" true with no bookkeeping at all. The front only ever grows, so `(prev, windR]` is a band
+        // that sweeps each radius exactly once — no per-body flag, no wave id, nothing to reset, and
+        // nothing that can leak into the next wave. A body would have to outrun the front to escape it,
+        // and the push it gets (2.8) is well under the front's own speed (4.6), so it cannot.
+        if(d<=prev || d>b.windR || d<0.001) continue;               // — the hold exemption is law 13's
+        const f=Math.pow(1-Math.min(1,d/WIND_R), WIND_FALL)*WIND_V;
         e.vx+=dx/d*f; e.vy+=dy/d*f;
         // The seek suppression is the whole difference between a shove and a rounding error — see
         // WIND_HOLD. `max` rather than assignment so a body already mid-Fling keeps the longer window;
         // the Wind must never SHORTEN a throw the player has already paid a hold for.
         e.flung=Math.max(e.flung||0, WIND_HOLD);
       }
-      // ⚠️ `out` IS NOT OPTIONAL HERE — THE CUE RAN BACKWARDS WITHOUT IT, AND IT SHIPPED THAT WAY.
-      // `spawnRing`'s default closes from R to a point; only `out` travels 0 -> R. So the Wind drew a
-      // ring COLLAPSING ONTO THE BOSS on the exact frame it threw every Dot outward — the cue stating
-      // the reverse of the mechanic. Author: *"push telegraph is pulling."*
-      //   It was wrong twice over, because a converging ring is already a WORD in this game: the danger
-      // sign converges onto a footprint and the mine's arming ring closes to nothing, so both mean
-      // "something is arriving here". The Wind was borrowing the vocabulary of its own opposite.
-      // drawParticles' comment names the right primitive outright — `out` is "the universal read for a
-      // detonation" — which is what an exhale is. It also carries the `a^0.4` fade an outward ring
-      // needs to still be legible when it arrives at the radius that means something, and at WIND_R
-      // 560 that travel is long enough for the default fade to have vanished before it got there.
-      spawnRing(b.x,b.y,COL[b.color],WIND_R,true);   // drawn at the reach it actually has, travelling OUT
-      // (The Draw's ring at the top of this arm is deliberately left converging: that one really does
-      //  pull, so the default is the correct word for it. The two cues are now each other's opposites,
-      //  which is the same thing `inhale`/`release` do in the sound bank.)
-      // ⚠️ `release` AND `inhale` WERE BOTH ORPHANS — defined in the bank with no `sfx.` call site
-      // anywhere in the file. They are taken as a matched pair here, which is the sound rule's own
-      // preference: a falling let-go against a rising suck, tellable apart with your eyes on the field
-      // rather than two variations on one idea. Neither had to be written, only found.
-      sfx.release();
+      if(b.windR>=WIND_R) b.windR=-1;                               // spent; the timer re-arms next frame
     }
 
     // ---- THE DRAW: wait → telegraph → cap. It sets `b.hunt` so bossMove closes at HUNT_SPD.singularity
@@ -8145,6 +8220,37 @@ function drawBoss(){
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(3.4-2.2*g),0,TAU); ctx.stroke();
     ctx.strokeStyle=hexA('#ffffff',0.5*g); ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.05+0.12*Math.sin(elapsed*26)),0,TAU); ctx.stroke();
+    ctx.restore();
+  }
+  // SINGULARITY — THE WIND'S FRONT, DRAWN FROM `b.windR` ITSELF. Not a particle, not a `spawnRing`: the
+  // radius on screen IS the radius the push test uses, so the wave you watch arrive is the wave that
+  // moves the body it arrives at. That identity is the whole cue — an instant disc with a fast ring
+  // beside it read as nothing happening, because cause and effect landed on the same frame and came from
+  // two different objects. It is also drawn from `windX/windY` rather than `b.x/b.y`: the body walks on
+  // while the wave stays where it was made, which is what a shockwave is.
+  if(b.variant==='singularity' && b.windR>=0){
+    const g=Math.min(1,b.windR/WIND_R);                   // 0→1 across the travel
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    // ⚠️ WHITE, NOT `c` — AND THIS IS THE COLOUR LAW, NOT A PALETTE PREFERENCE. The Wind pushes EVERY Dot
+    // regardless of polarity; it has never had a colour test. Drawing its front in the boss's own hue made
+    // it claim a polarity it does not have, and the claim was read exactly as written — author reported
+    // the Wind as pushing "only same color." Two things went wrong at once and either alone would do it:
+    // a cyan front over cyan Dots is a low-contrast blend, so you cannot SEE the ones it moves; and hue in
+    // this game means polarity everywhere, so a coloured wave says the colour is what it acts on.
+    //   The precedent is `bomberBlast`, the game's other colour-blind area effect, and it is already
+    // solved there: lime and white, deliberately not a pole. White is the right neutral here because the
+    // requirement is functional rather than aesthetic — the front must contrast against BOTH colours
+    // equally, since being able to watch a red Dot and a cyan Dot leave together is the entire cue.
+    //   ⚠️ Do not "fix" this back to the boss's colour to make it prettier. A body-coloured wave is the
+    // same defect as a mark at the wrong radius: a true thing drawn so that it states a false one.
+    ctx.strokeStyle=hexA('#ffffff',0.50*(1-0.45*g)); ctx.lineWidth=3.5;
+    ctx.beginPath(); ctx.arc(b.windX,b.windY,b.windR,0,TAU); ctx.stroke();
+    // A dimmer trailing edge so the front has THICKNESS and reads as a wave with a direction rather than
+    // an expanding circle. Suppressed until it has cleared the hull, or it draws inside the body.
+    if(b.windR>b.r+28){
+      ctx.strokeStyle=hexA('#ffffff',0.16*(1-0.5*g)); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(b.windX,b.windY,b.windR-24,0,TAU); ctx.stroke();
+    }
     ctx.restore();
   }
   // HUNT wake: while it is coming for you, echo rings stream off its trailing edge. The silhouette says
@@ -10801,6 +10907,17 @@ const sfx={
   closing(){ beep(330,0.85,'sine',0.11,88); beep(99,0.85,'triangle',0.075,50); noise(0.3,0.07); },
   // ...and it lets go. Short, low, no rise anywhere in it.
   release(){ beep(180,0.34,'sawtooth',0.2,44); beep(70,0.5,'sine',0.15,30); noise(0.3,0.16); },
+  // THE WIND. ⚠️ This replaces `release()`, which was borrowed for it and was far too loud for a cue that
+  // fires every 3.6-5.4s all fight long. Author: *"too noisy."* Two things made it so and neither was the
+  // gain alone: a SAWTOOTH, the harshest timbre in the bank, and a `noise()` layer — and noise is the one
+  // thing that cannot be placed in a register, because it is in all of them at once. A one-shot can afford
+  // that; a metronome cannot.
+  //   What replaces it is a low sine fall at a quarter of the level, with a soft triangle for body and NO
+  // noise. 128Hz down is deliberately under `bomb()`'s identifying 150-700Hz band — the one register the
+  // sound rule says must stay clear — and it is a slow falling sweep rather than a transient, so it does
+  // not compete with the square-wave `kill`/`mote` crowd on timbre either. Falling, because it is still the
+  // exhale to the Draw's rising `inhale`; that pairing is the point and only the loudness was ever wrong.
+  wind(){ beep(96,0.85,'sine',0.05,44); beep(128,0.55,'triangle',0.022,58); },
   // CELESTIAL HARP: plucked arpeggio in stacked fifths (quintal harmony — "the planets arrange").
   // The voice of cosmic wins — currently the orb pickup, at harp(5). n = arpeggio length, 3..7.
   harp(n){
