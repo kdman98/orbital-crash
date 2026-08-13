@@ -384,6 +384,56 @@
      which is 860px wide and hangs well below the text it circles. The ring is the thing to clear, not
      the letters: it is absolutely positioned and contributes nothing to layout height, so nothing warns
      you. Anyone re-tuning this must measure against `.tring`'s bottom edge, not the logo's. */
+  /* ---------- THE TITLE SCREEN'S KEY ART ----------
+     ⚠️ #menu OVERRIDES .overlay's WASH AND ITS backdrop-filter, AND IT HAS TO. The shared overlay
+     ships rgba(6,8,20,.55) rising to .94 plus blur(4px) — correct for a panel that must not compete
+     with the field behind it, and fatal here: at 94% in the corners the art is simply not visible,
+     which is exactly where the planet limb and the outer nebula live. Measured before generating
+     anything, which is the only reason a batch was not spent proving it.
+       The image is two files rather than one cropped twice. A 16:9 crop of a portrait frame throws
+     away the composition and `cover` then centre-crops whatever survived; the tall version is cut
+     around the binary at x710 rather than around the frame's own centre.
+       ⚠️ THE ART IS A LAYER, NOT A background-image ON #menu. #menu is display:flex and its wash is
+     a gradient on the same property — one of the two would have to lose. */
+  #menuArt{position:fixed;inset:0;z-index:9;pointer-events:none;
+    background:#04060d url('art/keyart-wide.webp') center center/cover no-repeat;}
+  @media (max-aspect-ratio:1/1){ #menuArt{background-image:url('art/keyart-tall.webp');} }
+  /* ⚠️ THE PADDING IS CLEARANCE FOR TWO ABSOLUTE SIBLINGS, NOT TASTE. Pushing the wordmark to the top
+     band and the controls to the bottom drove both into the two elements that are positioned against
+     the viewport rather than the flow: `.langsel` sits top-right to 46px down, and `.contact` sits
+     bottom-right. Measured at 420x860 before the fix, the wordmark's right edge was 319 against the
+     language pills' left edge of 305, and the links row ran to 286 against the e-mail's 266 — both
+     overlapping, and neither visible on a desktop viewport where there is width to spare.
+       The floors are absolute px because what they clear is absolute px; the vh keeps them honest on
+     a tall screen. */
+  #menu.overlay{background:radial-gradient(120% 90% at 50% 34%,rgba(6,8,20,.06),rgba(6,8,20,.32));
+    -webkit-backdrop-filter:none;backdrop-filter:none;justify-content:flex-start;
+    padding-top:max(3vh,60px);padding-bottom:max(10vh,80px);}
+  /* A LOCAL scrim under the controls only. The alternative — darkening the whole overlay until the
+     buttons read — is what the .55/.94 wash already was, and it flattens the picture to get there. */
+  /* ⚠️ THE MENU'S SECONDARY BUTTONS ARE OPAQUE, AND ONLY THE MENU'S. Everywhere else in this game a
+     control sits on a .94 wash over a near-black field, so a 5% white fill is a perfectly good button
+     — it is the wash that carries it. On key art there is no wash to carry anything: measured, `.door`
+     shipped rgba(255,255,255,.05) and `.tut` rgba(56,224,255,.10), which over a lit nebula is not a
+     button, it is a rumour. The primary needed nothing; its gradient was already opaque.
+       Scoped to #menu so the panels that still sit on the old wash keep the treatment tuned for it. */
+  #menu .btn.sm.tut{background:rgba(10,15,28,.92);
+    box-shadow:0 0 0 1.5px rgba(56,224,255,.66) inset;}
+  #menu .btn.sm.tut:hover{background:rgba(17,25,44,.95);}
+  #menu .door{background:rgba(10,15,28,.92);
+    box-shadow:0 0 0 1px rgba(172,202,242,.34) inset;}
+  #menu .door:hover{background:rgba(19,28,48,.96);}
+  /* The two text-only rows have no box to make opaque, so they get weight and a shadow instead —
+     they are read against whatever the art happens to be doing behind them. */
+  #menu .doornote{opacity:1;color:#8ea6c8;text-shadow:0 1px 6px rgba(0,0,0,.9);}
+  #menu .ref{text-shadow:0 1px 6px rgba(0,0,0,.9);}
+  #menuScrim{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:min(640px,94vw);
+    height:46%;pointer-events:none;z-index:0;
+    background:linear-gradient(to top,rgba(4,6,14,.88),rgba(4,6,14,.58) 42%,rgba(4,6,14,0));}
+  /* Wordmark to the top band, controls to the bottom, and the binary keeps the middle. The safe-area
+     table this was tuned against described the OLD layout; it was never a law, and the best candidate
+     "failed" it only by putting its subject where the buttons happened to be. */
+  #menu .btn.sm.tut{margin-top:auto;}
   .titlewrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
     margin-bottom:58px;}
   .logo{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
@@ -401,10 +451,15 @@
        margin-bottom is em-based too, so it halves to .35 to hold the same optical gap at 2x the type. */
   .logo .l1{font-size:clamp(34px,7vw,46px);letter-spacing:.24em;text-indent:.24em;color:#8fa4c8;
     margin-bottom:.35em;}
+  /* ⚠️ THE DROP SHADOW IS NOW LOAD-BEARING, WHERE IT USED TO BE DECORATION. This ramp is a light grey
+     — #fff to #8fa8c8 — chosen when it sat on a near-black field, where grey type is high contrast.
+     It now sits on a photograph whose upper third the wordmark deliberately overlaps, so the only
+     thing separating the letters from the nebula behind them is this shadow. Softening it is not a
+     taste change; it is deleting the contrast. */
   .logo .l2{font-size:clamp(30px,8vw,79px);letter-spacing:-.012em;
     background:linear-gradient(178deg,#fff 12%,#c9dcf2 62%,#8fa8c8 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 10px 40px rgba(0,0,0,.7));}
+    filter:drop-shadow(0 6px 26px rgba(0,0,0,.92)) drop-shadow(0 0 8px rgba(0,0,0,.7));}
   /* Every absolute child is anchored to the lockup's OWN centre (50% / 56%), and the JS only ever
      supplies an offset from it. Two reasons, both paid for:
        · .titlewrap is a flex column, so an absolute child with no left/top falls back to its static
@@ -412,9 +467,12 @@
        · the earlier version measured the wrap once and centred on the cached width, while the orbit
          radius read a live window.innerWidth. On a phone the two disagreed and threw the rings 168px
          off-centre. Letting CSS do the centring removes the cache, and the whole class of bug. */
+  /* ⚠️ THE INSET box-shadow IS GONE, and it was invisible for the whole time it was wrong. Against a
+     near-black field a 40px inset glow reads as nothing; over key art it reads as a dark elliptical
+     lens smeared across the picture. Anything tuned against black has to be re-checked against art. */
   .tring{position:absolute;left:50%;top:56%;border-radius:50%;pointer-events:none;
-    border:1px solid rgba(150,190,240,.26);box-shadow:0 0 40px -8px rgba(120,180,255,.28) inset;}
-  .tring.in{border-color:rgba(150,190,240,.11);}
+    border:1px solid rgba(170,205,245,.20);opacity:.6;}
+  .tring.in{border-color:rgba(170,205,245,.09);}
   .tdot{position:absolute;left:50%;top:56%;width:13px;height:13px;border-radius:50%;
     margin:-6.5px 0 0 -6.5px;pointer-events:none;}
   .tdot.r{background:var(--red);box-shadow:0 0 14px 3px rgba(var(--redRGB),.85),0 0 40px 8px rgba(var(--redRGB),.35);}
@@ -741,6 +799,95 @@
      screen: `16vw` is a sane cap when width is the scarce axis and an absurd one when height is.
        Keyed on HEIGHT rather than on a device or an orientation, because a short desktop window has
      exactly the same problem and there is no reason to make it a phone-only fix. */
+  /* ---------- THE LANDSCAPE PHONE, WHICH IS THE ONLY ORIENTATION THIS GAME SHIPS IN ----------
+     ⚠️ manifest.webmanifest declares `"orientation":"landscape"` and Info.plist allows only
+     LandscapeLeft/Right, so 844x390 IS the product and 1280x760 is a development convenience. The
+     centred stack that works on both of those FAILS here and fails invisibly: at 390px of height the
+     control column lands exactly on the binary and covers the whole subject of the picture. Verified
+     at desktop and at portrait, neither of which is a case that ships.
+       So on a short viewport the composition turns sideways: the art's subject is pushed right of
+     centre, the lockup and controls go to a left column, and the scrim becomes a horizontal ramp
+     instead of a bottom one. Nothing here changes the tall layouts. */
+  @media (max-height:520px) and (min-aspect-ratio:3/2){
+    /* ⚠️ ONLY THE VERTICAL VALUE DOES ANYTHING HERE. The art is 1152x648 against an 844x390 viewport,
+       so `cover` scales by WIDTH — rendered 844x474.7, horizontal slack exactly 0. An X value is inert
+       at this aspect; 84.7px of vertical slack is real. */
+    #menuArt{background-position:center 54%;}
+    /* THE UI GOES ROUND THE EDGE AND THE PICTURE KEEPS THE MIDDLE. A single column — centred or
+       flush-left — spends the one axis this screen has plenty of (844px of width) to save the one it
+       has none of (390px of height), and then sits on the subject anyway. A grid puts the title across
+       the top, the two entry points on the row under it, the practice modes and the links along the
+       bottom, and leaves row 3 empty for the binary to show through.
+         Row 3 is `1fr`: it takes whatever is left after the real rows, so the opening shrinks on a
+       shorter screen instead of the controls colliding. */
+    #menu.overlay{display:grid;align-content:stretch;justify-items:center;
+      grid-template-columns:1fr 1fr;
+      grid-template-rows:auto 1fr auto auto 1fr auto auto;
+      column-gap:min(6vw,44px);row-gap:0;
+      padding:max(10px,env(safe-area-inset-top,0px)) max(22px,env(safe-area-inset-right,0px))
+              max(26px,env(safe-area-inset-bottom,0px)) max(22px,env(safe-area-inset-left,0px));}
+    #menu .titlewrap{grid-column:1/3;grid-row:1;margin-bottom:6px;}
+    /* ⚠️ THE TWO ENTRY POINTS FLANK THE NEBULA, AND THE WIDTH IS MEASURED AGAINST IT RATHER THAN
+       CHOSEN. Sampling the shipped art column by column, the lit disc occupies 34.9%..63.5% of the
+       image — x 295..536 on an 844px screen, leaving 295px of margin on the left and 308px on the
+       right. Half-column buttons were 325px each and closed most of that, which is what "too big"
+       was: they were not overlapping the subject so much as sealing it in.
+       240px sits inside either margin with clearance to spare, and they centre on the disc's own
+       band so they read as flanking it rather than floating above it. If the crop ever changes, this
+       number is downstream of that measurement — re-run it, do not nudge it. */
+    #menu .btn:not(.sm){grid-column:1;grid-row:3;margin:0;justify-self:start;}   /* 게임 시작   */
+    #menu .btn.sm.tut  {grid-column:2;grid-row:3;margin:0;justify-self:end;}     /* 튜토리얼    */
+    /* ⚠️ `display:contents` DISSOLVES `.doors` SO ITS TWO CHILDREN BECOME GRID ITEMS DIRECTLY. It is
+       a flex row everywhere else and has to stay one — this is the only branch that needs its pair
+       split across two columns, and restructuring the markup for it would change every other layout. */
+    #menu .doors       {display:contents;}
+    #menu .doors .door:first-child{grid-column:1;grid-row:4;justify-self:start;margin-top:9px;}
+    #menu .doors .door:last-child {grid-column:2;grid-row:4;justify-self:end;margin-top:9px;}
+    /* ⚠️ THESE WERE BOTH IN ROW 5 AND LANDED ON TOP OF EACH OTHER. Grid does not push siblings apart
+       the way flow does — two items given the same row and column simply stack. Separate rows. */
+    /* ⚠️ MEASURED, NOT EYEBALLED: the bottom cluster ran to 97.9% of frame height before this — the
+       links row was touching the bezel and sharing that strip with the contact e-mail. The note also
+       ships at 10px in --dim, which is legible on a flat wash and is not legible over a planet limb,
+       so it takes a size and a step of brightness here and nowhere else. */
+    /* ⚠️ BRIGHTER HERE, AND ONLY HERE. `.doornote` ships 10px in --dim and `.ref` 13px in --ink with a
+       24%-white underline — all tuned against a flat .94 wash, where dim grey IS the quiet register.
+       Over a planet limb the same values are simply not readable, which is what the author reported.
+       These take size, weight and a hard shadow rather than a scrim, because the rows sit low enough
+       that darkening the band that far would put a black bar across the bottom of the picture. */
+    #menu .doornote    {grid-column:1/3;grid-row:6;margin-top:4px;font-size:11px;color:#c2d3ea;
+      text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95);}
+    /* ⚠️ THE LINKS SIT ON THE PLANET LIMB, WHICH IS THE BRIGHTEST THING IN THE LOWER FRAME, so white
+       text on a shadow is not enough on its own — a shadow darkens what is behind each glyph, and the
+       limb's rim is brighter than the shadow is dark. The row gets its own backing instead, sized to
+       the links rather than to the screen so it reads as a control strip and not as a black bar across
+       the picture. Lifted clear of the bezel in the same pass; it was bottoming out at 95.4%. */
+    #menu .refs        {grid-column:1/3;grid-row:7;margin-top:2px;margin-bottom:6px;
+      background:rgba(5,8,16,.62);border-radius:100px;padding:3px 16px 4px;}
+    #menu .ref{color:#ffffff;font-size:15px;border-bottom-color:rgba(255,255,255,.62);
+      text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95);}
+    /* One size for all four: the author asked for 게임 시작 to match 튜토리얼, and the practice pair
+       to match those. Colour still separates the primary — it is the only opaque cyan on the screen. */
+    /* ⚠️ FIXED HEIGHT AND FLEX CENTRING, NOT PADDING. Padding + font-size left the doors 41px against
+       the buttons' 42, because a `.door` renders its label through an inner `.dn` span carrying its own
+       size and line-height while a `.btn` holds text directly — so identical padding still produced
+       different content boxes. Matching the span's font-size did not close it either; line-height
+       rounding kept a pixel. Setting the box and centring inside it makes the four identical by
+       construction rather than by two typographic values agreeing, which they were never going to. */
+    #menu .btn:not(.sm),#menu .btn.sm.tut,#menu .door{
+      width:min(240px,30vw);height:44px;padding:0;font-size:16px;border-radius:100px;
+      display:flex;align-items:center;justify-content:center;}
+    #menu .door .dn{font-size:16px;}
+    /* ⚠️ `.ttrail` IS IN THIS LIST AND IT IS THE ONE I MISSED FIRST TIME. The trail particles are
+       children of `.titlewrap`, NOT of `.tdot`, so hiding the dots left 28 of them still orbiting
+       across the buttons — visible only intermittently, because they move. Hiding a parent does not
+       hide a sibling. */
+    #menu .tring,#menu .tdot,#menu .ttrail,#menu .tfx{display:none;}
+    /* The scrim follows the UI: dark along the top and bottom bands where the controls sit, clear
+       through the middle where the binary shows. A one-sided ramp was for the column layout. */
+    #menuScrim{left:0;right:0;top:0;bottom:0;width:auto;height:100%;transform:none;
+      background:linear-gradient(to bottom,rgba(4,6,14,.92) 0%,rgba(4,6,14,.52) 24%,
+                 rgba(4,6,14,0) 40%,rgba(4,6,14,0) 54%,rgba(4,6,14,.60) 74%,rgba(4,6,14,.94) 100%);}
+  }
   @media (max-height:520px){
     .overlay{padding:10px 12px;
       padding-left:max(12px,env(safe-area-inset-left,0px));
@@ -1040,7 +1187,9 @@
 </div>
 
 <!-- MENU -->
+<div id="menuArt"></div>
 <div class="overlay" id="menu">
+  <div id="menuScrim"></div>
   <!-- LANGUAGE, ON THE FIRST SCREEN AND NOT BURIED IN SETTINGS. A player who cannot read the menu
        cannot be asked to work out which of four ghost links says "Settings" — that is the one control
        whose discoverability cannot depend on reading the language it is trying to get you out of.
@@ -1113,7 +1262,16 @@
     <button class="ref" id="bestiaryBtn" data-t="ref.bestiary">Bestiary</button>
     <button class="ref" id="settingsBtn" data-t="ref.settings">Settings</button>
   </div>
-  <div class="hint" data-th="menu.hint"><kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive</div>
+  <!-- ⚠️ THE KEYBOARD LEGEND IS GONE FROM THE MENU, AND IT WAS THE RIGHT ROW TO LOSE. The control
+       column needs ~35% of the screen; the art's binary ends at ~65% and the planet limb starts at
+       ~80%, so there was never enough room and every layout variant just moved the shortfall around —
+       lifting the block put the tutorial button on the accretion disc, tightening it pushed the
+       primary action down to 75%.
+         This row was the cheapest 5.4%: the tutorial teaches every one of these bindings and Settings
+       lists them, so it is the only row on the menu that is pure duplication. It was also actively
+       wrong half the time — it names `mouse`, `R-click` and `shift` on a touchscreen, where none of
+       the three exists and the real controls are screen zones.
+         `menu.hint` stays in the i18n table on purpose: it is still the string the tutorial uses. -->
   <div class="contact"><span data-t="menu.contact">Contact</span> <a href="mailto:kdman98@naver.com">kdman98@naver.com</a></div>
 </div>
 
@@ -1692,6 +1850,10 @@ const L={ en:{
   'hud.lab':'PATTERN LAB',  'hud.rush':'BOSS RUSH',
   'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> Change Anomaly',
   'hud.bossHunt':'IT IS GOING TO RAM YOU!',
+  // The Singularity's Draw runs through `b.hunt`, so without these it inherited the line above and told
+  // you to dodge a thing that cannot be dodged. Both name a MOVEMENT answer, which is this line's rule.
+  'hud.bossDrawTel':'IT IS ABOUT TO PULL YOU IN!',
+  'hud.bossDraw':'BURN TO BREAK THE PULL!',
   'ctl.steer':'<kbd>Mouse</kbd> Steer star',
   'ctl.flip':'<kbd>Space</kbd><kbd>Click</kbd> Reverse poles',
   'ctl.od':'<kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive',
@@ -1886,6 +2048,10 @@ const L={ en:{
   // displaces its standing tip for exactly that window. Author's phrasing — the narrator speaking for
   // the thing, which is the voice the tutorial acknowledgements already use.
   'hud.bossHunt':'직접 부딪힐 생각이에요!',
+  // 위 줄과 같은 말투 — 설명문이 아니라 다급하게 알려주는 한마디. '흡입'은 카드에 쓰는 명사고,
+  // 이 자리에서는 동사로 풀어 쓴다. 두 줄 다 '무엇을 하라'로 끝나야 하는 자리라서 짧게 끊었다.
+  'hud.bossDrawTel':'곧 끌어당겨요!',
+  'hud.bossDraw':'오버드라이브로 뿌리쳐요!',
   // Space/Shift/Esc/P/M stay Latin because they are printed on the key. "Mouse" is not a key, it is a
   // device, and Korean writes 마우스.
   'ctl.steer':'<kbd>마우스</kbd> 별 조종',
@@ -4511,7 +4677,7 @@ function tutAdvance(){
 function tutFinish(){
   tutMode=false; state='menu';
   el('tutBar').classList.add('hidden');
-  el('menu').classList.add('hidden'); el('dead').classList.add('hidden');
+  el('menu').classList.add('hidden'); el('dead').classList.add('hidden'); menuChrome(false);
   el('tutDone').classList.remove('hidden');
   markTutSeen();
 }
@@ -4643,6 +4809,10 @@ function spawnBoss(forceVariant){
     // behaviour-preserving change that could no longer prove it. Guarded, the whole feature is inert until
     // a Singularity actually spawns, which is a claim worth more than the two calls cost.
     windT:(variant==='singularity'?rand(WIND_EVERY0,WIND_EVERY1)*pcad:0),
+    // The travelling front. `windR<0` means no wave in flight and is the flag the whole thing keys on;
+    // `windX/windY` freeze the origin at launch so the wave stays where it happened while the body walks
+    // away from it. Plain numbers, no `rand()`, so they cost no entropy and move no fingerprint.
+    windR:-1, windX:0, windY:0,
     drawWait:(variant==='singularity'?rand(6,9)*pace.cad:0), drawTel:0, drawT:0,
     lungeT:rand(4,6)*pcad, lunging:0, telegraph:0, tx:W/2, ty:H/2, // emitter (Epoch II+): wind-up then dash
     // sentinel: the rotating node screen (replaced the swarmer trail). `screen` is the pattern's own
@@ -5141,6 +5311,22 @@ const HUNT_BREAK=1.1;                                          // seconds it rec
 // arrived by then. The amble has not. `SING_ENTRY_Y` must therefore stay clear of that 138, and the rate
 // must clear the gap from the shared `y:-60` spawn inside 96 frames: (152+60)/3.4 = 62 frames = 1.03s.
 const SING_ENTRY_Y=152, SING_ENTRY=3.4;
+const SING_ENTRY_EASE=52; // px above SING_ENTRY_Y over which the dive decays into the amble.
+                          // ⚠️ WITHOUT THIS THE ARRIVAL WAS 5.34x THE WALK AND THEN SNAPPED. Author:
+                          // *"singularity is too fast when spawned."* Measured: a flat 4.81 px/frame held
+                          // for 63 frames, then an instant drop to 0.9. Two faults compounding, and the
+                          // first one is the one that surprised me — `SING_ENTRY` was clamping the
+                          // HORIZONTAL tracking as well as the dive, so it closed diagonally at
+                          // `hypot(3.4,3.4)` while its whole identity is a body you outrun 15:1. Sideways
+                          // is now clamped to SING_FOLLOW: it drifts onto your column at walking pace
+                          // instead of charging across to it.
+                          //   The second is the snap. The dive now decays into the amble over this span
+                          // rather than switching, so it settles instead of stopping. ⚠️ The span is
+                          // keyed to the deadline it must not miss: `stepEnemyForces` clamps y to >=138 at
+                          // `bossTime` 1.6 (frame 96), and easing costs frames. At 52px the ease starts
+                          // at y=100, y=138 is reached around frame 63, and the settle completes ~75 —
+                          // still a third of the window in hand. Widen this and re-measure the frame it
+                          // crosses 138, or the teleport this whole entrance exists to prevent comes back.
 const SING_FOLLOW=0.9;    // px/frame. It never stops walking at you and you outrun it 15:1, which is what
                           // makes a body that deals damage-per-second rather than one hit survivable at
                           // all. It is the Draw that takes the escape away, never the amble.
@@ -5179,15 +5365,48 @@ const DRAW_AWAY=0.30;     // the OUTWARD-RADIAL component of that displacement i
                           //   re-derive the whole block if DRAW_T, DRAW_CAP, DRAW_AWAY, HUNT_SPD.singularity
                           //   or `P.moveMult`'s 1.4 moves. The band's own 66-162 comes from the ring shell
                           //   and `boss.r + dot.r`, so it moves with the eddy coefficient too.
-const WIND_EVERY0=3.6, WIND_EVERY1=5.4;
+// THE PERIOD, and since the countdown was fixed to run during flight (see updateBoss) it really is the
+// period rather than a gap between waves. 3.6-5.4 → 2.8-4.4, which with `pace.cad` lands at ~4.5s mean at
+// Epoch I and ~3.6s at Epoch III, against a measured 7.45 / 6.89 before. Roughly double the rate: the
+// accounting fix supplies about a third of that and the constants the rest.
+//   ⚠️ THE OBVIOUS COST IS RING UPTIME AND I COULD NOT MEASURE IT — recorded as unresolved rather than
+// asserted, because the first version of this comment asserted it and the measurement disagreed. Each
+// wave demonstrably ejects the rings it passes (14 → 0, fully recovered by ~1.5s, measured directly), so
+// a cost is expected. But the Wind also DELIVERS matter to whoever stands outside it, and the two run in
+// opposite directions on the same quantity. Parked at 240px against an Emitter control: one run gave the
+// Singularity arm 88.3 rings against 70.2, a second gave 46.5 against 56.9 — **the two disagree in sign.**
+// Per this file's own replication rule that is not a small effect, it is no result at all.
+//   What IS separable is the shape: frames losing 3+ ring members at once ran 9 and 7 for the Singularity
+// at 240/380px against 0 and 5 for the Emitter. The interruption is real; its NET cost is unknown.
+// So if this constant wants to go lower, the honest lever is feel, and anyone who wants to price it
+// properly needs a rig that separates delivery from ejection — this one does not.
+const WIND_EVERY0=2.8, WIND_EVERY1=4.4;
 const WIND_R=560;         // reach of the shove. ⚠️ 250 FIRST, AND IT WAS BARELY A THIRD OF WHAT IS NEEDED:
                           // `S` pins the arena's SHORT axis at REF_SHORT on every device, so 560 is ~70%
                           // of the short axis everywhere and the wave reads as weather over the field
                           // rather than as a nudge around the body. Author: *"not pushing dots all around."*
-const WIND_V=5.5;         // px/frame of outward velocity at the body. Half a Fling (FLING_V0 10.8), which
-                          // is the relationship that matters: the boss's exhale must never read as strong
-                          // as the player's own throw.
-const WIND_HOLD=0.45;     // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
+const WIND_SPD=4.6;       // ⚠️ px/frame the FRONT TRAVELS, and the whole cue depends on it being slow.
+                          // The Wind used to be an instantaneous disc: every body inside 560 moved on one
+                          // frame, with a cue that crossed the same 560 in half a second. Nothing about
+                          // that was readable — author: *"oh what happened?" "um it was pushed a bit i
+                          // think?"* — because a cause you cannot see arriving is not a cause, it is a
+                          // discontinuity. At 4.6 the front takes 122 frames = 2.03s to cross its reach,
+                          // so you WATCH it come, watch it reach a Dot, and watch that Dot leave. Legibility
+                          // is the entire argument for this number; raising it buys nothing else back.
+const WIND_V=4.4;         // px/frame of outward velocity, applied ONCE as the front passes a body. Against
+                          // WIND_HOLD's friction that is ~194px of travel — the geometric sum is
+                          // `WIND_V·(1−0.985ⁿ)/0.015`, n = WIND_HOLD·60. 2.8 → 4.4 on *"shoving away is
+                          // little weak"*; still under half a Fling (FLING_V0 10.8), which is the ratio
+                          // that matters — the boss's exhale must never read as strong as your own throw.
+                          //   ⚠️ THE 4.6 CEILING IS SOFT AND ITS REASON IS NOT WHAT IT LOOKS LIKE. Keeping
+                          // this under WIND_SPD means a pushed body cannot ride ahead of the front, which
+                          // is tidy but NOT load-bearing: the push happens on the frame the front crosses
+                          // the body, so a body can never escape *unpushed* however fast it is thrown.
+                          // Exceeding 4.6 is therefore legal — what it costs is that fast bodies stop
+                          // being overtaken, so the wave visibly stops sweeping them along. Read that as
+                          // a look decision, not a correctness one, and do not "restore" the ceiling as
+                          // though it were an invariant.
+const WIND_HOLD=0.6;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, AND THE FILE HAD ALREADY SAID SO.
                           // The first version added velocity and left seek running, on the argument that a
                           // shove should let bodies steer home immediately. MECHANICS says of the Fling:
                           // "seek at zero — dead straight, OR ITS OWN SEEK WOULD CANCEL THE IMPULSE and
@@ -5199,6 +5418,25 @@ const WIND_HOLD=0.45;     // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, A
                           //   ⚠️ It therefore EJECTS RING DOTS, because a thrown Dot is not a ring member
                           // by construction. That is the anti-grind interrupt working, and it is bounded
                           // rather than a strip: RING_GRACE reels them back the whole time.
+                          //   0.45 → 1.2 → 0.6. Displacement is `WIND_V·(1−0.985ⁿ)/0.015`, so 4.4 over 36
+                          // frames is ~123px, against ~194 at 1.2s and the instant version's ~75.
+                          //   ⚠️ HALVED ON *"the delay after getting hit by a push should be halved… this is
+                          // a fast paced game"*, AND THE THING THAT WAS TOO LONG IS NOT THIS CONSTANT.
+                          // Measured before the change, ring outage — front crossing to ring restored —
+                          // ran **2.20s at 460px, 3.07s at 300px, and had not recovered inside 5s at
+                          // 140px**, against a 1.2s window. The window is a *third* of the wait. The rest
+                          // is the RETURN TRIP: a body thrown 194px has to come back 194px under ordinary
+                          // seek before it is a ring member again, so the felt recovery scales with
+                          // TRAVEL, and travel is `WIND_V × f(WIND_HOLD)`.
+                          //   That is why this is the constant that moved and `WIND_V` did not. Peak
+                          // impulse is what reads as STRENGTH in the moment — unchanged at 4.4, so the
+                          // punch is identical — while the hold and the drift after it are what read as
+                          // SLOW. Cutting the window shortens the throw and the walk home together and
+                          // leaves the hit itself alone. ⚠️ Raising `WIND_V` to "restore" the lost 71px
+                          // would put the whole wait straight back; these two are one dial for recovery
+                          // and only one of them is also the dial for force.
+                          //   ⚠️ THIS DERIVATION READS BOTH CONSTANTS AND HAS GONE STALE TWICE — 124px from
+                          // an old 2.8, then 194px from a 1.2s hold, and nothing failed either time.
 const WIND_FALL=0.5;      // exponent on the falloff. Linear (1.0) hands a body at 0.9R only a tenth of the
                           // push, which is what made the edge of the wave read as nothing; at 0.5 it gets
                           // a third. The wave has to arrive everywhere it is drawn or the ring is a lie.
@@ -5328,9 +5566,17 @@ function bossMove(b,dt){
   // at 1.6s, in play only, on one kind.
   if(b.variant==='singularity' && P){
     if(b.y < SING_ENTRY_Y){
-      b.y += SING_ENTRY;                                     // guaranteed vertical progress
-      const gx=P.x-b.x;                                      // and drift onto the Star's column as it falls
-      b.x += Math.max(-SING_ENTRY, Math.min(SING_ENTRY, gx*0.06));
+      // Still a guaranteed vertical rate rather than an ease toward the Star — see below — but the rate
+      // now decays into the amble across the last SING_ENTRY_EASE px, so the arrival SETTLES instead of
+      // stopping dead on a line the player cannot see.
+      const k=clamp((SING_ENTRY_Y-b.y)/SING_ENTRY_EASE,0,1);   // 1 while high, → 0 at the line
+      b.y += SING_FOLLOW + (SING_ENTRY-SING_FOLLOW)*k;
+      // ⚠️ SIDEWAYS IS CLAMPED TO THE WALK, NOT TO THE DIVE. This read `SING_ENTRY` and that made the
+      // entrance a diagonal charge at hypot(3.4,3.4)=4.81 — 5.3x the pace of the thing it was about to
+      // become. It drifts onto your column at walking speed now; the dive is the only part allowed to
+      // be fast, because the dive is the only part with a deadline.
+      const gx=P.x-b.x;
+      b.x += Math.max(-SING_FOLLOW, Math.min(SING_FOLLOW, gx*0.06));
       b.vx=b.vy=0; return;
     }
     const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1;
@@ -5499,43 +5745,62 @@ function updateBoss(dt){
     // `lances`, which is why it costs no new dodge vocabulary: everything it does, it does to matter and
     // to your steering. Law 11 is untouched because there is nothing here for a missile to pass through.
 
-    // ---- THE WIND: shoves matter off it. The anti-grind interrupt — ring Dots on its near side are
-    // pushed out of contact — and simultaneously a resupply for anyone standing outside, since everything
-    // it throws off arrives at whoever is out there. It answers your answer without deleting it.
+    // ---- THE WIND: a shockwave that TRAVELS, and pushes each body on the frame the front reaches it.
+    // The anti-grind interrupt — ring Dots are thrown out of contact as it passes — and simultaneously a
+    // resupply for anyone standing outside, since what it carries arrives at whoever is out there.
+    //
+    // ⚠️ IT WAS AN INSTANTANEOUS DISC AND THAT IS WHY NOBODY COULD READ IT. Every body inside 560 moved on
+    // one frame while a particle ring crossed the same distance in half a second, so the cue and the
+    // effect were simultaneous, over before the eye resolved either, and unlinked — the ring was drawn
+    // from `spawnRing` and the push came from a loop, two objects that merely happened to agree.
+    // Author: *"oh what happened?" "um it was pushed a bit i think?"*
+    //   The front is now a real quantity on the boss (`windR`, from a FIXED origin `windX/windY`), it
+    // advances at WIND_SPD, and the ring is DRAWN FROM THAT SAME NUMBER in drawBoss. So the thing you see
+    // and the thing that pushes are one value: the cue cannot lead, lag or disagree with the mechanic,
+    // which is the same one-object rule `warnSpawn` is built on. There is no `spawnRing` here any more —
+    // a second ring on its own clock would be exactly the disagreement this removes.
+    //
+    // ⚠️ THE ORIGIN IS FIXED AT LAUNCH, NOT THE LIVE BOSS POSITION. It ambles ~108px over the 2.03s the
+    // front takes to cross, and a wave dragged along behind a moving centre is not a shockwave — it stops
+    // being a place something happened. It also makes the band test below unsound, since a body could be
+    // re-entered by a front whose centre moved toward it.
+    // ⚠️ THE CLOCK RUNS DURING FLIGHT, AND IT USED NOT TO — WHICH MADE THE CONSTANT A LIE ABOUT ITSELF.
+    // Gating the countdown on `windR<0` charged the wave's own 2.03s of travel to the cooldown, so the
+    // real period was `gap + travel` and WIND_EVERY named neither. Measured under the old accounting:
+    // 7.45s at Epoch I and 6.89s at Epoch III, against constants that read 4.5-6.75 and 3.6-5.4.
+    // The countdown is unconditional now, so **WIND_EVERY is the period** and tuning it does what it says.
+    //   ⚠️ It is still one wave at a time — `windR` is a single front, not a list — so the launch is
+    // gated on the previous one having finished. That puts a FLOOR of 2.03s under the period no matter
+    // how low these go: at `pcad` 1.0 the shortest roll here is 2.8s, clear of it, and `pcad` never goes
+    // below 1. Take WIND_EVERY0 under ~2.2 and the floor starts binding silently — the timer will sit
+    // expired and every wave will launch the instant the last one dies, which is a different mechanic
+    // wearing the same constants. Make it a list before going there.
     b.windT-=dt;
-    if(b.windT<=0){
+    if(b.windT<=0 && b.windR<0){
       b.windT=rand(WIND_EVERY0,WIND_EVERY1)*pcad;
+      b.windR=0; b.windX=b.x; b.windY=b.y;
+      sfx.wind();
+    }
+    if(b.windR>=0){
+      const prev=b.windR;
+      b.windR+=WIND_SPD;
       for(const e of enemies){
         if(e.dead||e.queued||e.type==='boss'||e.hold>0) continue;   // held formation bodies write x/y every
-        const dx=e.x-b.x, dy=e.y-b.y, d=Math.hypot(dx,dy);          // frame, so a push would be overwritten
-        if(d>WIND_R||d<0.001) continue;                             // — the same exemption law 13 states
-        const f=Math.pow(1-d/WIND_R, WIND_FALL)*WIND_V;
+        const dx=e.x-b.windX, dy=e.y-b.windY, d=Math.hypot(dx,dy);  // frame, so a push would be overwritten
+        // ⚠️ ONLY THE SHELL THE FRONT CROSSED THIS FRAME, and that test is what makes "once per body per
+        // wave" true with no bookkeeping at all. The front only ever grows, so `(prev, windR]` is a band
+        // that sweeps each radius exactly once — no per-body flag, no wave id, nothing to reset, and
+        // nothing that can leak into the next wave. A body would have to outrun the front to escape it,
+        // and the push it gets (2.8) is well under the front's own speed (4.6), so it cannot.
+        if(d<=prev || d>b.windR || d<0.001) continue;               // — the hold exemption is law 13's
+        const f=Math.pow(1-Math.min(1,d/WIND_R), WIND_FALL)*WIND_V;
         e.vx+=dx/d*f; e.vy+=dy/d*f;
         // The seek suppression is the whole difference between a shove and a rounding error — see
         // WIND_HOLD. `max` rather than assignment so a body already mid-Fling keeps the longer window;
         // the Wind must never SHORTEN a throw the player has already paid a hold for.
         e.flung=Math.max(e.flung||0, WIND_HOLD);
       }
-      // ⚠️ `out` IS NOT OPTIONAL HERE — THE CUE RAN BACKWARDS WITHOUT IT, AND IT SHIPPED THAT WAY.
-      // `spawnRing`'s default closes from R to a point; only `out` travels 0 -> R. So the Wind drew a
-      // ring COLLAPSING ONTO THE BOSS on the exact frame it threw every Dot outward — the cue stating
-      // the reverse of the mechanic. Author: *"push telegraph is pulling."*
-      //   It was wrong twice over, because a converging ring is already a WORD in this game: the danger
-      // sign converges onto a footprint and the mine's arming ring closes to nothing, so both mean
-      // "something is arriving here". The Wind was borrowing the vocabulary of its own opposite.
-      // drawParticles' comment names the right primitive outright — `out` is "the universal read for a
-      // detonation" — which is what an exhale is. It also carries the `a^0.4` fade an outward ring
-      // needs to still be legible when it arrives at the radius that means something, and at WIND_R
-      // 560 that travel is long enough for the default fade to have vanished before it got there.
-      spawnRing(b.x,b.y,COL[b.color],WIND_R,true);   // drawn at the reach it actually has, travelling OUT
-      // (The Draw's ring at the top of this arm is deliberately left converging: that one really does
-      //  pull, so the default is the correct word for it. The two cues are now each other's opposites,
-      //  which is the same thing `inhale`/`release` do in the sound bank.)
-      // ⚠️ `release` AND `inhale` WERE BOTH ORPHANS — defined in the bank with no `sfx.` call site
-      // anywhere in the file. They are taken as a matched pair here, which is the sound rule's own
-      // preference: a falling let-go against a rising suck, tellable apart with your eyes on the field
-      // rather than two variations on one idea. Neither had to be written, only found.
-      sfx.release();
+      if(b.windR>=WIND_R) b.windR=-1;                               // spent; the timer re-arms next frame
     }
 
     // ---- THE DRAW: wait → telegraph → cap. It sets `b.hunt` so bossMove closes at HUNT_SPD.singularity
@@ -8051,6 +8316,10 @@ function bossBody(b,R,c,oc){
 }
 function drawBoss(){
   if(!boss)return; const b=boss, c=COL[b.color], oc=COL[bossOpp(b.color)];
+  // Set by the Draw's wind-up block below and consumed after `bossBody`, so the badge lands on top of the
+  // hull instead of under it. A function-local rather than a field on the boss, deliberately: it cannot
+  // survive a frame, so no early return between the two sites can leave a warning armed for the next one.
+  let drawSingWarn=-1;
   const pulse=1+0.06*Math.sin(elapsed*4);
   // LUNGER telegraph: a taut aim-line + swelling warning ring toward your core, so the dash is readable
   if(b.telegraph>0){
@@ -8078,6 +8347,62 @@ function drawBoss(){
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(3.4-2.2*g),0,TAU); ctx.stroke();
     ctx.strokeStyle=hexA('#ffffff',0.5*g); ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.05+0.12*Math.sin(elapsed*26)),0,TAU); ctx.stroke();
+    ctx.restore();
+  }
+  // SINGULARITY — THE DRAW'S WIND-UP. The one window in which the answer is still available, so it is the
+  // one that most needed a mark: before this the whole 0.9s was a sound and a single frame of `bossFlash`,
+  // which is an announcement rather than a warning. Author: *"i want indicator before serious hunt mode."*
+  //
+  // ⚠️ IT IS THE DANGER BADGE, NOT A DIAGRAM, AND THE FIRST VERSION WAS THE DIAGRAM. That one drew a ring
+  // converging onto the hull with streaks falling inward — geometrically honest, thematically exact, and
+  // unreadable: author, *"just give danger sign on wind-up, not geometric lines. this is unable to
+  // understand."* The mistake is worth naming because it is seductive. A mark that DEPICTS the mechanic
+  // feels better designed than a mark that merely names it, and depiction is the wrong job here: a
+  // telegraph is read in peripheral vision, in under a second, while the player is tracking matter. At
+  // that budget a symbol you already know beats a picture you must interpret, however accurate the
+  // picture is. The Comet's badge had already established the symbol; this reuses it rather than teaching
+  // a second one, and `dangerBadge` is now the single copy of that shape.
+  //   No arrow — the Comet's arrow answers "which way are they crossing", and the Draw has no direction
+  // to give: it pulls from wherever you are. Nothing rotates, for the reason at `cometSign`.
+  //   ⚠️ It is drawn ABOVE the hull rather than on it, and it is the only mark this kind raises. There is
+  // no radius anywhere in it, which law 3 forces rather than merely permits: the Draw's reach is the whole
+  // arena, so any ring drawn for it states a lethal lie at every distance it is not drawn at.
+  if(b.variant==='singularity' && b.drawTel>0){
+    const w=1-b.drawTel/DRAW_TEL;                        // 0→1 as it winds up
+    // Grows and brightens together so *when* reads as clearly as *what* — the dash reticle's trick, on a
+    // symbol instead of on a geometry. `source-over`: the badge is layered violet under white and law 12
+    // would clamp it to a white blob under the additive pass.
+    drawSingWarn=w;   // deferred — see the call below bossBody
+  }
+  // SINGULARITY — THE WIND'S FRONT, DRAWN FROM `b.windR` ITSELF. Not a particle, not a `spawnRing`: the
+  // radius on screen IS the radius the push test uses, so the wave you watch arrive is the wave that
+  // moves the body it arrives at. That identity is the whole cue — an instant disc with a fast ring
+  // beside it read as nothing happening, because cause and effect landed on the same frame and came from
+  // two different objects. It is also drawn from `windX/windY` rather than `b.x/b.y`: the body walks on
+  // while the wave stays where it was made, which is what a shockwave is.
+  if(b.variant==='singularity' && b.windR>=0){
+    const g=Math.min(1,b.windR/WIND_R);                   // 0→1 across the travel
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    // ⚠️ WHITE, NOT `c` — AND THIS IS THE COLOUR LAW, NOT A PALETTE PREFERENCE. The Wind pushes EVERY Dot
+    // regardless of polarity; it has never had a colour test. Drawing its front in the boss's own hue made
+    // it claim a polarity it does not have, and the claim was read exactly as written — author reported
+    // the Wind as pushing "only same color." Two things went wrong at once and either alone would do it:
+    // a cyan front over cyan Dots is a low-contrast blend, so you cannot SEE the ones it moves; and hue in
+    // this game means polarity everywhere, so a coloured wave says the colour is what it acts on.
+    //   The precedent is `bomberBlast`, the game's other colour-blind area effect, and it is already
+    // solved there: lime and white, deliberately not a pole. White is the right neutral here because the
+    // requirement is functional rather than aesthetic — the front must contrast against BOTH colours
+    // equally, since being able to watch a red Dot and a cyan Dot leave together is the entire cue.
+    //   ⚠️ Do not "fix" this back to the boss's colour to make it prettier. A body-coloured wave is the
+    // same defect as a mark at the wrong radius: a true thing drawn so that it states a false one.
+    ctx.strokeStyle=hexA('#ffffff',0.50*(1-0.45*g)); ctx.lineWidth=3.5;
+    ctx.beginPath(); ctx.arc(b.windX,b.windY,b.windR,0,TAU); ctx.stroke();
+    // A dimmer trailing edge so the front has THICKNESS and reads as a wave with a direction rather than
+    // an expanding circle. Suppressed until it has cleared the hull, or it draws inside the body.
+    if(b.windR>b.r+28){
+      ctx.strokeStyle=hexA('#ffffff',0.16*(1-0.5*g)); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(b.windX,b.windY,b.windR-24,0,TAU); ctx.stroke();
+    }
     ctx.restore();
   }
   // HUNT wake: while it is coming for you, echo rings stream off its trailing edge. The silhouette says
@@ -8140,6 +8465,22 @@ function drawBoss(){
   ctx.save(); ctx.globalCompositeOperation='source-over';
   bossBody(b, b.r*pulse, c, oc);
   ctx.restore();
+  // ⚠️ THE DRAW'S BADGE IS RAISED HERE, AFTER THE HULL, AND THAT IS NOT TIDINESS. Drawn where the telegraph
+  // logic sits — above, with the other wind-ups — the body and its glow paint straight over it, and a
+  // warning sign occluded by the thing it is warning about is worse than none: it reads as a graphical
+  // fault rather than as information. Measured by eye the first time and it was unmistakable, with the
+  // bang's lower half swallowed. The flag is set up there and consumed here so the ORDER is explicit
+  // rather than incidental to where the `if` happens to live.
+  //   It sits a full badge-height clear of the hull and grows with the wind-up, so it never crowds the
+  // body it belongs to. `source-over` because the badge is layered violet under white and law 12 would
+  // clamp it to a white blob in the additive pass.
+  if(drawSingWarn>=0){
+    const w=drawSingWarn, pl=0.84+0.16*Math.sin(elapsed*7);
+    ctx.save(); ctx.globalCompositeOperation='source-over';
+    dangerBadge(b.x, b.y-b.r-SIGN_R*(1.9+0.5*w), (0.55+0.45*w)*pl, SIGN_R*(1.05+0.35*w));
+    ctx.restore();
+    drawSingWarn=-1;
+  }
   // INTEGRITY RING, drawn at `b.r+P.r` — the real contact envelope, and it must stay there. A ring drawn
   // outside a hull reads as "the edge where I die" whether or not it is one, so this one is made true:
   // the bar telling you how much fight is left is the same stroke as the perimeter you must not cross.
@@ -8850,6 +9191,18 @@ function cometSign(px,py,ux,uy,a){
   // exclamation mark at all (upside down on a right-to-left crossing, on its side going straight up).
   // Rounded corners come from `lineJoin` on a stroked path rather than three arcs: at this size a join
   // buys the same read for none of the arithmetic.
+  dangerBadge(px,py,A,R);
+}
+// THE DANGER BADGE — the triangle-and-bang, and the ONE copy of it in the file. Extracted from
+// `cometSign` when the Draw needed the same mark: the Comet's sign is a badge PLUS an arrow, and only the
+// arrow was ever comet-specific. Two hand-drawn copies of a symbol is how the Bestiary's body art went
+// stale against `bossBody`, and a warning sign that differs slightly between the two things that raise it
+// is worse than either version alone, because the player learns a shape and then meets a near-miss of it.
+//   `a` is the final alpha, already pulsed by the caller; `R` is the size. Nothing here rotates — see the
+// note above. It draws nothing but the sign, so any future thing that needs to say DANGER HERE calls this
+// rather than inventing a second vocabulary.
+function dangerBadge(px,py,A,R){
+  const V=COL.violet;
   ctx.save(); ctx.translate(px,py);
   ctx.lineJoin='round'; ctx.lineCap='round';
   ctx.beginPath();
@@ -9187,8 +9540,17 @@ function updateHUD(){
     // The hunt outranks the standing tip, and is the only thing that may displace it: it is the one
     // time the Anomaly is actively walking onto your core, it is over in a few seconds, and the answer
     // is a movement answer — which is exactly what this line is allowed to name.
-    bb.querySelector('.bl').textContent = boss.hunt>0 ? T('hud.bossHunt') : T(tip);
-    bb.querySelector('.bl').style.color = boss.hunt>0 ? COL.red : ''; }
+    // ⚠️ THE SINGULARITY MUST BE TESTED BEFORE `hunt`, NOT AFTER, because its Draw RUNS THROUGH `b.hunt`
+    // — that is how bossMove closes at HUNT_SPD — so the generic branch below matches during a Draw and
+    // was telling the player to dodge a thing that cannot be dodged. Order is the whole fix here.
+    //   The wind-up gets its own line rather than sharing one: it is the only window in which the answer
+    // is still available, and a line that appears only once the cap is already on is a report, not a
+    // warning. Both name a MOVEMENT answer, which is this line's standing rule.
+    const drawing = boss.variant==='singularity' && (boss.drawT>0 || boss.drawTel>0);
+    const key = drawing ? (boss.drawT>0 ? 'hud.bossDraw' : 'hud.bossDrawTel')
+                        : (boss.hunt>0 ? 'hud.bossHunt' : tip);
+    bb.querySelector('.bl').textContent = T(key);
+    bb.querySelector('.bl').style.color = (drawing || boss.hunt>0) ? COL.red : ''; }
   else bb.classList.add('hidden');
   // THE TOUCH LEGEND IS A REMINDER, NOT A HUD ELEMENT, and the difference is 53px of a 812px phone.
   // Left permanently on it sat straight through the Core Integrity and Capacitor bars — the keyboard
@@ -9587,7 +9949,7 @@ function startRun(mode, startAct){
   boss=null;bossFlash=0;lances.length=0;bossN=0;anomLog.length=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;
-  el('menu').classList.add('hidden');
+  el('menu').classList.add('hidden'); menuChrome(false);
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
   el('bossbar').classList.add('hidden');
@@ -9596,11 +9958,23 @@ function startRun(mode, startAct){
   state='play'; lastT=performance.now(); acc=0;
   if(labMode) beginLabRun(); else if(tutMode) beginTutRun(); else if(testMode) beginTestRun(); else beginRun();
 }
+// THE KEY ART AND THE HUD MOVE WITH THE MENU, and the HUD half is not cosmetic.
+// The score, the Epoch line, both bars and the whole key legend have ALWAYS been rendered under the
+// menu — the shared overlay's .94 wash plus blur(4px) simply hid them. Lighten that wash so the art
+// can be seen and they all reappear, ghosting over the picture. Nothing regressed; the cover came off.
+//   ⚠️ visibility, NOT display. #hud is a fixed layer whose children are positioned against it, and
+// display:none would collapse the box the bars measure themselves in — they come back mid-transition
+// at the wrong width. visibility keeps the geometry and only stops the paint.
+function menuChrome(on){
+  const art=el('menuArt'), hud=el('hud');
+  if(art) art.classList.toggle('hidden', !on);
+  if(hud) hud.style.visibility = on ? 'hidden' : '';
+}
 function toMenu(){
   state='menu';
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
-  el('menu').classList.remove('hidden');
+  el('menu').classList.remove('hidden'); menuChrome(true);
   refreshTutBeacon();   // the flag can only have been SET since we left, so this only ever turns it off
   refreshDepth();       // and the run that just ended is the one thing that can have moved the ladder
 }
@@ -10565,6 +10939,17 @@ const sfx={
   closing(){ beep(330,0.85,'sine',0.11,88); beep(99,0.85,'triangle',0.075,50); noise(0.3,0.07); },
   // ...and it lets go. Short, low, no rise anywhere in it.
   release(){ beep(180,0.34,'sawtooth',0.2,44); beep(70,0.5,'sine',0.15,30); noise(0.3,0.16); },
+  // THE WIND. ⚠️ This replaces `release()`, which was borrowed for it and was far too loud for a cue that
+  // fires every 3.6-5.4s all fight long. Author: *"too noisy."* Two things made it so and neither was the
+  // gain alone: a SAWTOOTH, the harshest timbre in the bank, and a `noise()` layer — and noise is the one
+  // thing that cannot be placed in a register, because it is in all of them at once. A one-shot can afford
+  // that; a metronome cannot.
+  //   What replaces it is a low sine fall at a quarter of the level, with a soft triangle for body and NO
+  // noise. 128Hz down is deliberately under `bomb()`'s identifying 150-700Hz band — the one register the
+  // sound rule says must stay clear — and it is a slow falling sweep rather than a transient, so it does
+  // not compete with the square-wave `kill`/`mote` crowd on timbre either. Falling, because it is still the
+  // exhale to the Draw's rising `inhale`; that pairing is the point and only the loudness was ever wrong.
+  wind(){ beep(96,0.85,'sine',0.05,44); beep(128,0.55,'triangle',0.022,58); },
   // CELESTIAL HARP: plucked arpeggio in stacked fifths (quintal harmony — "the planets arrange").
   // The voice of cosmic wins — currently the orb pickup, at harp(5). n = arpeggio length, 3..7.
   harp(n){
@@ -10585,6 +10970,12 @@ const sfx={
 el('best').querySelector('.v').textContent=store.best.toLocaleString();
 applyPalette();   // before the first frame, or one frame paints in the wrong pole colour
 applyLang();      // likewise: the markup ships English, and a Korean player must never see it flash
+// ⚠️ AND THE MENU'S OWN CHROME, FOR THE SAME REASON AND WITH A SHARPER EDGE. #menu is visible at boot
+// because its markup carries no .hidden — toMenu() is never called on the way in, so nothing had ever
+// had to state the menu's starting chrome before. The art layer and the HUD are toggled by state now,
+// so without this the first screen a player ever sees is the one screen with no key art and a live
+// HUD ghosting over it, and every later visit to the menu looks different from the first.
+menuChrome(!el('menu').classList.contains('hidden'));
 // idle background render before start
 
 // ---- FIRST VISIT: the tutorial runs itself, exactly once, ever ----

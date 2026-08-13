@@ -14,6 +14,39 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-12
 
+### The Singularity, tuned by playing it — seven passes, and the rig missed most of them `v2`
+The kind shipped and then got fixed, and the shape of the fixes is the entry. **Six of the seven were
+reported by a player, not caught by a harness**, and each one measured cleanly right up until somebody
+looked at it. Grouped, newest first:
+
+- **The entrance stopped charging.** `SING_ENTRY` was clamping the *horizontal* tracking as well as the
+  dive, so it closed diagonally at 4.81px/frame — **5.34× the amble, flat, then an instant drop.**
+  Sideways is clamped to the walk and the dive decays into it: 3.52 peak, settling smoothly.
+  *"singularity is too fast when spawned. is this bug or my mislook."* Not a mislook.
+- **The wind-up raises the danger badge**, replacing a converging ring and inward streaks that were
+  geometrically honest and unreadable. *"just give danger sign on wind-up, not geometric lines."* A
+  telegraph **names**; it does not illustrate. `dangerBadge` is extracted so the symbol has one copy.
+- **The integrity bar stopped telling you to dodge it.** The Draw runs through `b.hunt`, so it matched
+  the generic hunt branch and read *IT IS GOING TO RAM YOU!* for its whole duration. It does not ram.
+- **Recovery halved**, and the constant that was too long was not the one that looked it: ring outage ran
+  **2.20 / 3.07 / >5s** against a 1.2s window, because the return trip dominates. Halving the hold gave
+  **1.12 / 1.68 / 1.12s with the impulse bit-identical**.
+- **The push got stronger** (2.8 → 4.4), then **twice as frequent** — a third of which came free, because
+  the countdown was gated on no-wave-in-flight and the crossing time was being charged to the cooldown.
+- **The front travels.** It was an instantaneous disc with a fast ring beside it: cause and effect on the
+  same frame, from two objects that merely agreed. *"oh what happened?" "um it was pushed a bit i think?"*
+  The ring is drawn from the front's own radius now, so it cannot disagree.
+- **The front is white.** Drawn in the boss's hue it claimed a polarity it does not have and was read
+  exactly as written — *"push away ALL dots, not only same color."* It always did; the picture lied.
+
+⚠️ **Two rig faults worth more than any of the tuning.** The game's **service worker serves a stale build
+to every reload**, and a cache-busting query does not help because the worker answers first — three
+reloads of an edited file measured the old code. It was caught only because the stale values happened to
+be strings that appeared in the output; a physics change would have returned clean, plausible numbers
+about the wrong build. A **new-code marker** is now standing procedure. And `e.seek=0` **does not make a
+Dot inert** — `LIKE_GRAV` keeps acting on same-colour matter, so zeroing seek silences one colour and not
+the other and manufactures the exact colour asymmetry a colour test is looking for.
+
 ### The fourth Anomaly restricts movement, and one clamp makes that mean the same on a mouse and a thumb `v2`
 The parked `bossBody` arm is reachable at last. **The Singularity** ambles at you forever, breathes matter
 off itself with the **Wind**, and periodically **Draws** — a speed cap plus a tax on retreating, while it

@@ -9,7 +9,7 @@
 //
 // Bump CACHE when the shell changes. Anything not in this version's cache is deleted on activate, so
 // the bump is the whole release mechanism.
-const CACHE = 'orbital-crash-v2';
+const CACHE = 'orbital-crash-v3';
 
 const SHELL = [
   './',
@@ -22,6 +22,10 @@ const SHELL = [
   './icons/icon-192-maskable.png',
   './icons/icon-512-maskable.png',
   './icons/apple-touch-icon.png',
+  // The title screen's key art. Precached with the shell rather than fetched lazily: it is the FIRST
+  // thing drawn on a cold start, so an offline first launch without it opens on a black menu.
+  './art/keyart-wide.webp',
+  './art/keyart-tall.webp',
 ];
 
 self.addEventListener('install', e => {

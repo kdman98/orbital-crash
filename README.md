@@ -27,10 +27,15 @@ doorway into a wall.
 
 ## Credits and license
 
-**Nothing here comes from anywhere else.** No webfonts, no CDN, no `<script src>`, no external URL of
-any kind — the web build makes zero network requests and has zero runtime dependencies. Every sound is
-synthesised in WebAudio at runtime, every graphic is drawn on the canvas, and the icons are built from
-one master by `npm run icons:ios`. The only third-party code in the repository is **Capacitor** (MIT),
+**No webfonts, no CDN, no `<script src>`, no external URL of any kind** — the web build makes zero
+network requests and has zero runtime dependencies. Every sound is synthesised in WebAudio at runtime,
+every graphic **in the game itself** is drawn on the canvas, and the icons are built from one master by
+`npm run icons:ios`.
+
+The one exception, and it is deliberate: **the title screen's key art in `art/` is a generated image,
+edited and colour-corrected for this game.** It is the only bitmap the product loads, it appears on the
+menu only, and nothing in the playfield uses it. It is served from the repository like every other file
+here — the CSP is still `default-src 'self'` and the build still talks to nobody. The only third-party code in the repository is **Capacitor** (MIT),
 which builds the iOS shell and is not part of the web build at all.
 
 Licensed under the **[PolyForm Noncommercial License 1.0.0](LICENSE)** — read it, run it, study it,

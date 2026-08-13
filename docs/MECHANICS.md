@@ -1487,8 +1487,19 @@ two indirect channels instead, and both were measured rather than intended:
 
 | | |
 |---|---|
-| **your rings** | ejected wholesale inside the reach — 14 → 0, recovered to 14 by ~1.5s. An interrupt, not a strip |
-| **loose matter** | anything between it and you is carried **84–129px toward you**; anything past you gets nothing |
+| **your rings** | **carved, not wiped** — 16 → 3 / 7 / 6 as the front sweeps, back to 10–12 within ~1.1–1.7s. An interrupt, not a strip |
+| **loose matter** | anything between it and you is carried toward you, and monotonically in distance: **371 / 306 / 235 / 92 / 79 px** at 90 / 160 / 230 / 300 / 370px from the body, against a control of 0 at every one |
+
+⚠️ *The delivery figures are net position change over the window, not the impulse* — they include whatever
+the body does after the hold expires, which is the quantity the *Measure the impulse* warning above says
+not to trust as a reading of the push. They are quoted because **where matter ends up** is the thing the
+player experiences; for the force itself, read the impulse table.
+
+⚠️ **The ring is carved rather than wiped because the front is thin.** The instantaneous disc took the
+whole ring at once (14 → 0); a `WIND_SPD` band takes ~50 frames to cross a ~114px orbit while the ring
+spins, so Dots are cut out of it and some are already reeling back before the front has finished passing.
+More of them are genuinely lost at the current strength than at the first tuning — recovery landed at
+10–12 of 16 against 13–14 — which is the stronger push doing what was asked of it.
 
 The ring ejection is a consequence of the mechanism rather than a rule: `e.flung` means *not a ring
 member* by construction. `RING_GRACE` reels them back, which is what bounds it. ⚠️ **The reach test is
@@ -1501,7 +1512,45 @@ outright: *"seek at zero — dead straight, or its own seek would cancel the imp
 the core."* It cancelled — 14.5px at r=60, against a 26px contact diameter. The fix was to take the
 existing `e.flung` path (the same idiom the boss bounce-out already uses at 0.2s), widen the reach and
 soften the falloff exponent to 0.5, since a linear falloff hands a body at 0.9R only a tenth of the push.
-Re-measured: 98.3 / 48.0 / 31.2 / 20.1 px at r = 60 / 140 / 240 / 340.
+
+#### The Wind is a front that travels, and that is what made it readable
+
+**It was an instantaneous disc and nobody could read it.** Every body inside the reach moved on one frame
+while a particle ring crossed the same distance in half a second beside it: cause and effect landed
+together, both were over before the eye resolved either, and they came from **two different objects that
+merely happened to agree**. Author: *"oh what happened?" "um it was pushed a bit i think?"*
+
+**The front is a real quantity now** (`b.windR`, from a fixed origin), it advances at `WIND_SPD`, and the
+ring is **drawn from that same number**. The wave you watch arrive is the wave that moves the body it
+arrives at — the cue cannot lead, lag or disagree with the mechanic, which is the one-object rule
+`warnSpawn` is built on. There is no `spawnRing` on this path any more; a second ring on its own clock is
+exactly the disagreement this removes.
+
+| | |
+|---|---|
+| **origin** | frozen at launch, never the live body. It ambles ~108px during the crossing, and a wave dragged behind a moving centre stops being a place something happened |
+| **once per body** | the push test is the shell the front crossed *this frame*, `(prev, windR]`. The front only grows, so that band sweeps each radius exactly once — **no per-body flag, no wave id, nothing to reset** |
+| **arrival** | measured on the predicted frame at every radius: 31 / 53 / 75 / 96 / 116 for d = 140 / 240 / 340 / 440 / 530 |
+| **impulse** | within 1.5% of `(1−d/WIND_R)^WIND_FALL × WIND_V` at every one of those radii |
+
+⚠️ **Measure the impulse, not the travel.** Total displacement stopped being a usable read once the push
+got strong — probes reach each other and reach the Star's field, and a run across ascending radii came
+back **519 / 151 / 374 / 364 / 46 px**, non-monotonic and useless. The impulse at the moment it lands is
+deterministic and immune to everything downstream.
+
+⚠️ **`WIND_EVERY` is the period, and it was not.** The countdown used to be gated on no-wave-in-flight, so
+the crossing's own ~2s was charged to the cooldown and the constant named neither quantity — measured
+7.45s at Epoch I against a constant reading 4.5–6.75. It runs unconditionally now. **There is still a
+floor**: one front at a time, so the period can never fall below the crossing time however low the
+constant goes, and below that it stops being a period at all and becomes back-to-back waves.
+
+⚠️ **Recovery is dominated by the return trip, not by the hold.** Ring outage — front crossing to ring
+restored — measured **2.20s / 3.07s / >5s** at 460 / 300 / 140px against a 1.2s window. The window was a
+third of it; the rest is a body walking back the distance it was thrown. So felt recovery scales with
+**travel**, and travel is `WIND_V × f(WIND_HOLD)` — *both* constants feed it, and only one of them is
+also the force. Halving the hold cut the outage to **1.12 / 1.68 / 1.12s with the impulse bit-identical**.
+**Do not raise `WIND_V` to win back the lost travel**: it puts the whole wait straight back. Impulse owns
+strength; the hold owns time.
 
 ⚠️ **A cue drawn in the wrong direction is a lie about the mechanic, and this one shipped.** `spawnRing`'s
 default closes from R to a point; only its `out` flag travels outward. So the Wind drew a ring
@@ -1513,6 +1562,75 @@ comment — `out` is *"the universal read for a detonation."* The two cues are n
 converging for the Draw and expanding for the Wind, which is the same pairing `inhale`/`release` make in
 the sound bank. **Check a new ring's direction against what the mechanic does, not against what looks
 dramatic.**
+
+⚠️ **And a cue drawn in a polarity colour claims a polarity, which this one does not have.** The front was
+drawn in the boss's own hue, and it was read exactly as written — reported as pushing *"only same
+color."* **It never had a colour test and never has.** Two things went wrong at once and either alone
+would do it: a cyan front over cyan Dots is a low-contrast blend, so you cannot *see* the ones it moves;
+and hue means polarity everywhere in this game, so a coloured wave says the colour is what it acts on.
+`bomberBlast` — the game's other colour-blind area effect — had already solved this in lime and white.
+The front is white now, for a functional reason rather than a stylistic one: **it has to contrast against
+both colours equally, because watching a red Dot and a cyan Dot leave together is the entire cue.**
+Verified colour-blind, paired probes at r=300 with the Star held outside `LIKE_GRAV`'s reach: pushed on
+the same frame, travel 86.58 against 86.32.
+
+#### The Draw's telegraph names the danger; it does not draw the mechanic
+
+The wind-up is **the only window in which the answer is still available**, so it is the beat that most
+needed a mark — before it existed the whole `DRAW_TEL` was a sound and one frame of `bossFlash`, which is
+an announcement rather than a warning.
+
+⚠️ **The first version depicted the mechanic and was unreadable.** A ring converging onto the hull with
+streaks falling inward: geometrically honest, thematically exact, and useless — author, *"just give
+danger sign on wind-up, not geometric lines. this is unable to understand."* The mistake is seductive,
+which is why it is recorded: a mark that *depicts* feels better designed than one that merely *names*,
+and depiction is the wrong job here. A telegraph is read in peripheral vision, in under a second, while
+the player is tracking matter. At that budget **a symbol you already know beats a picture you must
+interpret**, however accurate the picture is.
+
+It raises the **danger badge** the Comet already established, and `dangerBadge` is now the single copy of
+that shape — it was inline in `cometSign`, where only the arrow was ever comet-specific. Two hand-drawn
+copies of a symbol is how `bestiary.html` went stale against `bossBody`, and a warning sign that differs
+between the two things that raise it is worse than either, because the player learns a shape and then
+meets a near-miss of it. No arrow: the Comet's answers *which way are they crossing*, and the Draw has no
+direction to give.
+
+⚠️ **There is no radius anywhere in it, and law 3 forces that rather than permitting it.** The Draw's
+reach is the whole arena — the cap applies wherever you stand — so any ring drawn for it states a lethal
+lie at every distance it is not drawn at.
+
+⚠️ **A telegraph drawn under the thing it warns about is worse than none.** Placed with the other wind-up
+logic, which runs before `bossBody`, the hull painted over it and swallowed the bang's lower half. It is
+raised after the hull via a frame-local flag, so the order is explicit rather than incidental to where
+the `if` happens to sit.
+
+**The integrity bar was telling you to dodge it, and could not have been more wrong.** The Draw runs
+*through* `b.hunt` — that is how `bossMove` closes at `HUNT_SPD` — so it matched the generic hunt branch
+and the bar read *IT IS GOING TO RAM YOU!* through every Draw. It does not ram, and stepping aside is not
+available. The variant is tested **before** `hunt` now; order is the whole fix. The wind-up gets its own
+line rather than sharing the cap's, because a line that appears only once the cap is on is a report.
+Both name a movement answer, which is that line's standing rule.
+
+#### The entrance is not the amble, and conflating them cost twice
+
+The amble is a **steady state**. It was doing arrival duty as well, and both faults it produced were
+found by a player rather than by the rig.
+
+1. **The teleport.** `stepEnemyForces` clamps `boss.y` to ≥138 once `bossTime > 1.6`, on the assumption —
+   its own comment says *"once its entrance dive is done"* — that every kind has arrived by then. A body
+   still climbing gets snapped: **111.6px in one frame, at exactly 1.600s.** Hence `SING_ENTRY`.
+2. **The charge.** `SING_ENTRY` was clamping the *horizontal* tracking too, so the entrance closed
+   diagonally at `hypot(3.4,3.4)` = **4.81 px/frame, 5.34× the amble, flat for 63 frames and then an
+   instant drop.** Author: *"singularity is too fast when spawned."* Sideways is clamped to the walk now
+   and the dive decays into it, giving **3.52 peak, settling smoothly**.
+
+⚠️ **The ease span is pinned by that deadline.** A full ease across the whole descent computes to 98.6
+frames and would miss frame 96, putting the teleport back. The shipped span crosses 138 at frame 62.
+**Widen it and re-measure the crossing frame — do not just lower the rate.**
+
+⚠️ **The dive drives `y` at a fixed rate rather than easing toward the Star**, because an ease has no
+guaranteed vertical component: with the Star high and off to one side the approach is nearly horizontal
+and can still be short of the floor at 1.6s. Verified position-independent at three Star positions.
 
 ### The Hunt
 Every so often an Anomaly **leaves its station and walks onto your core**. A walk, not a dash — strolling
@@ -3025,6 +3143,29 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 
 Things that have cost real time, in this codebase specifically.
 
+⚠️ **THE GAME'S OWN SERVICE WORKER SERVES A STALE BUILD TO EVERY RELOAD, AND A CACHE-BUSTING QUERY DOES
+NOT HELP** — the worker answers the request before the network sees it. Three reloads of a genuinely
+edited file measured the *old* strings; `sw.js` had registered, was controlling the page, and was serving
+`orbital-crash-v2` from cache. **Every figure in this file taken after a reload is exposed to this.**
+  What caught it was a **new-code marker**: the rig refuses to run unless an identifier the change
+introduces is present. That is now standing procedure alongside muting, and it is cheap — one lookup. Note
+what saved it here was luck about the *kind* of change: the stale values were strings and appeared in the
+output. **A physics change returns clean, plausible numbers about the wrong build and says nothing.**
+Unregister the worker and clear `caches` in any rig that reloads.
+
+⚠️ **`e.seek=0` DOES NOT MAKE A DOT INERT — it silences one colour and not the other, and so manufactures
+a colour asymmetry in any test looking for one.** Seek is the opposite-colour approach; `LIKE_GRAV` is a
+separate force on *same*-colour matter and keeps running. Three runs of a colour test showed same-colour
+probes moving 30+ frames before the wave reached them, once inward and once outward, and the cause was
+the Star's own pull — plus the Star not being where it was put, because `stepPlayer` clamps it into the
+arena and a "park it at 2400,2400" had landed it beside the boss. **Put the Star outside `LIKE_GRAV_R`
+and assert where it actually ended up**, or a colour test measures the Star.
+
+⚠️ **PROBES ON ONE RAY SHOVE EACH OTHER.** A push measurement across ascending radii had the r=240 probe
+never move at all: a pushed inner probe had shouldered it outward ahead of the front. Same-charge shove is
+positional (law 13) and does not care that you are running an experiment. Separate probes angularly, or
+run one at a time.
+
 ⚠️ **A HARNESS THAT CALLS `spawnBoss` DIRECTLY IS NOT IN A BOSS FIGHT, and it will agree with itself
 while it tells you nothing.** `bossTime` advances inside `director()` — the boss-phase branch and the
 Boss Rush branch — so a rig that spawns a boss by hand never accumulates it and never arms anything gated
@@ -4120,11 +4261,10 @@ about it is measured on a scripted rig, and the rig is structurally blind to all
   Overdrive, so this is the first mechanic that makes the portrait question a **correctness** issue rather
   than an ergonomic one. *Touch* already records that the top-right argument is a landscape argument and
   that the web is "settled by nothing"; native is landscape-locked and fine.
-- **Does the Draw have a persistent cue at all?** It does not. Onset gives a converging ring and a sound;
-  while the cap is up, nothing on screen says so. That is the same defect this file records against
-  `⚡ OVERDRIVE READY ⚡` — *a cue for a state that persists must itself persist*. Law 3 forbids drawing the
-  radius, so it has to ride the disc art's brightness, which is law 5's state channel. **Known and not
-  done**, rather than overlooked.
+- ~~**Does the Draw have a persistent cue at all?**~~ **Closed.** The wind-up raises the danger badge, and
+  the cap itself carries the hunt lane, the hunt wake and a red movement line on the integrity bar for its
+  whole duration — because it runs through `b.hunt` and inherits all three. What is *not* closed is
+  whether the answer arrives in time on a portrait phone browser, which is the item below.
 
 **🟡 Does the Singularity break no-softlock, in either direction?** It is the only kind that walks *into*
 your ring shell continuously, which should make the grind far stronger against it, and the only one that
