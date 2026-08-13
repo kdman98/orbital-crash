@@ -35,6 +35,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Orbital Crash" />
+<!-- ⚠️ THESE WERE MISSING ENTIRELY. Every icon below has existed in icons/ since July and nothing
+     pointed at any of them, so a browser tab showed the default globe and an iOS "Add to Home Screen"
+     fell back to a screenshot of the page. The manifest covers an INSTALLED PWA; it does not give a
+     plain tab a favicon, which is where most people meet this game. CSP img-src 'self' permits them. -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="manifest" href="manifest.webmanifest" />
 <title>ORBITAL CRASH</title>
 <!-- SHARE CARDS. This block is the one part of the page that is STATIC BY NECESSITY. The game picks
@@ -8311,12 +8318,17 @@ function drawBoss(){
     ctx.save(); ctx.globalCompositeOperation='lighter';
     // THE LANE — drawn to the LOCKED point, not to wherever you happen to be standing. This line is now
     // a promise the Anomaly has already made, so leaving it is a dodge.
-    ctx.strokeStyle=hexA('#ff3b6c',0.28+0.55*g); ctx.lineWidth=2+4*g; ctx.setLineDash([10,10]);
+    //   ⚠️ COL.red, NOT A LITERAL. All three strokes below shipped '#ff3b6c' — one nibble off COL.red's
+    // '#ff3f6c', invisible on screen, and wrong for a reason that has nothing to do with the shade:
+    // applyPalette() REASSIGNS COL.red to '#ff7a2f' in colourblind mode, and a literal cannot follow.
+    // The whole field turned orange while the Lunger's telegraph — the one mark whose job is to be
+    // read at a glance — stayed pink, for the players who most needed it not to.
+    ctx.strokeStyle=hexA(COL.red,0.28+0.55*g); ctx.lineWidth=2+4*g; ctx.setLineDash([10,10]);
     ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(b.tx,b.ty); ctx.stroke(); ctx.setLineDash([]);
     // a reticle collapsing onto the lock — the countdown made spatial, so WHEN reads as clearly as WHERE
-    ctx.strokeStyle=hexA('#ff3b6c',0.3+0.55*g); ctx.lineWidth=2;
+    ctx.strokeStyle=hexA(COL.red,0.3+0.55*g); ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(b.tx,b.ty, 26+96*(1-g), 0, TAU); ctx.stroke();
-    ctx.strokeStyle=hexA('#ff3b6c',0.5*g); ctx.lineWidth=3;
+    ctx.strokeStyle=hexA(COL.red,0.5*g); ctx.lineWidth=3;
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r*(1.3+0.5*Math.sin(elapsed*22)),0,TAU); ctx.stroke();
     ctx.restore();
   }
