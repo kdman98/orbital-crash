@@ -819,10 +819,10 @@
        shorter screen instead of the controls colliding. */
     #menu.overlay{display:grid;align-content:stretch;justify-items:center;
       grid-template-columns:1fr 1fr;
-      grid-template-rows:auto 1fr auto auto auto;
+      grid-template-rows:auto 1fr auto auto 1fr auto auto;
       column-gap:min(6vw,44px);row-gap:0;
       padding:max(10px,env(safe-area-inset-top,0px)) max(22px,env(safe-area-inset-right,0px))
-              max(18px,env(safe-area-inset-bottom,0px)) max(22px,env(safe-area-inset-left,0px));}
+              max(26px,env(safe-area-inset-bottom,0px)) max(22px,env(safe-area-inset-left,0px));}
     #menu .titlewrap{grid-column:1/3;grid-row:1;margin-bottom:6px;}
     /* ⚠️ THE TWO ENTRY POINTS FLANK THE NEBULA, AND THE WIDTH IS MEASURED AGAINST IT RATHER THAN
        CHOSEN. Sampling the shipped art column by column, the lit disc occupies 34.9%..63.5% of the
@@ -832,18 +832,48 @@
        240px sits inside either margin with clearance to spare, and they centre on the disc's own
        band so they read as flanking it rather than floating above it. If the crop ever changes, this
        number is downstream of that measurement — re-run it, do not nudge it. */
-    #menu .btn:not(.sm){grid-column:1;grid-row:2;margin:0;justify-self:start;align-self:center;}
-    #menu .btn.sm.tut  {grid-column:2;grid-row:2;margin:0;justify-self:end;align-self:center;}
-    #menu .doors       {grid-column:1/3;grid-row:3;width:100%;}
+    #menu .btn:not(.sm){grid-column:1;grid-row:3;margin:0;justify-self:start;}   /* 게임 시작   */
+    #menu .btn.sm.tut  {grid-column:2;grid-row:3;margin:0;justify-self:end;}     /* 튜토리얼    */
+    /* ⚠️ `display:contents` DISSOLVES `.doors` SO ITS TWO CHILDREN BECOME GRID ITEMS DIRECTLY. It is
+       a flex row everywhere else and has to stay one — this is the only branch that needs its pair
+       split across two columns, and restructuring the markup for it would change every other layout. */
+    #menu .doors       {display:contents;}
+    #menu .doors .door:first-child{grid-column:1;grid-row:4;justify-self:start;margin-top:9px;}
+    #menu .doors .door:last-child {grid-column:2;grid-row:4;justify-self:end;margin-top:9px;}
     /* ⚠️ THESE WERE BOTH IN ROW 5 AND LANDED ON TOP OF EACH OTHER. Grid does not push siblings apart
        the way flow does — two items given the same row and column simply stack. Separate rows. */
     /* ⚠️ MEASURED, NOT EYEBALLED: the bottom cluster ran to 97.9% of frame height before this — the
        links row was touching the bezel and sharing that strip with the contact e-mail. The note also
        ships at 10px in --dim, which is legible on a flat wash and is not legible over a planet limb,
        so it takes a size and a step of brightness here and nowhere else. */
-    #menu .doornote    {grid-column:1/3;grid-row:4;margin-top:5px;font-size:11px;color:#a9bdd8;}
-    #menu .refs        {grid-column:1/3;grid-row:5;margin-top:3px;}
-    #menu .btn:not(.sm),#menu .btn.sm.tut{width:min(240px,30vw);padding-left:0;padding-right:0;}
+    /* ⚠️ BRIGHTER HERE, AND ONLY HERE. `.doornote` ships 10px in --dim and `.ref` 13px in --ink with a
+       24%-white underline — all tuned against a flat .94 wash, where dim grey IS the quiet register.
+       Over a planet limb the same values are simply not readable, which is what the author reported.
+       These take size, weight and a hard shadow rather than a scrim, because the rows sit low enough
+       that darkening the band that far would put a black bar across the bottom of the picture. */
+    #menu .doornote    {grid-column:1/3;grid-row:6;margin-top:4px;font-size:11px;color:#c2d3ea;
+      text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95);}
+    /* ⚠️ THE LINKS SIT ON THE PLANET LIMB, WHICH IS THE BRIGHTEST THING IN THE LOWER FRAME, so white
+       text on a shadow is not enough on its own — a shadow darkens what is behind each glyph, and the
+       limb's rim is brighter than the shadow is dark. The row gets its own backing instead, sized to
+       the links rather than to the screen so it reads as a control strip and not as a black bar across
+       the picture. Lifted clear of the bezel in the same pass; it was bottoming out at 95.4%. */
+    #menu .refs        {grid-column:1/3;grid-row:7;margin-top:2px;margin-bottom:6px;
+      background:rgba(5,8,16,.62);border-radius:100px;padding:3px 16px 4px;}
+    #menu .ref{color:#ffffff;font-size:15px;border-bottom-color:rgba(255,255,255,.62);
+      text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95);}
+    /* One size for all four: the author asked for 게임 시작 to match 튜토리얼, and the practice pair
+       to match those. Colour still separates the primary — it is the only opaque cyan on the screen. */
+    /* ⚠️ FIXED HEIGHT AND FLEX CENTRING, NOT PADDING. Padding + font-size left the doors 41px against
+       the buttons' 42, because a `.door` renders its label through an inner `.dn` span carrying its own
+       size and line-height while a `.btn` holds text directly — so identical padding still produced
+       different content boxes. Matching the span's font-size did not close it either; line-height
+       rounding kept a pixel. Setting the box and centring inside it makes the four identical by
+       construction rather than by two typographic values agreeing, which they were never going to. */
+    #menu .btn:not(.sm),#menu .btn.sm.tut,#menu .door{
+      width:min(240px,30vw);height:44px;padding:0;font-size:16px;border-radius:100px;
+      display:flex;align-items:center;justify-content:center;}
+    #menu .door .dn{font-size:16px;}
     /* ⚠️ `.ttrail` IS IN THIS LIST AND IT IS THE ONE I MISSED FIRST TIME. The trail particles are
        children of `.titlewrap`, NOT of `.tdot`, so hiding the dots left 28 of them still orbiting
        across the buttons — visible only intermittently, because they move. Hiding a parent does not
