@@ -1149,6 +1149,25 @@
      play. Worst case at 16px is 118px tall (was 81), occupying y 112-230 of an 812px screen: `#best`
      ends at 104 so the clearance above survives untouched, and the bar still stops ~176px short of
      centre, where the star spends most of its time.
+       ⚠️ THAT CLEARANCE ARGUMENT IS PORTRAIT-ONLY, AND IN LANDSCAPE THE BAR ALREADY OVERLAPS `#best`.
+     Written down because the paragraph above reads like a general proof and is not one. `@media
+     (max-width:560px)` never fires at 667x375 or 844x390, so `top` stays 58 and the bar straddles
+     `#best`'s y 74-104 outright — the vertical gap it leans on does not exist there. What separates
+     them is horizontal, and only sometimes: the bar is centred at its 540 cap, so its left edge is
+     pinned at x 63.5 on a 667 viewport, while `#best`'s right edge GROWS WITH THE SCORE. Measured at
+     667x375, ko: BEST 0 → 25px of clearance; BEST 5,165 → 0.8px; BEST 48,320 → -8.7px; BEST 1,204,880
+     → -32.5px. Five digits is where it touches, and five digits is an ordinary score.
+       This is NOT a regression from the type bump — the cap is a width, so a long string pins the left
+     edge at 63.5 at any font size. But the bump widens the exposure sharply, because more strings now
+     reach the cap: 3 of 28 cases at 13px, 8 of 28 at 16px. Left as found rather than fixed, because
+     every repair here is a layout decision with a visible cost (gutters like `#center`'s narrow the bar
+     and buy back wrapping; moving `top` eats a third of a 375px-tall screen) and this pass was about
+     type. Flagged to the author.
+       The other landscape number worth keeping: `#pauseBtn` starts at x 617, so the bar's right edge
+     clears it by 13.5px. **That is the tightest gap in the layout and it is one `max-width` away from
+     mattering** — raise the 540 cap past 567 and the bar slides under the pause button, with nothing in
+     portrait to warn you. Checked as rectangle intersection over 28 cases (both languages, every step
+     and beat), not by eye.
        ⚠️ SIZE DOES NOT TOUCH PACING, so nothing downstream needs re-tuning for it. `readS()` counts
      words (EN) or syllables (KO) — never lines or pixels — so every step is held exactly as long as it
      was before, and a line that now wraps is not a line that now lingers. */
