@@ -3127,17 +3127,38 @@ the reading you are looking at and not the next one.
 against the art behind the pill and comes back ≈1.0, which is indistinguishable from the frozen case.
 Flag those rows `n/a` explicitly rather than letting them sit in the results as findings.
 
-⚠️ **QUIET IS A RANK, NOT A LUMINANCE — and `--dim` is a *paired* token.** It was drawn for labels that
-sit beside the thing they label, where the neighbour carries the contrast. Used alone it fails: the two
-places on the title screen that used `--dim` with nothing next to them measured **2.31:1** (the contact
-line, which stacked `opacity:.6` on top of it) and **3.63:1** (the inactive language button), against a
-4.5:1 floor. `--dim2` (`#8494ba`) is the rung for that case. **Do not lift `--dim` itself** — 32 of its
-uses are the second half of a pair, and raising it flattens every one of them to fix two corners.
-  The other half of the rule: when raising a text, check the **order** it lands in, not just its ratio.
-Both corners were lifted to 6.1–6.6:1, deliberately still under ORBITAL at 7.92:1 and under every
-control, because the menu is composed so exactly two things look pressable. A fix that clears the floor
-and outranks a button has traded one defect for a quieter one.
+⚠️ **QUIET IS A RANK, NOT A LUMINANCE — and `--dim` is doing TWO JOBS.** It was drawn for text that sits
+beside the thing it labels, where a lit neighbour carries the contrast. That is true over the
+**playfield** (`.stat .k`, `#combo`, `#time`, `#best .v`), where it is also right that the HUD recedes.
+It is false inside a **panel**, where there is no live game and no lit neighbour and the same value is
+just grey on black: the Settings descriptions and switch labels measured **4.59:1** at 11.5px, clearing
+the 4.5 floor by four hundredths. `--dim2` (`#8494ba`, ~6.7:1 on a panel) is the rung for that job.
+  **Split it by scope, never lift it globally.** `#records,#skins,#settings,#bestiary{--dim:var(--dim2)}`
+— a custom property on an ancestor wins for its descendants regardless of source order, so this needs no
+`!important` and cannot reach the HUD. `#pause` and `#dead` stay out: both sit over a live run. Two
+places cannot be reached this way and must be written out — `.depthlab`/`.dp`, which live on `#menu`,
+and **bestiary.html, which is a reading room inside an iframe** where no parent rule applies and the
+value has to be duplicated as a literal.
 
+⚠️ **AN `opacity` MULTIPLIER ON A DIM TOKEN IS NOT A QUIETER RANK, IT IS AN UNREADABLE ONE — and every
+instance in this file measured WORSE than the raw token it started from.** Four were found:
+`.skinreq` `--dim`×.72 → **2.86:1**, `.skincat` ×.75 → **3.01**, `.depthlab` ×.75 → **3.01**, `.acvfl`
+×.85 → **3.58**, against a raw `--dim` of 4.59 and a floor of 4.5. `.skinreq` composited to
+`rgb(96,108,138)`, literally darker than the token, on the line that tells you how to unlock what you
+are looking at. **The tell is the pattern, not the number: `color:var(--dim)` and `opacity:<1` in the
+same rule is always worth measuring.** Keep the multiplier only where some *other* property already
+carries the rank — `.acvfl` keeps .85 because italic and size separate it anyway — and never where it
+is the sole distinction, because then it is buying a rank with legibility.
+
+⚠️ **When raising a text, check the ORDER it lands in, not just its ratio.** The menu is composed so
+exactly two things look pressable. The two corners were lifted to 6.1–6.6:1 and deliberately left under
+ORBITAL at 7.92 and under every control. A fix that clears the floor and outranks a button has traded
+one defect for a quieter one.
+
+⚠️ **A `display:none` control hides its own defects.** `.depthlab` sits at 3.01:1 and appears in no
+screenshot, because `#depthSel` is hidden until a second Epoch is unlocked — so the first time it is
+seen is the moment it is earned. The same blindness put the Epoch picker in the wrong grid cell earlier
+(`f3d8984`). **Audit hidden UI by unhiding it, not by reading the layout you can see.**
 
 ⚠️ **`e.seek=0` DOES NOT MAKE A DOT INERT — it silences one colour and not the other, and so manufactures
 a colour asymmetry in any test looking for one.** Seek is the opposite-colour approach; `LIKE_GRAV` is a

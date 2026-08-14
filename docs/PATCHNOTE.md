@@ -14,6 +14,45 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-14
 
+### The reading rooms take the brighter `--dim`, and the multiplier was the real defect `v2`
+Reverting the white sheet put the small grey text back on a near-black panel, so the complaint the
+sheet was built to answer came back with it. The narrower answer is one rule —
+`#records,#skins,#settings,#bestiary{--dim:var(--dim2)}` — because `--dim` is not wrong, it is doing
+**two jobs**. Over the playfield (`.stat .k`, `#combo`, `#time`, `#best .v`) it is correct and
+deliberately quiet: that text sits beside a live game and its neighbours are lit. Inside a panel there
+is no live game and no lit neighbour, and the same value is just grey on black. Scoped by ID, so the
+HUD cannot be caught by it — verified after the change that `#hud`, `#pause` and `#dead` still resolve
+`--dim` to `#68789e`. The two run-overlays are out on purpose; they answer to the field.
+
+⚠️ **The `opacity` multipliers were doing more damage than the token**, and three more rules carried
+the one `.contact` had. Every stacked instance measured **worse than the raw token**:
+
+| | was | now |
+|---|---|---|
+| `.skinreq` unlock text | **2.86:1** @10px (`--dim`×.72) | 6.67 @11px |
+| `.skincat` category | **3.01:1** @10px (×.75) | 6.67 @11px |
+| `.depthlab` Epoch label | **3.01:1** @10px (×.75) | 6.67 @11px |
+| `.acvfl` flavour | **3.58:1** @11.5 (×.85) | 5.04 @12.5 (×.85 kept) |
+| `.setrow .sd` description | 4.59:1 @11.5 | 6.67 @12.5 |
+| `.sw` switch label | 4.59:1 @11 | 6.67 @12 |
+| `.rcT .c.d` cause | 4.59:1 @11.5 | 6.67 @12.5 |
+
+`.skinreq` at .72 composited to `rgb(96,108,138)` — **darker than the raw `--dim`** — on the line that
+tells you how to unlock what you are looking at. `.acvfl` keeps its .85 because there italic and size
+already carry the rank; on Skins the multiplier *was* the rank, and it had pushed one text under the
+floor to make a distinction two other properties could have made for free.
+
+⚠️ **`.depthlab` is on the menu, not in a panel**, so the scoped rule cannot reach it and it is written
+out separately. It is invisible in review because `#depthSel` is `display:none` until a second Epoch is
+unlocked — latent rather than absent, at 3.01:1 on a control the player has just earned.
+
+bestiary.html takes the value as a **literal**: it is a reading room living in an iframe, where no rule
+from the parent reaches it. Its header comment claimed the tokens matched index.html *exactly*, which
+stopped being true the moment index's `:root` and index's panels diverged.
+
+Oracle `b713a7`, bit-identical. Zero overflow on the skin cards and no horizontal overflow on Records
+after the size bumps.
+
 ### The service worker had been serving the first key art since the day it was replaced `v2`
 `CACHE` is `orbital-crash-v4`. It should have moved twice already: `5670cb0` and `ac23e56` each
 **replaced** `art/keyart-wide.webp` — 62048 → 70788 → **42984 bytes** — while the `SHELL` list stayed
