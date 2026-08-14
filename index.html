@@ -78,6 +78,17 @@
 <style>
   :root{
     --bg:#060814; --ink:#eaf2ff; --dim:#68789e;
+    /* ONE STEP UNDER --ink: table rows and achievement lines, which are body copy rather than headings.
+       It was the literal #c3ccdb at both call sites and the value is unchanged — it is a variable now
+       because the light panels have to move it, and moving it from a .sheet rule instead would OUTRANK
+       the modifiers layered on the same elements. Measured, not guessed: `.rcT .c` is (0,2,0) and so are
+       `.c.n` (the score), `.c.d` (the cause) and `.c.best` — an override at (0,3,0) wins all three, and
+       the table loses every distinction it draws. Moving the base colour to a token leaves the cascade
+       exactly as it was and the modifiers keep working in both themes.
+         This DARK value is latent today and that is deliberate: `.rcT` and `.acv` live only in Records,
+       and Records is always a sheet, so nothing currently renders #c3ccdb. It stays because the next
+       panel to want body copy one step under --ink should not have to rediscover the number. */
+    --ink2:#c3ccdb;
     --red:#ff3f6c; --cyan:#38e0ff; --gold:#ffcf4d; --violet:#9b6bff; --lime:#8dff6b; --white:#ffffff;
     /* TWO DERIVED FORMS OF THE RED POLE, because three rules needed it in shapes a hex cannot serve and
        every one of them was hardcoded until the colourblind palette landed — at which point the HP bar
@@ -86,6 +97,15 @@
        for the rgba() glows. Both are set by applyPalette() alongside --red; a hex here cannot be
        interpolated into rgba(), which is the whole reason the triplet exists. */
     --red2:#ff8aa6; --redRGB:255,63,108;
+    /* THE INK FORMS OF THE TWO PALETTE COLOURS — for the light panels, and only there. The reserved
+       hues are EMISSIVE: they were picked to sit on a near-black field, and measured against white they
+       are not colours at all. Contrast against #fff: cyan 1.58:1, gold 1.47:1, lime 1.26:1, red 3.40:1.
+       At 1.58 a cyan heading on a white sheet is a rumour, so the light theme carries a darkened form of
+       each — same hue, same MEANING, enough luminance to be text (see the .sheet block for the full set).
+         These two are here rather than in that block because applyPalette() rewrites them: the
+       colourblind palette turns red orange and gold violet, and a light panel that hardcoded a dark red
+       would quietly drop the one swap the setting exists to make. */
+    --redInk:#d1003f; --goldInk:#8a6510;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
@@ -608,6 +628,11 @@
   .skincard.lock{cursor:default;}
   .skincard.lock:hover{border-color:rgba(255,255,255,.14);}
   .skincard.lock canvas{opacity:.34;}
+  /* Shrink-wraps the swatch and paints nothing here — the dark panel's field IS the swatch's field, so
+     there is no well to draw. It exists so the light panel has something to paint that the lock dim
+     above cannot reach; see the note in skinCard(). font-size:0 kills the inline descender gap a span
+     would otherwise add under the canvas. */
+  .skincard .well{display:block;font-size:0;line-height:0;}
   .skinnm{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
   .skinreq{font-size:10px;line-height:1.35;color:var(--dim);opacity:.72;letter-spacing:.02em;}
   /* (A `.off` state lived here — dimmed, borderless, click-proof — for a card a theme was answering for,
@@ -715,7 +740,7 @@
      cut the line into five pieces of different lengths — it read as five underlined words rather than
      as the top of a table. */
   .rcT .hr{grid-column:1/-1;height:1px;background:rgba(255,255,255,.1);margin-bottom:4px;}
-  .rcT .c{font-size:13px;color:#c3ccdb;padding:5px 0;line-height:1.35;}
+  .rcT .c{font-size:13px;color:var(--ink2);padding:5px 0;line-height:1.35;}
   .rcT .c.n{font-weight:800;color:var(--ink);}          /* the score: the column the eye goes to first */
   .rcT .c.d{color:var(--dim);font-size:11.5px;}         /* what killed you — context, not a statistic */
   .rcT .c.best{color:var(--gold);}                      /* the row that set the standing best */
@@ -740,7 +765,7 @@
      Records, and the Codex itself is gone now. `.acvL` carries the block's bottom margin so the group
      clears the next `.rcH` the way `.rcTot` does. */
   .acvL{margin:0 0 20px;}
-  .acv{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.7;color:#c3ccdb;}
+  .acv{display:flex;align-items:baseline;gap:9px;font-size:13px;line-height:1.7;color:var(--ink2);}
   .acv .st{width:18px;flex:0 0 auto;} .acv.got .st{color:var(--lime);} .acv .rw{color:var(--dim);font-size:11.5px;}
   /* The punchline, and it is deliberately the quietest text on the panel: it is the only line here that
      carries no information, so it must not compete with the row it is hanging off. */
@@ -793,6 +818,122 @@
     animation:cbp 1s ease-in-out infinite;}
   .hint{margin-top:20px;color:var(--dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase;line-height:1.9;}
   .hint kbd{background:rgba(255,255,255,.09);border-radius:4px;padding:1px 7px;font-family:inherit;color:var(--ink);}
+
+  /* ============================ THE LIGHT PANELS ============================
+     RECORDS, SKINS, BESTIARY and SETTINGS are a WHITE SHEET. The four of them are the game's reading
+     rooms — a table, a wardrobe, a reference page and a list of switches — and none of them is the
+     field. The dark treatment they used to share with the playfield made them read as an unlit part of
+     the game rather than as pages you have opened; on the author's call they are now paper.
+       The other overlays are deliberately NOT in this set. #menu carries the key art, and #pause and
+     #dead sit ON TOP OF A LIVE RUN with the field visible behind them — turning either of those white
+     would replace the run with a wall at the moment you are still looking at it.
+
+     ⚠️ WHY THIS IS ONE BLOCK OF OVERRIDES AND NOT A TOKEN FLIP. The honest version of this change is
+     surface tokens on :root that both themes assign — and that is a real outstanding job (28 uses of
+     box-shadow with 25 distinct values says so). It is not THIS job. Tokenising means editing every
+     dark rule these panels use, which puts the dark theme's appearance at risk in a commit whose whole
+     subject is the light one. Written additively, nothing above this line changes, so the dark theme
+     cannot regress — that is a property worth more here than tidiness. When the tokens land, this block
+     collapses into their light assignment and the argument is the same one.
+
+     ⚠️ THE RESERVED HUES DO NOT SURVIVE THE TRIP AND ARE NOT USED AS TEXT HERE. Measured against
+     #ffffff: cyan 1.58:1, gold 1.47:1, lime 1.26:1, violet 3.53:1, red 3.40:1 — every one of them
+     below the 4.5:1 floor for body text, and cyan, the most-used of the five, at barely a third of it.
+     That is not a styling accident: these are EMISSIVE colours, chosen to be light sources on a
+     near-black field, and a light source drawn on white is a white shape. So each carries a darkened
+     form of the same hue, which keeps Law 1 intact — a value is still gold, a heading is still cyan —
+     while making the ink legible. All of them clear 4.5:1 against the darkest stop of the sheet.
+       --redInk and --goldInk come from applyPalette rather than from here; see :root for why.
+
+     ⚠️ THE SKIN SWATCHES KEEP A DARK WELL, and this is the one place the sheet does not reach. Those
+     canvases draw the game's own emissive art on a TRANSPARENT background — a cyan halo at 0.16 alpha,
+     a white rim, and a dashed white-at-.22 empty slot. On white they are blank tiles. The well is not
+     a compromise, it is what a picture of a dark game looks like when it is printed on paper. Same
+     reason the Bestiary's specimen cards stay dark on their own light page. */
+  .overlay.sheet{
+    /* text */
+    --ink:#101828;      /* 15.8:1 at the sheet's darkest stop */
+    --ink2:#3c4759;     /* table rows and achievement lines — 8.4:1; was #c3ccdb */
+    --dim:#5b6880;      /* 5.0:1 */
+    /* the reserved hues, ink forms. red/gold arrive from applyPalette so the cb swap still lands. */
+    --cyan:#006f9d; --lime:#2e7d1e; --violet:#6a3ad6;
+    --red:var(--redInk); --gold:var(--goldInk);
+    --cyanFill:#0090c2; /* the one place cyan is a FILL rather than ink: switch, slider, thumb */
+    /* surfaces: ink alpha on paper, mirroring the white alphas the dark theme uses */
+    --line:rgba(16,24,40,.12); --line2:rgba(16,24,40,.20); --line3:rgba(16,24,40,.42);
+    --fill:rgba(16,24,40,.045); --fill2:rgba(16,24,40,.09);
+    /* Centre-lit like the dark overlay it replaces, and opaque. The .97 wash the dark panels carried let
+       3% of the field through, which on paper is not depth, it is dirt. */
+    background:radial-gradient(120% 90% at 50% 30%,#ffffff 0%,#eef2f9 100%);
+    color:var(--ink);
+    -webkit-backdrop-filter:none;backdrop-filter:none;}
+
+  /* CLOSE, and the only button on three of these four panels. */
+  .overlay.sheet .btn.ghost{background:var(--fill);color:var(--ink);
+    box-shadow:0 0 0 1px var(--line2) inset;}
+  .overlay.sheet .btn.ghost:hover{background:var(--fill2);}
+
+  /* ---- SETTINGS ---- */
+  .overlay.sheet .setrow{border-bottom-color:var(--line);}
+  .overlay.sheet .sw{background:var(--fill);color:var(--dim);box-shadow:0 0 0 1px var(--line2) inset;}
+  /* The ON pill is a filled shape, so it is the one control that keeps a bright cyan — but not the
+     dark theme's gradient. That ramp tops out at #aef2ff, which against the sheet is 1.15:1: the upper
+     half of the pill would dissolve into the card and leave a cyan crescent. Deepened until the whole
+     pill has an edge. */
+  .overlay.sheet .sw.on{background:linear-gradient(180deg,#22bfe8,var(--cyanFill));color:#04222e;
+    box-shadow:0 0 0 1px rgba(0,86,116,.35) inset;}
+  .overlay.sheet .rng::-webkit-slider-runnable-track{
+    background:linear-gradient(90deg,var(--cyanFill) 0 var(--p),var(--line2) var(--p) 100%);}
+  .overlay.sheet .rng::-moz-range-track{background:var(--line2);}
+  .overlay.sheet .rng::-moz-range-progress{background:var(--cyanFill);}
+  .overlay.sheet .setrow.off .rng::-webkit-slider-runnable-track{
+    background:linear-gradient(90deg,rgba(16,24,40,.34) 0 var(--p),var(--line2) var(--p) 100%);}
+  .overlay.sheet .setrow.off .rng::-moz-range-progress{background:rgba(16,24,40,.34);}
+  .overlay.sheet .rng::-webkit-slider-thumb{background:linear-gradient(180deg,#22bfe8,var(--cyanFill));
+    box-shadow:0 1px 4px rgba(16,24,40,.28);}
+  .overlay.sheet .rng::-moz-range-thumb{background:linear-gradient(180deg,#22bfe8,var(--cyanFill));
+    box-shadow:0 1px 4px rgba(16,24,40,.28);}
+  .overlay.sheet .setrow.off .rng::-webkit-slider-thumb{background:rgba(16,24,40,.34);box-shadow:none;}
+  .overlay.sheet .setrow.off .rng::-moz-range-thumb{background:rgba(16,24,40,.34);box-shadow:none;}
+
+  /* ---- RECORDS ----
+     The table's ink is NOT overridden here. `.rcT .c` and `.acv` read --ink2, which this block has
+     already moved — an override on `.rcT .c` would sit at (0,3,0) above `.c.n`, `.c.d` and `.c.best`
+     at (0,2,0) and flatten the score, the cause and the standing-best row into one colour. Measured
+     first time round, and it was invisible on screen: the rows still LOOKED right because the score
+     column is bold anyway.
+       `.armed` is spelled out for the same reason in the other direction: the base rule below wins the
+     border-colour off it, and armed is the one state on this panel that has to be unmistakable. */
+  .overlay.sheet .rcT .hr{background:var(--line);}
+  .overlay.sheet .rcWipe{border-color:var(--line2);}
+  .overlay.sheet .rcWipe:hover{border-color:var(--line3);}
+  .overlay.sheet .rcWipe.armed{border-color:var(--red);}
+
+  /* ---- SKINS ---- */
+  .overlay.sheet .skincard{background:#fff;border-color:var(--line2);
+    box-shadow:0 1px 2px rgba(16,24,40,.06);}
+  .overlay.sheet .skincard:hover{border-color:var(--line3);}
+  .overlay.sheet .skincard.on{border-color:rgba(16,24,40,.62);background:#fff;
+    box-shadow:0 0 0 1px rgba(16,24,40,.62) inset,0 1px 2px rgba(16,24,40,.06);}
+  .overlay.sheet .skincard.lock:hover{border-color:var(--line2);}
+  /* THE WELL. See the block header — the swatch canvas is emissive art on a transparent ground, so the
+     card gives it back the field it was drawn for. It shrink-wraps the canvas, so a locked card's taller
+     body cannot stretch it.
+       ⚠️ ON THE WRAPPER, NOT ON THE CANVAS, and this is not a style preference. `.skincard.lock canvas`
+     dims locked art with opacity:.34, and opacity fades the whole element — a well painted on the canvas
+     goes down to 34% with it and every locked card bleaches to near-white on the sheet. Verified on
+     screen before the wrapper existed: the two locked cards were pale rectangles with a ghost inside.
+     The lock dim keeps its value; it just no longer has the field within reach. */
+  .overlay.sheet .skincard .well{border-radius:9px;
+    background:radial-gradient(circle at 50% 44%,#111c33 0%,#070b16 100%);
+    box-shadow:0 0 0 1px rgba(16,24,40,.14) inset;}
+
+  /* ---- BESTIARY ----
+     Nothing to declare, and that is worth recording because a rule was written here first and measured
+     inert. `#bestiaryFrame` carries `background:transparent` INLINE, which no stylesheet rule can reach;
+     the frame therefore shows whatever is behind it, which is this panel — so the gap before the guide
+     paints is already the sheet's own white. The rule was removed rather than left as a comment's worth
+     of decoration. bestiary.html carries its own light theme; see the two-inks note at the top of it. */
 
   /* SHORT VIEWPORTS — which now means every phone, since the game went landscape. The menu is one
      column measuring 646px and a landscape iPhone hands it 402px. The overlay does scroll, so nothing
@@ -1325,7 +1466,7 @@
 </div>
 
 <!-- BESTIARY (loads the standalone bestiary.html in an overlay) -->
-<div class="overlay hidden" id="bestiary" style="padding:0;z-index:20;background:rgba(4,6,15,.97);backdrop-filter:none;-webkit-backdrop-filter:none;">
+<div class="overlay hidden sheet" id="bestiary" style="padding:0;z-index:20;">
   <button class="btn sm ghost" id="bestiaryClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
   <iframe id="bestiaryFrame" data-tt="bestiary.frame" title="ORBITAL CRASH Bestiary" style="flex:1 1 auto;width:100%;height:100%;border:0;background:transparent;"></iframe>
 </div>
@@ -1346,7 +1487,7 @@
 <!-- RECORDS. Built on open rather than bound once, because it is a view of `store` and `store` changes every
      time you die. Nothing here is a leaderboard: there is no server, and both practice modes are barred
      from it by the same guard that protects the best score. -->
-<div class="overlay hidden" id="records" style="z-index:20;background:rgba(4,6,15,.97);">
+<div class="overlay hidden sheet" id="records" style="z-index:20;">
   <button class="btn sm ghost" id="recordsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
   <div class="final" data-t="rc.kicker" style="letter-spacing:.3em;margin-top:8px;">Records</div>
   <h2 data-t="rc.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">What you have done</h2>
@@ -1363,7 +1504,7 @@
      locked slot is to be wanted; a grey box is an absence, and an absence recruits nobody.
        Menu only. There is no pause entry: a wardrobe is not something you fix mid-run, and the run behind
      the panel is drawing the very star you would be changing. -->
-<div class="overlay hidden" id="skins" style="z-index:20;background:rgba(4,6,15,.97);">
+<div class="overlay hidden sheet" id="skins" style="z-index:20;">
   <button class="btn sm ghost" id="skinsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
   <div class="final" data-t="skins.kicker" style="letter-spacing:.3em;margin-top:8px;">Skins</div>
   <!-- (A `.sd` note and an `<h2>` stood here — the hue law, then a heading. Both removed on the author's
@@ -1383,7 +1524,7 @@
      not much of a fallback.
        Repainted on open rather than bound once, so the switches show live state — the mute key works
      while this panel is open, and a row that disagreed with it would be a row nobody could trust. -->
-<div class="overlay hidden" id="settings" style="z-index:20;background:rgba(4,6,15,.97);">
+<div class="overlay hidden sheet" id="settings" style="z-index:20;">
   <button class="btn sm ghost" id="settingsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
   <div class="final" data-t="set.kicker" style="letter-spacing:.3em;margin-top:8px;">Settings</div>
   <h2 data-t="set.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 16px;">How it plays</h2>
@@ -1734,8 +1875,8 @@ const COL={ red:'#ff3f6c', cyan:'#38e0ff', neutral:'#c7b8ff', gold:'#ffcf4d', vi
 // jobs, and repainting them would cost the game's identity for no measured gain.
 // red2 is the light end of the HP bar; redRGB the same colour as an rgba() triplet for the glows.
 const PAL={
-  normal:{red:'#ff3f6c', gold:'#ffcf4d', red2:'#ff8aa6', redRGB:'255,63,108'},
-  cb:    {red:'#ff7a2f', gold:'#9b6bff', red2:'#ffb37a', redRGB:'255,122,47'},
+  normal:{red:'#ff3f6c', gold:'#ffcf4d', red2:'#ff8aa6', redRGB:'255,63,108', redInk:'#d1003f', goldInk:'#8a6510'},
+  cb:    {red:'#ff7a2f', gold:'#9b6bff', red2:'#ffb37a', redRGB:'255,122,47', redInk:'#a8500b', goldInk:'#6a3ad6'},
 };
 // ⚠️ MUTATES `COL` IN PLACE. The draw loop reads `COL[e.color]` per frame and nothing caches a hex at
 // parse time, so swapping the two properties is enough — but that also means anything that ever DOES
@@ -1747,6 +1888,10 @@ function applyPalette(){
   const s=document.documentElement.style;
   s.setProperty('--red',p.red); s.setProperty('--gold',p.gold);
   s.setProperty('--red2',p.red2); s.setProperty('--redRGB',p.redRGB);
+  // The light panels' forms of the same two. Set here rather than in the .sheet block for the reason
+  // given beside them in :root — the cb swap has to reach the sheet, or Records loses it on the one
+  // screen where the best score and the wipe button are the only two coloured things on it.
+  s.setProperty('--redInk',p.redInk); s.setProperty('--goldInk',p.goldInk);
 }
 
 // ---------- persistence ----------
@@ -10391,7 +10536,15 @@ function skinCard({cat, faceId, on, owned, name, req, pick}){
   const b=document.createElement('button');
   b.type='button';
   b.className='skincard'+(on?' on':'')+(owned?'':' lock');
-  b.appendChild(faceId ? skinSwatch(cat,faceId) : skinSwatchEmpty());
+  // ⚠️ THE SWATCH IS WRAPPED, AND THE WRAPPER IS LOAD-BEARING ON THE LIGHT PANEL. `.skincard.lock canvas`
+  // dims a locked swatch with `opacity`, which fades the ELEMENT — including any background painted on
+  // it. On the dark panel that was free, because the canvas had no background and the near-black behind
+  // it was the overlay's. The light panel has to give the art its field back (see `.skincard .well`), and
+  // painting that field on the canvas itself put it under the same 0.34 and bleached every locked card to
+  // near-white. The well goes on the wrapper, the dim stays on the canvas, and neither reaches the other.
+  const well=document.createElement('span'); well.className='well';
+  well.appendChild(faceId ? skinSwatch(cat,faceId) : skinSwatchEmpty());
+  b.appendChild(well);
   const nm=document.createElement('div'); nm.className='skinnm';
   nm.textContent = owned ? name : T('skin.locked');
   b.appendChild(nm);
