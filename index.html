@@ -1416,9 +1416,12 @@
   <div class="setrow" id="setFollow">
     <div class="st">
       <div class="sn"><span data-t="set.follow">Pointer follow</span> <span class="snv" id="followReadout">100%</span></div>
-      <div class="sd" data-t="set.followD">How fast the star closes on your cursor. Higher snaps to it; lower lets it
-        trail a beat behind.</div>
-      <input type="range" id="followRange" class="rng" min="50" max="200" step="10" value="100"
+      <div class="sd" data-t="set.followD">How fast the star closes on your cursor.</div>
+      <!-- ⚠️ step=1, NOT the volume row's 5 or this row's own former 10. A range steps from `min`, so
+           min=1 with step=10 walks 1,11,…,91 and the MAXIMUM — which is also the default — is not
+           selectable at all. Any step other than 1 has to divide 99 exactly, and 1 is the only one of
+           those a player would thank you for. -->
+      <input type="range" id="followRange" class="rng" min="1" max="100" step="1" value="100"
              data-ta="set.followA" aria-label="Pointer follow speed">
     </div>
   </div>
@@ -1784,14 +1787,16 @@ const store={
   //   It is also the better model for a player. Mute is a thing you do for a moment and undo; a level is
   // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
   vol:clamp(num('orbitalcrash_vol',1),0,1),
-  // POINTER FOLLOW SENSITIVITY, 50-200, where 100 is the shipped chase.
+  // POINTER FOLLOW SENSITIVITY, 1-100, where 100 is the shipped chase AND the maximum.
   //   ⚠️ STORED AS AN INTEGER PERCENT, NOT AS THE MULTIPLIER, so the slider, the readout and the
   // localStorage value are all the same number and none of them has to round. `FOLLOW.sens` is the
   // only place it becomes a fraction, and it is derived there rather than stored here — see the FOLLOW
-  // block for what the range means and why its ceiling is 200 rather than a rounder number.
+  // block for what the range means and why the ceiling is the shipped chase rather than a multiple of it.
+  //   A stored 140 or 200 from the range this replaced clamps to 100 on load, which is the right answer
+  // and needs no migration: the value it clamps to is the one that setting was asking for anyway.
   //   Read by FOLLOW's declaration, which sits ~4400 lines below this one, so there is no ordering
   // hazard in this direction. The reverse would be one: nothing above `store` may read FOLLOW.
-  followSens:clamp(num('orbitalcrash_followsens',100),50,200),
+  followSens:clamp(num('orbitalcrash_followsens',100),1,100),
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
   cb:LS.getItem('orbitalcrash_cb')==='1',                     // red-green colourblind palette — see PAL
   // ⚠️ THE BROWSER DECIDES ONCE, AND ONLY ONCE. A stored choice is never second-guessed: a Korean
@@ -1955,7 +1960,7 @@ const L={ en:{
   'set.motion':'Reduced motion',
   'set.motionD':'Calmer shake and flashes when something dies close to you.',
   'set.follow':'Pointer follow',
-  'set.followD':'How fast the star closes on your cursor. Higher snaps to it; lower lets it trail a beat behind.',
+  'set.followD':'How fast the star closes on your cursor.',
   'set.followA':'Pointer follow speed',
   'set.sound':'Sound',
   'set.soundD':'The ambient bed and every cue on top of it.',
@@ -2138,7 +2143,7 @@ const L={ en:{
   'set.motion':'모션 줄이기',
   'set.motionD':'가까운 곳에서 뭔가 터질 때 흔들림과 섬광을 줄입니다.',
   'set.follow':'커서 따라오기',
-  'set.followD':'별이 커서 쪽으로 얼마나 빠르게 붙는지를 정합니다. 높이면 곧바로 따라붙고, 낮추면 한 박자 늦게 따라옵니다.',
+  'set.followD':'별이 커서를 따라오는 속도입니다.',
   'set.followA':'커서 따라오기 속도',
   'set.sound':'소리',
   'set.soundD':'배경음과 그 위에 얹히는 모든 효과음.',
@@ -6179,16 +6184,29 @@ function step(){
 // `0.185*1` is exactly `0.185` in IEEE754, so the fingerprints do not move. That is the property to
 // re-check if this ever gains a term — a default that is merely *close* to a no-op is a silent retune.
 //
-// THE RANGE IS SET BY THE CLAMP BELOW, NOT BY TASTE. `cap` first binds at `0.185*s*1.4 = 0.62`, i.e.
-// s = 2.394 with Overdrive up, so a ceiling of 2.0 is the largest setting the existing clamp never eats.
-// Past it the slider would go quiet at the top of its travel for a reason no player could see. Time for
-// the star to close 63% of a gap, which is what the setting actually buys:
-//     50%  → 0.0925 → 10.2 frames, 171ms      100% → 0.185 → 4.9 frames, 81ms
-//    200%  → 0.37   →  2.2 frames,  36ms
+// THE RANGE IS 1-100, AND 100% IS THE SHIPPED CHASE RATHER THAN THE MIDDLE OF A DIAL. The setting only
+// ever slows the star down: there is no setting that makes it faster than the game was tuned for, so a
+// player cannot buy evasion out of the settings panel and nobody has to be told which value is "fair".
+//   ⚠️ AN EARLIER VERSION RAN 50-200 AND DERIVED ITS CEILING FROM `cap` — 2.0 was the largest multiplier
+// the 0.62 clamp never ate, and the comment said so at length. **That argument is void and is deleted
+// rather than left standing**, because a ceiling of 100 is a design choice about what a settings panel
+// may sell, and dressing it as arithmetic would be inventing a reason. Author: *"make pointer sens
+// 1~100%, not 200%. i know that no one will do 1%, but just in case."*
+//   ⚠️ CONSEQUENCE: `cap` IS NOW UNREACHABLE. Peak `lf` is `0.185*1.0*1.4 = 0.259` with Overdrive up,
+// well under 0.62, so the clamp never fires at any setting. It is kept — it is the shipped line and it
+// costs nothing — but treat it as dead until somebody raises this ceiling, at which point it is live
+// again and the 2.394 figure above is how you find out where it starts biting.
+//
+// Time for the star to close 63% of a gap, which is what the setting actually buys:
+//       1% → 0.00185 → 537 frames, 8.9s        50% → 0.0925 → 10.2 frames, 171ms
+//      25% → 0.04625 →  21 frames, 350ms      100% → 0.185  →  4.9 frames,  81ms
+//   1% is not a playable control and is not meant to be one — it is a floor the author asked for
+// deliberately, and it is reachable rather than clamped away because a range that silently refuses its
+// own endpoint is worse than one nobody uses.
 //
 // ⚠️ IT DOES NOT REACH THE DRAW, and that is the clamp below doing its job rather than luck. The Draw
 // transforms the FRAME'S TOTAL displacement further down this function, after every writer including
-// this one, so a player at 200% is capped to `DRAW_CAP*P.moveMult` exactly as one at 50% is. The
+// this one, so a player at 100% is capped to `DRAW_CAP*P.moveMult` exactly as one at 1% is. The
 // Singularity's mechanic prices movement, not the control that produced it.
 //
 // ⚠️ ON THIS BRANCH IT IS A MOUSE KNOB ONLY. Touch here is the rate stick — `stepStick` writes P itself
@@ -6197,13 +6215,13 @@ function step(){
 // row's media query in the CSS is the half that has to flip on that merge; this code does not.
 const FOLLOW={
   k   : 0.185,                  // gap fraction per frame at 60Hz — the shipped chase
-  cap : 0.62,                   // ceiling after moveMult; see the range derivation above
-  sens: store.followSens/100,   // the player's multiplier, 0.5–2.0
+  cap : 0.62,                   // ceiling after moveMult — unreachable at a 100% max; see above
+  sens: store.followSens/100,   // the player's multiplier, 0.01–1.0
 };
 // The setter, so the slider and the physics cannot drift apart: one function writes both, exactly as
 // `setVolume` owns the pair above. `clamp` here and again in `store` is deliberate belt-and-braces —
 // this one guards a bad call, that one guards a hand-edited localStorage value.
-function applyFollowSens(v){ store.followSens=clamp(Math.round(v),50,200); FOLLOW.sens=store.followSens/100; save(); }
+function applyFollowSens(v){ store.followSens=clamp(Math.round(v),1,100); FOLLOW.sens=store.followSens/100; save(); }
 
   // ----- player follow pointer (speed-capped briefly after a resume: glide, never teleport) -----
 function stepPlayer(dt){
@@ -10454,10 +10472,11 @@ function paintSettings(){
   const fr=el('followRange');
   if(document.activeElement!==fr) fr.value=store.followSens;
   el('followReadout').textContent=store.followSens+'%';
-  // ⚠️ `--p` IS A FRACTION OF THE TRACK, NOT THE VALUE. Volume can pass its own percentage straight
-  // through because it runs 0-100; this range starts at 50, so the raw number would sit the fill a
-  // third of the track ahead of the handle at every setting. (v-min)/(max-min).
-  fr.style.setProperty('--p',((store.followSens-50)/1.5)+'%');
+  // ⚠️ `--p` IS A FRACTION OF THE TRACK, NOT THE VALUE, and the two are still not the same number even
+  // now that the range ends at 100 — it STARTS at 1, so passing the raw percentage through would sit
+  // the fill about a point ahead of the handle. Small enough to look like a rendering seam rather than
+  // a bug, which is exactly why it is worth computing properly: (v-min)/(max-min).
+  fr.style.setProperty('--p',((store.followSens-1)/0.99)+'%');
   const r=el('volRange'), pct=Math.round(store.vol*100);
   if(document.activeElement!==r) r.value=pct;
   el('volReadout').textContent=pct+'%';
@@ -10498,6 +10517,11 @@ el('volRange').addEventListener('input',e=>{ audioInit(); setVolume(+e.target.va
 // One blip on release, not on every input event — a cue per step would be a burst of ~20 during a drag,
 // which is both unpleasant and useless as a level reference. Skipped at zero, where it is a lie.
 el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
+// `input`, not `change`: the chase changes as the slider moves, and this panel opens from the PAUSE
+// screen, so a player tuning it has their own live field behind the overlay to judge it against rather
+// than a number to commit blind. No audio cue on release — the volume row's blip is a level reference
+// and there is nothing equivalent to hear here.
+el('followRange').addEventListener('input',e=>{ applyFollowSens(+e.target.value); paintSettings(); });
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSettings(); }});
 
 // =====================================================================
@@ -11357,6 +11381,13 @@ window.__orbital=window.__polaris=window.__flux={
                   // the bridge can still be checked on a real phone, not because the game reads it.
                   steers:false, TILT:{...TILT}}; },
   TILT, tiltCalibrate,
+  // THE CHASE, EXPOSED FOR THE REASON TILT IS: a feel number cannot be settled off a bot, so it has to
+  // be movable between runs without a reload. `FOLLOW.sens=1.6` is the live tune; `applyFollowSens(160)`
+  // is the same thing through the setter, which also persists it and repaints the row.
+  //   `lf` is what the physics actually uses this frame — the product after moveMult and the clamp — so
+  // a harness can assert the setting reached the sim rather than only that the store holds it.
+  FOLLOW, applyFollowSens,
+  get lf(){ return clamp(FOLLOW.k*FOLLOW.sens*(P?P.moveMult:1),0,FOLLOW.cap); },
   // THE TOUCH ZONES, EXPOSED BECAUSE A SIMULATOR CANNOT PINCH AND A DESKTOP BROWSER HAS NO FINGERS.
   // `zoneOf` takes CSS px and answers 'move' | 'od' | 'flip', which is the one function a harness needs
   // to assert the partition without synthesising a single event. `stick()` reports the live vector and
