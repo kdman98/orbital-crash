@@ -14,6 +14,33 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-14
 
+### "Left half" was true only at the default `v2-ios` `ecf1599`
+The touch legend and the tutorial named the move zone a **half** in both languages. That was accurate
+the day the partition shipped — `ZONE.x` was `vw*0.5` and nothing moved it. Then the sensitivity slider
+shipped, and it works *by moving that seam*: `vw*min(0.85, 0.5*100/sens)`. Measured at 767px across the
+five stops, the move zone runs **50.0 / 55.6 / 62.5 / 71.4 / 83.3%** of the width — so at 60% the "half"
+is five sixths of the screen and the two "quarters" are 16.7%-wide strips.
+
+⚠️ **The word was wrong for exactly the players who went looking for the setting.** Everyone on the
+default read a true legend; only someone who had already decided the steering needed adjusting saw the
+lie. Now *Left side* / *왼쪽*, true at every stop, and it costs nothing to say: the seam is not drawn, so
+"half" was never a claim a thumb could check. The right-hand rows are untouched — those zones stay on
+the right at every stop.
+
+Two claims that had outlived their arguments went with it. The `sensRange` handler justified `input`
+over `change` by saying a player could **watch the seam widen under their thumb**; `ZONE.x` is read by
+`stickSet`, `zoneOf` and the probe and is drawn by *nothing*. `input` is still right — the value is live
+the moment you let go — but its stated reason was fiction. That same absence is why `set.sensD` keeps a
+second sentence where every sibling row makes do with one: it carries information with no visual form,
+which [MECHANICS](MECHANICS.md) had already said out loud and the panel now records. And MECHANICS still
+called the zone **"a virtual stick"** two rewrites after the stick was retired, while the string-table
+comment credited "the stick" for not parking the thumb on the star — a property of the zone being
+narrower than the screen, not of any steering model. Which makes the 85% cap load-bearing twice over:
+it is also what keeps `TOUCH_LIFT` retired.
+
+Found by opening the settings panel after merging `v2`'s contrast pass, which bumped `.setrow .sd` from
+11.5px to 12.5px and made the row long enough to look at.
+
 ### The scrim was painting over the menu, not behind it `v2`
 `#menuScrim` goes to **`z-index:-1`**. It was `0`, and a *positioned* element at `z-index:0` paints in a
 later layer than a non-positioned block — so the backdrop whose entire job is to darken the key art was
