@@ -12,6 +12,134 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-14
+
+### The scrim was painting over the menu, not behind it `v2`
+`#menuScrim` goes to **`z-index:-1`**. It was `0`, and a *positioned* element at `z-index:0` paints in a
+later layer than a non-positioned block — so the backdrop whose entire job is to darken the key art was
+being drawn **on top of** `.titlewrap`, `.btn`, `.doors` and `.refs`, every one of them a plain in-flow
+block. At the bottom stop of the landscape ramp that is `rgba(4,6,14,.94)`: **the four entry links were
+being read through 94% black.** Nothing was ever wrong with their colour.
+
+⚠️ **The tell was on screen for two passes before it was read.** `.contact` looked *brighter* than the
+links while being `#8494ba` against their `#eaf2ff` — not a subtlety, a contradiction. `.contact` and
+`.langsel` are `position:absolute`, so they land in the scrim's own layer and, being later in the DOM,
+paint above it. They were the only menu text never washed, and therefore the only two whose numbers
+were honest. What finally settled it was painting three links `#ff0000`/`#ffffff`/`#00ff00` inline and
+screenshotting: **pure red rendered as a muted dark red**, which no colour theory survives.
+`getComputedStyle` reported `#eaf2ff` for all four throughout — *including the ones carrying an inline
+red* — because computed style goes stale in a hidden pane. The screenshot was the only witness that
+could not be argued with.
+
+`829eb7a`'s subject claims *"the links come up in front"*. It added a `rgba(5,8,16,.62)` pill behind
+them and **no stacking change at all**, so the pill paints in the links' own layer and was washed with
+them. A symptom was decorated. That pill and the `text-shadow` on `#menu .ref` are both compensations
+for this bug and can probably go now — left alone here, since this commit is the cause and removing the
+plasters is a separate call.
+
+With it, on the author's call: **`.ref` is true white at every viewport**, not only inside the
+`min-aspect-ratio:3/2` branch, with the underline lifted `.24 → .55` so it does not read as switched
+off under `#fff`.
+
+Oracle `b713a7`. Checked at 844×390, 780×560 and **400×290** — the last because at `dpr:2` that is the
+only viewport whose screenshot returns at 1:1 device pixels instead of a 0.51 downscale that was itself
+greying the evidence.
+
+### The reading rooms take the brighter `--dim`, and the multiplier was the real defect `v2`
+Reverting the white sheet put the small grey text back on a near-black panel, so the complaint the
+sheet was built to answer came back with it. The narrower answer is one rule —
+`#records,#skins,#settings,#bestiary{--dim:var(--dim2)}` — because `--dim` is not wrong, it is doing
+**two jobs**. Over the playfield (`.stat .k`, `#combo`, `#time`, `#best .v`) it is correct and
+deliberately quiet: that text sits beside a live game and its neighbours are lit. Inside a panel there
+is no live game and no lit neighbour, and the same value is just grey on black. Scoped by ID, so the
+HUD cannot be caught by it — verified after the change that `#hud`, `#pause` and `#dead` still resolve
+`--dim` to `#68789e`. The two run-overlays are out on purpose; they answer to the field.
+
+⚠️ **The `opacity` multipliers were doing more damage than the token**, and three more rules carried
+the one `.contact` had. Every stacked instance measured **worse than the raw token**:
+
+| | was | now |
+|---|---|---|
+| `.skinreq` unlock text | **2.86:1** @10px (`--dim`×.72) | 6.67 @11px |
+| `.skincat` category | **3.01:1** @10px (×.75) | 6.67 @11px |
+| `.depthlab` Epoch label | **3.01:1** @10px (×.75) | 6.67 @11px |
+| `.acvfl` flavour | **3.58:1** @11.5 (×.85) | 5.04 @12.5 (×.85 kept) |
+| `.setrow .sd` description | 4.59:1 @11.5 | 6.67 @12.5 |
+| `.sw` switch label | 4.59:1 @11 | 6.67 @12 |
+| `.rcT .c.d` cause | 4.59:1 @11.5 | 6.67 @12.5 |
+
+`.skinreq` at .72 composited to `rgb(96,108,138)` — **darker than the raw `--dim`** — on the line that
+tells you how to unlock what you are looking at. `.acvfl` keeps its .85 because there italic and size
+already carry the rank; on Skins the multiplier *was* the rank, and it had pushed one text under the
+floor to make a distinction two other properties could have made for free.
+
+⚠️ **`.depthlab` is on the menu, not in a panel**, so the scoped rule cannot reach it and it is written
+out separately. It is invisible in review because `#depthSel` is `display:none` until a second Epoch is
+unlocked — latent rather than absent, at 3.01:1 on a control the player has just earned.
+
+bestiary.html takes the value as a **literal**: it is a reading room living in an iframe, where no rule
+from the parent reaches it. Its header comment claimed the tokens matched index.html *exactly*, which
+stopped being true the moment index's `:root` and index's panels diverged.
+
+Oracle `b713a7`, bit-identical. Zero overflow on the skin cards and no horizontal overflow on Records
+after the size bumps.
+
+### The service worker had been serving the first key art since the day it was replaced `v2`
+`CACHE` is `orbital-crash-v4`. It should have moved twice already: `5670cb0` and `ac23e56` each
+**replaced** `art/keyart-wide.webp` — 62048 → 70788 → **42984 bytes** — while the `SHELL` list stayed
+identical and `CACHE` stayed at v3. Everything below the document branch is served **cache-first**, and
+`activate` only deletes caches whose key differs from `CACHE`, so any client that installed the worker
+before those commits keeps its copy of the superseded art **permanently**, with no error and nothing to
+notice. The comment said *"bump when the shell changes"* and was read as *"bump when the list changes"*;
+it now says the bytes.
+
+Not cosmetic: `ac23e56` re-exported at native size, so the stale copy is exactly the upscaled one that
+commit exists to stop shipping. ⚠️ Found by accident, and the accident is the lesson — clearing `caches`
+for an unrelated reason changed the artwork on screen, which means **every menu screenshot taken before
+that was of superseded art**. No player is exposed today (Pages serves `master`, which carries no art),
+so this is latent rather than live, but it would have shipped with v2.
+
+### The reading rooms go back to dark, and the two texts that were failing were in the corners `v2`
+RECORDS, SKINS, BESTIARY and SETTINGS spent part of a day as a white sheet, on the author's call, and
+are the near-black panels again on the same authority. Nothing in that argument was wrong — the
+reserved hues really are emissive and really do measure 1.26–1.58:1 against white — the direction
+changed. Reverted rather than unpicked by hand, because four of its edits are load-bearing in the dark
+theme: the panels' `rgba(4,6,15,.97)` had **moved out of their inline styles** into the `.sheet` block
+(drop the class alone and all four go transparent over the playfield), `#bestiary` lost its
+`backdrop-filter:none` the same way, the Records table had been rewired off the literal `#c3ccdb`, and
+bestiary.html's wordmark ramp was inverted for paper — invisible on a dark page.
+
+**The brightness half.** Sweeping every text node in `#menu` with the backdrop **composited** instead of
+assumed — key art sampled per-pixel through its own cover math, then the `#menu` radial, then
+`#menuScrim`, then any element background — put the **contact line at 2.31:1** and the **inactive
+language button at 3.63:1**, both under the 4.5 floor. Now 6.64 and 6.12. Those two numbers are sound:
+`.contact` and `.langsel` are `position:absolute`, so the scrim genuinely is behind them.
+
+> ⚠️ **CORRECTION (same day, see the scrim entry above).** This entry originally reported the
+> 기록/외형/도감/설정 row as "already at the ceiling" at **18.2–19.7:1**, and said editing it would
+> change nothing visible. **That was wrong, and it was the author's actual complaint.** The sweep
+> composited `#menuScrim` as a *backdrop*; for every non-positioned block in `#menu` — the links, the
+> wordmark, the buttons — it paints in **front**. The links were being read through up to 94% black.
+> The model was measuring an assumption about paint order, not the screen, and it returned confident
+> four-figure numbers while doing so. Left in place rather than quietly edited out: a patch note that
+> silently swaps a false measurement for a true one teaches nothing about how the false one was got.
+
+Both were `--dim` used with **nothing beside them**. `--dim` was drawn for labels that sit next to the
+thing they label, where the neighbour carries the contrast; alone in a corner over key art it stops
+being quiet and becomes a rumour. The contact line was worse than its number because it stacked
+`opacity:.6` *on top of* `--dim`. `--dim2` (`#8494ba`) is the rung between `--dim` and `--ink`, a token
+rather than two literals because both sites want the same thing for the same reason; `--dim` itself is
+deliberately not lifted, since 32 of its uses are the second half of a pair where dimness is the point.
+
+⚠️ **The rank is preserved, which a contrast number alone would have broken.** Both lifted texts still
+sit under ORBITAL at 7.92:1 and under every control, so they moved from illegible to quiet, not from
+quiet to loud. `.ref` was left at 13px outside the 3/2 branch on purpose — the comment above it records
+a measured fit (348px of English against 331px of usable width on a 375px phone) and a size bump
+reintroduces the wrap the tracking was cut to fix.
+
+Oracle `b713a7`, bit-identical. Checked at 844×390 and 1024×768. ⚠️ **v2-ios still carries the light
+theme** and needs the same revert, or the two builds disagree.
+
 ## 2026-08-12
 
 ### The Singularity, tuned by playing it — seven passes, and the rig missed most of them `v2`

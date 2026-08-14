@@ -3152,6 +3152,82 @@ introduces is present. That is now standing procedure alongside muting, and it i
 what saved it here was luck about the *kind* of change: the stale values were strings and appeared in the
 output. **A physics change returns clean, plausible numbers about the wrong build and says nothing.**
 Unregister the worker and clear `caches` in any rig that reloads.
+  ⚠️ **AND THE MARKER HAS TO BE READ FROM THE LOADED DOM, NOT FROM DISK OR FROM `curl`.** A later pass
+checked the served file with `curl | grep` — correct, fresh, reassuring — while the browser held a
+document three edits old, because `navigate` to *the URL already loaded* is a no-op and the worker had
+the rest. Server-side truth and browser-side truth disagreed for three rounds and the rig believed the
+half that agreed with it. The assertion that works is
+`document.documentElement.innerHTML.includes('<marker>')`, plus a distinct query string to force a real
+navigation.
+
+⚠️ **A HIDDEN BROWSER PANE FREEZES CSS ANIMATIONS, AND A FROZEN FADE-IN RETURNS A FULL TABLE OF
+PLAUSIBLE FAILURES.** The menu fades in from `opacity:0`; with the pane hidden the animation never
+advances, so every element in it composites at zero alpha and a contrast sweep reports **exactly 1.00
+for all 14 rows** — ink equal to backdrop, top to bottom. That is not a crash and it does not look like
+one; it looks like a screen with a catastrophic legibility problem, and the temptation is to start
+fixing colours. Same family as the rAF stall behind canvas pixel sampling, and the fix is the same
+shape: **drive the state, do not wait for it** — `document.getAnimations().forEach(a => a.finish())`
+before reading. Taking a screenshot also un-hides the pane, but only until the next call, so it fixes
+the reading you are looking at and not the next one.
+⚠️ **A COMPOSITED-BACKDROP CONTRAST SWEEP IS ONLY AS GOOD AS ITS PAINT ORDER, AND GETTING THAT WRONG
+RETURNS CONFIDENT FOUR-FIGURE NUMBERS.** The sweep built for `#menu` walked art → `#menu` radial →
+`#menuScrim` → element background and reported the four entry links at **18.2–19.7:1**, "already at the
+ceiling". They were grey on screen, and the author said so twice. `#menuScrim` is
+`position:absolute; z-index:0`, and **a positioned element — even at z-index 0 — paints in a later layer
+than a non-positioned block**, so for `.refs`, `.titlewrap`, `.btn` and `.doors` the scrim is in FRONT.
+They were being read through up to 94% black. The sweep measured an assumption about stacking, not the
+screen.
+  Three things fall out of it, and the second is the general one:
+  - **Before compositing anything as a backdrop, check `position` on every layer between the glyph and
+    the background.** `static` content sits BELOW any positioned sibling regardless of z-index. In this
+    file that is exactly why `.contact` and `.langsel` (both `position:absolute`, both later in the DOM)
+    were the only menu text whose numbers were ever honest — and their apparent brightness *exceeding*
+    that of lighter-coloured text was the contradiction that should have ended the enquiry immediately.
+  - **A rendering question is settled by the render.** Paint a few elements `#ff0000`/`#00ff00` inline
+    and screenshot; a pure primary coming back muted is proof of a wash that no colour arithmetic can
+    explain away. And note `getComputedStyle` reported the ORIGINAL colour for elements carrying an
+    inline red — stale computed style in a hidden pane (see the animation trap above) — so the DOM was
+    lying at the same time. The screenshot was the only witness left.
+  - **The sweep can only composite `backgroundColor`.** Text on a **gradient** fill (the primary button,
+    the ON language pill) is measured against the art behind the pill and comes back ≈1.0 — which is
+    indistinguishable from the frozen-animation case above. Flag those rows `n/a` explicitly rather than
+    letting them sit in the results as findings.
+  ⚠️ Screenshots have their own floor: at `dpr:2` the pane returns a ~0.51 downscale of the framebuffer
+for a normal viewport, which greys thin text on its own and hides the very effect being hunted. Drop the
+viewport until the returned image is 1:1 device pixels (≈400px wide here) before judging any small text.
+
+⚠️ **QUIET IS A RANK, NOT A LUMINANCE — and `--dim` is doing TWO JOBS.** It was drawn for text that sits
+beside the thing it labels, where a lit neighbour carries the contrast. That is true over the
+**playfield** (`.stat .k`, `#combo`, `#time`, `#best .v`), where it is also right that the HUD recedes.
+It is false inside a **panel**, where there is no live game and no lit neighbour and the same value is
+just grey on black: the Settings descriptions and switch labels measured **4.59:1** at 11.5px, clearing
+the 4.5 floor by four hundredths. `--dim2` (`#8494ba`, ~6.7:1 on a panel) is the rung for that job.
+  **Split it by scope, never lift it globally.** `#records,#skins,#settings,#bestiary{--dim:var(--dim2)}`
+— a custom property on an ancestor wins for its descendants regardless of source order, so this needs no
+`!important` and cannot reach the HUD. `#pause` and `#dead` stay out: both sit over a live run. Two
+places cannot be reached this way and must be written out — `.depthlab`/`.dp`, which live on `#menu`,
+and **bestiary.html, which is a reading room inside an iframe** where no parent rule applies and the
+value has to be duplicated as a literal.
+
+⚠️ **AN `opacity` MULTIPLIER ON A DIM TOKEN IS NOT A QUIETER RANK, IT IS AN UNREADABLE ONE — and every
+instance in this file measured WORSE than the raw token it started from.** Four were found:
+`.skinreq` `--dim`×.72 → **2.86:1**, `.skincat` ×.75 → **3.01**, `.depthlab` ×.75 → **3.01**, `.acvfl`
+×.85 → **3.58**, against a raw `--dim` of 4.59 and a floor of 4.5. `.skinreq` composited to
+`rgb(96,108,138)`, literally darker than the token, on the line that tells you how to unlock what you
+are looking at. **The tell is the pattern, not the number: `color:var(--dim)` and `opacity:<1` in the
+same rule is always worth measuring.** Keep the multiplier only where some *other* property already
+carries the rank — `.acvfl` keeps .85 because italic and size separate it anyway — and never where it
+is the sole distinction, because then it is buying a rank with legibility.
+
+⚠️ **When raising a text, check the ORDER it lands in, not just its ratio.** The menu is composed so
+exactly two things look pressable. The two corners were lifted to 6.1–6.6:1 and deliberately left under
+ORBITAL at 7.92 and under every control. A fix that clears the floor and outranks a button has traded
+one defect for a quieter one.
+
+⚠️ **A `display:none` control hides its own defects.** `.depthlab` sits at 3.01:1 and appears in no
+screenshot, because `#depthSel` is hidden until a second Epoch is unlocked — so the first time it is
+seen is the moment it is earned. The same blindness put the Epoch picker in the wrong grid cell earlier
+(`f3d8984`). **Audit hidden UI by unhiding it, not by reading the layout you can see.**
 
 ⚠️ **`e.seek=0` DOES NOT MAKE A DOT INERT — it silences one colour and not the other, and so manufactures
 a colour asymmetry in any test looking for one.** Seek is the opposite-colour approach; `LIKE_GRAV` is a

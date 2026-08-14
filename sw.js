@@ -9,7 +9,20 @@
 //
 // Bump CACHE when the shell changes. Anything not in this version's cache is deleted on activate, so
 // the bump is the whole release mechanism.
-const CACHE = 'orbital-crash-v3';
+//
+// ⚠️ "CHANGES" MEANS THE BYTES, NOT THE LIST — and reading it the other way has already cost the key
+// art twice. `5670cb0` and `ac23e56` each REPLACED art/keyart-wide.webp (62048 -> 70788 -> 42984 bytes)
+// with the SHELL list character-for-character identical and CACHE left at v3. Everything past the
+// document branch below is served CACHE-FIRST, and `activate` only deletes caches whose key differs
+// from CACHE — so a client that installed before either commit serves its copy of the superseded art
+// forever, with no error and no way to notice. Not a cosmetic drift either: `ac23e56` re-exported at
+// native size, so the stale copy is precisely the upscaled one that commit exists to stop shipping.
+// Found in-browser, where the menu was still rendering the FIRST export until `caches` was cleared by
+// hand — every screenshot taken before that was of superseded artwork.
+//   No player is exposed today: Pages serves `master`, which has no art at all. The silence is what
+// carries forward, to every icon, the manifest and any asset added later. Touch a byte of anything in
+// SHELL and bump this, whether or not the list itself moved.
+const CACHE = 'orbital-crash-v4';
 
 const SHELL = [
   './',
