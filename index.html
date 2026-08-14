@@ -443,8 +443,26 @@
      they are read against whatever the art happens to be doing behind them. */
   #menu .doornote{opacity:1;color:#8ea6c8;text-shadow:0 1px 6px rgba(0,0,0,.9);}
   #menu .ref{text-shadow:0 1px 6px rgba(0,0,0,.9);}
+  /* ⚠️ z-index:-1 AND NOT 0, AND THIS WAS A REAL BUG FOR AS LONG AS THE SCRIM HAS EXISTED. The scrim is
+     a BACKDROP — its whole job is to darken the key art so the menu can be read over it. At `z-index:0`
+     it was doing the opposite to half the menu, because CSS paints a POSITIONED element (even at z-index
+     0) in a later layer than a non-positioned block. `.refs`, `.titlewrap`, `.btn` and `.doors` are all
+     plain in-flow blocks, so the scrim was painting ON TOP OF THEM — and at the bottom stop of the
+     landscape ramp that is rgba(4,6,14,.94), i.e. the links were being read through 94% black.
+       The tell that finally caught it: `.contact` looked BRIGHTER than the links, while being #8494ba
+     against their #eaf2ff. That is impossible from colour alone. `.contact` and `.langsel` are
+     `position:absolute`, so they land in the same layer as the scrim and — being later in the DOM —
+     paint above it. Those two were the only menu text never washed, which is exactly why they were the
+     only two that measured honestly.
+       Negative rather than reordering the markup: inside #menu's stacking context (it is `position:fixed;
+     z-index:10`) a negative child paints above the parent's own background and below all in-flow content,
+     which is precisely the job. #menuArt is a SIBLING at z-index 9, so the whole #menu subtree still
+     paints over the art and the scrim darkens it exactly as before — the art loses nothing.
+       829eb7a's subject line claims "the links come up in front". It added a `rgba(5,8,16,.62)` pill
+     behind them and no stacking change at all, so the pill paints in the same layer as the links and was
+     washed with them. The symptom was treated; nothing came up in front. */
   #menuScrim{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:min(640px,94vw);
-    height:46%;pointer-events:none;z-index:0;
+    height:46%;pointer-events:none;z-index:-1;
     background:linear-gradient(to top,rgba(4,6,14,.88),rgba(4,6,14,.58) 42%,rgba(4,6,14,0));}
   /* Wordmark to the top band, controls to the bottom, and the binary keeps the middle. The safe-area
      table this was tuned against described the OLD layout; it was never a law, and the best candidate
@@ -676,9 +694,15 @@
   .langsel button.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;}
   @media (max-height:520px){ .langsel{top:10px;right:12px;} }
   .refs{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  /* TRUE WHITE, on the author's call, and at every viewport rather than only in the landscape branch —
+     these four are the only way into RECORDS, SKINS, BESTIARY and SETTINGS, and they are read against
+     whatever the key art happens to be doing behind them. --ink (#eaf2ff) is the body colour for text
+     sitting on a panel; this row sits on a picture. The underline goes up with it, from .24 to .55: at
+     .24 under #eaf2ff it was already the fainter half of the pair, and leaving it there under #fff would
+     read as an underline that had been switched off. */
   .ref{pointer-events:auto;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 2px;
-    color:var(--ink);font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
-    border-bottom:1px solid rgba(255,255,255,.24);transition:color .12s ease,border-color .12s ease;}
+    color:#ffffff;font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+    border-bottom:1px solid rgba(255,255,255,.55);transition:color .12s ease,border-color .12s ease;}
   .ref:hover{color:var(--cyan);border-color:var(--cyan);}
   /* FOUR LINKS IS THE COUNT THIS ROW WRAPPED AT BEFORE, and it wrapped again the moment SKINS arrived —
      measured, not feared: 348px of English against 331px of usable width on a 375px phone, with SETTINGS
