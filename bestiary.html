@@ -28,10 +28,17 @@
 <meta property="og:locale:alternate" content="ko_KR" />
 <meta name="twitter:card" content="summary_large_image" />
 <style>
-  /* ⚠️ --dim AND --ink NOW MATCH index.html EXACTLY. They had drifted — #8f9bb2/#e7ecf5 here against
-     #68789e/#eaf2ff there — which is invisible until the two are seen one after the other, and the
-     Bestiary is opened FROM the menu, so they always are. */
-  :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#68789e;--ink:#eaf2ff;}
+  /* ⚠️ --ink MATCHES index.html EXACTLY, AND --dim MATCHES WHAT INDEX GIVES A PANEL — which is no
+     longer the same thing as index's :root. They had drifted once already (#8f9bb2/#e7ecf5 here against
+     #68789e/#eaf2ff there), invisible until the two are seen one after the other, and the Bestiary is
+     opened FROM the menu, so they always are.
+       The value below is index's --dim2, because over there the four reading rooms rewrite --dim to it
+     (`#records,#skins,#settings,#bestiary{--dim:var(--dim2)}`) and this page IS one of those rooms — it
+     just happens to live in an iframe, where no rule from the parent document can reach it. index's
+     raw :root --dim (#68789e) stays what it is and belongs to the HUD, which sits over the playfield
+     and has to stay quiet. So: same ROLE, deliberately not the same token. If index's --dim2 moves,
+     move this with it; a grep for the literal is the only link between them. */
+  :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#8494ba;--ink:#eaf2ff;}
   *{box-sizing:border-box;}
   html,body{margin:0;}
   /* Centre-lit like the game's own overlay, and on --bg's value, rather than a top-lit navy of its own. */
