@@ -31,12 +31,23 @@
   /* ⚠️ --dim AND --ink NOW MATCH index.html EXACTLY. They had drifted — #8f9bb2/#e7ecf5 here against
      #68789e/#eaf2ff there — which is invisible until the two are seen one after the other, and the
      Bestiary is opened FROM the menu, so they always are. */
-  :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#68789e;--ink:#eaf2ff;}
+  /* TWO INKS, AND THE PAGE IS NOT THE TILES. This page turned into paper with the three panels it is
+     opened beside — but the SPECIMEN CARDS did not, and could not. Every card is a canvas drawing the
+     game's own emissive art on a transparent ground: a cyan halo at 0.16 alpha, white rims, colours
+     picked to BE light sources on a near-black field. Measured against #ffffff those hues are 1.26:1
+     (lime) to 1.58:1 (cyan) — not dim, absent. So the tiles keep the field they were drawn for and the
+     page around them is white, which is what a printed plate on a printed page has always looked like.
+       --ink/--dim stay the game's values because they are used INSIDE the tiles. --pageInk/--pageDim
+     are the paper's, and the two must not be collapsed: the same word is light on a card and dark in a
+     heading two lines above it. */
+  :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#68789e;--ink:#eaf2ff;
+        --pageInk:#101828;--pageDim:#5b6880;}
   *{box-sizing:border-box;}
   html,body{margin:0;}
-  /* Centre-lit like the game's own overlay, and on --bg's value, rather than a top-lit navy of its own. */
-  body{background:radial-gradient(120% 90% at 50% 34%,#0d1730 0%,#070b18 58%,#060814 100%);
-    color:var(--ink);min-height:100vh;padding:30px 20px 52px;
+  /* Centre-lit like the game's own light panels, and on the same two stops, so the frame and the panel
+     it is embedded in are one surface rather than two whites that nearly match. */
+  body{background:radial-gradient(120% 90% at 50% 30%,#ffffff 0%,#eef2f9 100%);
+    color:var(--pageInk);min-height:100vh;padding:30px 20px 52px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,
                 'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;}
   .wrap{max-width:920px;margin:0 auto;}
@@ -50,18 +61,31 @@
      incoming warning; leaving the same ramp here kept the retired version alive in the one place a
      player goes to learn what the colours mean.
        Same neutral ramp as the game's `.l2` now, same drop shadow, same reasoning. */
+  /* ⚠️ THE RAMP IS INVERTED FOR PAPER, NOT RECOLOURED. It was #fff → #c9dcf2 → #8fa8c8: bright at the
+     cap line falling to a cool grey at the baseline, which is a wordmark lit from above on a dark page.
+     Kept literally, it is a white wordmark on a white page. The same lighting on paper runs the other
+     way — dense at the top, opening toward the baseline — so the stops are mirrored through the middle
+     and the hue is untouched. Still no cyan and no violet: hue belongs to polarity, and this is the one
+     page a player opens to learn that.
+       The drop shadow was a 26px black bloom holding the letters off a dark field. On white that is a
+     smudge; what a dark wordmark needs on paper is a hairline of lift, not a halo. */
   .logo{font-size:clamp(34px,8vw,58px);font-weight:900;line-height:.85;letter-spacing:-.012em;
-    background:linear-gradient(178deg,#fff 12%,#c9dcf2 62%,#8fa8c8 100%);
+    background:linear-gradient(178deg,#0d1524 12%,#2b3c58 62%,#4a5f80 100%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
-    filter:drop-shadow(0 6px 26px rgba(0,0,0,.92));}
-  .sub{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-top:4px;}
+    filter:drop-shadow(0 1px 1px rgba(16,24,40,.16));}
+  .sub{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--pageDim);font-weight:700;margin-top:4px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:11px;}
-  .card{background:#0a0f1c;border:1px solid rgba(120,140,180,.16);border-radius:14px;padding:9px 8px 11px;text-align:center;}
+  /* ⚠️ `color` IS DECLARED ON THE TILE AND HAS TO BE. `.nm` sets weight and size and no colour, so it
+     inherited from body — which is now the PAGE's dark ink, two shades off invisible on a near-black
+     card. One declaration on each tile catches `.nm` and anything added beside it later. */
+  .card{background:#0a0f1c;border:1px solid rgba(120,140,180,.16);border-radius:14px;padding:9px 8px 11px;text-align:center;
+    color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.13);}
   .card canvas{display:block;margin:0 auto;width:100%;max-width:150px;height:auto;}
   .nm{font-weight:800;font-size:14px;margin-top:5px;letter-spacing:.01em;}
   .tag{font-size:11px;color:#c3ccdb;margin-top:4px;line-height:1.35;min-height:30px;}
   .wide{grid-column:1 / -1;background:#0a0f1c;border:1px solid rgba(155,107,255,.28);border-radius:16px;
-    padding:14px 18px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:2px;}
+    padding:14px 18px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:2px;
+    color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.13);}
   .wide canvas{flex:0 0 auto;width:230px;height:190px;}
   .wide .info{flex:1;min-width:180px;text-align:left;}
   .wide .nm{font-size:19px;margin-top:0;}
@@ -75,7 +99,7 @@
      DANGER everywhere else in this game. Spending it on the word "패턴" is the same mistake the
      wordmark was making, and it is worse here than anywhere, because this is the one page a player
      opens specifically to learn what the colours mean. */
-  .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--dim);
+  .section{grid-column:1 / -1;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--pageDim);
     font-weight:800;text-align:center;margin:18px 0 2px;}
   .card.anom{border-color:rgba(155,107,255,.28);}
   /* Korean, same reasoning as index.html's block: .42em and .34em are the small-caps look and Hangul
