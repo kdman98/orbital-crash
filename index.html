@@ -1278,11 +1278,19 @@
        mouse, Shift and right-click to a device with none of them; for a while nothing replaced it,
        which was defensible only while tilt was the sole touch control and there was nothing to say.
        Touch steers again on every phone browser, so there is.
-         All three rows say WHERE, because the control is a map now: the left half steers, the top right
+         All three rows say WHERE, because the control is a map now: the left side steers, the top right
        burns, the bottom right flips. The first row used to be filled by paintTouchCtl() instead of being
-       written here, back when a web phone dragged and the native app leaned. -->
+       written here, back when a web phone dragged and the native app leaned.
+         ⚠️ "SIDE", NOT "HALF", AND THE SENSITIVITY SLIDER IS WHY. It said "half" from the day the
+       partition shipped and that was true then — `ZONE.x` was `vw*0.5` and nothing moved it. `touchSens`
+       moves it: the slider works BY widening the move zone, `vw*min(0.85, 0.5*100/sens)`, so at 60% the
+       "half" is 83.3% of the width and the two "quarters" are 16.7%-wide strips. Measured at 767px:
+       50.0 / 55.6 / 62.5 / 71.4 / 83.3% across the five stops. The word was accurate only at the default,
+       i.e. it was wrong precisely for the players who went looking for the setting. "Side" is true at
+       every stop and costs nothing — the seam is not drawn, so "half" was never something a thumb could
+       check anyway. The right-hand rows are unaffected: those zones stay on the right at every stop. -->
   <div id="touchCtl">
-    <div class="cr" data-th="tc.move"><b>Left half</b> Steer star</div>
+    <div class="cr" data-th="tc.move"><b>Left side</b> Steer star</div>
     <div class="cr" data-th="tc.od"><b>Top right</b> Hold: Overdrive</div>
     <div class="cr" data-th="tc.flip"><b>Bottom right</b> Reverse poles</div>
   </div>
@@ -1485,7 +1493,7 @@
     <div class="st">
       <div class="sn"><span data-t="set.sens">Touch steering</span> <span class="snv" id="sensReadout">100%</span></div>
       <div class="sd" data-t="set.sensD">How far the star travels for a given sweep of your thumb. Lower is finer: it
-        widens the steering half of the screen, so the Overdrive and Flip corners get narrower to match.</div>
+        widens the steering zone, so the Overdrive and Flip corners get narrower to match.</div>
       <input type="range" id="sensRange" class="rng" min="60" max="100" step="5" value="100"
              data-ta="set.sensA" aria-label="Touch steering sensitivity">
     </div>
@@ -2012,15 +2020,19 @@ const L={ en:{
   'ctl.od':'<kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute',
   // THE THREE ZONES, NAMED BY WHERE THEY ARE. The legend the player gets is a map, so it says the place
-  // and not the gesture — "left half", not "drag". Under the intent-split scheme the place was
+  // and not the gesture — "left side", not "drag". Under the intent-split scheme the place was
   // meaningless (any finger anywhere could be any verb) and these rows had to name gestures instead.
   //   `tc.drag` also carried a clause explaining that the star rides above your fingertip, which was a
-  // legend apologising for a layout: TOUCH_LIFT existed because absolute steering parked your thumb on
-  // the star. The stick does not, so there is nothing to explain.
+  // legend apologising for a layout: TOUCH_LIFT existed because the pre-v2 control steered from the
+  // WHOLE screen, which is the case that parks your thumb on the star. Mapping a narrower zone onto the
+  // full arena does not — the thumb POINTS at the star instead of carrying it — so there is nothing to
+  // explain. ⚠️ This used to credit "the stick", which stopped existing two rewrites ago; the reason it
+  // gives is a property of the zone being narrower than the screen, not of any one steering model.
+  // The argument is worked properly at `STICK`.
   'set.sens':'Touch steering',
-  'set.sensD':'How far the star travels for a given sweep of your thumb. Lower is finer: it widens the steering half of the screen, so the Overdrive and Flip corners get narrower to match.',
+  'set.sensD':'How far the star travels for a given sweep of your thumb. Lower is finer: it widens the steering zone, so the Overdrive and Flip corners get narrower to match.',
   'set.sensA':'Touch steering sensitivity',
-  'tc.move':'<b>Left half</b> Steer star',
+  'tc.move':'<b>Left side</b> Steer star',
   'tc.od':'<b>Top right</b> Hold: Overdrive',
   'tc.flip':'<b>Bottom right</b> Reverse poles',
   'btn.motion':'Reduces the shaking and flashing effects.',
@@ -2101,7 +2113,7 @@ const L={ en:{
   'tut.doneH':'Shall we play the real game now?',
   'tut.play':'Enter the field',
   'tut.1.desktop':'Move the mouse',
-  'tut.1.touch':'Drag the left half',
+  'tut.1.touch':'Drag the left side',
   'tut.1.ok':"That's how you move!",
   'tut.2':'Look at your current colour, and get close to the same-coloured dots!',
   'tut.2.note':'{n} / 4 gathered',
@@ -2218,7 +2230,7 @@ const L={ en:{
   'set.sens':'터치 조종',
   'set.sensD':'엄지를 같은 거리만큼 움직였을 때 별이 얼마나 가는지를 정합니다. 낮출수록 조종이 섬세해지고, 대신 조종 영역이 넓어져서 오버드라이브와 색 반전 구역이 그만큼 좁아집니다.',
   'set.sensA':'터치 조종 감도',
-  'tc.move':'<b>왼쪽 절반</b> 별 조종',
+  'tc.move':'<b>왼쪽</b> 별 조종',
   'tc.od':'<b>오른쪽 위</b> 유지: 오버드라이브',
   'tc.flip':'<b>오른쪽 아래</b> 색 반전',
   'btn.motion':'흔들리거나 번쩍거리는 효과를 줄입니다.',
@@ -2288,7 +2300,7 @@ const L={ en:{
   'tut.doneH':'이제 본 게임을 해볼까요?',
   'tut.play':'게임 시작',
   'tut.1.desktop':'마우스를 움직여 보세요',
-  'tut.1.touch':'왼쪽 절반을 드래그해 보세요',
+  'tut.1.touch':'왼쪽을 드래그해 보세요',
   'tut.1.ok':'그렇게 움직이시면 돼요!',
   'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
   'tut.2.note':'{n} / 4 수집',
@@ -10632,8 +10644,16 @@ el('volRange').addEventListener('input',e=>{ audioInit(); setVolume(+e.target.va
 // One blip on release, not on every input event — a cue per step would be a burst of ~20 during a drag,
 // which is both unpleasant and useless as a level reference. Skipped at zero, where it is a lie.
 el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
-// `input`, not `change`: the zone seam moves as the slider moves, so a player dragging it can see the
-// steering half widen under their thumb instead of guessing and committing.
+// `input`, not `change`: the new zone width is in force the instant the slider passes a stop, so a
+// player who lets go and touches the field is steering with the value they just chose, with no commit
+// step in between.
+//   ⚠️ THIS USED TO SAY THE PLAYER COULD "SEE THE STEERING HALF WIDEN UNDER THEIR THUMB", AND THERE IS
+// NOTHING TO SEE. `ZONE.x` is read by `stickSet`, `zoneOf` and the probe and is drawn by NOTHING — the
+// seam has no rendered form at any sensitivity, so the sentence described feedback that was never built
+// and justified `input` with it. `input` is still right, for the reason above; the reason it USED to
+// give was fiction. If the seam is ever drawn, this comment gets its original claim back honestly —
+// until then `set.sensD` saying the corners narrow is the only signal the player gets, which is
+// precisely why that row keeps its second sentence while every sibling makes do with one.
 el('sensRange').addEventListener('input',e=>{ applyTouchSens(+e.target.value); paintSettings(); });
 // `input`, not `change`: the chase changes as the slider moves, and this panel opens from the PAUSE
 // screen, so a player tuning it has their own live field behind the overlay to judge it against rather
@@ -10742,11 +10762,16 @@ function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; 
 // So the zone is a MINIATURE OF THE ARENA. One thumb position means one arena position, the same one,
 // for the whole run. Lift and put the thumb back in the same place and the star is where it was; there
 // is nothing to re-establish and nothing to accumulate.
-//   ⚠️ YOUR THUMB IS NOT ON THE STAR, AND CANNOT BE. Half a screen is being mapped onto a whole arena,
-// so a thumb at zone x=200 puts the star at arena x≈796, which draws at screen x≈400 — the thumb points
-// at the star rather than carrying it. That is the price of steering from a half-width zone, and it is
-// paid by every absolute scheme that could fit in one. The pre-v2 control had the star ON the thumb
-// because it steered from the WHOLE screen and needed TOUCH_LIFT to stop the thumb hiding it.
+//   ⚠️ YOUR THUMB IS NOT ON THE STAR, AND CANNOT BE. Part of a screen is being mapped onto a whole
+// arena, so a thumb at zone x=200 puts the star at arena x≈796, which draws at screen x≈400 — the thumb
+// points at the star rather than carrying it. That is the price of steering from a zone narrower than
+// the screen, and it is paid by every absolute scheme that could fit in one. The pre-v2 control had the
+// star ON the thumb because it steered from the WHOLE screen and needed TOUCH_LIFT to stop the thumb
+// hiding it.
+//   The figures here are the 100% default, where the zone is half the width. `touchSens` widens it to
+// 83.3% at 60%, which SHRINKS the gap between thumb and star without closing it — the zone never reaches
+// the full width (`min(0.85, …)` holds it at 85%), so the thumb never lands on the star and TOUCH_LIFT
+// stays retired at every stop. That cap is load-bearing for this reason and not only for the corners.
 //
 // LETTERBOXED, NEVER STRETCHED. The zone is 437×402 CSS px on a landscape phone and the arena is
 // 1739×800 design units — aspect 1.09 against 2.17. Stretching to fill would scale x twice as hard as

@@ -425,12 +425,19 @@ geometry — `zoneOf(x,y)` in CSS pixels against the cached viewport halves:
 
 |  |  |
 |---|---|
-| **left half** | MOVE — a virtual stick |
-| **top-right quarter** | OVERDRIVE — hold to burn |
-| **bottom-right quarter** | FLIP — press to reverse poles |
+| **left side** | MOVE — an absolute map of the arena |
+| **top-right corner** | OVERDRIVE — hold to burn |
+| **bottom-right corner** | FLIP — press to reverse poles |
 
-Move is the half because it is the only *continuous* verb; the other two are instants, and an instant
-wants a target rather than a field. **Overdrive sits above flip because the two must be usable at once** —
+⚠️ **This table said "left half", "quarter", "quarter" and "a virtual stick", and all four were stale.**
+The stick was retired two rewrites ago — the zone is an absolute map now (below). And the fractions are
+the *default*, not the partition: `touchSens` works by moving the seam, so the move zone runs 50 → 83.3%
+of the width across the slider's five stops and the two act zones shrink to 16.7%-wide strips to match.
+Measured at 767px: **50.0 / 55.6 / 62.5 / 71.4 / 83.3%**. Naming them by fraction was wrong for exactly
+the players who went looking for the setting, so the in-game legend now says *Left side* too.
+
+Move is the largest zone because it is the only *continuous* verb; the other two are instants, and an
+instant wants a target rather than a field. **Overdrive sits above flip because the two must be usable at once** —
 Overdrive is held for seconds and you keep flipping through the ride, so they cannot share a thumb.
 Verified: three fingers down simultaneously, the star steering while burning, a flip landing mid-burn,
 and the burn surviving it. On device, the tutorial certifies all three by gating each step on performing
@@ -504,8 +511,15 @@ only ways out are giving up the partition or giving up isotropy.
 steering*, 60–100%, default 100. ⚠️ **It moves the ZONE'S WIDTH, and it could not have moved anything
 else**: an absolute map's scale is pinned by "the zone shows the whole arena" (`k = zoneWidth / W`), so
 arena-units-per-pixel is not a free parameter. A slider that pretended otherwise would either stop the
-thumb reaching the arena edges or start bending the diagonals. Widening the steering half is the same
-act as narrowing the Overdrive and flip quarters, and the copy says so rather than hiding it.
+thumb reaching the arena edges or start bending the diagonals. Widening the steering zone is the same
+act as narrowing the Overdrive and flip corners, and the copy says so rather than hiding it.
+
+⚠️ **That copy is the ONLY signal the player gets, and a comment used to claim otherwise.** The
+`sensRange` handler justified `input` over `change` by saying a player could watch the seam widen under
+their thumb — but `ZONE.x` is read by `stickSet`, `zoneOf` and the probe and is **drawn by nothing**, at
+any sensitivity. `input` is still correct (the value is live the moment you let go), but its stated
+reason was fiction. This is also why `set.sensD` keeps a second sentence when every sibling row on the
+panel makes do with one: it is carrying information that has no visual form.
 
 | setting | zone width | sensitivity |
 |---|---|---|
@@ -513,8 +527,10 @@ act as narrowing the Overdrive and flip quarters, and the copy says so rather th
 | 80% | 546px | 3.18 u/px |
 | 60% | 728px | 2.39 u/px |
 
-Capped at 85% of the width so the action quarters cannot be squeezed below ~131px, which is about where
-a thumb stops finding a target it cannot see. ⚠️ **Even at 60% it does not reach the pre-v2 1.99** — that
+Capped at 85% of the width so the action corners cannot be squeezed below ~131px, which is about where
+a thumb stops finding a target it cannot see. The cap does a second job that is easy to miss: it keeps
+the steering zone narrower than the screen at every stop, which is the condition under which the thumb
+POINTS at the star rather than carrying it — i.e. it is also what keeps `TOUCH_LIFT` retired. ⚠️ **Even at 60% it does not reach the pre-v2 1.99** — that
 number needed the whole screen, and the whole screen is what the partition spends.
 
 ⚠️ **The sensitivity lives on `ZONE`, not on `store`, and that is an ORDER constraint rather than a
@@ -4779,7 +4795,7 @@ the one human reference tape reaches Epoch V at 271s with 39,105 — **1.75× th
 score for the same depth.** Where a threshold needs a score-at-depth, the tape is the anchor and the
 bot is not. The item offered two ways out — "either
 a real touch scheme or an honest desktop-only gate" — and shipping on iOS settled which. See *Touch*:
-three zones, move on the left half, Overdrive and flip on the right quarters.
+three zones, move on the left side, Overdrive and flip on the right corners.
 
 *What the item described is gone rather than fixed.* "Every touch-down currently calls `flip()`" and the
 Android long-press → `contextmenu` → unintended-Overdrive path both belonged to the intent-split scheme,
