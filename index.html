@@ -1128,11 +1128,32 @@
 
 
   /* THE TUTORIAL INSTRUCTION. Sized to be read at a glance mid-play, not to be studied: one sentence,
-     high contrast, and wide enough that none of the six wraps to three lines at 375px.
+     high contrast, and large enough to take in while the field is moving underneath it.
        top:58px clears the Epoch/timer block (14-48) without reaching the middle of the field.
-     pointer-events stays off — it sits over live play and must never eat a tap. */
+     pointer-events stays off — it sits over live play and must never eat a tap.
+       ⚠️ THIS COMMENT USED TO PROMISE "none of the six wraps to three lines at 375px" AND THAT PROMISE
+     WAS ALREADY BROKEN AT THE OLD 13px. Measured in the real element at the real 375px viewport, where
+     max-width resolves to 330px: `tut.2.ok` — "Gathered Dots are sword and shield at once! …" — renders
+     THREE lines and has been shipping that way. So three lines is not the cliff the sentence treated it
+     as; it is what the longest acknowledgement already does, unreported. Re-checked with the ✓ chip that
+     `tutPaintOk` actually renders rather than the wider "n/6", in case the narrower chip was saving it:
+     still three. A rule that the shipping build violates is not a constraint, it is a stale claim, and
+     believing it would have blocked a change it never actually governed.
+       That is what makes 16px affordable (author: "at least 20%"; 13→16 is +23%). The whole cost is that
+     `tut.5`, the longest instruction in the game at 79 chars EN / 58 KO, joins it at three lines — both
+     device variants in Korean, the touch variant in English. Nothing else changes line count, and no
+     line reaches four. There is no arrangement that buys the size and keeps the lines: +23% of type
+     wants +23% of width, and the only two levers here — 88vw→94vw and 15px→10px of side padding — are
+     worth about 11% together.
+       HEIGHT WAS THE THING WORTH CHECKING, NOT WRAPPING, because on a phone this bar hangs over live
+     play. Worst case at 16px is 118px tall (was 81), occupying y 112-230 of an 812px screen: `#best`
+     ends at 104 so the clearance above survives untouched, and the bar still stops ~176px short of
+     centre, where the star spends most of its time.
+       ⚠️ SIZE DOES NOT TOUCH PACING, so nothing downstream needs re-tuning for it. `readS()` counts
+     words (EN) or syllables (KO) — never lines or pixels — so every step is held exactly as long as it
+     was before, and a line that now wraps is not a line that now lingers. */
   #tutBar{position:absolute;left:50%;top:58px;transform:translateX(-50%);z-index:6;pointer-events:none;
-    width:max-content;max-width:min(88vw,540px);text-align:center;font-size:13px;line-height:1.5;
+    width:max-content;max-width:min(88vw,540px);text-align:center;font-size:16px;line-height:1.5;
     color:var(--ink);background:rgba(8,12,26,.82);border:1px solid rgba(56,224,255,.3);
     border-radius:11px;padding:9px 15px;}
   /* On a wide screen the bar is centred in a viewport far wider than its 540px cap, so it never reaches
@@ -1182,7 +1203,7 @@
   }
   /* The step counter earns its place: six steps with no progress shown is a tutorial of unknown length,
      which is the main reason people quit one. */
-  #tutBar .n{display:inline-block;margin-right:9px;color:var(--cyan);font-weight:800;font-size:11px;
+  #tutBar .n{display:inline-block;margin-right:9px;color:var(--cyan);font-weight:800;font-size:14px;
     letter-spacing:.12em;}
 
   /* ================================================================
@@ -1241,12 +1262,16 @@
   html[lang="ko"] #skins .sd{line-height:1.68;}
   /* The live counter, on its own line so a changing number never reflows the sentence above it —
      "3 / 4" becoming "4 / 4" must not shift the words a player is mid-way through reading. */
-  #tutBar .p{display:block;margin-top:5px;color:var(--cyan);font-weight:800;font-size:11px;
+  #tutBar .p{display:block;margin-top:5px;color:var(--cyan);font-weight:800;font-size:14px;
     letter-spacing:.16em;text-transform:uppercase;}
   /* THE BEAT READS AS A DIFFERENT KIND OF LINE, not as the next instruction in a different colour. Lime
      is used nowhere else in the HUD, so "you did the thing" cannot be mistaken for "do this thing". */
   #tutBar.ok{border-color:rgba(141,255,107,.45);color:var(--lime);}
-  #tutBar.ok .n{color:var(--lime);font-size:13px;}
+  /* ⚠️ FOUR NUMBERS CARRY THE TUTORIAL'S TYPE SCALE AND THEY ONLY MEAN ANYTHING AS A SET: `#tutBar` 16,
+     `.n` 14, `.p` 14, and this 16. They are ratios wearing px — the counter sits just under the sentence
+     and the ✓ sits just above the counter — so moving one alone silently restyles the bar rather than
+     resizing it. The +23% pass kept all four in step (13/11/11/13 before). */
+  #tutBar.ok .n{color:var(--lime);font-size:16px;}
 </style>
 </head>
 <body>
