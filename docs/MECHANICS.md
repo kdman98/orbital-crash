@@ -3105,6 +3105,39 @@ introduces is present. That is now standing procedure alongside muting, and it i
 what saved it here was luck about the *kind* of change: the stale values were strings and appeared in the
 output. **A physics change returns clean, plausible numbers about the wrong build and says nothing.**
 Unregister the worker and clear `caches` in any rig that reloads.
+  ⚠️ **AND THE MARKER HAS TO BE READ FROM THE LOADED DOM, NOT FROM DISK OR FROM `curl`.** A later pass
+checked the served file with `curl | grep` — correct, fresh, reassuring — while the browser held a
+document three edits old, because `navigate` to *the URL already loaded* is a no-op and the worker had
+the rest. Server-side truth and browser-side truth disagreed for three rounds and the rig believed the
+half that agreed with it. The assertion that works is
+`document.documentElement.innerHTML.includes('<marker>')`, plus a distinct query string to force a real
+navigation.
+
+⚠️ **A HIDDEN BROWSER PANE FREEZES CSS ANIMATIONS, AND A FROZEN FADE-IN RETURNS A FULL TABLE OF
+PLAUSIBLE FAILURES.** The menu fades in from `opacity:0`; with the pane hidden the animation never
+advances, so every element in it composites at zero alpha and a contrast sweep reports **exactly 1.00
+for all 14 rows** — ink equal to backdrop, top to bottom. That is not a crash and it does not look like
+one; it looks like a screen with a catastrophic legibility problem, and the temptation is to start
+fixing colours. Same family as the rAF stall behind canvas pixel sampling, and the fix is the same
+shape: **drive the state, do not wait for it** — `document.getAnimations().forEach(a => a.finish())`
+before reading. Taking a screenshot also un-hides the pane, but only until the next call, so it fixes
+the reading you are looking at and not the next one.
+  A composited-backdrop sweep has a second blind spot worth stating: it can only composite
+`backgroundColor`. Any text on a **gradient** fill (the primary button, the ON language pill) reports
+against the art behind the pill and comes back ≈1.0, which is indistinguishable from the frozen case.
+Flag those rows `n/a` explicitly rather than letting them sit in the results as findings.
+
+⚠️ **QUIET IS A RANK, NOT A LUMINANCE — and `--dim` is a *paired* token.** It was drawn for labels that
+sit beside the thing they label, where the neighbour carries the contrast. Used alone it fails: the two
+places on the title screen that used `--dim` with nothing next to them measured **2.31:1** (the contact
+line, which stacked `opacity:.6` on top of it) and **3.63:1** (the inactive language button), against a
+4.5:1 floor. `--dim2` (`#8494ba`) is the rung for that case. **Do not lift `--dim` itself** — 32 of its
+uses are the second half of a pair, and raising it flattens every one of them to fix two corners.
+  The other half of the rule: when raising a text, check the **order** it lands in, not just its ratio.
+Both corners were lifted to 6.1–6.6:1, deliberately still under ORBITAL at 7.92:1 and under every
+control, because the menu is composed so exactly two things look pressable. A fix that clears the floor
+and outranks a button has traded one defect for a quieter one.
+
 
 ⚠️ **`e.seek=0` DOES NOT MAKE A DOT INERT — it silences one colour and not the other, and so manufactures
 a colour asymmetry in any test looking for one.** Seek is the opposite-colour approach; `LIKE_GRAV` is a

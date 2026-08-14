@@ -12,6 +12,43 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-14
+
+### The reading rooms go back to dark, and the two texts that were failing were in the corners `v2`
+RECORDS, SKINS, BESTIARY and SETTINGS spent part of a day as a white sheet, on the author's call, and
+are the near-black panels again on the same authority. Nothing in that argument was wrong — the
+reserved hues really are emissive and really do measure 1.26–1.58:1 against white — the direction
+changed. Reverted rather than unpicked by hand, because four of its edits are load-bearing in the dark
+theme: the panels' `rgba(4,6,15,.97)` had **moved out of their inline styles** into the `.sheet` block
+(drop the class alone and all four go transparent over the playfield), `#bestiary` lost its
+`backdrop-filter:none` the same way, the Records table had been rewired off the literal `#c3ccdb`, and
+bestiary.html's wordmark ramp was inverted for paper — invisible on a dark page.
+
+**The brightness half was not where the ask pointed.** The request was to make the main-screen text
+easier to read, and the obvious target — the 기록/외형/도감/설정 row — is already at the ceiling:
+15px pure white on a scrim pill, **18.2–19.7:1** on the shipping viewport. Editing it would have
+changed nothing visible, which reads exactly like a stale build. Sweeping every text node in `#menu`
+with the backdrop **composited** instead of assumed — key art sampled per-pixel through its own cover
+math, then the `#menu` radial, then `#menuScrim`, then any element background — found two rules under
+the 4.5:1 floor and no others: the **contact line at 2.31:1** and the **inactive language button at
+3.63:1**, now 6.64 and 6.12.
+
+Both were `--dim` used with **nothing beside them**. `--dim` was drawn for labels that sit next to the
+thing they label, where the neighbour carries the contrast; alone in a corner over key art it stops
+being quiet and becomes a rumour. The contact line was worse than its number because it stacked
+`opacity:.6` *on top of* `--dim`. `--dim2` (`#8494ba`) is the rung between `--dim` and `--ink`, a token
+rather than two literals because both sites want the same thing for the same reason; `--dim` itself is
+deliberately not lifted, since 32 of its uses are the second half of a pair where dimness is the point.
+
+⚠️ **The rank is preserved, which a contrast number alone would have broken.** Both lifted texts still
+sit under ORBITAL at 7.92:1 and under every control, so they moved from illegible to quiet, not from
+quiet to loud. `.ref` was left at 13px outside the 3/2 branch on purpose — the comment above it records
+a measured fit (348px of English against 331px of usable width on a 375px phone) and a size bump
+reintroduces the wrap the tracking was cut to fix.
+
+Oracle `b713a7`, bit-identical. Checked at 844×390 and 1024×768. ⚠️ **v2-ios still carries the light
+theme** and needs the same revert, or the two builds disagree.
+
 ## 2026-08-12
 
 ### The Singularity, tuned by playing it — seven passes, and the rig missed most of them `v2`
