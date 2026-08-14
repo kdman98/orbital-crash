@@ -3122,10 +3122,32 @@ fixing colours. Same family as the rAF stall behind canvas pixel sampling, and t
 shape: **drive the state, do not wait for it** — `document.getAnimations().forEach(a => a.finish())`
 before reading. Taking a screenshot also un-hides the pane, but only until the next call, so it fixes
 the reading you are looking at and not the next one.
-  A composited-backdrop sweep has a second blind spot worth stating: it can only composite
-`backgroundColor`. Any text on a **gradient** fill (the primary button, the ON language pill) reports
-against the art behind the pill and comes back ≈1.0, which is indistinguishable from the frozen case.
-Flag those rows `n/a` explicitly rather than letting them sit in the results as findings.
+⚠️ **A COMPOSITED-BACKDROP CONTRAST SWEEP IS ONLY AS GOOD AS ITS PAINT ORDER, AND GETTING THAT WRONG
+RETURNS CONFIDENT FOUR-FIGURE NUMBERS.** The sweep built for `#menu` walked art → `#menu` radial →
+`#menuScrim` → element background and reported the four entry links at **18.2–19.7:1**, "already at the
+ceiling". They were grey on screen, and the author said so twice. `#menuScrim` is
+`position:absolute; z-index:0`, and **a positioned element — even at z-index 0 — paints in a later layer
+than a non-positioned block**, so for `.refs`, `.titlewrap`, `.btn` and `.doors` the scrim is in FRONT.
+They were being read through up to 94% black. The sweep measured an assumption about stacking, not the
+screen.
+  Three things fall out of it, and the second is the general one:
+  - **Before compositing anything as a backdrop, check `position` on every layer between the glyph and
+    the background.** `static` content sits BELOW any positioned sibling regardless of z-index. In this
+    file that is exactly why `.contact` and `.langsel` (both `position:absolute`, both later in the DOM)
+    were the only menu text whose numbers were ever honest — and their apparent brightness *exceeding*
+    that of lighter-coloured text was the contradiction that should have ended the enquiry immediately.
+  - **A rendering question is settled by the render.** Paint a few elements `#ff0000`/`#00ff00` inline
+    and screenshot; a pure primary coming back muted is proof of a wash that no colour arithmetic can
+    explain away. And note `getComputedStyle` reported the ORIGINAL colour for elements carrying an
+    inline red — stale computed style in a hidden pane (see the animation trap above) — so the DOM was
+    lying at the same time. The screenshot was the only witness left.
+  - **The sweep can only composite `backgroundColor`.** Text on a **gradient** fill (the primary button,
+    the ON language pill) is measured against the art behind the pill and comes back ≈1.0 — which is
+    indistinguishable from the frozen-animation case above. Flag those rows `n/a` explicitly rather than
+    letting them sit in the results as findings.
+  ⚠️ Screenshots have their own floor: at `dpr:2` the pane returns a ~0.51 downscale of the framebuffer
+for a normal viewport, which greys thin text on its own and hides the very effect being hunted. Drop the
+viewport until the returned image is 1:1 device pixels (≈400px wide here) before judging any small text.
 
 ⚠️ **QUIET IS A RANK, NOT A LUMINANCE — and `--dim` is doing TWO JOBS.** It was drawn for text that sits
 beside the thing it labels, where a lit neighbour carries the contrast. That is true over the
@@ -3149,29 +3171,6 @@ are looking at. **The tell is the pattern, not the number: `color:var(--dim)` an
 same rule is always worth measuring.** Keep the multiplier only where some *other* property already
 carries the rank — `.acvfl` keeps .85 because italic and size separate it anyway — and never where it
 is the sole distinction, because then it is buying a rank with legibility.
-
-⚠️ **A COMPOSITED-BACKDROP CONTRAST SWEEP IS ONLY AS GOOD AS ITS PAINT ORDER, AND GETTING THAT WRONG
-RETURNS CONFIDENT FOUR-FIGURE NUMBERS.** The sweep built for `#menu` walked art → `#menu` radial →
-`#menuScrim` → element background and reported the four entry links at **18.2–19.7:1**, "already at the
-ceiling". They were grey on screen, and the author said so twice. `#menuScrim` is
-`position:absolute; z-index:0`, and **a positioned element — even at z-index 0 — paints in a later layer
-than a non-positioned block**, so for `.refs`, `.titlewrap`, `.btn` and `.doors` the scrim is in FRONT.
-They were being read through up to 94% black. The sweep measured an assumption about stacking, not the
-screen.
-  Two rules fall out of it, and the second is the general one:
-  - **Before compositing anything as a backdrop, check `position` on every layer between the glyph and
-    the background.** `static` content sits BELOW any positioned sibling regardless of z-index. In this
-    file that is exactly why `.contact` and `.langsel` (both `position:absolute`, both later in the DOM)
-    were the only menu text whose numbers were ever honest — and their apparent brightness *exceeding*
-    that of lighter-coloured text was the contradiction that should have ended the enquiry immediately.
-  - **A rendering question is settled by the render.** Paint a few elements `#ff0000`/`#00ff00` inline
-    and screenshot; a pure primary coming back muted is proof of a wash that no colour arithmetic can
-    explain away. And note `getComputedStyle` reported the ORIGINAL colour for elements carrying an
-    inline red — stale computed style in a hidden pane (see the animation trap above) — so the DOM was
-    lying at the same time. The screenshot was the only witness left.
-  ⚠️ Screenshots have their own floor: at `dpr:2` the pane returns a ~0.51 downscale of the framebuffer
-for a normal viewport, which greys thin text on its own and hides the very effect being hunted. Drop the
-viewport until the returned image is 1:1 device pixels (≈400px wide here) before judging any small text.
 
 ⚠️ **When raising a text, check the ORDER it lands in, not just its ratio.** The menu is composed so
 exactly two things look pressable. The two corners were lifted to 6.1–6.6:1 and deliberately left under
