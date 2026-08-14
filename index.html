@@ -135,6 +135,26 @@
   #score{left:18px;top:16px;}
   #score .v{font-size:clamp(28px,6.5vw,50px);letter-spacing:-.02em;text-shadow:0 0 18px rgba(56,224,255,.35);}
   #best{left:20px;top:74px;}#best .v{font-size:14px;color:var(--dim);}
+  /* ⚠️ THE BEST IS HIDDEN FOR THE WHOLE TUTORIAL, AND THE SAME GUARD ALREADY DECIDED THIS ELSEWHERE.
+     `store.best` is written under `if(!testMode && !labMode && !tutMode)` — the tutorial declares itself
+     unscored, and the record row is filed under the identical condition. So the stat sat there through
+     the entire lesson displaying a number the mode had explicitly opted out of moving. The HUD was the
+     only part of the game that had not been told.
+       It is also a COLLISION, which is what found it. `#best` is left-anchored and its right edge grows
+     with the digits; `#tutBar` is centred and its left edge is PINNED at (vw-540)/2 by the max-width
+     cap, so the two converge as the score does. Measured at 667x375 landscape, ko, step 5:
+       BEST 0 -> 25.0px clear · 5,165 -> 0.8px · 48,320 -> -8.7px · 1,204,880 -> -32.5px
+     Five digits is where it touches and five digits is an ordinary score. It is reachable because the
+     tutorial is REPLAYABLE from the menu button, so a returning player brings their record into it.
+       ⚠️ THE COLLISION IS LANDSCAPE-ONLY AND THAT IS WHY IT SURVIVED. In portrait `@media
+     (max-width:560px)` moves the bar to top:112, clear of this stat's 74-104 band; at 667 and 844 that
+     query never fires, top stays 58, and the bar straddles it. iOS is landscape-locked both ways round
+     (Info.plist), so the orientation that hides the bug is the one the app cannot enter.
+       Display, not markup: the element keeps its value so nothing that reads it needs a tutorial branch,
+     and the menu behind the overlay still shows the record. Chosen over the alternatives because it is
+     the only one that costs no layout — narrowing the 540 cap buys back wrapping the type scale just
+     spent, and moving `top` below 104 eats a quarter of a 375px-tall screen. */
+  #hud.tut #best{display:none;}
 
   /* THE WISH PICKER. Wraps rather than scrolling, unlike the death receipt's tally: four cards is a
      fixed count that can be laid out for, where that row's length depended on how the run went.
@@ -4891,6 +4911,7 @@ function tutAdvance(){
 // there is nothing left for the flag to choose and both call sites simply stop.
 function tutFinish(){
   tutMode=false; state='menu';
+  el('hud').classList.remove('tut');   // pairs with the toggle at the other tutMode assignment
   el('tutBar').classList.add('hidden');
   el('menu').classList.add('hidden'); el('dead').classList.add('hidden'); menuChrome(false);
   el('tutDone').classList.remove('hidden');
@@ -10190,6 +10211,10 @@ function startRun(mode, startAct){
   audioInit();
   labMode = (mode==='lab');
   tutMode = (mode==='tut');
+  // Mirrored onto the HUD here and cleared in tutFinish, which are the ONLY two places tutMode is
+  // assigned. Driving it off the flag rather than off the four sites that toggle #tutBar's `hidden`
+  // keeps the stat and the bar from ever disagreeing about which mode is running.
+  el('hud').classList.toggle('tut', tutMode);
   // ⚠️ testMode is "some mode that is not survival and not the Lab", so a third string would have fallen
   // into it silently and run the tutorial as Boss Rush. Both exclusions, explicitly.
   testMode = !!mode && !labMode && !tutMode; lastWasTest=testMode;
