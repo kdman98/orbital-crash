@@ -14,6 +14,37 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-14
 
+### The scrim was painting over the menu, not behind it `v2`
+`#menuScrim` goes to **`z-index:-1`**. It was `0`, and a *positioned* element at `z-index:0` paints in a
+later layer than a non-positioned block — so the backdrop whose entire job is to darken the key art was
+being drawn **on top of** `.titlewrap`, `.btn`, `.doors` and `.refs`, every one of them a plain in-flow
+block. At the bottom stop of the landscape ramp that is `rgba(4,6,14,.94)`: **the four entry links were
+being read through 94% black.** Nothing was ever wrong with their colour.
+
+⚠️ **The tell was on screen for two passes before it was read.** `.contact` looked *brighter* than the
+links while being `#8494ba` against their `#eaf2ff` — not a subtlety, a contradiction. `.contact` and
+`.langsel` are `position:absolute`, so they land in the scrim's own layer and, being later in the DOM,
+paint above it. They were the only menu text never washed, and therefore the only two whose numbers
+were honest. What finally settled it was painting three links `#ff0000`/`#ffffff`/`#00ff00` inline and
+screenshotting: **pure red rendered as a muted dark red**, which no colour theory survives.
+`getComputedStyle` reported `#eaf2ff` for all four throughout — *including the ones carrying an inline
+red* — because computed style goes stale in a hidden pane. The screenshot was the only witness that
+could not be argued with.
+
+`829eb7a`'s subject claims *"the links come up in front"*. It added a `rgba(5,8,16,.62)` pill behind
+them and **no stacking change at all**, so the pill paints in the links' own layer and was washed with
+them. A symptom was decorated. That pill and the `text-shadow` on `#menu .ref` are both compensations
+for this bug and can probably go now — left alone here, since this commit is the cause and removing the
+plasters is a separate call.
+
+With it, on the author's call: **`.ref` is true white at every viewport**, not only inside the
+`min-aspect-ratio:3/2` branch, with the underline lifted `.24 → .55` so it does not read as switched
+off under `#fff`.
+
+Oracle `b713a7`. Checked at 844×390, 780×560 and **400×290** — the last because at `dpr:2` that is the
+only viewport whose screenshot returns at 1:1 device pixels instead of a 0.51 downscale that was itself
+greying the evidence.
+
 ### The reading rooms take the brighter `--dim`, and the multiplier was the real defect `v2`
 Reverting the white sheet put the small grey text back on a near-black panel, so the complaint the
 sheet was built to answer came back with it. The narrower answer is one rule —
@@ -78,14 +109,20 @@ theme: the panels' `rgba(4,6,15,.97)` had **moved out of their inline styles** i
 `backdrop-filter:none` the same way, the Records table had been rewired off the literal `#c3ccdb`, and
 bestiary.html's wordmark ramp was inverted for paper — invisible on a dark page.
 
-**The brightness half was not where the ask pointed.** The request was to make the main-screen text
-easier to read, and the obvious target — the 기록/외형/도감/설정 row — is already at the ceiling:
-15px pure white on a scrim pill, **18.2–19.7:1** on the shipping viewport. Editing it would have
-changed nothing visible, which reads exactly like a stale build. Sweeping every text node in `#menu`
-with the backdrop **composited** instead of assumed — key art sampled per-pixel through its own cover
-math, then the `#menu` radial, then `#menuScrim`, then any element background — found two rules under
-the 4.5:1 floor and no others: the **contact line at 2.31:1** and the **inactive language button at
-3.63:1**, now 6.64 and 6.12.
+**The brightness half.** Sweeping every text node in `#menu` with the backdrop **composited** instead of
+assumed — key art sampled per-pixel through its own cover math, then the `#menu` radial, then
+`#menuScrim`, then any element background — put the **contact line at 2.31:1** and the **inactive
+language button at 3.63:1**, both under the 4.5 floor. Now 6.64 and 6.12. Those two numbers are sound:
+`.contact` and `.langsel` are `position:absolute`, so the scrim genuinely is behind them.
+
+> ⚠️ **CORRECTION (same day, see the scrim entry above).** This entry originally reported the
+> 기록/외형/도감/설정 row as "already at the ceiling" at **18.2–19.7:1**, and said editing it would
+> change nothing visible. **That was wrong, and it was the author's actual complaint.** The sweep
+> composited `#menuScrim` as a *backdrop*; for every non-positioned block in `#menu` — the links, the
+> wordmark, the buttons — it paints in **front**. The links were being read through up to 94% black.
+> The model was measuring an assumption about paint order, not the screen, and it returned confident
+> four-figure numbers while doing so. Left in place rather than quietly edited out: a patch note that
+> silently swaps a false measurement for a true one teaches nothing about how the false one was got.
 
 Both were `--dim` used with **nothing beside them**. `--dim` was drawn for labels that sit next to the
 thing they label, where the neighbour carries the contrast; alone in a corner over key art it stops
