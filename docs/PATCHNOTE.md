@@ -14,6 +14,21 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-14
 
+### The service worker had been serving the first key art since the day it was replaced `v2`
+`CACHE` is `orbital-crash-v4`. It should have moved twice already: `5670cb0` and `ac23e56` each
+**replaced** `art/keyart-wide.webp` — 62048 → 70788 → **42984 bytes** — while the `SHELL` list stayed
+identical and `CACHE` stayed at v3. Everything below the document branch is served **cache-first**, and
+`activate` only deletes caches whose key differs from `CACHE`, so any client that installed the worker
+before those commits keeps its copy of the superseded art **permanently**, with no error and nothing to
+notice. The comment said *"bump when the shell changes"* and was read as *"bump when the list changes"*;
+it now says the bytes.
+
+Not cosmetic: `ac23e56` re-exported at native size, so the stale copy is exactly the upscaled one that
+commit exists to stop shipping. ⚠️ Found by accident, and the accident is the lesson — clearing `caches`
+for an unrelated reason changed the artwork on screen, which means **every menu screenshot taken before
+that was of superseded art**. No player is exposed today (Pages serves `master`, which carries no art),
+so this is latent rather than live, but it would have shipped with v2.
+
 ### The reading rooms go back to dark, and the two texts that were failing were in the corners `v2`
 RECORDS, SKINS, BESTIARY and SETTINGS spent part of a day as a white sheet, on the author's call, and
 are the near-black panels again on the same authority. Nothing in that argument was wrong — the
