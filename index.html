@@ -8714,21 +8714,34 @@ function drawBoss(){
   // WHICH Anomaly it is; this says it is no longer holding station.
   // THE HUNT HAS TO ANNOUNCE ITSELF LOUDLY. It is the moment the Anomaly is closest and most dangerous
   // and it commits all the way to the core, so a quiet wake is not enough — a player with hours in the
-  // game will not know the behaviour exists. A bright, long wake plus a literal line to the thing it is
-  // coming for.
+  // game will not know the behaviour exists. THE WAKE NOW CARRIES THAT ALONE, and it is sized for it:
+  // four rings at 0.62 alpha streaming 108px off the trailing edge, which is where the loudness lives.
+  //   ⚠️ THIS PARAGRAPH USED TO END "a bright, long wake PLUS A LITERAL LINE to the thing it is coming
+  // for", and the line is gone (below) — so the sentence has been re-argued rather than left standing on
+  // a mark that no longer exists.
   if(b.hunt>0 && P){
     const dx=P.x-b.x, dy=P.y-b.y, d=Math.hypot(dx,dy)||1, ux=dx/d, uy=dy/d;
     ctx.save(); ctx.globalCompositeOperation='lighter';
-    // ⚠️ THE LANE LINE IS DRAWN ONLY FOR THE KINDS THAT ACTUALLY WALK IT. The Emitter and the Bastion hunt
-    // with `b.x += dx/d*s` — literally this line, one step per frame — so "this is coming HERE" is true of
-    // them and shares its grammar with the dash telegraph on purpose.
-    //   THE SENTINEL NEVER FLEW IT. Its hunt branch in bossMove re-centres its orbit on your core and
-    // SPIRALS IN: it is moving tangentially at up to HUNT_TANG the whole time while `huntR` shrinks, so a
-    // straight line from boss to Star described a path it takes only at the instant it arrives. That is
-    // the same defect class as a hull drawn inside its own collider — a telegraph the game does not honour
-    // — and it was the loudest, most confident mark on screen. It gets the shape it is genuinely flying:
-    // the CIRCLE it is coming around, collapsing to contact. Strictly more information than the line was
-    // offering, because the radius is the countdown.
+    // ⚠️ THE LANE LINE IS DELETED ON PURPOSE — DO NOT RESTORE IT AS A MISSING TELEGRAPH. Author, 2026-08-14:
+    // "remove slight line when hunting slowly, i would like it for all anomaly but especially Emitter."
+    //   What stood here was a dashed boss→Star line at alpha 0.16-0.28, drawn for every kind except the
+    // Sentinel. It was argued for as "same grammar as the dash telegraph, so 'this is coming HERE' is
+    // literal", and that argument was sound about the PATH and wrong about the READING. The dash grammar
+    // works because a dash is instant: the line appears, and the thing arrives along it before the mark has
+    // faded. A hunt is a WALK — deliberately so, see the note at HUNT_SP, ~5s from a real station — so the
+    // same mark hangs across the field for seconds at a time, and a faint dashed hairline held that long
+    // stops reading as a telegraph and starts reading as a rendering artefact. It is worst exactly where
+    // the author says: the Emitter hunts from the back of the arena, so its line is the longest one and
+    // the slowest to resolve.
+    //   The information is not lost, which is why this is a deletion and not a trade. The wake already
+    // points: four echo rings stream off the trailing edge along -ux,-uy, i.e. they encode the same
+    // bearing the line drew, from the same body, without printing a hairline across the play area.
+    //   THE SENTINEL KEEPS ITS CIRCLE, and it is not the same mark. Its hunt branch in bossMove re-centres
+    // its orbit on your core and SPIRALS IN: it moves tangentially at up to HUNT_TANG the whole time while
+    // `huntR` shrinks, so a straight line described a path it takes only at the instant it arrives — the
+    // same defect class as a hull drawn inside its own collider. The circle is the shape it is genuinely
+    // flying, and the radius is a countdown the wake cannot express. Left standing pending the author's
+    // call, since the request names a "line" and this is the one kind that never drew one.
     if(b.variant==='sentinel'){
       const R=(b.huntR!==undefined)?b.huntR:d;
       ctx.strokeStyle=hexA(oc,0.16+0.12*Math.sin(elapsed*6)); ctx.lineWidth=2; ctx.setLineDash([6,12]);
@@ -8737,10 +8750,6 @@ function drawBoss(){
       ctx.save(); ctx.translate(P.x,P.y); ctx.scale(1,0.8);
       ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.stroke(); ctx.restore();
       ctx.setLineDash([]);
-    } else {
-      // the lane it is walking — same grammar as the dash telegraph, so "this is coming HERE" is literal
-      ctx.strokeStyle=hexA(oc,0.16+0.12*Math.sin(elapsed*6)); ctx.lineWidth=2; ctx.setLineDash([6,12]);
-      ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(P.x,P.y); ctx.stroke(); ctx.setLineDash([]);
     }
     ctx.lineWidth=3.5;
     for(let i=1;i<=4;i++){
