@@ -14,6 +14,41 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-14
 
+### The tutorial HUD stops showing two numbers it was already throwing away `v2-ios` `178ebca` `ebc2005`
+`#score` and `#best` are hidden for the whole tutorial, behind `#hud.tut`. The mode had already decided
+this everywhere else: both are written under `if(!testMode && !labMode && !tutMode)`, so a tutorial's
+score is discarded the moment it ends and the record it might have beaten is never consulted. The HUD was
+the last part of the game still displaying them.
+
+It surfaced as a **collision**, flagged by the `v2` session after it re-ran the landscape sweep. Both
+stats are left-anchored and grow rightward; `#tutBar` is centred with its left edge *pinned* at
+`(vw − 540)/2` by the max-width cap. They converge as the digits arrive. At 667×375, ko, step 5:
+
+| | clear at 0 | first overlap |
+|---|---|---|
+| `#score` | 17.3px | **10** → −10.8px |
+| `#best` | 25.0px | 48,320 → −8.7px |
+
+⚠️ **`#score` is the worse half and it was found second.** `#best` needs five digits and a returning
+player; `#score` needs two, because `score += MOTE_SCORE` carries no `tutMode` guard and step 3 asks for
+five motes — **every tutorial passes 25 before halfway**. It also wears the `clamp(28px,6.5vw,50px)` face
+against best's 14px, and `#tutBar` is z-index 6 against the HUD's 5, so the digits are covered rather than
+blended. Landscape-only: portrait's `@media (max-width:560px)` moves the bar to `top:112px` clear of both,
+and that query never fires at 667 or 844 — **the orientation that hides the bug is the one iOS cannot
+enter**, since Info.plist is landscape both ways round.
+
+Hiding won over the three alternatives on cost: narrowing the 540 cap buys back the wrapping `8027466`
+had just spent, moving `top` below the score's box (75.4 at 667 but **82 at 844**, where the face hits its
+50px clamp ceiling) lands the bar on the star, and shrinking the face mid-lesson makes it change size
+between modes. The lesson keeps its readout — steps 2, 3, 5 and 6 each carry a progress counter in the
+bar's note line. Author's call.
+
+⚠️ **The zero-overlap result in `d91786d` was true and worthless, and that is the lasting note.** It
+checked five HUD elements as rectangle intersection across twelve cases and found nothing — at `score = 0`
+and `best = 0`, the only values that cannot collide. It enumerated elements exhaustively and states not at
+all. Both fixes here were verified with a **positive control** instead: the same measurement with `.tut`
+removed reports `hitsScore=true, hitsBest=true`, and with it present reports both false. See *Traps*.
+
 ### "Left half" was true only at the default `v2-ios` `ecf1599`
 The touch legend and the tutorial named the move zone a **half** in both languages. That was accurate
 the day the partition shipped — `ZONE.x` was `vw*0.5` and nothing moved it. Then the sensitivity slider

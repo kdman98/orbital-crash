@@ -3055,6 +3055,38 @@ worked and could not: `.oracle.js` is pasted *after* load, so nothing it defines
 that cannot fire is worse than no gate, because it looks like cover.** That applies to any future
 boot-time check, and the fact that this particular one is now unnecessary does not retire the rule.
 
+**The HUD's two stats are hidden for the whole tutorial** (`#hud.tut #score, #hud.tut #best`), and the
+mode had already decided it: `store.best` and the record row are both written under
+`if(!testMode && !labMode && !tutMode)`, so a tutorial's score is discarded the moment it ends. The HUD
+was the last part of the game still displaying numbers the mode had opted out of keeping. The lesson does
+not lose its readout — steps 2, 3, 5 and 6 each carry a progress counter in the bar's note line, which is
+the number the player is actually working against.
+
+⚠️ **It is also a collision, and the collision is the general trap: anything left-anchored in the HUD
+converges with `#tutBar` as its digits grow.** The bar is centred, so its left edge is *pinned* at
+`(vw − 540)/2` by the max-width cap — 63.5px at 667, 152px at 844 — while a stat's right edge is a
+function of the number in it. Measured at 667×375, ko, step 5:
+
+| | clear at 0 | first overlap |
+|---|---|---|
+| `#score` | 17.3px | **10** → −10.8px |
+| `#best` | 25.0px | 48,320 → −8.7px |
+
+`#score` is the worse of the two by an order of magnitude: `score += MOTE_SCORE` carries no `tutMode`
+guard and step 3 asks for five motes, so **every tutorial passes 25 before halfway**, and it wears the
+`clamp(28px,6.5vw,50px)` face against best's 14px. `#tutBar` is z-index 6 against the HUD's 5, so digits
+are covered rather than blended.
+
+⚠️ **The bug is landscape-only, which is exactly why it survived.** In portrait `@media (max-width:560px)`
+moves the bar to `top:112px`, clear of both stats; at 667 and 844 that query never fires and `top` stays
+58. iOS is landscape-locked both ways round (Info.plist), **so the orientation that hides the bug is the
+one the app cannot enter** — and a portrait sweep, however careful, reports a clean layout.
+
+Hiding was chosen over the three alternatives because it is the only one with no layout cost. Narrowing
+the 540 cap buys back the wrapping the type scale just spent; moving `top` below the score's box (75.4 at
+667, but **82 at 844**, where the face hits its 50px clamp ceiling) puts the bar on the star; shrinking
+the score's face mid-lesson makes it change size between modes.
+
 **The copy is the author's.** Only the bracketed device verbs vary, and they must: steps 1, 4 and 5 were
 written as *"Move the mouse"*, *"Click"* and *"Hold shift"*, all three describing a desktop — the exact
 fault the deleted menu paragraph carried for months. See **Language** below for why `tutDev()` returns a
@@ -3158,6 +3190,21 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 ## Traps
 
 Things that have cost real time, in this codebase specifically.
+
+⚠️ **A LAYOUT SWEEP MEASURES ONE VALUE OF EVERY VARIABLE IT DOES NOT SET, AND A HUD IS MADE OF VARIABLES.**
+A landscape pass checked `#tutBar` against `#score`, `#best`, `#combo`, `#center` and `#pauseBtn` as
+rectangle intersection — twelve cases, both languages, every step — and reported **zero collisions**. It
+was true. It was also taken at `score = 0` and `best = 0`, which are the only two values of those stats
+that cannot collide, because both are left-anchored and grow rightward into a bar whose left edge is
+pinned by a max-width cap. The real first overlap is at **score 10**. Nothing in the sweep could have
+said so: it enumerated *elements* exhaustively and *states* not at all, and exhaustiveness along the axis
+you did enumerate reads exactly like coverage.
+  **The check that works is a positive control** — run the same measurement with the fix disabled and
+confirm it reports the failure. A verification that cannot produce a red has not been shown to detect
+anything. Applied here: `.tut` removed → `hitsScore=true, hitsBest=true`; `.tut` present → both false.
+  The general form, since this is the third instance in this file: **ask what the instrument would do if
+the bug were present.** The sky-cache rig, the `curl`-versus-DOM marker and this one are all the same
+fault — a clean result nobody could distinguish from a broken comparison.
 
 ⚠️ **THE GAME'S OWN SERVICE WORKER SERVES A STALE BUILD TO EVERY RELOAD, AND A CACHE-BUSTING QUERY DOES
 NOT HELP** — the worker answers the request before the network sees it. Three reloads of a genuinely
