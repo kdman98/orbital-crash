@@ -779,11 +779,28 @@
      #bestiaryClose right below. */
   #bestiary{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px)
                     env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);}
-  /* `max()` and not `calc(16px + env(...))`, matching the convention .overlay states above: at least
-     the 16px the design was built on, and at least the hardware clearance, never both added together.
-     Lands the button ON the safe-area line (62px here) rather than 78px inside it. */
-  #bestiaryClose{top:max(16px,env(safe-area-inset-top,0px));
-                 right:max(16px,env(safe-area-inset-right,0px));}
+  /* THE FOUR PANEL ✕ BUTTONS, ONE RULE, AT THE PANEL'S OWN MARGIN. They sat at a flat 16px while every
+     scrap of content in the same overlay sits at .overlay's 22px, so the pill overhung the switch
+     column by 6px and read as stuck to the corner rather than as part of the panel. Measured at
+     390x844 before the change: button right 16, first `.setrow` right 22. Author: "too top-right even
+     some space is to the left and below." 22 is not a new number — it is the margin the panel already
+     uses, so the ✕ now lines up down the right edge with everything under it.
+       ⚠️ AND THREE OF THE FOUR HAD NO SAFE-AREA CLEARANCE AT ALL. Only #bestiaryClose carried an env()
+     rule; #recordsClose, #skinsClose and #settingsClose were inline `right:16px`, which on a notched
+     phone in landscape sits 46px inside the housing — env() left/right measured 62px on iPhone 17 Pro.
+     The cause is the one written above #bestiary: an absolutely positioned child resolves against the
+     PADDING BOX, whose edges are OUTSIDE the padding, so .overlay's `padding-right:max(22px,env(...))`
+     never moved them and never could. The fix was always a rule of their own; only one of the four
+     ever got it.
+       `max()` and not `calc(22px + env(...))`, matching the convention .overlay states above: at least
+     the margin the design was built on, at least the hardware clearance, never both added together.
+     Lands the button ON the safe-area line (62px here) rather than 84px inside it.
+       ⚠️ AND THE INLINE `top`/`right` ON ALL THREE HAD TO GO WITH IT. An inline declaration outranks any
+     selector in the sheet, so adding this rule while leaving them would have shipped a stylesheet
+     block that computes correctly, greps correctly, and is overridden on every device. */
+  #bestiaryClose,#recordsClose,#skinsClose,#settingsClose{
+    top:max(22px,env(safe-area-inset-top,0px));
+    right:max(22px,env(safe-area-inset-right,0px));}
 
   /* SETTINGS. A row is a sentence and a switch, and the sentence is the load-bearing half — a toggle
      whose name is its only explanation is exactly how "reduced motion" comes to mean nothing to the
@@ -1377,14 +1394,19 @@
          All three rows say WHERE, because the control is a map now: the left side steers, the top right
        burns, the bottom right flips. The first row used to be filled by paintTouchCtl() instead of being
        written here, back when a web phone dragged and the native app leaned.
-         ⚠️ "SIDE", NOT "HALF", AND THE SENSITIVITY SLIDER IS WHY. It said "half" from the day the
-       partition shipped and that was true then — `ZONE.x` was `vw*0.5` and nothing moved it. `touchSens`
-       moves it: the slider works BY widening the move zone, `vw*min(0.85, 0.5*100/sens)`, so at 60% the
-       "half" is 83.3% of the width and the two "quarters" are 16.7%-wide strips. Measured at 767px:
-       50.0 / 55.6 / 62.5 / 71.4 / 83.3% across the five stops. The word was accurate only at the default,
-       i.e. it was wrong precisely for the players who went looking for the setting. "Side" is true at
-       every stop and costs nothing — the seam is not drawn, so "half" was never something a thumb could
-       check anyway. The right-hand rows are unaffected: those zones stay on the right at every stop. -->
+         ⚠️ THE BAN ON THE WORD "HALF" IS LIFTED. This read '"SIDE", NOT "HALF", AND THE SENSITIVITY
+       SLIDER IS WHY — the slider works BY widening the move zone, `vw*min(0.85, 0.5*100/sens)`, so at
+       60% the "half" is 83.3% of the width', with a table measured at 767px: 50.0 / 55.6 / 62.5 / 71.4 /
+       83.3% across the five stops. Every figure was true when it was taken. The expression is gone:
+       `resize()` sets `ZONE.x = vw*0.5` unconditionally and says so in its own comment, and `ZONE.sens`
+       is a documented tombstone with no reader anywhere in this file. The seam is a fixed half at every
+       stop, so "half" is now the precise word, and `set.sideD` uses it in both languages.
+         These three rows keep "side" because it is still TRUE and re-teaching a legend costs a player
+       their muscle memory — not because anything forbids the alternative any more. Worth noticing HOW
+       this survived: a stale justification misleads the next reader, but a stale PROHIBITION acts as a
+       veto, and respecting a veto looks like discipline, so nobody audits it. Obeying this one would
+       have edited an accurate string into a vaguer one. When a comment states a limit and the limit is
+       what is blocking you, measure it against the shipping code before you accept it. -->
   <div id="touchCtl">
     <div class="cr" data-th="tc.move"><b>Left side</b> Steer star</div>
     <div class="cr" data-th="tc.od"><b>Top right</b> Hold: Overdrive</div>
@@ -1520,7 +1542,7 @@
      time you die. Nothing here is a leaderboard: there is no server, and both practice modes are barred
      from it by the same guard that protects the best score. -->
 <div class="overlay hidden" id="records" style="z-index:20;background:rgba(4,6,15,.97);">
-  <button class="btn sm ghost" id="recordsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <button class="btn sm ghost" id="recordsClose" data-t="ui.close" style="position:absolute;z-index:2;">✕ Close</button>
   <div class="final" data-t="rc.kicker" style="letter-spacing:.3em;margin-top:8px;">Records</div>
   <h2 data-t="rc.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">What you have done</h2>
   <div id="recordsBody"></div>
@@ -1537,7 +1559,7 @@
        Menu only. There is no pause entry: a wardrobe is not something you fix mid-run, and the run behind
      the panel is drawing the very star you would be changing. -->
 <div class="overlay hidden" id="skins" style="z-index:20;background:rgba(4,6,15,.97);">
-  <button class="btn sm ghost" id="skinsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <button class="btn sm ghost" id="skinsClose" data-t="ui.close" style="position:absolute;z-index:2;">✕ Close</button>
   <div class="final" data-t="skins.kicker" style="letter-spacing:.3em;margin-top:8px;">Skins</div>
   <!-- (A `.sd` note and an `<h2>` stood here — the hue law, then a heading. Both removed on the author's
        call, in that order, and the panel is better for it: the cards say everything either of them said.
@@ -1557,7 +1579,7 @@
        Repainted on open rather than bound once, so the switches show live state — the mute key works
      while this panel is open, and a row that disagreed with it would be a row nobody could trust. -->
 <div class="overlay hidden" id="settings" style="z-index:20;background:rgba(4,6,15,.97);">
-  <button class="btn sm ghost" id="settingsClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+  <button class="btn sm ghost" id="settingsClose" data-t="ui.close" style="position:absolute;z-index:2;">✕ Close</button>
   <div class="final" data-t="set.kicker" style="letter-spacing:.3em;margin-top:8px;">Settings</div>
   <h2 data-t="set.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 16px;">How it plays</h2>
 
@@ -1602,12 +1624,12 @@
   <div class="setrow" id="setSide">
     <div class="st">
       <div class="sn" data-t="set.side">Steering side</div>
-      <div class="sd" data-t="set.sideD">Which half steers, with the Overdrive and flip corners on the other.</div>
+      <div class="sd" data-t="set.sideD">Which half of the screen steers, with Overdrive and flip on the other.</div>
     </div>
     <button class="sw" id="swSide">Left</button>
   </div>
 
-  <!-- TOUCH STEERING SENSITIVITY. Hidden on a fine pointer, because it describes a control that device
+  <!-- MOVEMENT SENSITIVITY. Hidden on a fine pointer, because it describes a control that device
        does not have — the same rule #touchCtl and the keyboard legend already follow.
          ⚠️ NO SWITCH BESIDE IT, unlike Sound. There is no "off" for steering.
          ⚠️ NO LONGER THE ZONE'S WIDTH, and that stopped being true when the absolute map was removed.
@@ -1616,14 +1638,14 @@
        seam is fixed at half and the corners keep a full quarter at every stop. -->
   <div class="setrow" id="setSens">
     <div class="st">
-      <div class="sn"><span data-t="set.sens">Touch steering</span> <span class="snv" id="sensReadout">100%</span></div>
+      <div class="sn"><span data-t="set.sens">Movement sensitivity</span> <span class="snv" id="sensReadout">100%</span></div>
       <div class="sd" data-t="set.sensD">How strongly your thumb moves the star.</div>
       <!-- ⚠️ step=5 BECAUSE IT DIVIDES 190 EXACTLY. A range steps from `min`, so with min=10 any step
            that does not divide (max-min) puts the MAXIMUM out of reach — step 15 walks 10,25,…,190 and
            200 is unselectable. The divisors of 190 are 1,2,5,10,19,38,95,190; of those, 5 is the one
            that also lands exactly on the 100 default. Same trap the follow row was fixed for. -->
       <input type="range" id="sensRange" class="rng" min="10" max="200" step="5" value="100"
-             data-ta="set.sensA" aria-label="Touch steering sensitivity">
+             data-ta="set.sensA" aria-label="Movement sensitivity">
     </div>
   </div>
 
@@ -1775,11 +1797,12 @@ function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);
   S=Math.min(1, Math.min(vw,vh)/REF_SHORT);
   W=vw/S; H=vh/S;                                      // the same viewport, in design units
-  // ...and the touch partition, still in CSS px. Capped at 0.85 so the action quarters cannot be
-  // squeezed to nothing by a slider: below ~15% of the width they stop being targets a thumb can find.
-  // ⚠️ FIXED AT HALF, no longer `min(0.85, 0.5*100/sens)`. That expression existed because the absolute
-  // map's scale WAS the zone width; both surviving models scale by a multiplier instead, so the seam has
-  // no reason to move and the action quarters keep a full quarter each at every sensitivity.
+  // ...and the touch partition, still in CSS px.
+  // ⚠️ FIXED AT HALF, no longer `min(0.85, 0.5*100/sens)` — whose 0.85 was a floor under the action
+  // quarters, keeping a slider from squeezing them below ~15% of the width. That expression existed
+  // because the absolute map's scale WAS the zone width; both surviving models scale by a multiplier
+  // instead, so the seam has no reason to move, the quarters need no floor, and each keeps a full
+  // quarter at every sensitivity.
   ZONE.x=vw*0.5; ZONE.y=vh*0.5; ZONE.vw=vw;
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
@@ -2181,12 +2204,12 @@ const L={ en:{
   // explain. ⚠️ This used to credit "the stick", which stopped existing two rewrites ago; the reason it
   // gives is a property of the zone being narrower than the screen, not of any one steering model.
   // The argument is worked properly at `STICK`.
-  'set.sens':'Touch steering',
+  'set.sens':'Movement sensitivity',
   'set.sensD':'How strongly your thumb moves the star.',
-  'set.sensA':'Touch steering sensitivity',
+  'set.sensA':'Movement sensitivity',
   'set.mode':'Steering', 'set.modeD':'Whether your thumb moves the star a distance, or steers it like a stick.',
   'set.mode.abs':'Drag', 'set.mode.stick':'Stick',
-  'set.side':'Steering side', 'set.sideD':'Which half steers, with the Overdrive and flip corners on the other.',
+  'set.side':'Steering side', 'set.sideD':'Which half of the screen steers, with Overdrive and flip on the other.',
   'set.side.l':'Left', 'set.side.r':'Right',
   'tc.move':'<b>{Mv} side</b> Steer star',
   'tc.od':'<b>Top {act}</b> Hold: Overdrive',
@@ -2395,12 +2418,12 @@ const L={ en:{
   'ctl.od':'<kbd>Shift</kbd><kbd>우클릭</kbd> 유지: 오버드라이브',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> 일시정지 &nbsp;·&nbsp; <kbd>M</kbd> 음소거',
   // 세 구역을 위치로 부릅니다. 동작이 아니라 자리를 말하는 편이 지도에 가깝고, 화면을 보면 바로 확인됩니다.
-  'set.sens':'터치 조종',
+  'set.sens':'움직임 민감도',
   'set.sensD':'엄지 움직임이 별을 얼마나 크게 움직일지 정합니다.',
-  'set.sensA':'터치 조종 감도',
+  'set.sensA':'움직임 민감도',
   'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 조종할지 정합니다.',
   'set.mode.abs':'드래그', 'set.mode.stick':'스틱',
-  'set.side':'조종 위치', 'set.sideD':'조종할 쪽을 정하고, 오버드라이브와 색 반전은 반대쪽으로 갑니다.',
+  'set.side':'조종 위치', 'set.sideD':'별을 조종할 화면의 절반을 선택합니다. 오버드라이브와 색 반전은 반대 절반에서 사용 가능합니다.',
   'set.side.l':'왼쪽', 'set.side.r':'오른쪽',
   'tc.move':'<b>{Mv}</b> 별 조종',
   'tc.od':'<b>{Act} 위</b> 유지: 오버드라이브',
@@ -10868,8 +10891,13 @@ el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
 // seam has no rendered form at any sensitivity, so the sentence described feedback that was never built
 // and justified `input` with it. `input` is still right, for the reason above; the reason it USED to
 // give was fiction. If the seam is ever drawn, this comment gets its original claim back honestly —
-// until then `set.sensD` saying the corners narrow is the only signal the player gets, which is
-// precisely why that row keeps its second sentence while every sibling makes do with one.
+// ⚠️ AND THE SENTENCE THAT FOLLOWED IT WAS FALSE IN BOTH LANGUAGES. It read "until then `set.sensD`
+// saying the corners narrow is the only signal the player gets, which is precisely why that row keeps
+// its second sentence while every sibling makes do with one." Grepped: `set.sensD` is 'How strongly your
+// thumb moves the star.' and '엄지 움직임이 별을 얼마나 크게 움직일지 정합니다.' — ONE sentence each,
+// neither mentioning a corner. There is nothing to signal either way: the corners stopped narrowing when
+// the seam was fixed at half. A claim about what a STRING says is one grep from being checked, which is
+// exactly why nobody checks it — it reads as a description rather than as an assertion.
 el('sensRange').addEventListener('input',e=>{ applyTouchSens(+e.target.value); paintSettings(); });
 // `input`, not `change`: the chase changes as the slider moves, and this panel opens from the PAUSE
 // screen, so a player tuning it has their own live field behind the overlay to judge it against rather
