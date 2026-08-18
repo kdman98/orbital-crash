@@ -12,6 +12,37 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-18
+
+### The Bestiary stops being reachable by iOS, in the two ways it still was `v2-ios` `af20d79`
+Double-tapping the roster raised the iOS selection loupe, and the Dynamic Island sat on the first card.
+One cause for both: `bestiary.html` is a **separate document** loaded as an `<iframe>`, so nothing
+index.html sets on its own `html,body` applies to it — not `user-select`, not `touch-action`, and not
+the parent's `user-scalable=no`, which governs page zoom and says nothing about gestures inside a
+subframe. Meanwhile `#bestiary` carried an inline `padding:0` that wiped `.overlay`'s three
+`max(22px,env(safe-area-inset-*))` lines.
+
+Measured in the shipping WebView, iPhone 17 Pro, landscape 874x402:
+
+| | before | after |
+|---|---|---|
+| frame body `user-select` | `text` | `none` |
+| frame body `touch-action` | `auto` | `manipulation` |
+| selectable characters | **1294** | **0** |
+| `#bestiary` padding T/R/B/L | 0,0,0,0 | 0,62,20,62 |
+| iframe rect inset T/R/B/L | 0,0,0,0 | 0,62,20,62 |
+| ✕ from raw edge | 16px | 62px |
+| page still scrolls | yes | yes |
+
+`manipulation` rather than index's `none`, because this page scrolls and `none` would end that. Sweep
+across all three safe-area classes — iPhone SE 3 (`env` 0, no notch), iPhone 14 Pro Max (59px), iPhone
+17 Pro (62px) — no horizontal overflow anywhere, and every value on SE 3 returns to the number the
+design was built on, which is what the `env()`-only rule was for.
+
+Selection goes on the standalone web page too, not only in the frame. Records, Skins and Settings were
+already unselectable by living inside index's `html,body`; the Bestiary was the one reading room where
+text could be selected, and the only reason was which document it happens to live in.
+
 ## 2026-08-14
 
 ### The tutorial HUD stops showing two numbers it was already throwing away `v2-ios` `178ebca` `ebc2005`
