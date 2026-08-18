@@ -2840,6 +2840,22 @@ differ by 60% (+6.7 vs +10.8ms); that spread is the honest error bar on any sing
 boolean test per frame when off, and it writes nothing.** It is the instrument this file spent months
 saying did not exist.
 
+⚠️ **THE ARMING IS IN `localStorage`, SO THE XCODE SCHEME CANNOT TURN IT OFF — AND THE SCHEME EDITOR IS
+WHERE PEOPLE WILL LOOK.** `App.xcscheme` ships `--probe-off` with `isEnabled="NO"`, which reads to anyone
+opening it as "the probe is off". It is not an off switch; it is **default hygiene** — it stops the
+scheme from arming anything on every Run, and it parks the flag's name where it can be found. The flag
+disarms only by *executing*, because `--probe-off` clears `orbitalcrash_probe` and a launch argument that
+is unticked never runs. So the flag survives unticking it, removing it, reinstalling the app and
+rebooting the phone: the key lives in the WebView's data container, not in the build.
+  The sequence is **tick → Run → untick → Run**, and it is four steps rather than two because
+`probeInit()` latches `PROBE.on` at boot — the launch that disarms is not the launch that comes up clean,
+the next one is. `--probe` reports `recordingNow` before re-arming, so it can answer "is it still on?" at
+the cost of turning it back on; follow it with `--probe-off` and one more launch.
+  ⚠️ **A Release build cannot reach any of this** — the whole hook is `#if DEBUG`, while `PROBE.on` lives
+in `index.html` and is not gated at all. So a profile armed under Debug keeps paying `probeSave()` every
+240 frames under Release, with nothing on screen saying so and no flag available to stop it. Disarm
+before switching configurations, or delete the app to drop the container.
+
 **It records frame INTERVALS, never JS wall time**, and that is the whole design. Canvas draw calls are
 queued, so timing the JS around them prices the enqueue and not the draw — the exact mistake that made
 every dev-pane figure worthless and inverted the cache's result. A frame whose work overruns vsync
