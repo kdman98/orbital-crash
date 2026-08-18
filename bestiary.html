@@ -151,7 +151,7 @@
     'core.nm':'The Star',
     'core.tg':'You. Steer with the mouse, click to flip your colour. That is the whole toolkit.',
     'dot.drift.nm':'Drifter',
-    'dot.drift.tg':'The plain one. Comes straight at you, in no particular hurry.',
+    'dot.drift.tg':'As plain as a Dot gets. Drifts slowly your way, meaning to hit your Star head-on.',
     'dot.fast.nm':'Dart',
     'dot.fast.tg':'Small and quick.',
     'dot.heavy.nm':'Brute',
@@ -175,6 +175,13 @@
     // you are meant to keep alive and carry, and none of that is guessable from watching it.
     'dot.planet.nm':'Unstable Planet',
     'dot.planet.tg':'Keep it inside your orbit long enough and it lets off a wave that annihilates every Dot of the other colour!',
+    // THE ONE CARD WHOSE SUBJECT IS A MARK RATHER THAN A BODY. Gilding is applied to an ordinary Dot —
+    // measured in index.html, always a fresh `drift` or `fast`, either polarity — so the hull under the
+    // ring teaches nothing and the RING is the entire lesson. Hence a Drifter's plain body at a Drifter's
+    // r, and the name carries the rest. Copy says the DEADLINE, because that is the only part of this you
+    // cannot see: the ring itself is visibly a ring, but nothing on screen says it expires.
+    'dot.gild.nm':'Gilded Bounty',
+    'dot.gild.tg':'Annihilate it in time and it pays out a bonus.',
     'boss.nm':'The Anomaly',
     'boss.tg':'The boss itself. It takes damage instead of being annihilated, so stack the damage up!',
     'anom.emitter.nm':'Emitter',
@@ -193,7 +200,7 @@
     'core.nm':'별',
     'core.tg':'나 자신입니다. 마우스로 조종하고, 클릭으로 색을 뒤집습니다. 도구는 이게 전부예요.',
     'dot.drift.nm':'떠돌이',
-    'dot.drift.tg':'평범한 입자. 서두르지 않고 곧장 다가옵니다.',
+    'dot.drift.tg':'당신을 향해 천천히 다가와 정면충돌하려는, 평범하디 평범한 입자.',
     'dot.fast.nm':'화살',
     'dot.fast.tg':'작고 빨라요!',
     'dot.heavy.nm':'덩치',
@@ -208,6 +215,10 @@
     'dot.harrier.tg':'타원형 궤도를 유지하려고 하는 입자입니다.',
     'dot.planet.nm':'불안정한 행성',
     'dot.planet.tg':'궤도 안에 충분히 오래 두면 반대 색 입자를 소멸시키는 파동을 일으킵니다!',
+    // 이름은 게임이 이미 쓰는 말 그대로 '현상금'. index.html 2375행 참고 — 한국어판이 이걸 '황금'이라
+    // 부른 적은 한 번도 없다.
+    'dot.gild.nm':'현상금',
+    'dot.gild.tg':'일정 시간 안에 잡으면 추가 점수를 줍니다.',
     'boss.nm':'변이체',
     'boss.tg':'대장 그 자체입니다. 소멸하는 대신 피해를 입으니, 피해를 누적시키세요!',
     'anom.emitter.nm':'방출체',
@@ -243,6 +254,7 @@
     {kind:'dot',type:'neutral',col:'neutral',r:15},
     {kind:'dot',type:'harrier',col:'red',    r:13},
     {kind:'dot',type:'planet', col:'cyan',   r:23},
+    {kind:'dot',type:'gild',   col:'cyan',   r:11},   // a Drifter's body on purpose — see the note by its copy
   ];
   // r is the hull AND the collider, same law as every dot row.
   const BOSS={kind:'boss',col:'red',r:37};
@@ -408,6 +420,19 @@
       ctx.fillStyle=hexA(COL.lime,0.62+0.38*bl);
       ctx.beginPath(); ctx.arc(x,y,r*(0.26+0.16*bl),0,TAU); ctx.fill();
       ctx.globalCompositeOperation='lighter';
+    } else if(s.type==='gild'){
+      // mirrors index.html's `e.gild>0` block: gold, dashed [5,4], 2.5 wide, and drawn on the CONTACT
+      // ENVELOPE `e.r + P.r` rather than on a multiple of r. That is the whole reason this mark is
+      // allowed outside a hull at all — it is the bounty's sign AND the true edge at which you die, so
+      // keeping clear of the gold is the same instruction as keeping clear of the Dot. P.r is 15 against
+      // this card's r 11, so the ring lands at 26. Same composite state as the game, which draws it under
+      // 'lighter' too (there is no source-over escape between drawEnemies' switch and the gild block).
+      //   RATE 7, THE CALM ONE. The game doubles it to 14 for the last 2 of the 6 seconds, and a card
+      // that animated the panic would be teaching the timer instead of the silhouette — the Planet's
+      // fixed mid-charge above is the same call for the same reason.
+      ctx.strokeStyle=hexA(COL.gold,0.55+0.35*Math.sin(t*7));
+      ctx.lineWidth=2.5; ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.arc(x,y,r+15,0,TAU); ctx.stroke(); ctx.setLineDash([]);
     } else if(s.type==='charger'){
       const tt=Math.sin(t*3)*0.5+0.5;
       ctx.strokeStyle=hexA('#ffffff',0.4+0.5*tt); ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(x,y,r+4+6*tt,0,TAU); ctx.stroke();

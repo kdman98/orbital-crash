@@ -2171,7 +2171,22 @@ const L={ en:{
   // ---- canvas text ----
   'fx.ready':'GET READY',  'fx.skip':'tap to skip',
   'fx.purged':'ANOMALY PURGED  +{n}',
-  'fx.bounty':'BOUNTY +{n}',
+  // THE LABEL IS GONE FROM BOTH LANGUAGES — it read 'BOUNTY +{n}' / '현상금 +{n}'. Counted at the
+  // cash-in in onKill, the word was the FOURTH thing in that one frame to say "bounty": a 90px gold
+  // ring, sfx.streakMile(2), trauma +0.2, and the text. Fifth and sixth if you count what preceded it
+  // — the gold dashed ring the Dot wore for up to 6s, and sfx.buy() when it arrived. You cannot cash
+  // one of these by accident, so the noun had nothing left to add. Gold still carries the meaning:
+  // it is the reward channel (see the one-role-per-colour note by the boss erosion readout), so a
+  // bare '+750' in gold cannot be read as anything but income. The row is kept in BOTH tables, with
+  // identical content, so a translator sees the label was dropped rather than missed.
+  //   ⚠️ It is now the same SHAPE as healSignal's readout: gold, '+', no label. The two can co-occur —
+  // healSignal fires on a purge, and gilding is not gated on wavePhase (stepRunTimers is called
+  // unconditionally from step()), so a jackpot cashed as the Anomaly dies prints gold '+N' at the dead
+  // Dot and gold '+N' at the star. They cannot SMEAR — the occupancy nudge at the top of pushText
+  // steps a clashing label up 20px on a 64x20 test, five times if it has to. And two rewards mistaken
+  // for each other cost nothing: the fault docs/MECHANICS.md documents is income mistaken for INJURY,
+  // opposite meanings a few pixels apart, and that pair is still separated by sign AND by colour.
+  'fx.bounty':'+{n}',
   'fx.poked':'Charger Poked!',
   'fx.achv':'Achievement · {name}',
   'log.sec':'s',
@@ -2370,7 +2385,7 @@ const L={ en:{
   // ---- canvas text ----
   'fx.ready':'준비',  'fx.skip':'탭하면 건너뜁니다',
   'fx.purged':'변이체 소멸  +{n}',
-  'fx.bounty':'현상금 +{n}',
+  'fx.bounty':'+{n}',
   'fx.poked':'쐐기 명중!',
   'fx.achv':'업적 · {name}',
   'log.sec':'초',
@@ -7099,8 +7114,15 @@ function stepAnnihilation(){
                   // the same figure twice, in two colours, in the busiest frame the game has. Author:
                   // "somewhat not fun and explaining". Same second-encoding fault as the chain text.
                   // The gold line says WHAT HAPPENED; the red/cyan number underneath says how much.
-                  //   Mixed case is the minor design tell, and it is the only mixed-case string in the
-                  // world layer — every other one is a caps readout (BOUNTY +, STREAK BURST, EPOCH II).
+                  //   Mixed case is the minor design tell, and it is still the only mixed-case string in
+                  // the world layer. Counted over all six `pushText` call sites: '-N' taken (red), '-N'
+                  // dealt (white), '+N' heal (gold), '+N' bounty (gold), 'ANOMALY PURGED  +N' (gold), and
+                  // this. Five bare figures, one caps readout, one remark.
+                  //   ⚠️ The evidence here used to read "(BOUNTY +, STREAK BURST, EPOCH II)" and every
+                  // item was or became false: STREAK BURST was deleted for the grant pulse, EPOCH II was
+                  // never world layer at all (it is #epochcue, a DOM banner wearing text-transform), and
+                  // BOUNTY + is now a bare '+{n}'. The CLAIM was true throughout; only its support rotted
+                  // — which is why the count above is written as a count and not as a list of examples.
                   // A remark reads differently from a measurement, which is the point: this is the game
                   // reacting to something you set up, not reporting a quantity.
                   pushText(B.x,B.y-B.r-34,T('fx.poked'),COL.gold,1.15,22);

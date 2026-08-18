@@ -89,5 +89,31 @@
     for (const v of ['emitter', 'sentinel', 'bastion']) out['boss-' + v] = window.__pilot(4242, 1500, { boss: v });
     return out;
   };
+
+  // ⚠️ THE REDUCTION LIVES HERE NOW, AND IT DID NOT BEFORE — which made every "Oracle <hex>" line ever
+  // written with this harness UNREPRODUCIBLE. __suite() returns a structure; the single hex figure that
+  // gets quoted in PATCHNOTE.md and in commit messages was folded by whatever three lines the session
+  // happened to type that day, and those lines were never committed. Measured 2026-08-18: the digest
+  // for the code at 128fe97 is 6af5363e under the fold below, while three PATCHNOTE entries record
+  // b713a7 for runs of the SAME suite. Same sim, different arithmetic, and nothing on disk says which.
+  //   The failure mode that costs something is not the mismatch — it is the fix for the mismatch. A
+  // session that gets 6af5363e against a recorded b713a7 has two moves available, and re-deriving the
+  // old fold until the numbers agree is the cheaper one AND produces a green tick. Pin the fold to the
+  // file so that move stops existing.
+  //   HOW TO USE IT: run __digest() before your change and after it, and compare those two. Do NOT
+  // compare against a number copied out of a document — the baseline is whatever HEAD produces on the
+  // machine you are on right now, which is one `git show HEAD:index.html > .baseline.html` away.
+  //   AND PROVE THE COMPARISON CAN FAIL. An unchanged digest is the same output a broken harness gives.
+  // The cheap control: perturb one behavioural constant in the baseline copy and confirm the digest
+  // moves. `const rew=250*act` in the Gilded Bounty block -> 251 shifted 4 of the 6 runs by exactly +1
+  // (6af5363e -> 3706274a); a render-only or string-only edit must leave it identical.
+  window.__digest = function (out) {
+    out = out || window.__suite();
+    const str = Object.keys(out).sort()
+      .map(k => k + ':' + out[k].fps.join(',') + '|' + JSON.stringify(out[k].end)).join(';');
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h.toString(16);
+  };
   return 'harness ready';
 })()
