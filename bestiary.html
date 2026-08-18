@@ -40,7 +40,24 @@
      move this with it; a grep for the literal is the only link between them. */
   :root{--red:#ff3f6c;--cyan:#38e0ff;--neutral:#c7b8ff;--violet:#9b6bff;--gold:#ffcf4d;--dim:#8494ba;--ink:#eaf2ff;}
   *{box-sizing:border-box;}
-  html,body{margin:0;}
+  /* ⚠️ THE TOUCH HARDENING INDEX.HTML HAS ON ITS OWN html,body, BECAUSE NONE OF IT REACHES HERE.
+     This page is opened as an <iframe> inside index.html, and neither `touch-action` nor
+     `user-select` crosses a frame boundary — nor does the parent's `user-scalable=no`, which governs
+     page zoom and says nothing about the gestures inside a subframe. Measured in the shipping
+     WebView on an iPhone 17 Pro, the parent body reported `user-select:none / touch-action:none` and
+     this body reported `user-select:text / touch-action:auto` with 1294 selectable characters. The
+     symptom was a double tap anywhere in the roster raising the iOS selection loupe.
+       `manipulation`, NOT index's `none`: this page SCROLLS and `none` would kill that outright.
+     `manipulation` keeps panning and pinch, and drops exactly the double-tap-to-zoom gesture.
+       Selection goes on the standalone page too, not just in the frame. Records, Skins and Settings
+     are all unselectable already because they live inside index's html,body rule — the Bestiary was
+     the only reading room in the product where text could be selected, and the gate that made it so
+     was an accident of which document it lives in. */
+  html,body{margin:0;
+    -webkit-user-select:none;user-select:none;
+    -webkit-touch-callout:none;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;}
   /* Centre-lit like the game's own overlay, and on --bg's value, rather than a top-lit navy of its own. */
   body{background:radial-gradient(120% 90% at 50% 34%,#0d1730 0%,#070b18 58%,#060814 100%);
     color:var(--ink);min-height:100vh;padding:30px 20px 52px;
