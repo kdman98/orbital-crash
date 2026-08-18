@@ -306,9 +306,9 @@
      lands in the middle of a quarter rather than on its extreme corner. ⚠️ This is the one part of the
      scheme argued from ergonomics rather than measured — it wants a real thumb on a real phone. */
   /* A row describing a control this device does not have is the same lie #controls was hidden for. */
-  #setSens{display:none;}
+  #setSens,#setMode,#setSide{display:none;}
   @media (pointer:coarse){
-    #setSens{display:flex;}
+    #setSens,#setMode,#setSide{display:flex;}
     #muteBtn,#motionBtn{display:none;}
     #pauseBtn{top:16px;bottom:auto;}
     /* ⚠️ FOUND ON THE DEVICE, NOT IN THE BROWSER: the Overdrive button rendered "오버드라이브 SHIFT 유지"
@@ -1557,9 +1557,38 @@
        and ears" and a two-item wardrobe in its own room would look like a system pretending to be one.
        Moved out on the author's call — see the #skins panel, which is where that argument is answered.) -->
 
+  <!-- STEERING MODEL. Two touch controls, both shipped, neither retired.
+         ⚠️ THE SENSITIVITY ROW BELOW SERVES BOTH, and the number means the same thing in each — see the
+       identity argued at `stickK`. That is why this is a mode switch and not a second slider: there is
+       one scale, read two ways.
+         `.on` lights DRAG rather than lighting "the enabled one", because neither is enabled — it marks
+       the row as moved off its default, which is the only thing a two-way choice can usefully show. -->
+  <div class="setrow" id="setMode">
+    <div class="st">
+      <div class="sn" data-t="set.mode">Steering</div>
+      <div class="sd" data-t="set.modeD">Whether your thumb sets the star's position, or only moves it.</div>
+    </div>
+    <button class="sw" id="swMode">Point</button>
+  </div>
+
+  <!-- WHICH SIDE STEERS. Mirrors the zones AND the words that name them; see `sideVars`. -->
+  <div class="setrow" id="setSide">
+    <div class="st">
+      <div class="sn" data-t="set.side">Steering side</div>
+      <div class="sd" data-t="set.sideD">Which half steers, with the Overdrive and flip corners on the other.</div>
+    </div>
+    <button class="sw" id="swSide">Left</button>
+  </div>
+
   <!-- TOUCH STEERING SENSITIVITY. Hidden on a fine pointer, because it describes a control that device
        does not have — the same rule #touchCtl and the keyboard legend already follow.
-         ⚠️ NO SWITCH BESIDE IT, unlike Sound. There is no "off" for steering. -->
+         ⚠️ NO SWITCH BESIDE IT, unlike Sound. There is no "off" for steering.
+         ⚠️ STILL THE ZONE'S WIDTH IN BOTH MODES, and drag mode does not strictly need it to be. Drag
+       could have taken its gain from a free multiplier and left the seam at 50%, keeping the action
+       quarters full width at every stop. It shares the zone instead so that the seam does not JUMP when
+       you switch modes, and so `stickK` stays the single source of the scale — one number moving one
+       geometry, rather than two knobs that happen to agree. The cost is that low sensitivity narrows the
+       corners in drag mode too, for a reason drag mode does not have. -->
   <div class="setrow" id="setSens">
     <div class="st">
       <div class="sn"><span data-t="set.sens">Touch steering</span> <span class="snv" id="sensReadout">100%</span></div>
@@ -1703,6 +1732,11 @@ let W=REF_SHORT,H=REF_SHORT,DPR=1,S=1;   // seeded finite: a 0-viewport at boot 
 // put both seams at 0 and drop EVERY touch into the same zone, which is a control scheme that looks
 // like it is working right up until nothing steers. See `zoneOf`.
 const ZONE={x:REF_SHORT/2, y:REF_SHORT/2,
+  // The viewport width, cached beside the seams and for the same reason they are: with the move zone on
+  // the RIGHT its near edge is `vw - x`, so `zoneOf` needs the width on every touch. Reading
+  // `innerWidth` per event would reintroduce exactly the per-event viewport read this block exists to
+  // avoid, and would carry the 0-viewport hazard documented in `resize()` into the input path.
+  vw:REF_SHORT,
   // ⚠️ THE SENSITIVITY LIVES HERE, NOT ON `store`, AND THE REASON IS ORDER. `resize()` is called at load
   // (see the bottom of this block) and `store` is declared ~80 lines further down, so reading
   // `store.touchSens` from resize() is a temporal-dead-zone ReferenceError at boot — the exact class of
@@ -1723,7 +1757,7 @@ function resize(){
   W=vw/S; H=vh/S;                                      // the same viewport, in design units
   // ...and the touch partition, still in CSS px. Capped at 0.85 so the action quarters cannot be
   // squeezed to nothing by a slider: below ~15% of the width they stop being targets a thumb can find.
-  ZONE.x=vw*Math.min(0.85, 0.5*100/ZONE.sens); ZONE.y=vh*0.5;
+  ZONE.x=vw*Math.min(0.85, 0.5*100/ZONE.sens); ZONE.y=vh*0.5; ZONE.vw=vw;
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
   ctx.setTransform(S*DPR,0,0,S*DPR,0,0);               // one transform carries both scales
@@ -1971,6 +2005,28 @@ const store={
   // quarters. A slider that pretended otherwise would either stop the thumb reaching the arena edges or
   // start bending the diagonals.
   touchSens:clamp(num('orbitalcrash_touchsens',100),60,100),
+  // TOUCH STEERING MODEL, 'map' (shipped) or 'drag'. Default 'map', so nobody's control changes under
+  // them on update.
+  //   ⚠️ THE SENSITIVITY ABOVE MEANS THE SAME THING IN BOTH, AND THAT IS NOT A COINCIDENCE — it is an
+  // identity. Map mode's per-pixel gain is `1/k = W/zoneWidth`; substitute `zoneWidth = vw*0.5*(100/sens)`
+  // and `W = vw/S` and it reduces to `2*(sens/100)/S` design units per CSS px, with the `vw` cancelling.
+  // Drag mode multiplies by that same expression directly. So at 100% both move the star 2.00x the thumb
+  // ON SCREEN, at 80% both 1.60x, at 60% both 1.20x — one number, one meaning, no second scale to learn.
+  //   The two differ in WHERE the travel is measured from, which is the whole choice: map reads absolute
+  // thumb POSITION (one spot on the glass is one spot in the arena, all run), drag reads thumb TRAVEL
+  // (only movement counts, so a lift-and-regrip banks nothing and the whole side stays usable).
+  //   ⚠️ `drag` IS THE MODEL v2 RETIRED, restored deliberately as an OPTION rather than as the default.
+  // It was rejected as the ONLY control because the thumb-to-star relationship drifts with every
+  // re-grip; that objection is about not being able to escape it, and it does not transfer to a choice.
+  // See the STICK block for the full tombstone.
+  touchMode:(LS.getItem('orbitalcrash_touchmode')==='drag')?'drag':'map',
+  // WHICH SIDE STEERS. false = move zone on the left (shipped). true = move zone on the right, with the
+  // Overdrive and flip quarters mirrored to the left.
+  //   ⚠️ IT REWRITES COPY, NOT ONLY GEOMETRY. Three legend rows and three tutorial lines NAME a side in
+  // both languages, and a control that moved while the words did not would be worse than no option at
+  // all — the tutorial would be instructing the player to press the wrong half. The strings carry
+  // `{mv}`/`{act}` tokens for this and are resolved through `sideVars()`; see the applier.
+  moveRight:LS.getItem('orbitalcrash_moveright')==='1',
   // POINTER FOLLOW SENSITIVITY, 1-100, where 100 is the shipped chase AND the maximum.
   //   ⚠️ STORED AS AN INTEGER PERCENT, NOT AS THE MULTIPLIER, so the slider, the readout and the
   // localStorage value are all the same number and none of them has to round. `FOLLOW.sens` is the
@@ -2028,6 +2084,8 @@ function save(){
     LS.setItem('orbitalcrash_mute',store.mute?'1':'0');
     LS.setItem('orbitalcrash_vol',store.vol);
     LS.setItem('orbitalcrash_touchsens',store.touchSens);
+    LS.setItem('orbitalcrash_touchmode',store.touchMode);
+    LS.setItem('orbitalcrash_moveright',store.moveRight?'1':'0');
     LS.setItem('orbitalcrash_followsens',store.followSens);
     LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
@@ -2103,9 +2161,13 @@ const L={ en:{
   'set.sens':'Touch steering',
   'set.sensD':'How far the star travels for a given sweep of your thumb. Lower is finer: it widens the steering zone, so the Overdrive and Flip corners get narrower to match.',
   'set.sensA':'Touch steering sensitivity',
-  'tc.move':'<b>Left side</b> Steer star',
-  'tc.od':'<b>Top right</b> Hold: Overdrive',
-  'tc.flip':'<b>Bottom right</b> Reverse poles',
+  'set.mode':'Steering', 'set.modeD':"Whether your thumb sets the star's position, or only moves it.",
+  'set.mode.map':'Point', 'set.mode.drag':'Drag',
+  'set.side':'Steering side', 'set.sideD':'Which half steers, with the Overdrive and flip corners on the other.',
+  'set.side.l':'Left', 'set.side.r':'Right',
+  'tc.move':'<b>{Mv} side</b> Steer star',
+  'tc.od':'<b>Top {act}</b> Hold: Overdrive',
+  'tc.flip':'<b>Bottom {act}</b> Reverse poles',
   'btn.motion':'Reduces the shaking and flashing effects.',
 
   // ---- canvas text ----
@@ -2184,7 +2246,7 @@ const L={ en:{
   'tut.doneH':'Shall we play the real game now?',
   'tut.play':'Enter the field',
   'tut.1.desktop':'Move the mouse',
-  'tut.1.touch':'Drag the left side',
+  'tut.1.touch':'Drag the {mv} side',
   'tut.1.ok':"That's how you move!",
   'tut.2':'Look at your current colour, and get close to the same-coloured dots!',
   'tut.2.note':'{n} / 4 gathered',
@@ -2193,10 +2255,10 @@ const L={ en:{
   'tut.3.note':'{n} / 5 cleared',
   'tut.3.ok':'That is how you clear Dots out.',
   'tut.4.desktop':'Click to flip your colour.',
-  'tut.4.touch':'Press the bottom right to flip your colour.',
+  'tut.4.touch':'Press the bottom {act} to flip your colour.',
   'tut.4.ok':'Focus — friend and foe have just swapped colours!',
   'tut.5.desktop':'Hold Shift to enter Overdrive and sweep Dots in a wider, faster circle.',
-  'tut.5.touch':'Hold the top right to enter Overdrive and sweep Dots in a wider, faster circle.',
+  'tut.5.touch':'Hold the top {act} to enter Overdrive and sweep Dots in a wider, faster circle.',
   'tut.5.noteOn':'burning',
   'tut.5.noteOff':'The Overdrive is charged!',
   'tut.5.noteSpent':'The Overdrive is spent!',
@@ -2301,9 +2363,13 @@ const L={ en:{
   'set.sens':'터치 조종',
   'set.sensD':'엄지를 같은 거리만큼 움직였을 때 별이 얼마나 가는지를 정합니다. 낮출수록 조종이 섬세해지고, 대신 조종 영역이 넓어져서 오버드라이브와 색 반전 구역이 그만큼 좁아집니다.',
   'set.sensA':'터치 조종 감도',
-  'tc.move':'<b>왼쪽</b> 별 조종',
-  'tc.od':'<b>오른쪽 위</b> 유지: 오버드라이브',
-  'tc.flip':'<b>오른쪽 아래</b> 색 반전',
+  'set.mode':'조종 방식', 'set.modeD':'엄지의 위치로 별을 두거나, 움직인 만큼만 옮깁니다.',
+  'set.mode.map':'위치', 'set.mode.drag':'드래그',
+  'set.side':'조종 위치', 'set.sideD':'조종할 쪽을 정하고, 오버드라이브와 색 반전은 반대쪽으로 갑니다.',
+  'set.side.l':'왼쪽', 'set.side.r':'오른쪽',
+  'tc.move':'<b>{Mv}</b> 별 조종',
+  'tc.od':'<b>{Act} 위</b> 유지: 오버드라이브',
+  'tc.flip':'<b>{Act} 아래</b> 색 반전',
   'btn.motion':'흔들리거나 번쩍거리는 효과를 줄입니다.',
 
   // ---- canvas text ----
@@ -2371,7 +2437,7 @@ const L={ en:{
   'tut.doneH':'이제 본 게임을 해볼까요?',
   'tut.play':'게임 시작',
   'tut.1.desktop':'마우스를 움직여 보세요',
-  'tut.1.touch':'왼쪽을 드래그해 보세요',
+  'tut.1.touch':'{Mv}을 드래그해 보세요',
   'tut.1.ok':'그렇게 움직이시면 돼요!',
   'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
   'tut.2.note':'{n} / 4 수집',
@@ -2380,10 +2446,10 @@ const L={ en:{
   'tut.3.note':'{n} / 5 제거',
   'tut.3.ok':'이렇게 입자들을 제거할 수 있어요.',
   'tut.4.desktop':'클릭해서 색을 뒤집으세요.',
-  'tut.4.touch':'오른쪽 아래를 눌러 색을 뒤집으세요.',
+  'tut.4.touch':'{Act} 아래를 눌러 색을 뒤집으세요.',
   'tut.4.ok':'집중하세요, 적과 아군은 이제 반대 색상이니까요!',
   'tut.5.desktop':'Shift를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
-  'tut.5.touch':'오른쪽 위를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
+  'tut.5.touch':'{Act} 위를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
   'tut.5.noteOn':'연소 중',
   'tut.5.noteOff':'오버드라이브는 충전되어 있어요!',
   'tut.5.noteSpent':'충전된 양을 다 사용했네요!',
@@ -4795,7 +4861,7 @@ const tutDev=()=>matchMedia('(pointer: coarse)').matches ? 'touch' : 'desktop';
 // a mouse is the exact fault the old menu paragraph had. `tutDev()` picks which of the three WHOLE
 // sentences to show, so the line a player reads is theirs on every device — and, now, in every language.
 const TUT_STEPS=[
-  { say:()=>T('tut.1.'+tutDev()),
+  { say:()=>T('tut.1.'+tutDev(),sideVars()),
     setup:()=>{},
     done:()=>tutTravel>400,
     ok:()=>T('tut.1.ok') },
@@ -4809,11 +4875,11 @@ const TUT_STEPS=[
     note:()=>T('tut.3.note',{n:Math.min(tutKills,5)}),
     done:()=>tutKills>=5,
     ok:()=>T('tut.3.ok') },
-  { say:()=>T('tut.4.'+tutDev()),
+  { say:()=>T('tut.4.'+tutDev(),sideVars()),
     setup:()=>{ for(let i=0;i<5;i++) tutDrop(P.polarity); },
     done:()=>tutFlips>=1,
     ok:()=>T('tut.4.ok') },
-  { say:()=>T('tut.5.'+tutDev()),
+  { say:()=>T('tut.5.'+tutDev(),sideVars()),
     setup:()=>{ P.charge=1; for(let i=0;i<8;i++) tutDrop(Math.random()<0.5?'red':'cyan'); },
     // ⚠️ THREE STATES, NOT TWO, AND THE THIRD ONE IS THE COMMON CASE. `noteOff` used to cover everything
     // that was not burning — including a meter the player had just emptied. A full meter is exactly 3.0s
@@ -10502,12 +10568,28 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('records').classList.
 // streak line and possibly an Anomaly's tip on screen — and `updateHUD` only runs from frameBody while
 // state is 'play'/'ready', which paused is not. Left to itself the HUD would sit in the old language on
 // the one screen where all of it is still and readable.
+// THE SIDE WORDS, resolved at paint time instead of baked into a second set of strings. Six strings name
+// a side across two languages, so a mirrored copy would be twelve more to keep in sync — and the pairs
+// differ only in the word itself. Korean needs no case (`Mv===mv`) and no particle change either: 왼쪽
+// and 오른쪽 both end in ㄱ, so 을 is correct for each and the rest of every sentence holds still.
+//   ⚠️ THIS IS THE HALF THE GEOMETRY CANNOT DO. Mirroring the zones without mirroring these words leaves
+// the tutorial telling a player to press the half that no longer flips, which is worse than not offering
+// the option — a wrong instruction in a tutorial is the one place the game cannot be argued with.
+function sideVars(){
+  const ko=store.lang==='ko', cap=w=>ko?w:w[0].toUpperCase()+w.slice(1);
+  const mv =store.moveRight ? (ko?'오른쪽':'right') : (ko?'왼쪽':'left');
+  const act=store.moveRight ? (ko?'왼쪽':'left')    : (ko?'오른쪽':'right');
+  return {mv, act, Mv:cap(mv), Act:cap(act)};
+}
 function applyLang(){
   document.documentElement.lang=store.lang;
-  document.querySelectorAll('[data-t]' ).forEach(n=>{ n.textContent=T(n.dataset.t);  });
-  document.querySelectorAll('[data-th]').forEach(n=>{ n.innerHTML  =T(n.dataset.th); });
-  document.querySelectorAll('[data-tt]').forEach(n=>{ n.title      =T(n.dataset.tt); });
-  document.querySelectorAll('[data-ta]').forEach(n=>{ n.setAttribute('aria-label',T(n.dataset.ta)); });
+  // Every loop gets the side words. Harmless on the strings that carry no token — T() leaves an unknown
+  // `{x}` exactly as it found it, so the 20-odd existing tokens ({n}, {name}, {r}…) are untouched.
+  const sv=sideVars();
+  document.querySelectorAll('[data-t]' ).forEach(n=>{ n.textContent=T(n.dataset.t ,sv); });
+  document.querySelectorAll('[data-th]').forEach(n=>{ n.innerHTML  =T(n.dataset.th,sv); });
+  document.querySelectorAll('[data-tt]').forEach(n=>{ n.title      =T(n.dataset.tt,sv); });
+  document.querySelectorAll('[data-ta]').forEach(n=>{ n.setAttribute('aria-label',T(n.dataset.ta,sv)); });
   // Painted here and not only in paintSettings, which runs on OPEN: the markup ships "English", so a
   // Korean player who never opened this panel had a pill sitting on the wrong word until they did.
   // The menu selector shows BOTH labels always; only which one is lit changes.
@@ -10677,6 +10759,10 @@ function paintSettings(){
   // assigning `value` mid-drag snaps the handle back under the finger to whatever the last committed
   // number was — the control fights you, and only on slow drags, which is the hardest kind of bug to
   // reproduce on purpose.
+  // The two touch models and the two sides. Not `sw()` above: that helper prints on/off, and neither of
+  // these rows has an off — both print the name of the state they are IN.
+  const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='drag'); bm.textContent=T('set.mode.'+store.touchMode); }
+  const bs=el('swSide'); if(bs){ bs.classList.toggle('on', store.moveRight); bs.textContent=T(store.moveRight?'set.side.r':'set.side.l'); }
   const sr=el('sensRange');
   if(sr && document.activeElement!==sr) sr.value=store.touchSens;
   const so=el('sensReadout'); if(so) so.textContent=store.touchSens+'%';
@@ -10718,6 +10804,14 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('skins').classList.co
 // language during a run, and the pause panel is not where you would look for it.
 function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
 el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
+el('swMode').onclick  =()=>{ store.touchMode=(store.touchMode==='drag')?'map':'drag'; save(); paintSettings(); };
+// ⚠️ `applyLang()` IS NOT OPTIONAL HERE, and it is what separates this row from every other switch. The
+// legend and three tutorial lines NAME the side, and they are painted once by the data-t loops rather
+// than per frame — flip the geometry without re-running them and the game spends the rest of the session
+// telling the player to press the half that no longer does anything.
+//   `tutBarCache` too: the tutorial bar skips the DOM write when its html is unchanged, and the cache
+// outlives a settings visit. Clearing it forces the next tutPaint through with the new wording.
+el('swSide').onclick  =()=>{ store.moveRight=!store.moveRight; save(); tutBarCache=''; applyLang(); paintSettings(); };
 el('swCb').onclick    =()=>{ store.cb=!store.cb; save(); applyPalette(); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
@@ -10881,11 +10975,51 @@ const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
 // which is the other half of what was wrong before: the rate model's flat 14/frame ceiling made a touch
 // player ~5× slower across open ground than a mouse player, and no absolute model can reintroduce that
 // because it never names a speed at all.
+// THE ONE SCALE BOTH MODELS SHARE. Map mode fits the arena into the zone with it; drag mode multiplies
+// thumb travel by its reciprocal.
+//   ⚠️ DRAG'S GAIN IS DERIVED FROM THIS EXPRESSION, NOT FROM THE ALGEBRA IT REDUCES TO. `1/k` equals
+// `2*(sens/100)/S` design units per CSS px only while the zone is WIDTH-bound, and `Math.min` is what
+// decides that: on a landscape phone `zw/W` is 0.25 against `zh/H` 0.50, so width binds and the two
+// agree — but a tablet or a portrait viewport can bind on height, and there the closed form is simply
+// wrong. Sharing the expression makes the modes identical on every viewport by construction, instead of
+// by a coincidence that holds on the hardware someone happened to measure.
+function stickK(){ return Math.min(ZONE.x/W, (ZONE.y*2)/H); }
+// WHERE THE MOVE ZONE STARTS, in CSS px. 0 normally; with the zones inverted the zone is flush to the
+// right edge, so everything that reads a thumb x has to subtract this first.
+function stickX0(){ return store.moveRight ? (ZONE.vw-ZONE.x) : 0; }
+
 function stickSet(x,y){
   const zw=ZONE.x, zh=ZONE.y*2;                 // the move zone, in CSS px
-  const k=Math.min(zw/W, zh/H);                 // letterbox: fit the arena into the zone, one scale
-  const ox=(zw-W*k)/2, oy=(zh-H*k)*STICK.bandY;
+  const k=stickK();                             // letterbox: fit the arena into the zone, one scale
+  const ox=stickX0()+(zw-W*k)/2, oy=(zh-H*k)*STICK.bandY;
   pointer.x=(x-ox)/k; pointer.y=(y-oy)/k; pointer.has=true;
+}
+// ---- DRAG MODE. Only TRAVEL counts, so the target accumulates instead of being assigned. ----
+// ⚠️ THE ACCUMULATOR IS CLAMPED TO THE ARENA, and it has to be. Left unbounded, a sweep past the edge
+// banks travel the player cannot see, and the drag back spends that debt before the star moves at all —
+// a control that stops responding for exactly as long as you overshot it. Clamping at the boundary
+// makes an overshoot cost nothing, which is the behaviour a trackpad against a screen edge already has.
+let stickRef={x:0,y:0};       // the last thumb position, in CSS px — the reference travel is measured from
+function stickMove(x,y){
+  if(store.touchMode!=='drag'){ stickSet(x,y); return; }
+  const k=stickK();
+  pointer.x=clamp(pointer.x+(x-stickRef.x)/k, 0, W);
+  pointer.y=clamp(pointer.y+(y-stickRef.y)/k, 0, H);
+  stickRef.x=x; stickRef.y=y; pointer.has=true;
+}
+// ⚠️ THE GRAB IS THE WHOLE DIFFERENCE BETWEEN THE TWO MODELS, so it is one function and not a flag
+// buried in the handler. Map mode ASSIGNS on touch-down: the star starts travelling the moment the thumb
+// lands, because a position is being read. Drag mode assigns NOTHING and only sets the reference, so
+// grabbing never moves the star and a lift-and-regrip is free.
+//   Deliberately NOT `reanchorPointer()` for the drag case, though it looks like the same job: that sets
+// `settleT=1.0`, which caps the follow speed for a second so a resuming run glides rather than
+// teleports. On a grab that cap is a full second of sluggish first drag, on every single touch-down.
+function stickGrab(x,y){
+  if(store.touchMode==='drag'){
+    stickRef.x=x; stickRef.y=y;
+    if(P){ pointer.x=P.x; pointer.y=P.y; }    // accumulate from where the star actually is
+    pointer.has=true;
+  } else stickSet(x,y);
 }
 // The star must STOP where it is when the thumb lifts, not keep chasing the last target it was given.
 // reanchorPointer() puts the target back on the core and caps the follow speed briefly, which is the
@@ -10898,14 +11032,14 @@ function stickClear(){ stickId=null; reanchorPointer(); }
 // Those are design units: on a phone S is about 0.5, so W/2 is roughly the full screen width and every
 // touch on the device would resolve to 'move'.
 function zoneOf(x,y){
-  if(x<ZONE.x) return 'move';
+  if(store.moveRight ? (x>=ZONE.vw-ZONE.x) : (x<ZONE.x)) return 'move';
   return y<ZONE.y ? 'od' : 'flip';
 }
 
 canvas.addEventListener('pointermove',e=>{
   if(!isTouch(e)){ setPointer(e.clientX,e.clientY); return; }
   if(e.pointerId!==stickId) return;                       // ignore every finger but the steering one
-  stickSet(e.clientX,e.clientY);
+  stickMove(e.clientX,e.clientY);
 });
 canvas.addEventListener('pointerdown',e=>{
   audioInit();   // the first gesture of a session lands on an HTML button, which never reaches the
@@ -10925,10 +11059,13 @@ canvas.addEventListener('pointerdown',e=>{
   switch(zoneOf(e.clientX,e.clientY)){
     // First finger into the half owns the stick. A second one there is ignored rather than stealing it:
     // a palm or a resting knuckle must not take the steering away from the thumb that is using it.
-    // The touch-down sets the REFERENCE and banks nothing, so grabbing the stick never moves the star —
-    // which is also what makes a re-grip free: lift, put the thumb anywhere, and only travel from there
-    // counts. The old floating origin had to be placed carefully for the same reason and could not.
-    case 'move': if(stickId===null){ stickId=e.pointerId; stickSet(e.clientX,e.clientY); } break;
+    // ⚠️ THE THREE LINES THAT STOOD HERE DESCRIBED A CONTROL THIS BRANCH DID NOT HAVE. They said the
+    // touch-down "sets the REFERENCE and banks nothing, so grabbing the stick never moves the star",
+    // which was true of the DISPLACEMENT model and survived its deletion — under the absolute map
+    // `stickSet` assigns a target on contact, so a touch-down at zone x=200 sends the star to arena
+    // x≈796 immediately. The sentence is true again now, but only in `drag` mode, which is exactly why
+    // it could sit here reading correctly for two models it did not describe. See `stickGrab`.
+    case 'move': if(stickId===null){ stickId=e.pointerId; stickGrab(e.clientX,e.clientY); } break;
     case 'od':   if(odTouchId===null){ odTouchId=e.pointerId; overdrive(); } break;
     default:     flip();                                  // ON PRESS — see the top of this block
   }
@@ -11479,15 +11616,22 @@ window.__orbital=window.__polaris=window.__flux={
   // to assert the partition without synthesising a single event. `stick()` reports the live vector and
   // its floating origin, so a recorded drag can be checked against the speed it was supposed to ask for.
   zoneOf, STICK, get ZONE(){return {...ZONE};},
-  // `pending` is CSS px banked since the last tick and `unitsPerCssPx` is what they will become, so a
-  // harness can assert the mapping without owning a finger. There is no ceiling to report any more —
-  // that was the defect (see the STICK block), and a displacement control does not have one.
-  // `unitsPerCssPx` is the letterbox scale — one thumb pixel in arena units, the same on both axes by
-  // construction. `band` is where the live strip actually is in CSS px, which is the thing to check when
-  // the control feels like it has a dead edge.
-  stick(){ const zw=ZONE.x, zh=ZONE.y*2, k=Math.min(zw/W, zh/H);
-           return {id:stickId, unitsPerCssPx:+(1/k).toFixed(3), bandY:STICK.bandY,
+  // ⚠️ THE `pending` FIELD THIS COMMENT USED TO DESCRIBE HAS NOT EXISTED SINCE THE DISPLACEMENT MODEL
+  // WAS RETIRED, and the sentence after it ("a displacement control does not have one") described that
+  // same deleted control. Both read as current prose for two whole models. Kept as a note rather than
+  // deleted silently, because this is the third stale-comment instance in the touch block alone.
+  //   `unitsPerCssPx` is the scale BOTH modes share — one thumb pixel in arena units, identical on each
+  // axis by construction. It is read off `stickK()` rather than recomputed here: the probe restating the
+  // formula is how a probe comes to disagree with the thing it measures, which is worse than no probe.
+  //   `band` is where the live strip actually is in CSS px — the thing to check when the control feels
+  // like it has a dead edge. `x0` is the zone's left edge, 0 normally and non-zero when mirrored.
+  //   `mode` and `ref` are what a harness needs to tell the two controls apart: in 'drag' the target
+  // accumulates from `ref` and a touch-down banks nothing, in 'map' it is assigned outright.
+  stick(){ const zh=ZONE.y*2, k=stickK();
+           return {id:stickId, mode:store.touchMode, moveRight:store.moveRight,
+                   unitsPerCssPx:+(1/k).toFixed(3), bandY:STICK.bandY, x0:+stickX0().toFixed(1),
                    band:{top:+((zh-H*k)*STICK.bandY).toFixed(1), h:+(H*k).toFixed(1)},
+                   ref:{x:stickRef.x, y:stickRef.y},
                    target:{x:+pointer.x.toFixed(1), y:+pointer.y.toFixed(1), has:pointer.has}}; },
   // `SKY.every` is the repaint cadence — set it to 1 for the no-cache arm. The frame numbers come off
   // `probe()` below, which is the only frame instrument in the file; see the note where the second one
