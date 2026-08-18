@@ -11540,7 +11540,19 @@ const sfx={
   //   ⚠️ NOT `mote()`, and not because it was forgotten. Motes are collected at `d<P.r+8` — at the core
   // — so every pickup happens in the same place, and panning them would encode the Star's position as
   // if it were the event's. A cue that reports a position it does not have is the fault at bomb().
-  kill(c,x){ const f=380+Math.min(c,40)*22; beep(f,0.06,'square',0.06,0,panAt(x)); },
+  // ⚠️ PITCH LOWERED, AND THE RISE HALVED. This read 380 + min(combo,40)*22, i.e. 380 Hz cold and
+  // 1260 Hz at a 40 streak, on a SQUARE wave — the brightest timbre in this file, and the one whose odd
+  // harmonics make a high fundamental read as piercing rather than merely high. Author: the pop is too
+  // high. It is now 300 Hz cold and 740 Hz at the cap.
+  //   THE COMBO TERM IS WHY IT GOT WORSE RATHER THAN STAYING PUT. This fires 5.6 times a second in a
+  // late fight and its pitch tracks the streak, so the ceiling is only reached by players who hold long
+  // chains — and the commit before this one started PAYING for long chains. Making the streak worth
+  // more made the loudest, brightest version of this cue the one you hear most. A reward that gets
+  // shriller the better you play is punishing the behaviour it is meant to encourage.
+  //   Kept the rise rather than flattening it: the pitch climbing with the chain is real feedback, and
+  // the complaint was the register, not the mapping. Halved to 11/kill so the cue still moves without
+  // arriving anywhere sharp.
+  kill(c,x){ const f=300+Math.min(c,40)*11; beep(f,0.06,'square',0.06,0,panAt(x)); },
   // THE EVERY-TENTH-KILL STING. Took a `c` (the combo) and never read it — a dead parameter the call
   // site was dutifully filling in. Dropped rather than wired up: scaling the pitch by streak was
   // considered and declined, because the HUD's no-hit streak line is the identification channel for
