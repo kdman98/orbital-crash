@@ -486,24 +486,21 @@
      buttons read — is what the .55/.94 wash already was, and it flattens the picture to get there. */
   /* ⚠️ THE MENU'S SECONDARY BUTTONS ARE OPAQUE, AND ONLY THE MENU'S. Everywhere else in this game a
      control sits on a .94 wash over a near-black field, so a 5% white fill is a perfectly good button
-     — it is the wash that carries it. On key art there is no wash to carry anything: measured, `.door`
-     shipped rgba(255,255,255,.05) and `.tut` rgba(56,224,255,.10), which over a lit nebula is not a
-     button, it is a rumour. The primary needed nothing; its gradient was already opaque.
+     — it is the wash that carries it. On key art there is no wash to carry anything: measured, `.tut`
+     shipped rgba(56,224,255,.10), which over a lit nebula is not a button, it is a rumour. (The same
+     measurement condemned `.door` at rgba(255,255,255,.05); those are gone with the practice modes.)
+     The primary needed nothing; its gradient was already opaque.
        Scoped to #menu so the panels that still sit on the old wash keep the treatment tuned for it. */
   #menu .btn.sm.tut{background:rgba(10,15,28,.92);
     box-shadow:0 0 0 1.5px rgba(56,224,255,.66) inset;}
   #menu .btn.sm.tut:hover{background:rgba(17,25,44,.95);}
-  #menu .door{background:rgba(10,15,28,.92);
-    box-shadow:0 0 0 1px rgba(172,202,242,.34) inset;}
-  #menu .door:hover{background:rgba(19,28,48,.96);}
   /* The two text-only rows have no box to make opaque, so they get weight and a shadow instead —
      they are read against whatever the art happens to be doing behind them. */
-  #menu .doornote{opacity:1;color:#8ea6c8;text-shadow:0 1px 6px rgba(0,0,0,.9);}
   #menu .ref{text-shadow:0 1px 6px rgba(0,0,0,.9);}
   /* ⚠️ z-index:-1 AND NOT 0, AND THIS WAS A REAL BUG FOR AS LONG AS THE SCRIM HAS EXISTED. The scrim is
      a BACKDROP — its whole job is to darken the key art so the menu can be read over it. At `z-index:0`
      it was doing the opposite to half the menu, because CSS paints a POSITIONED element (even at z-index
-     0) in a later layer than a non-positioned block. `.refs`, `.titlewrap`, `.btn` and `.doors` are all
+     0) in a later layer than a non-positioned block. `.refs`, `.titlewrap` and `.btn` are all
      plain in-flow blocks, so the scrim was painting ON TOP OF THEM — and at the bottom stop of the
      landscape ramp that is rgba(4,6,14,.94), i.e. the links were being read through 94% black.
        The tell that finally caught it: `.contact` looked BRIGHTER than the links, while being #8494ba
@@ -639,29 +636,16 @@
       box-shadow:0 0 0 2px rgba(56,224,255,.95) inset;}
   }
 
-  /* MENU SIDE DOORS. Two of these start a run and two open a page over the menu, and until now all
-     four were the same ghost pill in one column, told apart by an 8px-vs-12px margin. The shape says
-     it instead: a box you press to leave the menu, a link you press to read something and come back.
-     No @media anywhere — this file has none — so the pair is sized off the container, not the
-     viewport: min(100%,384px) is already inside the overlay's 22px padding, which min(46vw,…) is not,
-     and that is the difference between fitting a 375px phone and overrunning it by a hair.
-       EDIT BUDGET: each cell gives its second line 165px, and the longest one
-     currently sets 150px. Under that and both cells hold one line on a desktop and wrap to a matched
-     two on a phone; over it and one cell wraps while its neighbour does not, which is the one way
-     this pair can look broken. Measure, do not count characters — 368px left only 7px of slack. */
-  .doors{display:flex;gap:10px;justify-content:center;width:min(100%,384px);margin-top:15px;}
-  .door{flex:1 1 0;min-width:0;pointer-events:auto;cursor:pointer;border:none;font-family:inherit;
-    text-align:center;padding:11px 11px 12px;border-radius:15px;background:rgba(255,255,255,.05);
-    box-shadow:0 0 0 1px rgba(255,255,255,.13) inset;transition:transform .12s ease,background .12s ease;}
-  .door:hover{background:rgba(255,255,255,.1);}
-  .door:active{transform:translateY(2px) scale(.98);}
-  .door .dn{display:block;color:var(--ink);font-size:15px;font-weight:800;letter-spacing:.04em;}
-  /* Sits under the boxes and above a gap, so there is now exactly one group it can be read against.
-     Hung between the two pairs, it could have been captioning either. */
-  .doornote{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);opacity:.75;margin-top:9px;}
-  /* THE DEPTH SELECTOR borrows the doornote's label treatment on purpose: it is the same KIND of thing,
-     a quiet line qualifying the loud button above it, and giving it a voice of its own would make the
-     menu read as having two headline controls instead of one. */
+  /* `.doors`/`.door` stood here — the two practice doors and the shape that told them apart from the
+     link row. Removed with the modes. `.dn` went with them; it was the inner label span and had no
+     other user. `.doornote` went too: it captioned the doors with `menu.note` ("Practice only · neither
+     can set your best"), and it had ALREADY lost its element before this removal — the rules and the
+     translated string outlived the markup, unnoticed, while a comment down at openRecords still cited
+     it as the place the player was told. See that note. */
+  /* THE DEPTH SELECTOR carries the label treatment the removed `.doornote` used to define — a quiet line
+     qualifying the loud button above it, rather than a voice of its own, which would make the menu read
+     as having two headline controls instead of one. `.depthlab` holds those values directly now; it
+     always did, and only the rationale pointed at the other rule. */
   .deadrow{display:flex;gap:10px;margin-top:12px;justify-content:center;flex-wrap:wrap;}
   .depth{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:11px;flex-wrap:wrap;}
   /* --dim2 and no opacity multiplier, same as `.contact` and for the same measured reason. This row is
@@ -1007,13 +991,18 @@
     /* THE UI GOES ROUND THE EDGE AND THE PICTURE KEEPS THE MIDDLE. A single column — centred or
        flush-left — spends the one axis this screen has plenty of (844px of width) to save the one it
        has none of (390px of height), and then sits on the subject anyway. A grid puts the title across
-       the top, the two entry points on the row under it, the practice modes and the links along the
-       bottom, and leaves row 3 empty for the binary to show through.
-         Row 3 is `1fr`: it takes whatever is left after the real rows, so the opening shrinks on a
-       shorter screen instead of the controls colliding. */
+       the top, the two entry points on the row under it, and the note and links along the bottom,
+       leaving a row empty for the binary to show through.
+         ⚠️ THE TEMPLATE LOST TWO ROWS WITH THE PRACTICE DOORS. It ran `auto 1fr auto auto 1fr auto auto`:
+       the doors owned row 4 and `.doornote` — which captioned them, and had already lost its element —
+       owned row 6. Both are gone, the links moved up from row 7 to row 5, and the template is five rows.
+       An emptied `auto` row would have collapsed to nothing at `row-gap:0` and cost no pixels; they are
+       removed because a row nothing can ever occupy is a trap for the next person placing by number.
+         The second row is `1fr`: it takes whatever is left after the real rows, so the opening shrinks
+       on a shorter screen instead of the controls colliding. */
     #menu.overlay{display:grid;align-content:stretch;justify-items:center;
       grid-template-columns:1fr 1fr;
-      grid-template-rows:auto 1fr auto auto 1fr auto auto;
+      grid-template-rows:auto 1fr auto 1fr auto;
       column-gap:min(6vw,44px);row-gap:0;
       /* ⚠️ THE SIDE PADDING IS A CONTENT WIDTH, NOT A MARGIN. With plain 22px gutters the two columns
          spread to the full screen, so on a 1280px desktop the buttons sit at the bezels and the art
@@ -1040,46 +1029,39 @@
     #menu #depthSel{grid-column:1;grid-row:2;justify-self:start;align-self:end;margin-bottom:9px;}
     #menu .btn:not(.sm){grid-column:1;grid-row:3;margin:0;justify-self:start;}   /* 게임 시작   */
     #menu .btn.sm.tut  {grid-column:2;grid-row:3;margin:0;justify-self:end;}     /* 튜토리얼    */
-    /* ⚠️ `display:contents` DISSOLVES `.doors` SO ITS TWO CHILDREN BECOME GRID ITEMS DIRECTLY. It is
-       a flex row everywhere else and has to stay one — this is the only branch that needs its pair
-       split across two columns, and restructuring the markup for it would change every other layout. */
-    #menu .doors       {display:contents;}
-    #menu .doors .door:first-child{grid-column:1;grid-row:4;justify-self:start;margin-top:9px;}
-    #menu .doors .door:last-child {grid-column:2;grid-row:4;justify-self:end;margin-top:9px;}
     /* ⚠️ THESE WERE BOTH IN ROW 5 AND LANDED ON TOP OF EACH OTHER. Grid does not push siblings apart
        the way flow does — two items given the same row and column simply stack. Separate rows. */
     /* ⚠️ MEASURED, NOT EYEBALLED: the bottom cluster ran to 97.9% of frame height before this — the
        links row was touching the bezel and sharing that strip with the contact e-mail. The note also
        ships at 10px in --dim, which is legible on a flat wash and is not legible over a planet limb,
        so it takes a size and a step of brightness here and nowhere else. */
-    /* ⚠️ BRIGHTER HERE, AND ONLY HERE. `.doornote` ships 10px in --dim and `.ref` 13px in --ink with a
-       24%-white underline — all tuned against a flat .94 wash, where dim grey IS the quiet register.
-       Over a planet limb the same values are simply not readable, which is what the author reported.
-       These take size, weight and a hard shadow rather than a scrim, because the rows sit low enough
-       that darkening the band that far would put a black bar across the bottom of the picture. */
-    #menu .doornote    {grid-column:1/3;grid-row:6;margin-top:4px;font-size:11px;color:#c2d3ea;
-      text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95);}
+    /* ⚠️ BRIGHTER HERE, AND ONLY HERE. `.ref` ships 13px in --ink with a 24%-white underline, tuned
+       against a flat .94 wash where dim grey IS the quiet register. Over a planet limb the same values
+       are simply not readable, which is what the author reported. It takes size, weight and a hard
+       shadow rather than a scrim, because the row sits low enough that darkening the band that far
+       would put a black bar across the bottom of the picture. (`.doornote` was the other half of this
+       pair and is gone with the practice doors it captioned.) */
     /* ⚠️ THE LINKS SIT ON THE PLANET LIMB, WHICH IS THE BRIGHTEST THING IN THE LOWER FRAME, so white
        text on a shadow is not enough on its own — a shadow darkens what is behind each glyph, and the
        limb's rim is brighter than the shadow is dark. The row gets its own backing instead, sized to
        the links rather than to the screen so it reads as a control strip and not as a black bar across
        the picture. Lifted clear of the bezel in the same pass; it was bottoming out at 95.4%. */
-    #menu .refs        {grid-column:1/3;grid-row:7;margin-top:2px;margin-bottom:6px;
+    #menu .refs        {grid-column:1/3;grid-row:5;margin-top:2px;margin-bottom:6px;
       background:rgba(5,8,16,.62);border-radius:100px;padding:3px 16px 4px;}
     #menu .ref{color:#ffffff;font-size:15px;border-bottom-color:rgba(255,255,255,.62);
       text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95);}
     /* One size for all four: the author asked for 게임 시작 to match 튜토리얼, and the practice pair
        to match those. Colour still separates the primary — it is the only opaque cyan on the screen. */
-    /* ⚠️ FIXED HEIGHT AND FLEX CENTRING, NOT PADDING. Padding + font-size left the doors 41px against
-       the buttons' 42, because a `.door` renders its label through an inner `.dn` span carrying its own
-       size and line-height while a `.btn` holds text directly — so identical padding still produced
-       different content boxes. Matching the span's font-size did not close it either; line-height
-       rounding kept a pixel. Setting the box and centring inside it makes the four identical by
-       construction rather than by two typographic values agreeing, which they were never going to. */
-    #menu .btn:not(.sm),#menu .btn.sm.tut,#menu .door{
+    /* ⚠️ FIXED HEIGHT AND FLEX CENTRING, NOT PADDING, AND THE REASON OUTLIVED THE CASE THAT FOUND IT.
+       Padding + font-size left the doors 41px against the buttons' 42, because a `.door` rendered its
+       label through an inner `.dn` span carrying its own size and line-height while a `.btn` holds text
+       directly — identical padding, different content boxes, and matching the span's font-size did not
+       close it because line-height rounding kept a pixel. The doors are gone and the two survivors are
+       both `.btn`, so that particular mismatch cannot recur; the box is still set explicitly because
+       making a size true by construction beats making it true by two typographic values agreeing. */
+    #menu .btn:not(.sm),#menu .btn.sm.tut{
       width:min(240px,30vw);height:44px;padding:0;font-size:16px;border-radius:100px;
       display:flex;align-items:center;justify-content:center;}
-    #menu .door .dn{font-size:16px;}
     /* ⚠️ `.ttrail` IS IN THIS LIST AND IT IS THE ONE I MISSED FIRST TIME. The trail particles are
        children of `.titlewrap`, NOT of `.tdot`, so hiding the dots left 28 of them still orbiting
        across the buttons — visible only intermittently, because they move. Hiding a parent does not
@@ -1125,9 +1107,6 @@
     .titlewrap{margin-bottom:20px;}   /* the rings shrink with the type here, so the clearance can too */
     .btn.tut{padding:9px 24px;font-size:14px;}
     #startBtn{margin-top:8px;}   /* the gap follows the SECOND button — see the base rule */
-    .doors{margin-top:7px;}
-    .door{padding:8px 10px 9px;}
-    .doornote{margin-top:4px;}
     .refs{margin-top:8px;}
     /* .btn keeps its size. It is the primary action and 44px is Apple's minimum touch target;
        buying 5px here would be the one saving that costs someone a missed tap. */
@@ -1188,10 +1167,10 @@
   /* #controls is the same lie one screen further in: it sits in the corner of a LIVE RUN telling a
      touchscreen player to use a mouse, Shift and right-click, and now that tilt is the only steering
      even "MOUSE STEER STAR" is wrong about the one thing it most needs to be right about. It goes with
-     the menu legend. #modeKeys lives inside it and is keyboard-only by nature, so it goes too.
+     the menu legend.
        A TOUCH DEVICE NOW GETS ITS OWN LEGEND BACK — see #touchCtl. Hiding the keyboard one was right
      and leaving nothing in its place stopped being right the moment touch steered again. Two legends
-     rather than one rewritten in JS, because #controls carries #modeKeys and the Lab writes into it. */
+     rather than one rewritten in JS, because the two legends answer to different input devices. */
   @media (pointer:coarse){ .hint,#controls{display:none;} }
   /* ⚠️ THE POINTER FOLLOW ROW IS FINE-POINTER ONLY *ON THIS BRANCH*, AND THE RULE INVERTS ON THE MERGE.
      Touch here is the rate stick: `stepStick` writes P directly and clears `pointer.has`, so the chase
@@ -1365,7 +1344,6 @@
   html[lang="ko"] .rcH{letter-spacing:.1em;}
   html[lang="ko"] .ref{letter-spacing:.04em;}
   html[lang="ko"] .skinnm{letter-spacing:.04em;}
-  html[lang="ko"] .doornote{letter-spacing:.06em;}
   html[lang="ko"] .loglab{letter-spacing:.1em;}
   html[lang="ko"] .hint{letter-spacing:.02em;}
   html[lang="ko"] #controls .cr{letter-spacing:.02em;}
@@ -1420,9 +1398,6 @@
     <div class="cr" data-th="ctl.flip"><kbd>Space</kbd><kbd>Click</kbd> Reverse poles</div>
     <div class="cr" data-th="ctl.od"><kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive</div>
     <div class="cr" data-th="ctl.pause"><kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute</div>
-    <!-- Mode keys (Boss Rush / Pattern Lab). Empty and hidden on a normal run — these hints used to
-         live in the Epoch slot at the top of the screen, which is a NAME slot, not a keymap. -->
-    <div class="cr hidden" id="modeKeys"></div>
   </div>
   <!-- THE TOUCH LEGEND. The keyboard one above is hidden on coarse pointers because it advertises a
        mouse, Shift and right-click to a device with none of them; for a while nothing replaced it,
@@ -1504,27 +1479,11 @@
     <span class="depthlab" data-t="menu.depth">Begin at</span>
     <span class="depthpills" id="depthPills"></span>
   </div>
-  <!-- No glyph prefixes and no em-dash explainers. Four ghost buttons each carrying a different
-       decorative mark read as a menu assembled by something that had never seen a menu.
-         They then sat as four IDENTICAL ghost pills in one column, which was the same mistake with the
-       decoration taken off: a column of five pills reads as a list of five equal things, and these are
-       one door, two rooms and two pages. Grouped now — the modes side by side as a pair, the pages as
-       links — so the shape carries what the margins were being asked to.
-         "Pattern Lab" is the one label here a first-time player cannot decode: Boss Rush, Bestiary and
-       and the Bestiary are conventions they have met before, and that one is ours. Hence the line under it.
-         Both lines are built to hold ONE line inside the cell, and they open on the same word so the
-       pair scans as a pair. The Lab's line said "on keys 1-5" first and the range broke across the
-       wrap, orphaning a lone "5" — the exact keys live in the HUD legend the moment you are inside,
-       so the menu only has to say that this room answers to the keyboard. -->
-  <div class="doors">
-    <button class="door" id="arenaBtn"><span class="dn" data-t="menu.rush">Boss Rush</span></button>
-    <button class="door" id="labBtn"><span class="dn" data-t="menu.lab">Pattern Lab</span></button>
-  </div>
-  <!-- ⚠️ THE "연습 전용 · 최고 기록이 남지 않습니다" NOTE IS GONE, BY REQUEST, AND IT TOOK A REAL FACT
-       WITH IT: both practice modes are score-sandboxed, and nothing in the UI says so any more. That
-       is acceptable only because the two doors are themselves scheduled for removal before production
-       — if they survive instead, the sandboxing needs a home again, because a player who sets a good
-       score in Boss Rush and finds it absent has been misled by omission. -->
+  <!-- The two practice doors stood here. They are gone, which RESOLVES the note that used to follow
+       them: the deleted "practice only · neither can set your best" warning was acceptable only on the
+       condition that the doors went before production, and this is that condition being met rather
+       than deferred again. Nothing now reaches the field except Survival and the tutorial, so there is
+       no unsandboxed score left to warn about. -->
   <!-- Three links, since the Codex was deleted. They fit one row at every width the game supports; the
        2x2 fallback that carried four on a phone went with the fourth. -->
   <div class="refs">
@@ -2166,8 +2125,6 @@ const L={ en:{
   // taught by the counter dropping to zero when you are hit.
   'hud.streak':'{n} streak',
   'hud.epoch':'EPOCH {r} · {name}',
-  'hud.lab':'PATTERN LAB',  'hud.rush':'BOSS RUSH',
-  'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> Change Anomaly',
   'hud.bossHunt':'IT IS GOING TO RAM YOU!',
   // The Singularity's Draw runs through `b.hunt`, so without these it inherited the line above and told
   // you to dodge a thing that cannot be dodged. Both name a MOVEMENT answer, which is this line's rule.
@@ -2215,8 +2172,6 @@ const L={ en:{
   // ---- menu ----
   'menu.start':'Enter the field',
   'menu.tut':'How to play',
-  'menu.rush':'Boss Rush',  'menu.lab':'Pattern Lab',
-  'menu.note':'Practice only · neither can set your best',
   'menu.depth':'Begin at',
   'card.from':'Started at Epoch {e}',
   'dead.share':'Share',
@@ -2320,8 +2275,6 @@ const L={ en:{
   'msl.mine':'Anomaly Mine',      'msl.spear':'Anomaly Spear',    'msl.other':'Anomaly Missile',
   'msl.orb':'Anomaly Screen',
   'act.0':'Nebula',  'act.1':'Aurora',  'act.2':'Eclipse',  'act.3':'Meteor Shower',
-  'lab.wall':'Wall',  'lab.noose':'Noose',  'lab.pulse':'Pulse',
-  'lab.cross':'Cross','lab.comet':'Comet',  'lab.drift':'Drift',
   // ⚠️ NAME · THREAT · ANSWER, one term each. These sit on the Anomaly's integrity bar and are read
   // mid-fight with something shooting at you; a sentence there is a sentence nobody finishes.
   'anom.emitter.tip' :'EMITTER · BARRAGE · CROSS IT',
@@ -2376,8 +2329,6 @@ const L={ en:{
   // 숫자와 단위 사이의 한 칸: `23콤보`는 붙여 읽히고 `23 콤보`는 세어 읽힌다. HUD에서 이건 세는 수다.
   'hud.streak':'{n} 콤보',
   'hud.epoch':'{n}단계 · {name}',
-  'hud.lab':'패턴 실험실',  'hud.rush':'보스 러시',
-  'hud.rushKeys':'<kbd>1</kbd>–<kbd>{n}</kbd> 변이체 교체',
   // The HUNT. Every Anomaly eventually breaks station and walks at your core for 6-8s, and this line
   // displaces its standing tip for exactly that window. Author's phrasing — the narrator speaking for
   // the thing, which is the voice the tutorial acknowledgements already use.
@@ -2410,8 +2361,6 @@ const L={ en:{
   // ---- menu ----
   'menu.start':'게임 시작',
   'menu.tut':'튜토리얼',
-  'menu.rush':'보스 러시',  'menu.lab':'패턴 실험실',
-  'menu.note':'연습 전용 · 최고 기록이 남지 않습니다',
   'menu.depth':'시작 단계',
   'card.from':'{e}단계에서 시작한 판',
   'dead.share':'공유하기',
@@ -2502,8 +2451,11 @@ const L={ en:{
   //   떠돌이 and 표류 stay apart on purpose, and ⚠️ THE THING THEY ARE APART FROM HAS MOVED. This used
   // to name the Epoch — "EPOCH I · DRIFT" ran while Drifters were in the field — and the Epochs are
   // celestial now, so that pairing cannot happen. The collision it was guarding did not go away with
-  // it: `lab.drift` is still 표류, and the Pattern Lab legend prints it while 떠돌이 are on screen.
-  // Same rule, one slot over. A note that names the site instead of the rule dies when the site moves.
+  // it — it moved to `lab.drift`, which the Pattern Lab legend printed while 떠돌이 were on screen.
+  //   ⚠️ AND IT HAS NOW MOVED A SECOND TIME, TO NOWHERE: the practice doors are gone, `lab.drift` went
+  // with them, and no live slot renders 표류 beside 떠돌이 any more. THE RULE OUTLIVES BOTH SITES and is
+  // the only part worth keeping — the two must stay apart wherever they next meet. This note has now
+  // watched its own closing sentence come true twice, which is the argument for writing it that way.
   //   행성 / 위성 is a pair the English does not have. The Harrier is too fast to turn, so your field
   // cannot pull it in — it catches it into a long orbit and it circles you until it runs out of speed.
   // A satellite is what it becomes, and it names the one property a still image cannot show.
@@ -2516,8 +2468,6 @@ const L={ en:{
   'msl.mine':'변이체 지뢰',        'msl.spear':'변이체 창',       'msl.other':'변이체 발사체',
   'msl.orb':'변이체 방벽',
   'act.0':'성운',  'act.1':'극광',  'act.2':'월식',  'act.3':'유성우',
-  'lab.wall':'장벽',  'lab.noose':'올가미',  'lab.pulse':'파동',
-  'lab.cross':'십자',  'lab.comet':'혜성',    'lab.drift':'표류',
   // 이름 · 위협 · 대응, 한 단어씩. Read mid-fight with something shooting at you.
   'anom.emitter.tip' :'방출체 · 탄막 · 횡단',
   'anom.emitter.tip3':'방출체 · 돌진 · 회피',
@@ -2652,7 +2602,7 @@ function grantAchv(id){
   // rows, four were reachable in Boss Rush. It is the same condition the best
   // score and the records list already share: one condition, now three consumers, wrong together or
   // right together.
-  if(testMode||labMode||tutMode) return;
+  if(tutMode) return;
   const ac=ACHV.find(x=>x.id===id);
   // ⚠️ THE `dev` REFUSAL IS THE LOCK ITSELF, not a belt-and-braces check on top of one. Everything else
   // gating a `dev` row — no caller, no trigger, no UI — is an absence, and an absence is one careless
@@ -2898,10 +2848,11 @@ let grantPulse=0;
 function capGrant(){ grantPulse=1; }
 // THE INTEGRITY GRANT PULSE — the same overlay on the other bar, and it exists for a stronger version
 // of the same reason. IN SURVIVAL the purge is the only thing that ever moves this bar to the right:
-// the 2.6/s out-of-combat regen still exists but is fenced inside `if(testMode||labMode||tutMode)` (see
-// the note at stepPlayer, which is where that fence and its reasoning live). So a rightward jump here
+// the 2.6/s out-of-combat regen still exists but is fenced inside `if(tutMode)` (see the note at
+// stepPlayer, which is where that fence and its reasoning live) — it read `testMode||labMode||tutMode`
+// until the practice doors were removed. So a rightward jump here
 // is not merely uncaused, it is the single most valuable event in the economy, and it was landing
-// silently under a screen-wide white flash. The practice rooms' trickle raises no pulse at all, and
+// silently under a screen-wide white flash. The tutorial's trickle raises no pulse at all, and
 // that is correct rather than an omission: this is driven by `healSignal`, which reports a GRANT, not
 // by the bar's width — a continuous creep has no moment to point at.
 //   Separate `let` rather than reusing `grantPulse` because the two grants are independent: a purge
@@ -4384,13 +4335,6 @@ function formComet(){
 // wall clock) it adds ~0.014/s, under a fifth of ambient. Same argument, re-derived for six rather
 // than the sixteen it was first written for — the ratio changed, the reasoning did not.
 const FORMS=[formWall,formNoose,formPulse,formCross];
-const LAB_SHAPES=[formWall,formNoose,formPulse,formCross,formComet,formNeutralDrift];   // Lab: on demand
-// ⚠️ THE LAB LEGEND IS DERIVED FROM THIS ARRAY, and it did not used to be. `updateHUD` carried the string
-// '1 2 3 4 5  Wall · Noose · Pulse · Sorter · Comet' as a hardcoded literal POSITIONALLY COUPLED to
-// LAB_SHAPES — so removing one shape silently made key 4 fire a different pattern than the HUD named, with
-// nothing anywhere to catch it. Two lists in two files that must agree, and only one of them was code.
-// Keep this in step with the line above and the legend follows; the key COUNT can no longer drift at all.
-const LAB_KEYS=['wall','noose','pulse','cross','comet','drift'];   // names live in L under `lab.<key>`
 // The first one lands early enough that a short run still sees one; after that they space out, and
 // the timer PAUSES during a boss (an Anomaly is already the thing demanding your attention).
 let formT=rand(9,16), lastForm=-1;
@@ -4443,23 +4387,12 @@ function onBossCleared(){
 function director(dt){
   elapsed+=dt;
   intensity += (intensityTarget-intensity)*Math.min(1,dt*1.4);
-  // BOSS RUSH: no Epoch phases — keep one Anomaly alive over a LIVE ambient field (dots still spawn, like a
-  // real Epoch fight), and cycle to the next kind on kill. The colour bias still shifts so there's ammo.
-  if(testMode){
-    biasTimer-=dt; if(biasTimer<=0){ biasTimer=rand(3.2,5.5); spawnBias = spawnBias==='red'?'cyan':'red'; }
-    intensityTarget=0.62;                        // steady boss-fight pressure
-    if(boss && !boss.dead) bossTime+=dt;         // kept ticking for the HUD; nothing reads it as a deadline any more
-    else testNext();
-    doSpawns(dt);                                // ambient dots — a real environment, not an empty arena
-    if(boss) updateBoss(dt);
-    return;
-  }
   // shifting colour waves: dominant incoming colour alternates every few seconds
   biasTimer-=dt;
   if(biasTimer<=0){ biasTimer=rand(3.2,5.5); spawnBias = spawnBias==='red'?'cyan':'red'; }
   // an irregular FORMATION now and then — only once the drizzle has established a rhythm worth
   // breaking, and never during a boss (the Anomaly is already the thing demanding your attention)
-  if(introT()>42 && wavePhase!=='boss' && !labMode){   // in the Lab nothing arrives unless you press for it
+  if(introT()>42 && wavePhase!=='boss'){
     formT-=dt;
     if(formT<=0){ formT=rand(30,46); spawnFormation(); }
     // The comet on its own, much longer clock, tuned to ~1 per 10 minutes. NOTE THIS TIMER ONLY ADVANCES
@@ -4589,7 +4522,7 @@ function doSpawns(dt){
   if(spawnTimer<=0 && enemies.length<cap){
     spawnTimer=interval;
     const count=1 + Math.floor(intensity*2.4) + Math.floor(act/2);
-    const t=testMode?INTRO_DONE:introT(); let table;   // Boss Rush and a deep start both skip the drift-only intro
+    const t=introT(); let table;   // a deep start skips the drift-only intro — introT() is what does it
     if(t<20) table=[['drift',100]];
     else if(t<45) table=[['drift',64],['fast',36]];
     // ⚠️ THE WEIGHTS BELOW ARE RELATIVE AND `wchoice` NORMALISES, so pulling `orbiter` and `split` out
@@ -4775,35 +4708,14 @@ function pickAnomalyVariant(){
   if(v===lastVariant && pool.length>1) v=pool[(pool.indexOf(v)+1)%pool.length]; // avoid back-to-back repeats
   lastVariant=v; return v;
 }
-// ---- BOSS RUSH: a testing ground where Anomalies come one after another over a LIVE ambient field
-//      (dots still spawn, like a real Epoch fight). Cycle on kill; 1-3 jump to a kind. Real damage. ----
-let testMode=false, lastWasTest=false, lastStartAct=1, testIdx=0;
-const TEST_ORDER=['emitter','sentinel','bastion','singularity'];
-function beginTestRun(){
-  act=2; boss=null; bossTime=0; testIdx=0; wavePhase='boss';
-  palCur.bg1=hx(ACTS[2].bg1); palCur.bg2=hx(ACTS[2].bg2); palCur.tint=hx(ACTS[2].tint);
-  skyInvalidate();
-  spawnBoss(TEST_ORDER[0]);
-}
-// ---- PATTERN LAB: the shapes on demand, with nothing else competing for your attention.
-// Boss Rush cannot serve this: formations are suppressed while `wavePhase==='boss'`, which is most of
-// what Boss Rush is. The Lab runs a live ambient field with NO Anomaly and no Epoch phases, and binds
-// one number key per entry in LAB_SHAPES so you can fire one, watch it resolve, and fire it again.
-// ⚠️ Do not write the COUNT here. `labFire` indexes modulo `LAB_SHAPES.length` and the HUD legend derives
-// from it, so the array is the only place the number lives — and this line said "1-5 to the five shapes"
-// through a change that made it six, which is exactly the coupling deriving the legend was meant to end.
-let labMode=false;
-// Declared here with the other two mode flags rather than down in the tutorial block, because die() and
-// the score guard read all three and a mode flag that exists only where it is written is how one of
-// these gets forgotten at the third reader.
+// OUTLIVES THE PRACTICE MODES, and is the only piece of them worth keeping: Reforge retries at the
+// depth you were actually playing. It used to sit beside `lastWasTest`, which decided WHICH MODE to
+// retry — with one mode left there is nothing to decide, so the flag went and the depth stayed.
+let lastStartAct=1;
+// Declared up here rather than down in the tutorial block, because die() and the score guard both read
+// it, and a mode flag that exists only where it is written is how one of those readers gets forgotten.
+// It was one of three; the other two were the doors.
 let tutMode=false;
-function beginLabRun(){ act=1; wavePhase='calm'; phaseT=1e9; boss=null; bossTime=0; intensityTarget=0.34; }
-function labFire(i){
-  if(!labMode || state!=='play') return;
-  const f=LAB_SHAPES[((i%LAB_SHAPES.length)+LAB_SHAPES.length)%LAB_SHAPES.length];
-  f();
-  flash=0.3; flashCol=COL.violet; if(typeof sfx!=='undefined') sfx.lance();
-}
 // ---- TUTORIAL: the five-line description that used to sit under the title, made playable ----
 // Author: "instead of tedious description under title, what about a tutorial? give simple dots and
 // explain annihilation, overdrive, and throw all kind of enemies at tutorial finish."
@@ -4811,8 +4723,9 @@ function labFire(i){
 // SIX STEPS, EACH ONE A SENTENCE AND A THING THAT MUST HAPPEN. Every `done` test reads state the game
 // already keeps — no step can be satisfied by waiting, and none of them can be failed either, which is
 // what lets steps 1-5 run with damage off without the tutorial becoming a place you get stuck.
-//   It rides on beginLabRun's trick: `phaseT=1e9` parks the wave clock so the Epoch machinery never
-// fires, and nothing arrives on the field except what a step asks for by name.
+//   `beginTutRun` sets `phaseT=1e9`, which parks the wave clock so the Epoch machinery never fires and
+// nothing arrives on the field except what a step asks for by name. The Pattern Lab opened with the
+// same line, and this note named ITS function until the practice doors were removed.
 //
 // ⚠️ STEPS 1-5 TAKE NO DAMAGE, THE FINALE DOES. Teaching someone the flip while a Dart is killing them
 // teaches nothing, and a finale that cannot hurt you does not communicate that any of this is dangerous.
@@ -5016,14 +4929,6 @@ function tutFinish(){
   el('tutDone').classList.remove('hidden');
   markTutSeen();
 }
-function testNext(){ testIdx=(testIdx+1)%TEST_ORDER.length; boss=null; lances.length=0; bossTime=0; spawnBoss(TEST_ORDER[testIdx]); }
-function testPick(i){                          // 1-3 → jump to a specific kind
-  if(!testMode || state!=='play') return;
-  testIdx=((i%TEST_ORDER.length)+TEST_ORDER.length)%TEST_ORDER.length;
-  if(boss) boss.dead=true;                      // retire the current one (culled next cleanup)
-  boss=null; lances.length=0; bossTime=0;
-  spawnBoss(TEST_ORDER[testIdx]);
-}
 function spawnBoss(forceVariant){
   const col=Math.random()<0.5?'red':'cyan';
   const variant = forceVariant || pickAnomalyVariant();
@@ -5033,9 +4938,10 @@ function spawnBoss(forceVariant){
   // the default, and updateBoss is `if sentinel / else if bastion / ELSE EMITTER`, so the stranger
   // falls into the last arm and runs the whole Emitter routine. Measured: emitter, pulsar and zzz
   // return byte-identical fingerprints over 900 frames; only bastion differs.
-  //   In PLAY this cannot fire — all six call sites pass a literal from TEST_ORDER or
-  // pickAnomalyVariant, and no variant string is ever written to localStorage, so no saved profile
-  // can carry a stale one. That is exactly the point: the only place a typo survives is a HARNESS,
+  //   In PLAY this cannot fire — and it is now stronger than when this was written, because the six
+  // call sites are ONE: `enterBoss()` calls `spawnBoss()` with no argument at all, so the variant can
+  // only come from pickAnomalyVariant. TEST_ORDER was the other five and went with the practice doors.
+  // No variant string is ever written to localStorage either, so no saved profile can carry a stale one. That is exactly the point: the only place a typo survives is a HARNESS,
   // where it does not look like a bug. It looks like a clean reproducible baseline of a real boss
   // fight, filed under the wrong kind's name, and every later run agrees with it.
   if(!(variant in HUNT_SPD)) throw new Error('spawnBoss: unknown variant '+variant);
@@ -6165,8 +6071,8 @@ function updateBoss(dt){
     }
   } else {   // EMITTER (default / teaching): ALTERNATES a hexagon crossfire BURST and a sweeping spiral
              // STREAM — and from Epoch II it LUNGES too (this absorbed the old separate 'lunger' kind,
-             // which was this exact boss with a dash bolted on). Boss Rush always shows the grown-up one.
-    const canLunge = act>=2 || testMode;   // Epoch II, not III — the grown-up Emitter arrives a run sooner
+             // which was this exact boss with a dash bolted on).
+    const canLunge = act>=2;   // Epoch II, not III — the grown-up Emitter arrives a run sooner
     if(b.lunging>0){ b.lunging-=dt; }                          // dashing (bossMove drives the position)
     else if(b.telegraph>0){ b.telegraph-=dt;
       // NOTE: tx/ty are NOT set here — `aimLunge` locked them when the wind-up began. Re-aiming on
@@ -6358,12 +6264,13 @@ function killBoss(b){
   const rew=200*act; score+=rew; purgeRew=rew;
   // THE PURGE'S WORDS MOVED TO THE EPOCH CUE — one statement in one place, not the same sentence twice
   // 200px apart. onBossCleared fires it on the very next tick and carries `purgeRew` into it.
-  //   ⚠️ THE MODES THAT NEVER REACH THAT TICK STILL NEED THIS LINE. Boss Rush kills on a loop with
-  // `act` pinned and director returning before the phase block, and a Lab boss is spawned outside the
-  // phase machine entirely — in both, `wavePhase!=='boss'`, onBossCleared never runs, and dropping the
-  // world text unconditionally would have left the practice modes with no purge readout at all. The
-  // guard is the director's own condition rather than a mode list, so a new mode cannot fall through it.
-  if(testMode || wavePhase!=='boss') pushText(b.x,b.y-32,T('fx.purged',{n:rew}), COL.gold, 1.7, 22);
+  //   ⚠️ THE GUARD STAYS THOUGH ITS TWO KNOWN CALLERS ARE GONE. It existed because Boss Rush and the
+  // Lab both killed bosses outside the phase machine, where `wavePhase!=='boss'`, onBossCleared never
+  // runs, and dropping this unconditionally left them with no purge readout. In Survival the condition
+  // is false and onBossCleared does the talking — so this is now dead in practice and kept on purpose:
+  // it is the DIRECTOR'S OWN condition rather than a mode list, which is why a new mode cannot fall
+  // through it. Deleting it would re-open exactly the hole the next mode falls into.
+  if(wavePhase!=='boss') pushText(b.x,b.y-32,T('fx.purged',{n:rew}), COL.gold, 1.7, 22);
   if(P){
     // ⚠️ PRINT WHAT WAS ACTUALLY RESTORED, NOT PURGE_HEAL. The clamp is the whole point: at 88/100 this
     // pays 12, and a hard-coded '+30' would be the game telling you it gave you something it did not.
@@ -6602,12 +6509,13 @@ function stepPlayer(dt){
   // attempted here and thrown away: `killBoss()` on sight silently ADVANCES `act`, so every row was
   // labelled with an Epoch it was not measured at, and Epoch I reported 49.2 HP/s against a ceiling of
   // 27.5 that IFRAME makes arithmetically impossible. Pin `act` every batch if anyone retries it.
-  //   ⚠️ THE PRACTICE ROOMS KEEP IT, DELIBERATELY. Boss Rush exists to teach an Anomaly's pattern and a
-  // fight costs a median 94 HP, so on survival rules it would hand you about one and a half attempts
-  // and teach nothing; the Lab and the tutorial are sandboxes for the same reason. The menu already
-  // promises these rooms are not comparable ("Practice only · neither can set your best") — this is one
-  // more way that is true, not an oversight. Survival is the only mode whose economy is the feature.
-  if(testMode||labMode||tutMode){
+  //   ⚠️ THE TUTORIAL KEEPS IT, DELIBERATELY. A sandbox that teaches has to let you fail and continue;
+  // on survival rules a learner would get about one and a half attempts and learn nothing. Survival is
+  // the only mode whose economy is the feature.
+  //   This guard used to name three modes, and the note here claimed the menu "promises these rooms are
+  // not comparable" — which had ALREADY been false for some time, since that promise was deleted from
+  // the menu by request. Both doors are gone now, so the claim is not merely stale but unreachable.
+  if(tutMode){
     P.hurtT+=dt;
     if(P.hurtT>3.8 && P.hp<P.maxHp) P.hp=Math.min(P.maxHp,P.hp+P.regen*dt);
   }
@@ -7299,9 +7207,9 @@ function stepRunTimers(dt){
   // go above the floor and it stays quiet, because you never stopped being armed.
   if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); }
   else if(P.charge<OD_MIN) chargeReady=false;
-  // Gilded Bounty: every 12-18s one Dot arrives gilded — annihilate it within 6s for a jackpot (not in the Arena)
+  // Gilded Bounty: every 12-18s one Dot arrives gilded — annihilate it within 6s for a jackpot
   gildTimer-=dt;
-  if(gildTimer<=0 && !testMode){
+  if(gildTimer<=0){
     gildTimer=rand(12,18);
     if(enemies.length<290){
       spawnAtEdge(Math.random()<0.5?'drift':'fast', Math.random()<0.5?'red':'cyan');
@@ -7893,12 +7801,13 @@ function die(){
   endOverdrive();  // stop the drain AND bank the ride into the log — a dead star does not burn Capacitor,
                    // and the ride you died in is the one you most want to see on the receipt
   let nb=false;
-  if(score>store.best && !testMode && !labMode){ store.best=score; nb=true; }  // Boss Rush pays 200*act per purge from an endless supply — it must not farm the survival best
-  // THE RECORD IS FILED UNDER EXACTLY THE SAME GUARD AS THE BEST, and that is the point rather than a
-  // convenience: Boss Rush pays 200*act per purge from an endless supply and the Lab spawns on demand,
-  // so either would flood the list with runs that are not comparable to a survival run. One condition,
-  // two consumers — if a fourth mode is ever added, both are wrong together or right together.
-  if(!testMode && !labMode && !tutMode){
+  if(score>store.best){ store.best=score; nb=true; }
+  // THE RECORD IS FILED UNDER THE SAME GUARD AS THE BEST, and that is the point rather than a
+  // convenience. The two conditions used to exclude three modes each — Boss Rush paid 200*act per purge
+  // from an endless supply and the Lab spawned on demand, so either would have flooded the list with
+  // runs no survival run is comparable to. Both doors are gone; the tutorial is the last exclusion.
+  // One condition, two consumers — if a mode is ever added back, both are wrong together or right together.
+  if(!tutMode){
     // `a0` only when it is not 1. The Epoch column would otherwise read the same for a run that
     // TRAVELLED to VII and one that STARTED at V and moved two — same glyph, different achievement.
     // Omitted at 1 so ten thousand cold-start rows do not each carry a field saying "normal".
@@ -9929,27 +9838,21 @@ function updateHUD(){
   el('collapseBtn').classList.toggle('show',armed||odOn);
   el('collapseBtn').classList.toggle('on',odOn);
   el('collapseBtn').classList.toggle('cooling',cooling);
-  // act label + biome tint (Arena shows its controls instead of the Epoch)
+  // act label + biome tint
   const info=actInfo();
   const al=el('actlab');
-  // The top-centre slot NAMES where you are — an Epoch, or the mode standing in for one, and nothing
-  // else. A keymap here puts 60 characters of "1 WALL · 2 NOOSE · …" in the one place the eye checks
-  // mid-fight; keys belong with the other keys, in the control legend.
-  const mk=el('modeKeys');
-  if(labMode){ al.textContent=T('hud.lab'); al.style.color=COL.violet;
-    mk.innerHTML=LAB_SHAPES.map((_,i)=>'<kbd>'+(i+1)+'</kbd>').join('')+' '+LAB_KEYS.map(k=>T('lab.'+k)).join(' · '); }
-  else if(testMode){ al.textContent=T('hud.rush'); al.style.color=COL.violet;
-    mk.innerHTML=T('hud.rushKeys',{n:TEST_ORDER.length}); }
-  else { const nm=T('act.'+((act-1)%ACTS.length));
+  // The top-centre slot NAMES where you are. It used to name an Epoch OR the mode standing in for one,
+  // and wrote a keymap into #modeKeys for the two practice rooms; with the doors gone there is only ever
+  // an Epoch here, and #modeKeys had no other writer, so both it and the branch went.
+  { const nm=T('act.'+((act-1)%ACTS.length));
     // toUpperCase() is a no-op on Hangul, which is the point: the CSS already declares the caps look
     // for Latin, and the Korean name simply is what it is.
     al.textContent=T('hud.epoch',{r:roman(act), n:act, name:nm.toUpperCase()}); al.style.color=info.tint; }
-  mk.classList.toggle('hidden', !(labMode||testMode));
   // boss integrity bar
   const bb=el('bossbar');
   if(boss){ bb.classList.remove('hidden'); bb.querySelector('i').style.transform=`scaleX(${clamp(boss.hp/boss.maxHp,0,1)})`;
     const ak=ANOM[boss.variant]||ANOM.emitter;
-    const tip=(ak.tip3 && (act>=2||testMode)) ? ak.tip3 : ak.tip;   // the Emitter's tip grows with it, on the epoch the dash arrives
+    const tip=(ak.tip3 && act>=2) ? ak.tip3 : ak.tip;   // the Emitter's tip grows with it, on the epoch the dash arrives
     // The hunt outranks the standing tip, and is the only thing that may displace it: it is the one
     // time the Anomaly is actively walking onto your core, it is over in a few seconds, and the answer
     // is a movement answer — which is exactly what this line is allowed to name.
@@ -10342,23 +10245,19 @@ function showHitLog(){
   wrap.scrollLeft=0;
 }
 
-// `mode`: falsy = a normal run · 'boss' = Boss Rush · 'lab' = Pattern Lab.
-// It was a boolean; a third testing mode is worth one string compare, and every existing caller
-// (including the debug seam's start() and start('boss')) keeps working unchanged.
+// `mode`: falsy = a normal run · 'tut' = the tutorial.
+// ⚠️ IT ONCE TOOK 'boss' AND 'lab' TOO, and the debug seam is the reason to say so: `start('boss')` and
+// `start('lab')` were valid from the console until the practice doors were removed, and both now fall
+// through to `mode` being merely truthy. Anything that is not 'tut' is a Survival run.
 function startRun(mode, startAct){
   audioInit();
-  labMode = (mode==='lab');
   tutMode = (mode==='tut');
   // Mirrored onto the HUD here and cleared in tutFinish, which are the ONLY two places tutMode is
   // assigned. Driving it off the flag rather than off the four sites that toggle #tutBar's `hidden`
   // keeps the stats and the bar from ever disagreeing about which mode is running.
   el('hud').classList.toggle('tut', tutMode);
-  // ⚠️ testMode is "some mode that is not survival and not the Lab", so a third string would have fallen
-  // into it silently and run the tutorial as Boss Rush. Both exclusions, explicitly.
-  testMode = !!mode && !labMode && !tutMode; lastWasTest=testMode;
-  // ONLY SURVIVAL HONOURS A DEEP START. Boss Rush pins `act` to 2 and the Lab parks the wave clock, so
-  // handing either one a start Epoch would be a silent no-op that reads like a feature. Clamped against
-  // the stored unlock as well as the cap, so a tampered save cannot open Epoch XX from the console.
+  // ONLY SURVIVAL HONOURS A DEEP START — the tutorial starts where it starts. Clamped against the stored
+  // unlock as well as the cap, so a tampered save cannot open Epoch XX from the console.
   runStartAct = (!mode && startAct) ? clamp(Math.round(startAct), 1, Math.min(store.startActMax, START_ACT_CAP)) : 1;
   lastStartAct = runStartAct;   // Reforge retries the run you were actually playing, depth included
   el('tutBar').classList.add('hidden'); el('tutDone').classList.add('hidden');
@@ -10396,7 +10295,7 @@ function startRun(mode, startAct){
   el('bestiary').classList.add('hidden'); el('records').classList.add('hidden'); // a run must never start hidden under an info overlay
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
   state='play'; lastT=performance.now(); acc=0;
-  if(labMode) beginLabRun(); else if(tutMode) beginTutRun(); else if(testMode) beginTestRun(); else beginRun();
+  if(tutMode) beginTutRun(); else beginRun();
 }
 // THE KEY ART AND THE HUD MOVE WITH THE MENU, and the HUD half is not cosmetic.
 // The score, the Epoch line, both bars and the whole key legend have ALWAYS been rendered under the
@@ -10440,9 +10339,7 @@ el('startBtn').onclick=()=>startRun(false, store.startAct);
 el('tutBtn').onclick=()=>startRun('tut');              // ✦ How to play — the six steps
 el('tutPlayBtn').onclick=()=>{ el('tutDone').classList.add('hidden'); startRun(false); };
 el('tutMenuBtn').onclick=()=>{ el('tutDone').classList.add('hidden'); toMenu(); };
-el('arenaBtn').onclick=()=>startRun('boss');           // ◆ Boss Rush — Anomalies back to back
-el('labBtn').onclick=()=>startRun('lab');              // ✳ Pattern Lab — press 1-6 to fire a shape
-el('againBtn').onclick=()=>{ startRun(lastWasTest, lastStartAct); }; // Reforge = instant retry, same mode AND same depth
+el('againBtn').onclick=()=>{ startRun(null, lastStartAct); }; // Reforge = instant retry at the same depth
 el('deadMenuBtn').onclick=()=>{ toMenu(); };
 // Bound directly rather than through a wrapper: navigator.share must be reached inside the task that
 // handled the click, and every hop between the two is a chance to lose the gesture.
@@ -10506,10 +10403,17 @@ function closeBestiary(){ el('bestiary').classList.add('hidden'); }
 // ---- RECORDS: the last RUNS_KEPT survival runs, the lifetime tally and the achievement list. Built on
 // open rather than bound once, because `store` changes every time you die. ----
 //   THE EMPTY STATE IS ONE LINE. It carried a second sentence explaining that Boss Rush and Pattern Lab
-// never record, on the grounds that a player who grinds them and finds nothing would call the feature
-// broken. ⚠️ That fact did NOT leave the game with it — `menu.note` states it in `.doornote`, sitting
-// directly under the two mode buttons, which reaches the player BEFORE they spend a run rather than
-// after. Do not restore it here on the old reasoning without checking that line still exists.
+// never record, deleted on the grounds that `menu.note` said the same thing in `.doornote` under the two
+// mode buttons, reaching the player BEFORE they spent a run. That note ended with an instruction: do not
+// restore this without checking that line still exists.
+//   ⚠️ NOBODY RAN THAT CHECK, AND IT WOULD HAVE FAILED. `.doornote` had no element in the markup and
+// `menu.note` was bound by no `data-t` anywhere — the string sat translated into both languages and
+// rendered nowhere. So the fact HAD left the game, in both places, while one comment here asserted it
+// had not and another in the menu markup correctly recorded that it had. Two notes in one file
+// disagreeing about whether the player was ever told, for as long as it took to look.
+//   Moot now rather than fixed: both practice modes are gone, so there is no unrecorded run to warn
+// about. `menu.note` and `.doornote` went with them. The lesson is the one the old note tried to leave —
+// A CLAIM THAT A FACT IS STATED ELSEWHERE IS A CLAIM TO VERIFY, not a citation to trust.
 const fmtN=n=>Math.round(n).toLocaleString();
 function openRecords(){
   const R=store.runs, Tt=store.totals;   // NOT `T` — that is the translator, and shadowing it here renders identifiers
@@ -11242,10 +11146,6 @@ window.addEventListener('keydown',e=>{
   if(k==='shift'){ e.preventDefault(); if(!e.repeat) overdrive(); } // auto-repeat is not a second press
   if(k==='p'||k==='escape'){ e.preventDefault(); togglePause(); }
   if(k==='m'){ toggleMute(); }
-  // range derives from TEST_ORDER so it can never drift from the '1-N SWITCH KIND' label again (it accepted
-  // 1-5 while only 3 kinds existed, so 4 and 5 silently wrapped round to the first two)
-  if(testMode && state==='play' && k>='1' && k<='9' && parseInt(k,10)<=TEST_ORDER.length){ e.preventDefault(); testPick(parseInt(k,10)-1); }
-  if(labMode  && state==='play' && k>='1' && k<='9' && parseInt(k,10)<=LAB_SHAPES.length){ e.preventDefault(); labFire(parseInt(k,10)-1); }
 });
 window.addEventListener('keyup',e=>{ const k=e.key.toLowerCase(); keys[k]=false; if(k==='shift') endOverdrive(); });
 // A keyup swallowed by Cmd+Tab must not leave the core drifting — and now must not leave the meter
