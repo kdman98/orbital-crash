@@ -724,7 +724,16 @@
      to move it. */
   /* Top-right of the menu, the corner every game puts this in. Absolutely positioned so it costs the
      stacked content no height — that column is measured and the short-screen branch has none to give. */
-  .langsel{position:absolute;top:16px;right:16px;display:flex;gap:2px;pointer-events:auto;
+  /* ⚠️ THE OFFSETS ARE env()-AWARE AND THE SHORT-SCREEN RULE FURTHER DOWN HAD TO BE TOO. `.langsel`
+     and `.contact` are both absolutely positioned inside `.overlay`, which is `position:fixed;inset:0`
+     — so the overlay's own env()-aware `padding:22px` does NOT inset them. An absolutely positioned
+     child resolves against the PADDING BOX, whose edges are outside the padding; this is the same trap
+     documented above #bestiary, which had never been applied on the menu. At 16px these sat 46px inside
+     a 62px landscape housing inset — and this is the branch that actually ships to a notched device.
+       max() rather than calc() so a device with no notch keeps the exact px the design was measured on
+     — the overlap figures in the clearance note above (319 vs 305, 286 vs 266) were taken at those
+     numbers, so growing them unconditionally would invalidate the fix they justify. */
+  .langsel{position:absolute;top:max(16px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:2px;pointer-events:auto;
     padding:3px;border-radius:100px;background:rgba(255,255,255,.05);
     box-shadow:0 0 0 1px rgba(255,255,255,.12) inset;}
   /* The OFF language reads --dim2 rather than --dim. It is the only unselected control on the menu, so
@@ -745,7 +754,7 @@
      position that explains it, and an email is only its characters. --dim2 with no opacity multiplier
      puts it at 6.64:1 and leaves the RANK untouched — still under ORBITAL at 7.91 and under every
      control. The hover moved from opacity to colour so there is still somewhere for it to go. */
-  .contact{position:absolute;bottom:14px;right:16px;pointer-events:auto;font-size:10px;
+  .contact{position:absolute;bottom:max(14px,env(safe-area-inset-bottom,0px));right:max(16px,env(safe-area-inset-right,0px));pointer-events:auto;font-size:10px;
     letter-spacing:.07em;color:var(--dim2);transition:color .12s ease;}
   .contact:hover{color:var(--ink);}
   /* `pointer-events:auto` for the same reason .langsel carries it, and the underline on the address
@@ -754,7 +763,12 @@
   .contact a{color:inherit;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.16);}
   .contact a:hover{color:var(--ink);border-bottom-color:currentColor;}
   .langsel button.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;}
-  @media (max-height:520px){ .langsel{top:10px;right:12px;} }
+  /* ⚠️ env() IS REPEATED HERE ON PURPOSE AND THE FIX IS DEAD WITHOUT IT. `max-height:520px` IS phone
+     landscape — 844x390 matches — which is the ONE orientation where the housing inset is non-zero.
+     A bare 10/12px here would have overridden the clearance above in exactly the case that needed it,
+     while the base rule went on computing correctly at every viewport a desktop check can produce. A
+     later override in the same sheet does what an inline style does, only less visibly. */
+  @media (max-height:520px){ .langsel{top:max(10px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));} }
   .refs{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
   /* TRUE WHITE, on the author's call, and at every viewport rather than only in the landscape branch —
      these four are the only way into RECORDS, SKINS, BESTIARY and SETTINGS, and they are read against
