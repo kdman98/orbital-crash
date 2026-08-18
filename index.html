@@ -146,17 +146,27 @@
        #best   0 -> 25.0px clear · 5,165 -> 0.8px · 48,320 -> -8.7px · 1,204,880 -> -32.5px
        #score  0 -> 17.3px clear ·    10 -> -10.8px · 100 -> -39.0px ·     1,000 -> -77.5px
      ⚠️ `#score` IS THE WORSE OF THE TWO AND IT WAS FOUND SECOND. `#best` needs five digits and a
-     returning player; `#score` needs TWO, and step 3 hands them over on its FIRST kill. Traced rather
-     than assumed, because the version of this sentence that shipped here was neither: step 3's gate is
-     `done:()=>tutKills>=5`, the kill site is `const gain=KILL_SCORE; score+=gain;` with `KILL_SCORE=20`,
-     and `tutKills++` sits between them. One annihilation is 20 points, which is already past the -10.8px
-     row above, on the first thing the step asks for.
-       ⚠️ It previously read "`score += MOTE_SCORE` … step 3 asks for five motes — every tutorial reaches
-     25 before the halfway point". Wrong twice, and the second one is not survivable: step 3 counts KILLS,
-     and Motes are shed BY annihilations (`motes.push` is inside that same handler), so a Mote can never
-     pay into the score before the kill that shed it. The 25-via-five-pickups path cannot run first. The
-     line directly under `tutKills++` says as much — *"score cannot serve, since Motes pay into it too"* —
-     so the refutation was one line below the code the claim was about. It also carries the
+     returning player; `#score` collides at 10 — but WHICH STEP you are on decides whether that matters,
+     and the trigger is the BAR rather than the score. Only step 5's line is long enough to reach the
+     540 max-width cap; a capped bar pins its left edge at (667-540)/2 = 63.5, while every narrower one
+     centres far to the right and clears. First-overlap score by step, measured by the v2 session on
+     `9039869`/`d24ef5e` and not reproduced here:
+       step 5 -> 10  ·  steps 2 and 6 -> 1,000  ·  steps 1, 3 and 4 -> 1,000,000
+     ⚠️ WHAT MAKES STEP 5 THE ONE THAT MATTERS IS THAT IT IS GUARANTEED, NOT MERELY REACHABLE. Step 3
+     gates on `done:()=>tutKills>=5` at `KILL_SCORE=20` each, and no `score+=` site carries a tutMode
+     guard, so nobody arrives at step 5 below 100 — well past the -10.8px row. The 17.3px-clear zero
+     column above cannot occur in a real run; the real minimum is -39.0px. Step 2 sits at 0 in any real
+     run because it precedes the kill step. Whether a run reaches 1,000 by step 6 is NOT established.
+       ⚠️ Two wrong versions of this paragraph shipped before this one, both asserting a mechanism
+     instead of tracing it. First: "`score += MOTE_SCORE` … step 3 asks for five motes — every tutorial
+     reaches 25 before the halfway point". Step 3 counts KILLS, and Motes are shed BY annihilations
+     (`motes.push` sits in the same handler as `score+=gain`), so a Mote cannot pay into the score
+     before the kill that shed it — and the line under `tutKills++` says exactly that. Second, mine:
+     "step 3 hands them over on its FIRST kill". Step 3's bar is one of the short ones and clears at
+     score 20 by a wide margin; the first kill changes the number, not the collision.
+       ⚠️ AND A RIG NOTE THAT COST A FOURTH VERSION: the HUD renders `score.toLocaleString()`, so any
+     sweep writing digits as `String(v)` measures a number the game never displays. The separator is
+     worth ~10px, which flipped two four-digit cells from clear to overlapping. It also carries the
      `clamp(28px,6.5vw,50px)` face rather than best's 14px, so it overlaps by 10.8px where best manages
      0.8px, and `#tutBar` is z-index 6 against the HUD's 5: the digits are covered, not blended.
        ⚠️ THE COLLISION IS LANDSCAPE-ONLY AND THAT IS WHY IT SURVIVED. In portrait `@media
