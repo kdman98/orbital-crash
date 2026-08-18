@@ -1517,7 +1517,13 @@
        lists them, so it is the only row on the menu that is pure duplication. It was also actively
        wrong half the time — it names `mouse`, `R-click` and `shift` on a touchscreen, where none of
        the three exists and the real controls are screen zones.
-         `menu.hint` stays in the i18n table on purpose: it is still the string the tutorial uses. -->
+         ⚠️ `menu.hint` WAS KEPT HERE ON A NOTE THAT SAID "it is still the string the tutorial uses".
+         It was not. The tutorial reads `tut.N.<device>` through `T('tut.1.'+tutDev())`; nothing reached
+         `menu.hint` through any of the four binding channels (`data-t`/`th`/`tt`/`ta`) or any of the
+         eleven computed prefixes. Both strings are gone. THE NOTE IS WHY IT SURVIVED A CLEANUP — a
+         comment naming a CONSUMER points somewhere else, and nobody follows the pointer, which is the
+         same way `menu.note` outlived `.doornote`. A comment saying what a thing DOES is checkable
+         against the thing; a comment saying WHO NEEDS IT is checkable only somewhere you will not go. -->
   <div class="contact"><span data-t="menu.contact">Contact</span> <a href="mailto:kdman98@naver.com">kdman98@naver.com</a></div>
 </div>
 
@@ -2210,7 +2216,6 @@ const L={ en:{
   //  THEME, so nothing reads these. Dead strings in a table this size are how a translator ends up
   //  translating a screen that does not exist.)
   'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',  'ref.skins':'Skins',
-  'menu.hint':'<kbd>mouse</kbd> steer &nbsp;·&nbsp; <kbd>click</kbd>/<kbd>space</kbd> reverse poles &nbsp;·&nbsp; <kbd>R-click</kbd>/<kbd>shift</kbd> overdrive',
   'menu.contact':'Contact',
   'bestiary.frame':'ORBITAL CRASH Bestiary',
 
@@ -2385,7 +2390,6 @@ const L={ en:{
   'skin.star.core':'코어',
   'skin.star.turret':'보루',
   'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',  'ref.skins':'외형',
-  'menu.hint':'<kbd>마우스</kbd> 조종 &nbsp;·&nbsp; <kbd>클릭</kbd>/<kbd>Space</kbd> 색 반전 &nbsp;·&nbsp; <kbd>우클릭</kbd>/<kbd>Shift</kbd> 오버드라이브',
   'menu.contact':'문의',
   'bestiary.frame':'ORBITAL CRASH 도감',
 
