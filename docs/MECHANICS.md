@@ -214,7 +214,7 @@ the powerups gone the pill had nothing left to say and went with them, which is 
 channel exists to carry something unreadable, not to be preserved.
 
 **Everything else is floating text, and floating text must be drawn where its event happened.** `-8`
-rises off the Anomaly you just bit, `BOUNTY +` off the Dot that paid, and `-8` off your own star when
+rises off the Anomaly you just bit, `+750` off the Dot that paid, and `-8` off your own star when
 something bites **you**.
 
 ⚠️ **Position is necessary and it is NOT sufficient, and this section used to claim otherwise.** It read
@@ -235,6 +235,15 @@ pixels apart. Two events cannot be separated by position when the events happen 
 
 A number in a polarity colour was also competing with the polarity read the whole game runs on, so
 moving erosion to white bought back a channel as well as fixing a collision.
+
+**The bounty carries no label any more**, so gold now prints two bare `+N` readouts: the jackpot at the
+dead Dot and `healSignal`'s Integrity grant at the star. They can co-occur — gilding is not gated on
+`wavePhase`, so a jackpot can cash on the frame an Anomaly dies. That is inside the rule rather than an
+exception to it. The rule assigns one role per colour, not one *sentence*; gold's role is reward, both of
+these are rewards, and the fault this section exists to prevent is income read as **injury** — a pair
+still separated by sign and by colour. Confusing one reward for another costs the player nothing. The
+word was also the fourth cue in that frame to say "bounty", after a 90px gold ring, `sfx.streakMile(2)`
+and a trauma kick.
 
 *Catch it:* two readouts that can fire in the same frame need two channels, and "different place" only
 counts if the places cannot coincide. (A streak announcement stood here as the
