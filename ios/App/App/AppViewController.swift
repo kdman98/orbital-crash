@@ -48,6 +48,11 @@ class AppViewController: CAPBridgeViewController {
         // retyping ~20 lines of JavaScript into Xcode's argument field, where it is stored as ONE
         // scheme string with no syntax checking and no error if you fumble a quote — it simply reports
         // ORBITAL_PROBE_ERR and looks like the probe is broken. A named flag cannot be mistyped silently.
+        // ⚠️ `--probe-off` IS NOT THE ABSENCE OF `--probe`, AND THAT IS THE WHOLE REASON IT EXISTS. The
+        // flag lives in localStorage, so it survives removing the launch argument, reinstalling, and
+        // rebooting — a player who armed it once keeps paying `probeSave()` every 240 frames forever,
+        // and nothing on screen says so. Checked BEFORE `--probe` so that passing both disarms.
+        if args.contains("--probe-off") { awaitSeam(then: Self.probeOffJS, attempt: 0); return }
         if args.contains("--probe") { awaitSeam(then: Self.probeJS, attempt: 0); return }
         guard let i = args.firstIndex(of: "--evalJS"), i + 1 < args.count else { return }
         awaitSeam(then: args[i + 1], attempt: 0)
@@ -88,6 +93,20 @@ class AppViewController: CAPBridgeViewController {
         last: last
       };
       return armed ? 'recording' : 'armed';
+    })()
+    """
+
+    /// Disarms the probe and reports the final record on the way out, because the last session's data
+    /// is worth as much as any other and disarming is otherwise the one action that silently discards it.
+    private static let probeOffJS = """
+    (function(){
+      var last=null;
+      try{ last = window.__orbital.probeLast(); }catch(e){}
+      try{ localStorage.removeItem('orbitalcrash_probe'); }catch(e){}
+      window.__probeResult = { disarmed:true,
+        next:'Probe OFF from the next launch. This session still records - probeInit() latched it at boot.',
+        last: last };
+      return 'disarmed';
     })()
     """
 
