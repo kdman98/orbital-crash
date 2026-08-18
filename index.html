@@ -146,8 +146,17 @@
        #best   0 -> 25.0px clear · 5,165 -> 0.8px · 48,320 -> -8.7px · 1,204,880 -> -32.5px
        #score  0 -> 17.3px clear ·    10 -> -10.8px · 100 -> -39.0px ·     1,000 -> -77.5px
      ⚠️ `#score` IS THE WORSE OF THE TWO AND IT WAS FOUND SECOND. `#best` needs five digits and a
-     returning player; `#score` needs TWO, because `score += MOTE_SCORE` carries no tutMode guard and
-     step 3 asks for five motes — every tutorial reaches 25 before the halfway point. It also carries the
+     returning player; `#score` needs TWO, and step 3 hands them over on its FIRST kill. Traced rather
+     than assumed, because the version of this sentence that shipped here was neither: step 3's gate is
+     `done:()=>tutKills>=5`, the kill site is `const gain=KILL_SCORE; score+=gain;` with `KILL_SCORE=20`,
+     and `tutKills++` sits between them. One annihilation is 20 points, which is already past the -10.8px
+     row above, on the first thing the step asks for.
+       ⚠️ It previously read "`score += MOTE_SCORE` … step 3 asks for five motes — every tutorial reaches
+     25 before the halfway point". Wrong twice, and the second one is not survivable: step 3 counts KILLS,
+     and Motes are shed BY annihilations (`motes.push` is inside that same handler), so a Mote can never
+     pay into the score before the kill that shed it. The 25-via-five-pickups path cannot run first. The
+     line directly under `tutKills++` says as much — *"score cannot serve, since Motes pay into it too"* —
+     so the refutation was one line below the code the claim was about. It also carries the
      `clamp(28px,6.5vw,50px)` face rather than best's 14px, so it overlaps by 10.8px where best manages
      0.8px, and `#tutBar` is z-index 6 against the HUD's 5: the digits are covered, not blended.
        ⚠️ THE COLLISION IS LANDSCAPE-ONLY AND THAT IS WHY IT SURVIVED. In portrait `@media
