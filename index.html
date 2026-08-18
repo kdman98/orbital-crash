@@ -145,11 +145,21 @@
      max-width cap, so they converge as the score does. Measured here at 667x375 landscape, ko:
        #best   0 -> 25.0px clear · 5,165 -> 0.8px · 48,320 -> -8.7px · 1,204,880 -> -32.5px
        #score  0 -> 17.3px clear ·    20 -> -10.8px ·    100 -> -39.0px
-     ⚠️ ONLY STEP 5 COLLIDES, AND THE REASON IS THE CAP RATHER THAN THE SCORE. Step 5's line is the only
-     one of the six long enough to reach the 540 cap; measured at every step, the other five clear by
-     1.6-180px at every score tested, because a bar narrower than the cap is centred and its left edge
-     sits far right of these stats. So the trigger is *which step you are on*, and the score only decides
-     how badly.
+     ⚠️ STEP 5 IS THE ONLY ONE THAT COLLIDES AT A SCORE THE TUTORIAL GUARANTEES, AND THE TRIGGER IS THE
+     CAP RATHER THAN THE SCORE. Step 5's line is the only one of the six long enough to reach the 540
+     cap; a capped bar is pinned at (vw-540)/2 while every narrower one is centred far to the right. The
+     score at which each step first overlaps, measured at 667x375 through `toLocaleString()` because
+     that is what `scoreV` is written with:
+       step 5 -> 10   ·   steps 2 and 6 -> 1,000   ·   steps 1, 3 and 4 -> 1,000,000
+     Step 2 precedes the kill step and so sits at 0 in any real run. Step 6's threshold is reachable in
+     principle and I have NOT established whether a tutorial gets there; it does not change the repair,
+     which hides both stats for all six steps.
+       ⚠️ AN EARLIER VERSION OF THIS COMMENT SAID "ONLY STEP 5 COLLIDES" AND PUT STEP 2 AT +1.6px CLEAR
+     AT A SCORE OF 1000. That measurement set the digits as "1000"; the HUD writes "1,000", and the
+     separator is worth about 10px — step 2 is -8.8px there, an overlap. The sweep varied the score and
+     held the FORMATTING fixed at a value the game never renders, which is the trap two entries down in
+     MECHANICS about enumerating one axis exhaustively and another not at all, committed by the session
+     that had just ported it. The conclusion the fix rests on is unchanged: step 5, guaranteed, >=100.
      ⚠️ AND AT STEP 5 IT IS GUARANTEED, NOT MERELY REACHABLE. Step 3 gates on `tutKills>=5` and every
      kill pays `KILL_SCORE` (20) with no tutMode guard on any `score+=` site, so a player arrives at step
      5 with **at least 100** — never the 17.3px-clear zero column. Minimum real-world gap -39.0px, and

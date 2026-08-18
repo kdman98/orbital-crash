@@ -23,17 +23,20 @@ open; author chose hide-during-tutorial.
 ⚠️ **The collision is caused by the bar's width cap, not by the score, and only one step reaches it.**
 Measured at 667x375, ko, gap from `#score`'s right edge to `#tutBar`'s left — positive is clear:
 
-| step | bar width | at cap | score 0 | 20 | 100 | 1,000 |
-|---|---|---|---|---|---|---|
-| 1 | 214.4 | no | 180.1 | 152.0 | 123.8 | 95.7 |
-| 2 | 402.6 | no | 86.0 | 57.9 | 29.7 | 1.6 |
-| 3 | 243.2 | no | 165.7 | **137.6** | 109.4 | 81.3 |
-| 4 | 235.1 | no | 169.8 | 141.7 | 113.5 | 85.4 |
-| 5 | **540.0** | **yes** | 17.3 | **-10.8** | **-39.0** | -67.1 |
-| 6 | 394.9 | no | 89.9 | 61.8 | 33.6 | 5.5 |
+| step | bar width | at cap | score 0 | 20 | 100 | 1,000 | first overlap |
+|---|---|---|---|---|---|---|---|
+| 1 | 214.4 | no | 180.1 | 152.0 | 123.8 | 85.3 | 1,000,000 |
+| 2 | 402.6 | no | 86.0 | 57.9 | 29.7 | **-8.8** | 1,000 |
+| 3 | 243.2 | no | 165.7 | **137.6** | 109.4 | 70.9 | 1,000,000 |
+| 4 | 235.1 | no | 169.8 | 141.6 | 113.5 | 75.0 | 1,000,000 |
+| 5 | **540.0** | **yes** | 17.3 | **-10.8** | **-39.0** | -77.5 | **10** |
+| 6 | 394.9 | no | 89.9 | 61.7 | 33.6 | **-4.9** | 1,000 |
 
 Step 5's line is the only one of six long enough to hit the 540 cap; a capped bar is pinned at
-(667-540)/2 = 63.5 while every narrower one is centred far to the right. ⚠️ **And there it is guaranteed
+(667-540)/2 = 63.5 while every narrower one is centred far to the right. Steps 2 and 6 also overlap
+from 1,000 — step 2 precedes the kill step so it sits at 0 in any real run, and whether a tutorial
+reaches 1,000 by step 6 is not established here. Step 5 is the only one that collides at a score the
+tutorial **guarantees**, which is the one the repair rests on. ⚠️ **And there it is guaranteed
 rather than reachable**: step 3 gates on five kills at `KILL_SCORE` 20 with no `tutMode` guard on any
 `score+=` site, so nobody arrives at step 5 below **100**, and the 17.3px-clear zero column cannot occur
 in a real run. Minimum real gap **-39.0px**, with `#tutBar` at z-index 6 over the HUD's 5 — covered, not
