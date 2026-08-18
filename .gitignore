@@ -58,10 +58,21 @@ DerivedData/
 # ancestor of `origin/master`, so rewriting moves the FROZEN NAN-submission tip `631bfbf`, and about 55%
 # of PATCHNOTE's resolving commit citations change SHA — 76 of 137 measured on THIS branch, 2026-08-18.
 # ⚠️ RE-RUN IT RATHER THAN QUOTING IT, AND THE SIBLING BRANCH IS THE PROOF. This branch's count held at
-# 76/137 across the afternoon while v2's moved 71/132 -> 76/137 under three new entries, so the two agree
-# today by coincidence of timing rather than because the number is stable. A count that has not moved
-# while you watched is not a constant; it is a count whose file nobody happened to edit. The ratio has
-# held at ~55%; the absolute has not, on the branch that changed. Recipe, because a figure without one is
+# 76/137 across the afternoon while v2's moved 71/132 -> 76/137 under three new entries. A count that has
+# not moved while you watched is not a constant; it is a count whose file nobody happened to edit.
+# ⚠️ AND "THE TWO AGREE BY COINCIDENCE OF TIMING" IS WHAT THIS NOTE SAID UNTIL IT WAS MEASURED, WHICH IS
+# THE WEAKER HALF OF THE TRUTH AND POINTS AT THE WRONG HAZARD. The two branches do not hold the same 137.
+# Measured 2026-08-18 by diffing the resolving sets: 135 citations in common, v2 carrying 9039869 and
+# 907548e that this branch has never cited, this branch carrying d91786d and ecf1599 that v2 has never
+# cited, and ALL FOUR descendants of a55699e. So both totals match (137 = 135+2) and both descendant
+# counts match (76 = 74+2) over sets that differ in BOTH directions — not because the branches are in
+# step, but because the differences happen to balance. Timing is not what makes them agree, and they
+# will go on agreeing while holding different things.
+#   ⚠️ WHICH MAKES THIS FIGURE USELESS AS A SYNC CHECK, AND THAT IS THE TRAP RATHER THAN THE STALENESS.
+# "Both branches report 76/137" is exactly the evidence someone reaches for to conclude the two are in
+# step on PATCHNOTE, and here it returns a false yes. Compare the SETS, never the counts:
+#     comm -3 <(cite origin/v2) <(cite origin/v2-ios)     # empty, or they are not in sync
+# The ratio has held at ~55%; the absolute has not, on the branch that changed. Recipe, because a figure without one is
 # not evidence — and the v2 copy of this note went stale between draft and commit, inside the paragraph
 # arguing for reproducible figures:
 #     BT=$(printf '\x60'); for h in $(grep -o "${BT}[0-9a-f]\{7,40\}${BT}" docs/PATCHNOTE.md \
