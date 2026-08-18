@@ -110,6 +110,19 @@
                 "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
     -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;}
   #game{position:fixed;inset:0;display:block;width:100%;height:100%;cursor:crosshair;}
+  /* THE SAFE-AREA PROBE — env() with a JS reader. `resize()` needs the four insets as NUMBERS, to pull
+     the PLAYFIELD out from under the sensor housing, and env() is a CSS value with no scripting API.
+     A zero-size hidden box whose PADDING is the four env() values hands them over through
+     getComputedStyle in used px, costs no layout, and cannot drift out of step with #hud — both read
+     the same four values from the same engine.
+       Read fresh on every resize(), never cached: the insets change with rotation, and they are 0
+     until WebKit resolves them, which in the Capacitor shell is AFTER this script first runs
+     (measured: 0,0,0,0 at first read on a device that reports 0,62,20,62 a moment later). A stale 0 is
+     not an error — it is exactly the un-inset behaviour — but nothing would ever correct it on a
+     launch that never rotates, which is why resize() is re-run a few times at boot. */
+  #safeProbe{position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;visibility:hidden;
+    padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px)
+            env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);}
 
   /* ---------- HUD ---------- */
   /* SAFE AREA, IN ONE PLACE. Every HUD child is `position:absolute`, which resolves against #hud — so
@@ -1387,6 +1400,7 @@
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="safeProbe"></div>
 
 <!-- HUD -->
 <div id="hud">
@@ -1739,6 +1753,25 @@ const ctx = canvas.getContext('2d');
 // Desktop is unchanged by construction rather than by hope — the oracle's fingerprints still match.
 const REF_SHORT=800;
 let W=REF_SHORT,H=REF_SHORT,DPR=1,S=1;   // seeded finite: a 0-viewport at boot must still leave a world
+// THE PLAY RECT IS NOT THE SCREEN ANY MORE, and these are the difference.
+//   W/H are the PLAY rect: the part of the display nothing is bolted over. On a notched phone in
+// landscape the sensor housing eats ~62 CSS px off EACH side (iOS reports the horizontal insets
+// symmetrically, so it cannot tell you which side the island is actually on) plus ~20px at the bottom
+// for the home indicator. The Star is 15 design units across, which is ~7 CSS px at the shipping
+// S~=0.5 — so a ship parked at the old `clamp(P.x, P.r, W-P.r)` edge was not merely clipped, it was
+// COMPLETELY BEHIND THE HOUSING, and the player could not see the thing they were steering.
+//   VX0/VY0/VW/VH are the PHYSICAL viewport in the same design units, with VX0/VY0 NEGATIVE by exactly
+// the top-left inset. Only the layers that must still reach the metal use them: the sky gradient, the
+// nebula, the starfield and the two full-screen washes. Everything else — spawns, formations, the
+// boss, the clamp above — reads W/H and lands inside the safe rect for free, which is the entire point
+// of keeping the world in design units instead of pixels.
+//   ⚠️ ON ANY DISPLAY WITH NO INSETS THE TWO SETS ARE EQUAL BY CONSTRUCTION (VX0=VY0=0, VW=W, VH=H,
+// and the transform's translate is 0). Desktop is not "probably fine", it is arithmetically the build
+// that came before this change, so the oracle's fingerprints still mean what they meant.
+let VX0=0,VY0=0,VW=REF_SHORT,VH=REF_SHORT;
+// The same four insets in CSS PIXELS, kept because two things outside the transform need them: the
+// sky cache's own transform, and setPointer — see both.
+let PADT=0,PADR=0,PADB=0,PADL=0;
 // THE TOUCH ZONE SEAMS, IN CSS PIXELS — the one geometry in this file that is not in design units,
 // because pointer events are not either. Cached here rather than read off innerWidth per event, and
 // seeded finite for the same reason W and H are: a harness that reports innerWidth 0 would otherwise
@@ -1755,12 +1788,31 @@ function resize(){
   // Keeping the last good geometry is right anyway: there is nothing to render at 0x0.
   if(!(vw>0 && vh>0)) return;
   DPR=Math.min(2,window.devicePixelRatio||1);
-  S=Math.min(1, Math.min(vw,vh)/REF_SHORT);
-  W=vw/S; H=vh/S;                                      // the same viewport, in design units
+  // THE SAFE AREA, IN CSS PIXELS, off #safeProbe's padding — see its rule for why it is a probe.
+  // Guarded twice and both guards are load-bearing. `>0` rejects the NaN a missing probe would give
+  // (this file also ships to the web, where the element may not exist); `<axis/2` rejects any reading
+  // that would make the play rect zero-or-negative and put W back on the NaN path the 0-viewport guard
+  // above exists to close. Either rejection falls back to 0, which is the un-inset build.
+  const sp=document.getElementById('safeProbe'), pr=sp&&getComputedStyle(sp);
+  const inset=(v,axis)=>{ const n=parseFloat(v); return (n>0 && n<axis/2) ? n : 0; };
+  PADT=pr?inset(pr.paddingTop,vh):0;    PADR=pr?inset(pr.paddingRight,vw):0;
+  PADB=pr?inset(pr.paddingBottom,vh):0; PADL=pr?inset(pr.paddingLeft,vw):0;
+  const sw=vw-PADL-PADR, sh=vh-PADT-PADB;              // the PLAY rect, in CSS pixels
+  // ⚠️ S IS FITTED TO THE PLAY RECT, NOT THE SCREEN, and that is the whole reason this works with no
+  // gameplay edits. Every tuned constant is measured against a reference SHORT AXIS of 800; feeding it
+  // the short axis you can actually use keeps that promise on a notched phone instead of quietly
+  // handing 124px of the arena to the camera.
+  S=Math.min(1, Math.min(sw,sh)/REF_SHORT);
+  W=sw/S; H=sh/S;                                      // the play rect, in design units
+  VX0=-PADL/S; VY0=-PADT/S; VW=vw/S; VH=vh/S;          // the physical viewport, in the same units
   ZONE.x=vw*0.5; ZONE.y=vh*0.5;                        // ...and the touch partition, still in CSS px
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
-  ctx.setTransform(S*DPR,0,0,S*DPR,0,0);               // one transform carries both scales
+  // ONE TRANSFORM CARRIES BOTH SCALES AND THE INSET. The translate is what makes design-unit (0,0) the
+  // play rect's corner rather than the screen's, so every draw call in the file moves inside the safe
+  // area without knowing this happened. Anything that must escape it draws under identity (the sky
+  // blit) or off VX0/VY0 (everything else in paintSky).
+  ctx.setTransform(S*DPR,0,0,S*DPR,PADL*DPR,PADT*DPR);
   initStars();
 }
 
@@ -1797,7 +1849,10 @@ function initStars(){
   const rnd=()=>{ s^=s<<13; s>>>=0; s^=s>>>17; s^=s<<5; s>>>=0; return s/4294967296; };
   const pad=260;                                     // wrap margin, so parallax never exposes an edge
   stars=STAR_LAYERS.map(L=>{
-    const fw=W+pad, fh=H+pad, out=[];
+    // ⚠️ THE PHYSICAL VIEWPORT, NOT THE PLAY RECT. The sky reaches the metal; sizing the field to W/H
+    // would cull every star in the ~62px band beside the housing and leave a starless strip down each
+    // side of the screen, visible on the side the island is NOT on.
+    const fw=VW+pad, fh=VH+pad, out=[];
     for(let i=0;i<L.n;i++) out.push({
       x:rnd()*fw, y:rnd()*fh,
       r:L.r[0]+rnd()*(L.r[1]-L.r[0]),
@@ -1871,8 +1926,11 @@ function drawStars(){
       // wrap into the padded field, then bucket it by quantised alpha — no drawing in this pass
       let x=(st.x+ox)%layer.fw; if(x<0)x+=layer.fw;
       let y=(st.y+oy)%layer.fh; if(y<0)y+=layer.fh;
-      x-=130; y-=130;
-      if(x<-4||x>W+4||y<-4||y>H+4) continue;
+      // 130 is pad/2 from initStars, and VX0/VY0 shift the whole padded field onto the SCREEN's corner
+      // rather than the play rect's — the field is physical-viewport sized above, so its origin must be
+      // too or it would sit inset by exactly the amount it was widened to cover.
+      x+=VX0-130; y+=VY0-130;
+      if(x<VX0-4||x>VX0+VW+4||y<VY0-4||y>VY0+VH+4) continue;
       const tw=0.72+0.28*Math.sin(elapsed*st.sp+st.tw);
       let q=(st.a*tw*STAR_Q+0.5)|0; if(q<0)q=0; else if(q>STAR_Q)q=STAR_Q;
       // Flat x,y,r triples rather than objects, so a full frame of bucketing allocates nothing.
@@ -1900,6 +1958,15 @@ function drawStars(){
   ctx.globalCompositeOperation='source-over';
 }
 window.addEventListener('resize',resize); resize();
+// ...AND AGAIN, ONCE THE SAFE AREA EXISTS. The call above runs at parse time, when env() is still 0 in
+// the Capacitor shell — measured, on a device that reports 0,62,20,62 a moment later. That first read
+// is stale rather than wrong (0 insets == the old full-bleed build), but on a launch that never
+// rotates, no resize event would ever come to correct it and the fix would silently not apply.
+// Three cheap re-reads on three different clocks. resize() is idempotent — a fixed-seed initStars and
+// a transform assignment — so a redundant call costs nothing and a missed one costs the whole change.
+requestAnimationFrame(resize);
+window.addEventListener('load',resize);
+setTimeout(resize,1000);
 
 // ---------- helpers ----------
 const rand=(a,b)=>a+Math.random()*(b-a);
@@ -8176,7 +8243,9 @@ function render(){
 
   // flash overlay (reduced-motion viewers get a whisper of it)
   if(flash>0){
-    ctx.globalAlpha=flash*(store.reduceMotion?0.14:0.4); ctx.fillStyle=flashCol; ctx.fillRect(0,0,W,H); ctx.globalAlpha=1;
+    // Viewport, not play rect: a hit flash that stopped at the safe area would draw its own letterbox
+    // in the one frame the player is least able to read it.
+    ctx.globalAlpha=flash*(store.reduceMotion?0.14:0.4); ctx.fillStyle=flashCol; ctx.fillRect(VX0,VY0,VW,VH); ctx.globalAlpha=1;
   }
   // (No Overdrive screen tint. A cyan full-screen wash lived here for the Collapse window — 25.3% of a
   //  strong run spent under a coloured overlay. Overdrive says itself, in the world: the ring snaps from
@@ -8289,10 +8358,19 @@ let skyCv=null, skyCx=null, skyPaintT=-1e9;
 // the one last rendered, and it turns that into a visible wrong-colour flash on the opening frames.
 // Boss Rush jumps to ACTS[2] the same way and had the same latent defect.
 function skyInvalidate(){ skyPaintT=-1e9; }
+// ⚠️ EVERY EXTENT IN HERE IS THE PHYSICAL VIEWPORT (VX0/VY0/VW/VH), NEVER THE PLAY RECT (W/H), AND
+// THAT ASYMMETRY IS THE DESIGN. Gameplay pulls in out of the sensor housing; the sky does not, because
+// a sky painted to W/H would stop 62px short of each edge and leave a hard unpainted band down the
+// side of the screen — a letterbox, which is precisely the look this change exists to avoid. The
+// player loses arena to the camera and loses nothing to look at.
+//   Anything ADDED here has to make the same choice deliberately. The test is whether it is something
+// you look at (viewport) or something you play against (play rect); there is no third answer, and
+// getting it wrong is invisible on desktop, where the two are equal.
 function paintSky(c){
-  const g=c.createRadialGradient(W/2,H*0.42,0,W/2,H*0.42,Math.max(W,H)*0.78);
+  const vcx=VX0+VW/2, vcy=VY0+VH/2, VMAX=Math.max(VW,VH);
+  const g=c.createRadialGradient(vcx,VY0+VH*0.42,0,vcx,VY0+VH*0.42,VMAX*0.78);
   g.addColorStop(0,rgbStr(palCur.bg1,1)); g.addColorStop(1,rgbStr(palCur.bg2,1));
-  c.fillStyle=g; c.fillRect(0,0,W,H);
+  c.fillStyle=g; c.fillRect(VX0,VY0,VW,VH);
   drawNebula(c);
   // DEPTH HAZE, then a VIGNETTE. Both live INSIDE the cached sky, so they are paid once every SKY.every
   // frames rather than per frame — which is the whole reason they are affordable at all.
@@ -8300,11 +8378,11 @@ function paintSky(c){
   // at the top against a cold blue at the floor. It is keyed to palCur, so it turns over with the Epoch
   // like everything else in here and never becomes a fixed blue the Eclipse palette fights.
   c.globalCompositeOperation='lighter';
-  const hz=c.createLinearGradient(0,0,0,H);
+  const hz=c.createLinearGradient(0,VY0,0,VY0+VH);
   hz.addColorStop(0,   rgbStr(palCur.tint,0.055));
   hz.addColorStop(0.55,rgbStr(palCur.tint,0.012));
   hz.addColorStop(1,   rgbStr(palCur.bg1,0.05));
-  c.fillStyle=hz; c.fillRect(0,0,W,H);
+  c.fillStyle=hz; c.fillRect(VX0,VY0,VW,VH);
   c.globalCompositeOperation='source-over';
   // ⚠️ THE VIGNETTE IS THE ONE DARK LAYER THE FIELD ALLOWS, and it is legal only because it is UNDER the
   // play layer rather than in it. Everything above runs `lighter`, where a dark mark adds nothing; this
@@ -8315,9 +8393,9 @@ function paintSky(c){
   // of the frame you read with peripheral vision. The study looked better at 0.42 because a study has
   // nothing flying into it. If this is ever raised, check it against incoming Dots at the rim and not
   // against an empty field.
-  const vg=c.createRadialGradient(W/2,H/2,Math.min(W,H)*0.30,W/2,H/2,Math.max(W,H)*0.76);
+  const vg=c.createRadialGradient(vcx,vcy,Math.min(VW,VH)*0.30,vcx,vcy,VMAX*0.76);
   vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.20)');
-  c.fillStyle=vg; c.fillRect(0,0,W,H);
+  c.fillStyle=vg; c.fillRect(VX0,VY0,VW,VH);
 }
 function blitSky(){
   if(!skyCv){ skyCv=document.createElement('canvas'); skyCx=skyCv.getContext('2d',{alpha:false}); }
@@ -8337,7 +8415,12 @@ function blitSky(){
     skyPaintT=nowMs;
     // ctx's transform TIMES the cache scale, so paintSky still draws in design units and needs no
     // knowledge that it is painting into a smaller surface than the one that will be shown.
-    skyCx.setTransform(S*DPR*SKY.scale,0,0,S*DPR*SKY.scale,0,0);
+    // The same translate the main context carries, scaled by the cache — without it the cache's origin
+    // would be the play rect's corner while its SURFACE is the whole screen, so paintSky's
+    // physical-viewport rect would start PADL device px off the left of it and the band would go
+    // unpainted anyway. The translate is what lines the two coordinate systems up.
+    const sk=S*DPR*SKY.scale;
+    skyCx.setTransform(sk,0,0,sk,PADL*DPR*SKY.scale,PADT*DPR*SKY.scale);
     paintSky(skyCx);
   }
   else if(PROBE.on) PROBE.sky=0;
@@ -8364,9 +8447,11 @@ function drawNebula(c){
   const px=P?P.x:W/2, py=P?P.y:H/2, damp=store.reduceMotion?0.3:1;
   const ox=-(px-W/2)*0.02*damp, oy=-(py-H/2)*0.02*damp;
   for(let i=0;i<5;i++){
-    const x=W*(0.5+0.34*Math.sin(elapsed*0.034+i*2.1))+ox;
-    const y=H*(0.5+0.30*Math.cos(elapsed*0.029+i*2.7))+oy;
-    const R=Math.max(W,H)*(0.30+0.11*i);
+    // Placed over the physical viewport for the reason paintSky states; the PARALLAX origin above
+    // stays on the play centre, because that term is about where the player is, not where the glass is.
+    const x=VX0+VW*(0.5+0.34*Math.sin(elapsed*0.034+i*2.1))+ox;
+    const y=VY0+VH*(0.5+0.30*Math.cos(elapsed*0.029+i*2.7))+oy;
+    const R=Math.max(VW,VH)*(0.30+0.11*i);
     const col=(i===3)?palCur.bg1:palCur.tint;      // one cloud in the deep biome colour, not the accent
     const a=br*(i===3?1.9:1)*(1-i*0.09);           // the near clouds are the faint ones
     const g=c.createRadialGradient(x,y,0,x,y,R);
@@ -9777,7 +9862,7 @@ function drawTexts(){
 function drawReady(){
   if(!P)return;
   const frac=clamp(resumeT/READY_DUR,0,1);
-  ctx.fillStyle='rgba(6,8,20,0.30)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(6,8,20,0.30)'; ctx.fillRect(VX0,VY0,VW,VH);   // viewport — see the flash overlay
   // depleting countdown ring around the core
   ctx.strokeStyle=hexA('#ffffff',0.16); ctx.lineWidth=4;
   ctx.beginPath(); ctx.arc(P.x,P.y,P.r+26,0,TAU); ctx.stroke();
@@ -10775,7 +10860,19 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList
 // =====================================================================
 // Events arrive in CSS pixels; the world is in design units. One divide, here, so no call site can
 // forget it.
-function setPointer(x,y){ pointer.x=x/S; pointer.y=y/S; pointer.has=true; }
+// ⚠️ AND ONE SUBTRACT, WHICH IS NEW AND IS THE ONE PLACE THE PLAYFIELD INSET LEAKS OUT OF resize().
+// Pointer events are reported against the SCREEN, but design-unit (0,0) is now the play rect's corner,
+// so a raw `x/S` would land the cursor PADL/S units right of the mouse on any notched display.
+//   ⚠️ NOTHING ELSE ON THE INPUT PATH NEEDS IT, AND THE REASON IS NOT THE ONE THE iOS BRANCH GIVES —
+// this paragraph arrived from v2-ios naming a `stickMove` that does not exist here, which is exactly
+// the hazard of porting a conclusion across two branches that diverge on the input model. There the
+// thumb banks a DISPLACEMENT; here it is a RATE stick, and `stickSet` reads `dx = x - stickOX`, a
+// DEFLECTION — a difference of two screen-space values, so any common origin cancels before
+// `stepStick` ever turns it into motion. Same answer, different argument, and the argument is the part
+// that would have gone stale silently. `zoneOf` stays in raw CSS px on purpose either way: the touch
+// zones still cover the whole glass, including the strip beside the housing.
+// On a display with no insets PADL/PADT are 0 and this is the divide it always was.
+function setPointer(x,y){ pointer.x=(x-PADL)/S; pointer.y=(y-PADT)/S; pointer.has=true; }
 // on resume: hold the target on the core and briefly cap follow speed, so re-engaging
 // the (possibly far) cursor glides smoothly rather than snapping/teleporting
 function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; }
@@ -11558,6 +11655,13 @@ window.__orbital=window.__polaris=window.__flux={
   // reach-style achievement both have to consult; `introT` is exposed because a deep start's whole
   // observable difference is which intro gates it has already cleared, and a test that cannot read it
   // has to infer it from spawn composition.
+  // WORLD GEOMETRY, AS A GETTER BECAUSE EVERY FIELD IN IT IS A `let` THAT MOVES ON RESIZE — a
+  // snapshot taken at seam-assignment time would report the boot viewport forever. Added when the
+  // playfield stopped being the screen: W/H are the play rect and VX0/VW the physical viewport, the
+  // two now differ by the safe-area inset, and the whole file is inside an IIFE, so without this there
+  // is NO way to read either from outside. Confirmed the hard way — the transform on the canvas was
+  // the only geometry a test could reach, and S/PADL had to be divided back out of it.
+  get geo(){ return {W,H,S,DPR,VX0,VY0,VW,VH,PADT,PADR,PADB,PADL}; },
   get startAct(){ return runStartAct; },
   get introT(){ return introT(); },
   START_ACT_CAP, START_ACT_REQ, startActFor,
