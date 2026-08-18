@@ -149,7 +149,16 @@ class AppViewController: CAPBridgeViewController {
         let screen = view.window?.windowScene?.screen ?? UIScreen.main
         var range = "unavailable (<iOS 15)"
         if #available(iOS 15.0, *) {
-            range = "pref=\(l.preferredFrameRateRange.preferred) max=\(l.preferredFrameRateRange.maximum)"
+            // ⚠️ Formatted, not interpolated. `\(…)` on these produced `pref=Optional(120.0)` in the
+            // shipped output — the compiler warned at this line and I left it. A measurement that prints
+            // `Optional(…)` beside a number invites doubt about the number, which is the opposite of
+            // what an instrument is for.
+            // ⚠️ `preferred` is `Float?`, and the nil case is a RESULT rather than a formatting nuisance:
+            // nil means the link expressed no preference, which is the "free to serve 60 and be correct"
+            // state this whole measurement exists to rule out. So it prints `none`, never a silent blank.
+            let r = l.preferredFrameRateRange
+            let pref = r.preferred.map { String(format: "%.0f", $0) } ?? "none"
+            range = "min=\(String(format: "%.0f", r.minimum)) pref=\(pref) max=\(String(format: "%.0f", r.maximum))"
         }
         let hz = Double(linkTicks) / elapsed
         // One preformatted argument: NSLog's variadic form is unavailable to Swift.
