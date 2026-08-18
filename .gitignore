@@ -56,11 +56,29 @@ DerivedData/
 # all three pushed branches. Author reviewed and accepted it on 2026-08-18.
 #   ⚠️ THE PURGE IS THE EXPENSIVE MOVE AND THE ONLY ONE THAT COULD ACTUALLY HURT. `a55699e` is an
 # ancestor of `origin/master`, so rewriting moves the FROZEN NAN-submission tip `631bfbf`, and about 55%
-# of PATCHNOTE's resolving commit citations change SHA — 76 of 137 on both branches as of this commit,
-# reproduced by two independent extractions. ⚠️ RE-RUN IT RATHER THAN QUOTING IT: the count grows with
+# of PATCHNOTE's resolving commit citations change SHA — 76 of 137 on THIS branch as of this commit,
+# reproduced by two independent extraction METHODS (backtick-delimited grep, and over-match-then-filter
+# through `git rev-parse`). ⚠️ RE-RUN IT RATHER THAN QUOTING IT: the count grows with
 # PATCHNOTE, and it moved inside a single afternoon — v2 read 71 of 132 four hours before this note was
 # written, and three new entries carried it to 76 of 137. The ratio has held at ~55%; the absolute number
-# has not. Recipe, because a figure without one is not evidence, and this one went stale while being
+# has not.
+#   ⚠️ AND THIS LINE ONCE READ "ON BOTH BRANCHES ... REPRODUCED BY TWO INDEPENDENT EXTRACTIONS", WHICH
+# OFFERED THE CROSS-BRANCH MATCH AS CORROBORATION FOR THE FIGURE. It is not corroboration. v2-ios also
+# reports 137/76, and measured 2026-08-18 the two are NOT the same 137: 135 citations shared, v2 alone
+# holding `9039869` and `907548e`, v2-ios alone holding `d91786d` and `ecf1599`, all four descendants of
+# `a55699e`. So 137 = 135+2 and 76 = 74+2 on both sides — the totals match because the differences
+# BALANCE, over sets that differ in BOTH directions. THE COUNT CANNOT DISTINGUISH "IN SYNC" FROM
+# "DIFFERING BY AN EQUAL AMOUNT IN EACH DIRECTION", so two BRANCHES agreeing is a sync check returning a
+# false yes, whereas two METHODS agreeing on one branch is real corroboration and is what the clause
+# above now claims. Compare sets, never sizes:
+#     cite(){ BT=$(printf '\x60'); git show "$1:docs/PATCHNOTE.md" \
+#       | grep -o "${BT}[0-9a-f]\{7,40\}${BT}" | tr -d "${BT}" | sort -u \
+#       | while read -r h; do git rev-parse --verify -q "$h^{commit}" >/dev/null && echo "$h"; done; }
+#     comm -3 <(cite origin/v2) <(cite origin/v2-ios)     # empty, or they are not in sync
+#     comm -3 <(cite origin/v2) <(cite origin/v2)         # POSITIVE CONTROL — must be 0 lines
+# ⚠️ RUN THE CONTROL: a set-difference that always prints something looks exactly like a working check.
+# And `cite` reads `origin/*`, the PUSHED tree, unlike the recipe below which reads the file on disk.
+# Recipe, because a figure without one is not evidence, and this one went stale while being
 # written into a paragraph about reproducible figures:
 #     BT=$(printf '\x60'); for h in $(grep -o "${BT}[0-9a-f]\{7,40\}${BT}" docs/PATCHNOTE.md \
 #       | tr -d "${BT}" | sort -u); do git rev-parse --verify -q "$h^{commit}" >/dev/null \
