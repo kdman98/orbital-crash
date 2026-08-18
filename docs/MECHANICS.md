@@ -3096,6 +3096,32 @@ service worker and the Capacitor shell all work. Korean ships on the system stac
 
 Things that have cost real time, in this codebase specifically.
 
+⚠️ **`env(safe-area-inset-*)` IS 0 AT `capacitorDidLoad`, AND A PROBE THAT FIRES THERE WILL TELL YOU A
+WORKING FIX DID NOTHING.** `--evalJS` runs off `capacitorDidLoad`, which is before WebKit has resolved
+the safe area into the document. Two snapshots from the same launch, iPhone 17 Pro, landscape:
+
+| | `env` T/R/B/L | `#hud` | `#bestiary` |
+|---|---|---|---|
+| at `capacitorDidLoad` | `0,0,0,0` | `0,0,0,0` | `0,0,0,0` |
+| +1200ms | `0,62,20,62` | `0,62,20,62` | `0,62,20,62` |
+
+This cost a full rebuild-and-remeasure cycle: the safe-area fix for `#bestiary` was already correct and
+in the loaded document, and the probe read `0px` because it fired too early. The near-miss is that the
+reading is not noise — it is **stable, plausible, and exactly what a failed fix looks like**. Anything
+measuring layout through `--evalJS` must sample on a timer (2000ms is used by the Bestiary probe), and
+should carry a second sample so the two can be compared rather than trusted.
+  Note this is NOT the stale-build trap: the document was fresh, verified by reading the inline `style`
+attribute and the parsed `#bestiary` rule out of the loaded DOM. Both checks passed while the number was
+still wrong. **Freshness and readiness are different properties and each needs its own assertion.**
+
+⚠️ **PADDING DOES NOT INSET AN ABSOLUTELY POSITIONED CHILD, AND THE NAME "PADDING BOX" IS WHY EVERYONE
+GETS THIS BACKWARDS.** An `position:absolute` child resolves against its ancestor's *padding box*, whose
+edges lie **outside** the padding — so padding moves in-flow children only. Adding
+`padding:env(safe-area-inset-*)` to `#bestiary` moved the `<iframe>` (a flex item, in flow) from 0 to 62px
+and left `#bestiaryClose` at 16px, still under the Dynamic Island. It needed its own
+`right:max(16px,env(safe-area-inset-right,0px))`. Measured, both before and after, because the wrong
+version of this rule had already been written into a comment as if it were established.
+
 ⚠️ **THE GAME'S OWN SERVICE WORKER SERVES A STALE BUILD TO EVERY RELOAD, AND A CACHE-BUSTING QUERY DOES
 NOT HELP** — the worker answers the request before the network sees it. Three reloads of a genuinely
 edited file measured the *old* strings; `sw.js` had registered, was controlling the page, and was serving
