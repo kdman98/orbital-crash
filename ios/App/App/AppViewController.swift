@@ -52,6 +52,7 @@ class AppViewController: CAPBridgeViewController {
         // flag lives in localStorage, so it survives removing the launch argument, reinstalling, and
         // rebooting — a player who armed it once keeps paying `probeSave()` every 240 frames forever,
         // and nothing on screen says so. Checked BEFORE `--probe` so that passing both disarms.
+        if args.contains("--refresh") { awaitSeam(then: Self.refreshJS, attempt: 0); return }
         if args.contains("--probe-off") { awaitSeam(then: Self.probeOffJS, attempt: 0); return }
         if args.contains("--probe") { awaitSeam(then: Self.probeJS, attempt: 0); return }
         guard let i = args.firstIndex(of: "--evalJS"), i + 1 < args.count else { return }
@@ -93,6 +94,47 @@ class AppViewController: CAPBridgeViewController {
         last: last
       };
       return armed ? 'recording' : 'armed';
+    })()
+    """
+
+    /// Answers the one question the frame probe structurally CANNOT: is the panel running at 120Hz?
+    ///
+    /// ⚠️ VSYNC MAKES "SLOW GAME" AND "60Hz DISPLAY" THE SAME MEASUREMENT. A frame interval of 16.7ms
+    /// means either the display refreshes every 16.7ms, or it refreshes every 8.3ms and the work missed
+    /// one. The probe reports intervals, so it reads both as 17 and cannot say which — and MECHANICS
+    /// already warns that every "we have headroom" claim from it is really "we are not dropping frames".
+    ///   The discriminator is LOAD, not timing. Run this on the MENU, where the frame is nearly empty:
+    /// if a page with almost nothing to draw still reports 16.7, no amount of optimisation will help
+    /// because the ceiling is not ours. If it reports 8.3 there and 16.7 in play, the panel is at 120
+    /// and the game is what misses — which is a fixable problem and a completely different project from
+    /// replacing the renderer.
+    ///
+    /// `spread` is the honest caveat: iOS varies ProMotion refresh with content, so a genuinely idle
+    /// page can be clocked DOWN to 60 or lower on purpose. A tight cluster at 16.7 is a cap; a smear
+    /// across 8-25ms is adaptive throttling and says nothing either way. Report it rather than hide it.
+    private static let refreshJS = """
+    (function(){
+      var iv=[], prev=0, n=0, NEED=180;
+      function tick(now){
+        if(prev) iv.push(now-prev);
+        prev=now;
+        if(++n<NEED){ requestAnimationFrame(tick); return; }
+        iv.sort(function(a,b){return a-b;});
+        var q=function(p){ return +iv[Math.floor((iv.length-1)*p)].toFixed(2); };
+        var med=q(0.5);
+        window.__probeResult={
+          samples: iv.length,
+          state: (function(){ try{ return window.__orbital.tut.mode ? 'tutorial' : 'see st'; }catch(e){ return '?'; } })(),
+          min:q(0), p50:med, p95:q(0.95), max:q(1),
+          spread:+(q(0.95)-q(0)).toFixed(2),
+          impliedHz: Math.round(1000/med),
+          verdict: med<11 ? '120Hz REACHED - any 17ms in play is OUR frame cost, not a cap'
+                 : (q(0)<11 ? 'MIXED - panel can do 120 but is not holding it (adaptive or load)'
+                            : 'CAPPED AT 60 - even the fastest frame never beat 11ms')
+        };
+      }
+      requestAnimationFrame(tick);
+      return 'sampling '+NEED+' rAF intervals';
     })()
     """
 
