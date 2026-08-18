@@ -651,12 +651,24 @@ on the **short** side, so rotating trades width for height one for one:
 | portrait | 402×874 | 0.502 | 800 × 1739 | 1.391M | 1044 |
 | landscape | 874×402 | 0.502 | 1739 × 800 | 1.391M | 1044 |
 
+(Both rows are **pre-safe-area-inset** and are left that way because the argument they serve is about
+rotation, which the inset does not change — it comes off both orientations. The shipping landscape
+world is **1570.7 × 800** once the housing is subtracted.)
+
 Area-neutral and spawn-radius-neutral. **Landscape is in fact the truer shape**: aspect 2.17 against the
 1.78 of the desktop window every constant here was tuned in, where portrait's 0.46 was 3.9× off.
 
 **The scale is why one tuning pass covers the lineup.** Across iPhone 17 Pro / 17 Pro Max / 17e / Air,
 every device gets a world exactly `REF_SHORT` **tall** — that is the definition of `S`, not a measurement
 — by **1731 to 1739 across, an 8-unit spread of 0.46%**. Tune for one and you have tuned for all of them.
+
+⚠️ **The `REF_SHORT`-tall half survives the safe-area inset; the 1731–1739 half does not, and has not
+been re-measured.** `S` is now fitted to the **safe rect's** short axis, so `H = sh/S = REF_SHORT`
+exactly, as before — measured 800.00 both with and without insets. But the width is `sw/S`, and `sw`
+now subtracts a per-device inset: iPhone 17 Pro landscape goes **1739.3 → 1570.7**, and a device whose
+housing is narrower keeps more. The spread across the lineup is therefore whatever the spread of their
+horizontal insets is, which is a **larger** number than 0.46% and nobody has measured it. Treat the
+8-unit figure as pre-inset until someone re-runs it.
 Against desktop the *area* barely moves either (1.39M vs 2.07M square units).
 
 **402px of height is the constraint every overlay has to answer, and three of them failed it.** The
@@ -1729,8 +1741,10 @@ so standing in one is a decision), and its **body** is the most expensive and th
 
 **Reach is `sp × 60 × life` and nothing corrects it** (law 15). `MSL` in `index.html` is the only thing
 that sets it. The relationship that matters is the **margin against the arena**, and the arena is not a
-constant — `resize()` gives `W = vw / S` with `S = min(1, min(vw,vh)/800)`, so in design units the play
-field is the viewport itself on any display whose short axis clears `REF_SHORT`. At full pace the four
+constant — `resize()` gives `W = sw / S` with `S = min(1, min(sw,sh)/800)`, where `sw`/`sh` are the
+viewport **minus the safe-area insets**. On a display with no insets that is the viewport itself, which
+is every desktop and what the figures below were measured on; on a notched phone the arena is narrower
+than the glass by the insets (see *The playfield is not the screen*). At full pace the four
 flying kinds reach **1656–2208** design units; at Epoch I's `pace.spd` that becomes **1242–1656**. A lance
 is removed by whichever comes first, leaving the screen or running out of life, and on a laptop-sized
 arena the edge gets there.
@@ -3244,6 +3258,71 @@ should carry a second sample so the two can be compared rather than trusted.
   Note this is NOT the stale-build trap: the document was fresh, verified by reading the inline `style`
 attribute and the parsed `#bestiary` rule out of the loaded DOM. Both checks passed while the number was
 still wrong. **Freshness and readiness are different properties and each needs its own assertion.**
+
+### The playfield is not the screen
+
+The canvas is full-bleed by design and the HUD is inset by `env()` — but for a long time **only** the
+HUD was, and the comment above `#hud` said so as a deliberate choice: *"the playfield should reach the
+physical edges of the screen; it is only the readouts and the touch targets that must not."* That was
+wrong for one specific reason nobody had put a number on.
+
+**The Star is smaller than the sensor housing.** `P.r` is 15 design units; at the shipping `S ≈ 0.5`
+that is **~7.5 CSS px across**, against a landscape safe-area inset of **62 px** on each side. So
+`clamp(P.x, P.r, W-P.r)` parked the ship at screen `x = 7.5` — not clipped, **47 px behind the housing,
+completely invisible**. The player could not see the thing they were steering, on the one edge they get
+pushed to most.
+
+**The fix is one lever, not a sweep.** `W`/`H` are the viewport *in design units*, and the whole reason
+that abstraction exists is that redefining it redefines everything downstream for free. So `resize()`
+now fits `S` to the **safe rect** (`sw = vw - PADL - PADR`, `sh = vh - PADT - PADB`) and adds the inset
+to the context transform as a translate. Every spawn margin, formation radius, boss lunge clamp and the
+player clamp itself moved inside the safe area with **no gameplay edit at all**.
+
+**What must NOT move is the sky**, or the fix trades the camera for a letterbox. `paintSky`, the
+nebula, the starfield and the two full-screen washes are the only layers that draw against
+`VX0/VY0/VW/VH` — the *physical* viewport, in the same design units, with `VX0/VY0` negative by exactly
+the top-left inset. Verified by sampling the rendered canvas across the band: `[9,15,27]` at `x=2`,
+`[10,17,30]` at `x=130` just inside the play rect, `[17,32,50]` at centre — a smooth gradient falloff
+with **no discontinuity at the boundary**, which is what a letterbox would have shown as a hard step.
+
+Measured, iPhone 17 Pro landscape (874×402, insets `0/62/20/62`), star driven hard into each edge:
+
+| | before | after | safe line |
+|---|---|---|---|
+| `S` | 0.5025 | 0.4775 | |
+| world | 1739.3 × 800 | **1570.7** × 800 | |
+| star centre, left | 7.5 | 69.2 | edge lands on **62.0** |
+| star centre, right | 866.5 | 804.8 | edge lands on **812.0** |
+| star centre, bottom | 394.5 | 374.8 | edge lands on **382.0** |
+
+All three land the star's *edge* exactly on the safe-area line, which is the clamp doing precisely what
+it says. The cost is **the arena is 9.7% narrower** on this device — and it comes off **both** sides
+even though the housing is only on one, because **iOS reports the horizontal insets symmetrically in
+landscape and will not tell you which side the island is on**. Recovering that 62 px needs the native
+layer to report the orientation; nothing in CSS can.
+
+⚠️ **THE TRAP THIS CREATES IS THAT `W/H` AND `VX0/VW` ARE IDENTICAL ON EVERY DESKTOP.** With no insets
+`VX0 = VY0 = 0`, `VW = W`, `VH = H`, and the translate is 0 — so a new draw call that picks the wrong
+pair is *arithmetically invisible* until it reaches a notched phone. The test when adding anything to
+the background layers is whether it is something you **look at** (viewport) or something you **play
+against** (play rect); there is no third answer. That same identity is also the safety argument for the
+change: desktop is not "probably unaffected", it is the previous build by construction, so the oracle's
+fingerprints still mean what they meant. Confirmed live — `__orbital.geo` returns byte-identical values
+before insets are applied and after they are removed again.
+
+⚠️ **`__orbital.geo` EXISTS BECAUSE THE FILE IS INSIDE AN IIFE AND NONE OF THIS WAS READABLE.** `W`,
+`H`, `S`, `VX0` are `let` bindings in a `(()=>{ ... })()` wrapper, so a test in the page could reach
+`window.__orbital` and nothing else. Before the getter was added, the only geometry a test could see was
+the transform on the canvas, and `S` and `PADL` had to be divided back out of it. It is a getter, not a
+snapshot, because every field in it moves on resize.
+
+⚠️ **`env()` HAS NO JS READER, SO THE INSETS COME OFF A PROBE ELEMENT'S COMPUTED PADDING** (`#safeProbe`
+— zero-size, hidden, `padding:env(...)` on all four sides). Read fresh on every `resize()`, never
+cached: they change with rotation, and per the entry above they are **0 until WebKit resolves them**,
+which in the Capacitor shell is after this script first runs. A stale 0 is not an error — it is exactly
+the un-inset build — but nothing would correct it on a launch that never rotates, so `resize()` is
+re-run at `requestAnimationFrame`, at `load`, and at 1000 ms. It is idempotent; a redundant call costs a
+transform assignment.
 
 ⚠️ **PADDING DOES NOT INSET AN ABSOLUTELY POSITIONED CHILD, AND THE NAME "PADDING BOX" IS WHY EVERYONE
 GETS THIS BACKWARDS.** An `position:absolute` child resolves against its ancestor's *padding box*, whose
