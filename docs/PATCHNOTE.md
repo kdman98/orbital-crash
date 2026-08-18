@@ -14,6 +14,39 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-18
 
+### The tutorial stops showing two numbers it was already throwing away `v2` `9039869` `v2-ios` `178ebca` `ebc2005`
+`#score` and `#best` are hidden for the whole tutorial. The mode already declared itself unscored — the
+record is written under a guard that excludes `tutMode`, so a tutorial's score is discarded the moment it
+ends, and the HUD was the last part of the game not told. Answering the flag `907548e` raised and left
+open; author chose hide-during-tutorial.
+
+⚠️ **The collision is caused by the bar's width cap, not by the score, and only one step reaches it.**
+Measured at 667x375, ko, gap from `#score`'s right edge to `#tutBar`'s left — positive is clear:
+
+| step | bar width | at cap | score 0 | 20 | 100 | 1,000 |
+|---|---|---|---|---|---|---|
+| 1 | 214.4 | no | 180.1 | 152.0 | 123.8 | 95.7 |
+| 2 | 402.6 | no | 86.0 | 57.9 | 29.7 | 1.6 |
+| 3 | 243.2 | no | 165.7 | **137.6** | 109.4 | 81.3 |
+| 4 | 235.1 | no | 169.8 | 141.7 | 113.5 | 85.4 |
+| 5 | **540.0** | **yes** | 17.3 | **-10.8** | **-39.0** | -67.1 |
+| 6 | 394.9 | no | 89.9 | 61.8 | 33.6 | 5.5 |
+
+Step 5's line is the only one of six long enough to hit the 540 cap; a capped bar is pinned at
+(667-540)/2 = 63.5 while every narrower one is centred far to the right. ⚠️ **And there it is guaranteed
+rather than reachable**: step 3 gates on five kills at `KILL_SCORE` 20 with no `tutMode` guard on any
+`score+=` site, so nobody arrives at step 5 below **100**, and the 17.3px-clear zero column cannot occur
+in a real run. Minimum real gap **-39.0px**, with `#tutBar` at z-index 6 over the HUD's 5 — covered, not
+blended. `#best` needs a five-digit record *and* a returning player; `#score` needs nothing.
+
+Landscape-only, which is why it survived: in portrait `@media (max-width:560px)` moves the bar to
+top:112, clear of both stats. Verified with the fix disabled — `#score` -39.0px, `#best` -8.7px — because
+a check that cannot produce a red has not been shown to detect anything.
+
+⚠️ *Two mechanisms were asserted for this before it was measured, and both were wrong: "step 3 asks for
+five motes, reaching 25" (motes are shed BY kills and cannot arrive first) and "it lands on the first
+kill of step 3" (step 3 clears by 137.6px). The conclusion held both times; the route did not.*
+
 ### The Bestiary stops being reachable by iOS, in the two ways it still was `v2` `51204ca` `v2-ios` `af20d79`
 Double-tapping the roster raised the iOS selection loupe, and the Dynamic Island sat on the first card.
 One cause for both: `bestiary.html` is a **separate document** loaded as an `<iframe>`, so nothing
@@ -44,6 +77,37 @@ already unselectable by living inside index's `html,body`; the Bestiary was the 
 text could be selected, and the only reason was which document it happens to live in.
 
 ## 2026-08-14
+
+### The clearance proved for the tutorial bar was portrait-only `v2` `907548e`
+Comment only, no behaviour. `8027466` argued the bar's clearance survives because `#best` ends at y104
+and the bar starts at y112 — true exactly where it was measured, and written as though general. ⚠️ **In
+landscape `@media (max-width:560px)` never fires**, top stays 58, and the bar straddles `#best`'s
+y 74-104 outright: the vertical gap the argument rests on does not exist there. What separates them is
+horizontal and only conditionally, the bar being pinned at x63.5 by its 540 cap while `#best`'s right
+edge grows with the digits. At 667x375, ko: **0 -> 25.0px clear · 5,165 -> 0.8 · 48,320 -> -8.7 ·
+1,204,880 -> -32.5**. Not a regression from the type bump — a cap is a width, so a long string pins the
+left edge at any font size — but the bump widened the exposure from 3 of 28 cases on the cap to 8 of 28.
+Left as found and flagged to the author, since every repair is a layout decision with a visible cost.
+Also recorded because nothing in portrait would warn you: `#pauseBtn` starts at x617, so the bar clears
+it by 13.5px, and raising the cap past 567 slides the bar under it. *(The flag was answered on 08-18 and
+the fix is `9039869`; the `#score` half, which is worse and guaranteed, was not in this analysis.)*
+
+### The tutorial reads 23% larger `v2` `8027466`
+The bar's four type sizes move together — sentence 13->16, step counter and live note 11->14, the beat's
+checkmark 13->16. Author asked for at least 20%; the smallest is +23%. ⚠️ **The rule that would have
+blocked it was already broken.** The comment above it promised "none of the six wraps to three lines at
+375px", and that was false at the shipping 13px: measured in the real element at a real 375px viewport,
+`tut.2.ok` renders three lines and had done so for as long as the string existed. A stale claim taken at
+face value would have vetoed a change it never governed. The whole cost is `tut.5` — the longest
+instruction in the game — joining it at three lines; nothing else changes line count and nothing reaches
+four. Height was the thing worth checking rather than wrapping, the bar hanging over live play on a
+phone: worst case 118px tall against 81, occupying y 112-230 of an 812px screen, with `#best` ending at
+104 so the clearance above is untouched. Pacing does not move with size — `readS()` counts words and
+syllables, never lines or pixels — and nothing in the JS reads the bar's geometry, so a taller box cannot
+feed back. ⚠️ *The commit records "Oracle `b713a7`, unchanged" and that figure certifies nothing —
+the fold producing it was never committed, so it is not reproducible; see the note in `.oracle.js`,
+which measures the same suite at `6af5363e`. Repeated here as what was claimed, not as evidence. The
+argument that holds is that the edit is CSS-only.*
 
 ### The scrim was painting over the menu, not behind it `v2`
 `#menuScrim` goes to **`z-index:-1`**. It was `0`, and a *positioned* element at `z-index:0` paints in a
