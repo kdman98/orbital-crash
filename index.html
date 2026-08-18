@@ -760,6 +760,31 @@
      both sit over a LIVE RUN and their chrome answers to the field, not to a reader. */
   #records, #skins, #settings, #bestiary{ --dim:var(--dim2); }
 
+  /* ⚠️ THE ONE OVERLAY THAT OPTS OUT OF .overlay's 22px, AND IT STILL HAS TO CLEAR THE HOUSING.
+     #bestiary holds an <iframe>, not text: the reading margin is bestiary.html's own
+     `body{padding:30px 20px 52px}`, so .overlay's 22px would double it and the frame is meant to
+     bleed. That is why the element carried an inline `padding:0` — which also wiped the three
+     `max(22px,env(safe-area-inset-*))` lines above, and those were not optional.
+       Measured in the shipping WebView, iPhone 17 Pro, landscape: env() left and right are 62px
+     (iOS reports the same value BOTH sides in landscape, so the layout stays centred whichever way
+     the phone is held) and bottom is 20px. The frame's rect was 0 on all four edges, which put the
+     Dynamic Island over the first card and the ✕ button 46px inside the housing.
+       env() only, NO 22px floor — unlike .overlay, and deliberately: on a device with no notch every
+     value is 0px and the frame bleeds exactly as it was designed to.
+       ⚠️ ✕ DOES NEED A RULE OF ITS OWN, AND THE REASON IS THE ONE PEOPLE GET BACKWARDS. An
+     absolutely positioned child resolves against its ancestor's PADDING BOX — and the padding box's
+     edges are OUTSIDE the padding, not inside it. Padding insets IN-FLOW children only. So the
+     padding below moved the iframe (a flex item, in flow) and left the button exactly where it was.
+     Measured, after this rule was already in: frame l/r went 0 -> 62, ✕ stayed at 16. Hence
+     #bestiaryClose right below. */
+  #bestiary{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px)
+                    env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);}
+  /* `max()` and not `calc(16px + env(...))`, matching the convention .overlay states above: at least
+     the 16px the design was built on, and at least the hardware clearance, never both added together.
+     Lands the button ON the safe-area line (62px here) rather than 78px inside it. */
+  #bestiaryClose{top:max(16px,env(safe-area-inset-top,0px));
+                 right:max(16px,env(safe-area-inset-right,0px));}
+
   /* SETTINGS. A row is a sentence and a switch, and the sentence is the load-bearing half — a toggle
      whose name is its only explanation is exactly how "reduced motion" comes to mean nothing to the
      person it was built for. Rows rather than a grid so the description has somewhere to go. */
@@ -1473,8 +1498,8 @@
 </div>
 
 <!-- BESTIARY (loads the standalone bestiary.html in an overlay) -->
-<div class="overlay hidden" id="bestiary" style="padding:0;z-index:20;background:rgba(4,6,15,.97);backdrop-filter:none;-webkit-backdrop-filter:none;">
-  <button class="btn sm ghost" id="bestiaryClose" data-t="ui.close" style="position:absolute;top:16px;right:16px;z-index:2;">✕ Close</button>
+<div class="overlay hidden" id="bestiary" style="z-index:20;background:rgba(4,6,15,.97);backdrop-filter:none;-webkit-backdrop-filter:none;">
+  <button class="btn sm ghost" id="bestiaryClose" data-t="ui.close" style="position:absolute;z-index:2;">✕ Close</button>
   <iframe id="bestiaryFrame" data-tt="bestiary.frame" title="ORBITAL CRASH Bestiary" style="flex:1 1 auto;width:100%;height:100%;border:0;background:transparent;"></iframe>
 </div>
 
