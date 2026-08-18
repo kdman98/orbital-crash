@@ -306,9 +306,6 @@
      lands in the middle of a quarter rather than on its extreme corner. ⚠️ This is the one part of the
      scheme argued from ergonomics rather than measured — it wants a real thumb on a real phone. */
   /* A row describing a control this device does not have is the same lie #controls was hidden for. */
-  /* A row that is hidden because it cannot do anything in the current mode — not dimmed like `.off`,
-     which means "this control is on but its effect is currently zero". This one has no effect to have. */
-  .setrow.gone{display:none !important;}
   #setSens,#setMode,#setSide{display:none;}
   @media (pointer:coarse){
     #setSens,#setMode,#setSide{display:flex;}
@@ -1605,29 +1602,20 @@
     </div>
   </div>
 
-  <!-- POINTER FOLLOW. A level with no switch beside it, unlike Sound: there is no "off" for steering,
-       and a row that offered one would be offering to make the game unplayable.
-         ⚠️ THE TWO ROWS ABOVE AND BELOW ARE NOT THE SAME KNOB, and the order is the causal one. Touch
-       steering sets WHERE the target goes — one thumb position, one arena position, `k = zoneWidth/W`.
-       This one sets HOW FAST the star closes on that target once it is there. They compose, and either
-       alone leaves the other question unanswered.
-         ⚠️ NOT hidden on a coarse pointer here, and that is the whole difference from v2. There the
-       chase is a mouse-only path — `stepStick` moves P itself and clears `pointer.has` — so the row
-       described a control a thumb never reached and was hidden. On this branch the move zone writes
-       `pointer` and this chase carries it, measured at a constant 0.815 gap decay per frame, so the row
-       is live for touch and the media query that hid it is deleted rather than carried across. -->
-  <div class="setrow" id="setFollow">
-    <div class="st">
-      <div class="sn"><span data-t="set.follow">Pointer follow</span> <span class="snv" id="followReadout">100%</span></div>
-      <div class="sd" data-t="set.followD">How fast the star closes on your cursor.</div>
-      <!-- ⚠️ step=1, NOT the volume row's 5 or this row's own former 10. A range steps from `min`, so
-           min=1 with step=10 walks 1,11,…,91 and the MAXIMUM — which is also the default — is not
-           selectable at all. Any step other than 1 has to divide 99 exactly, and 1 is the only one of
-           those a player would thank you for. -->
-      <input type="range" id="followRange" class="rng" min="1" max="100" step="1" value="100"
-             data-ta="set.followA" aria-label="Pointer follow speed">
-    </div>
-  </div>
+  <!-- ⚠️ THE POINTER FOLLOW ROW WAS DELETED HERE, AND v2 STILL HAS IT. This is now the SECOND thing in
+       this block that must be removed on every v2 -> v2-ios merge; the first was the
+       `@media (pointer:coarse){ #setFollow{display:none;} }` rule noted up in the stylesheet.
+         Why it went: it named a CURSOR on a device that has none, and — measured — it does nothing at
+       all under the rate stick, which is this branch's default. `stepStick` writes P directly and clears
+       `pointer.has`, so `stepPlayer`'s chase never runs: 20 held frames of full deflection travel 280
+       units at followSens 100, 50 and 10 alike, exactly 20 * STICK.speed. Under ABS the same test gives
+       196.66 / 171.29 / 62.33, so the control was live in exactly one of two modes and misnamed in both.
+         ⚠️ THE CHASE ITSELF IS NOT DELETED and must not be — ABS writes a target to `pointer` and the
+       chase is what carries the star to it. Only the SETTING is gone; `FOLLOW.sens` is pinned at 1, the
+       shipped tune, so ABS behaves exactly as it did with the slider at its 100% default. What ABS loses
+       is a smoothing knob nobody asked for, on a row named for hardware this branch does not have.
+         On v2 the row is correct as it stands: there the chase IS the mouse control and there IS a
+       cursor. Do not delete it there. -->
 
   <!-- SOUND IS A LEVEL, AND THE SWITCH BESIDE IT IS STILL A SWITCH. The row keeps both because they are
        not the same verb: the level is set once, mute is done for a moment and undone. Collapsing them
@@ -2045,16 +2033,9 @@ const store={
   // all — the tutorial would be instructing the player to press the wrong half. The strings carry
   // `{mv}`/`{act}` tokens for this and are resolved through `sideVars()`; see the applier.
   moveRight:LS.getItem('orbitalcrash_moveright')==='1',
-  // POINTER FOLLOW SENSITIVITY, 1-100, where 100 is the shipped chase AND the maximum.
-  //   ⚠️ STORED AS AN INTEGER PERCENT, NOT AS THE MULTIPLIER, so the slider, the readout and the
-  // localStorage value are all the same number and none of them has to round. `FOLLOW.sens` is the
-  // only place it becomes a fraction, and it is derived there rather than stored here — see the FOLLOW
-  // block for what the range means and why the ceiling is the shipped chase rather than a multiple of it.
-  //   A stored 140 or 200 from the range this replaced clamps to 100 on load, which is the right answer
-  // and needs no migration: the value it clamps to is the one that setting was asking for anyway.
-  //   Read by FOLLOW's declaration, which sits ~4400 lines below this one, so there is no ordering
-  // hazard in this direction. The reverse would be one: nothing above `store` may read FOLLOW.
-  followSens:clamp(num('orbitalcrash_followsens',100),1,100),
+  // (`followSens` STOOD HERE. It is not a setting on this branch any more — see the marker where its
+  //  settings row was. `orbitalcrash_followsens` may still be in a player's localStorage; it is simply
+  //  never read, which needs no migration because the value it held is the value now hardcoded.)
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
   cb:LS.getItem('orbitalcrash_cb')==='1',                     // red-green colourblind palette — see PAL
   // ⚠️ THE BROWSER DECIDES ONCE, AND ONLY ONCE. A stored choice is never second-guessed: a Korean
@@ -2104,7 +2085,6 @@ function save(){
     LS.setItem('orbitalcrash_touchsens',store.touchSens);
     LS.setItem('orbitalcrash_touchmode',store.touchMode);
     LS.setItem('orbitalcrash_moveright',store.moveRight?'1':'0');
-    LS.setItem('orbitalcrash_followsens',store.followSens);
     LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
@@ -2236,9 +2216,6 @@ const L={ en:{
   'set.cbD':'For red-green colourblindness. Turns the red pole orange, so it stands off the dark field as well as cyan does, and moves the Gilded Bounty ring to violet.',
   'set.motion':'Reduced motion',
   'set.motionD':'Calmer shake and flashes when something dies close to you.',
-  'set.follow':'Pointer follow',
-  'set.followD':'How fast the star closes on your cursor.',
-  'set.followA':'Pointer follow speed',
   'set.sound':'Sound',
   'set.soundD':'The ambient bed and every cue on top of it.',
   'set.soundA':'Sound level',
@@ -2426,9 +2403,6 @@ const L={ en:{
   'set.cbD':'적록색약을 위한 설정입니다. 빨간색 극을 주황색으로 바꿔 어두운 필드에서 청록색만큼 잘 보이게 하고, 황금색 링은 보라색으로 바뀝니다.',
   'set.motion':'모션 줄이기',
   'set.motionD':'가까운 곳에서 뭔가 터질 때 흔들림과 섬광을 줄입니다.',
-  'set.follow':'커서 따라오기',
-  'set.followD':'별이 커서를 따라오는 속도입니다.',
-  'set.followA':'커서 따라오기 속도',
   'set.sound':'소리',
   'set.soundD':'배경음과 그 위에 얹히는 모든 효과음.',
   'set.soundA':'소리 크기',
@@ -6507,12 +6481,14 @@ function step(){
 const FOLLOW={
   k   : 0.185,                  // gap fraction per frame at 60Hz — the shipped chase
   cap : 0.62,                   // ceiling after moveMult — unreachable at a 100% max; see above
-  sens: store.followSens/100,   // the player's multiplier, 0.01–1.0
+  // ⚠️ NO LONGER A SETTING, AND PINNED AT THE SHIPPED TUNE. This was `store.followSens/100` behind a
+  // slider until that row was deleted — see the marker where its markup stood. Left as a live field
+  // rather than folded into `k` for the reason SKY and the old TILT were: it is a FEEL number, nobody
+  // can settle one off a bot, and the probe can still sweep it between runs via `__orbital.FOLLOW.sens`.
+  //   1 exactly, not 100/100 — the old default was bit-identical to this (`0.185*1 === 0.185`), so no
+  // player's chase changes and the oracle digest cannot move.
+  sens: 1,
 };
-// The setter, so the slider and the physics cannot drift apart: one function writes both, exactly as
-// `setVolume` owns the pair above. `clamp` here and again in `store` is deliberate belt-and-braces —
-// this one guards a bad call, that one guards a hand-edited localStorage value.
-function applyFollowSens(v){ store.followSens=clamp(Math.round(v),1,100); FOLLOW.sens=store.followSens/100; save(); }
 
   // ----- player follow pointer (speed-capped briefly after a resume: glide, never teleport) -----
 function stepPlayer(dt){
@@ -10782,12 +10758,6 @@ function paintSettings(){
   // these rows has an off — both print the name of the state they are IN.
   const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
   const bs=el('swSide'); if(bs){ bs.classList.toggle('on', store.moveRight); bs.textContent=T(store.moveRight?'set.side.r':'set.side.l'); }
-  // ⚠️ THE FOLLOW ROW DOES NOTHING IN STICK MODE, so it is hidden rather than left sitting there inert.
-  // Measured, 20 held frames of full deflection: the star travels 280 units at followSens 100, 50 AND
-  // 10 alike — exactly 20*STICK.speed — because `stepStick` writes P directly and clears `pointer.has`,
-  // so `stepPlayer`'s chase never runs. In ABS the same test gives 196.66 / 171.29 / 62.33, i.e. the row
-  // is live there and only there. A slider a player can drag with no effect reads as a broken game.
-  const fRow=el('setFollow'); if(fRow) fRow.classList.toggle('gone', store.touchMode==='stick');
   const sr=el('sensRange');
   if(sr && document.activeElement!==sr) sr.value=store.touchSens;
   const so=el('sensReadout'); if(so) so.textContent=store.touchSens+'%';
@@ -10795,15 +10765,6 @@ function paintSettings(){
   // this one never did, so its fill sat wherever the last painted row left it. `(v-min)/(max-min)`, the
   // same fraction-of-track the follow row's note argues for: 190, not 200, or the fill leads the handle.
   if(sr) sr.style.setProperty('--p',((store.touchSens-10)/1.90)+'%');
-  // The follow row, under the same active-element guard as the volume row below and for the same reason.
-  const fr=el('followRange');
-  if(document.activeElement!==fr) fr.value=store.followSens;
-  el('followReadout').textContent=store.followSens+'%';
-  // ⚠️ `--p` IS A FRACTION OF THE TRACK, NOT THE VALUE, and the two are still not the same number even
-  // now that the range ends at 100 — it STARTS at 1, so passing the raw percentage through would sit
-  // the fill about a point ahead of the handle. Small enough to look like a rendering seam rather than
-  // a bug, which is exactly why it is worth computing properly: (v-min)/(max-min).
-  fr.style.setProperty('--p',((store.followSens-1)/0.99)+'%');
   const r=el('volRange'), pct=Math.round(store.vol*100);
   if(document.activeElement!==r) r.value=pct;
   el('volReadout').textContent=pct+'%';
@@ -10867,7 +10828,6 @@ el('sensRange').addEventListener('input',e=>{ applyTouchSens(+e.target.value); p
 // screen, so a player tuning it has their own live field behind the overlay to judge it against rather
 // than a number to commit blind. No audio cue on release — the volume row's blip is a level reference
 // and there is nothing equivalent to hear here.
-el('followRange').addEventListener('input',e=>{ applyFollowSens(+e.target.value); paintSettings(); });
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSettings(); }});
 
 // =====================================================================
@@ -11678,13 +11638,14 @@ window.__orbital=window.__polaris=window.__flux={
   //
   // THE CHASE, EXPOSED BECAUSE A FEEL NUMBER CANNOT BE SETTLED OFF A BOT — it has to be movable between
   // runs without a rebuild-and-reinstall per guess, which on this branch is the expensive direction.
-  // `FOLLOW.sens=1.6` is the live tune; `applyFollowSens(160)` is the same thing through the setter,
-  // which also persists it and repaints the row.
+  // `FOLLOW.sens=1.6` is the live tune, and it is now the ONLY way in — the setter and the settings row
+  // it persisted to are both deleted on this branch, so a value set here lasts until reload and no
+  // further. That is the right shape for a feel number nobody has settled yet.
   //   `lf` is what the physics actually uses this frame — the product after moveMult and the clamp — so
   // a harness can assert the setting reached the sim rather than only that the store holds it. On this
   // branch that matters more than it did on v2: touch rides this chase, so `lf` is the touch control's
   // response and not just the mouse's.
-  FOLLOW, applyFollowSens,
+  FOLLOW,
   get lf(){ return clamp(FOLLOW.k*FOLLOW.sens*(P?P.moveMult:1),0,FOLLOW.cap); },
   // THE TOUCH ZONES, EXPOSED BECAUSE A SIMULATOR CANNOT PINCH AND A DESKTOP BROWSER HAS NO FINGERS.
   // `zoneOf` takes CSS px and answers 'move' | 'od' | 'flip', which is the one function a harness needs
