@@ -4,7 +4,7 @@
   "private": true,
   "description": "Pure arcade survival — steer your star, annihilate opposite charge, survive the Anomalies.",
   "scripts": {
-    "build": "rm -rf www && mkdir -p www && cp index.html bestiary.html manifest.webmanifest sw.js www/ && cp -R icons www/icons && mkdir -p www/art && cp art/*.webp www/art/",
+    "build": "rm -rf www && mkdir -p www && cp index.html bestiary.html manifest.webmanifest sw.js www/ && cp -R icons www/icons && mkdir -p www/art && cp art/*.webp www/art/ && mkdir -p www/audio && cp audio/*.mp3 www/audio/ 2>/dev/null || true",
     "sync": "npm run build && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 cap sync",
     "ios": "npm run sync && cap open ios",
     "ios:fast": "npm run build && cap copy ios && cap open ios",

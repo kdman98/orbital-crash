@@ -22,7 +22,14 @@
 //   No player is exposed today: Pages serves `master`, which has no art at all. The silence is what
 // carries forward, to every icon, the manifest and any asset added later. Touch a byte of anything in
 // SHELL and bump this, whether or not the list itself moved.
-const CACHE = 'orbital-crash-v4';
+// ⚠️ v5, AND THE BUMP IS THE WHOLE POINT OF THIS EDIT. `./audio/music.mp3` joins SHELL below. Adding a
+// path without moving this constant is exactly the failure recorded above — everything past the document
+// branch is served cache-first, so a client that installed under v4 would never fetch the new entry.
+//   ⚠️ AND IT NEEDS BUMPING AGAIN WHEN THE TRACK ACTUALLY LANDS. The file does not exist yet; `install`
+// maps each URL through `c.add(u).catch(()=>{})`, so the 404 is swallowed per-URL and the rest of the
+// shell still caches — which means a client can install v5 with the music entry MISSING and, being
+// cache-first, never look again. Whoever drops the track in bumps this to v6.
+const CACHE = 'orbital-crash-v5';
 
 const SHELL = [
   './',
@@ -38,6 +45,7 @@ const SHELL = [
   // The title screen's key art. Precached with the shell rather than fetched lazily: it is the FIRST
   // thing drawn on a cold start, so an offline first launch without it opens on a black menu.
   './art/keyart-wide.webp',
+  './audio/music.mp3',
   './art/keyart-tall.webp',
 ];
 
