@@ -3283,6 +3283,26 @@ which authored anything.
 edits through tools — which is everyone.** Its silence is worth nothing; its hits are leads. Used here it
 narrowed `449f641` to a named candidate co-located in both worktrees nineteen seconds later, and that is
 all it did — the field is narrowed, not closed, and no session is named in this file as the author.
+  ⚠️ **AND THERE IS A SECOND COVERAGE BOUNDARY SITTING BEHIND THE FIRST: `git log -S` SEARCHES DIFF
+CONTENT AND `git grep` SEARCHES FILE CONTENT, SO NEITHER SEARCHES COMMIT MESSAGES.** `--grep` does. That
+is an ordinary git fact and harmless in most repositories; here it is not, because **this repo puts ten
+to a hundred and fifty lines of reasoning in every commit message** — PATCHNOTE's opening says so
+explicitly — which means a large fraction of the project's prose exists *only* in messages and is
+invisible to both of the searches people reach for first.
+  The failure it produces is specific and I walked straight into it. A transcript snippet showed a clause
+that `git log --all -S` reported at **0 commits**, so it read as unpublished composition, so it read as
+authorship. Every step of that is wrong: the clause is line 13 of `b33d7d3`'s *message*, `--grep` finds
+it in one call, and the peer's transcript holds it because they ran `git show b33d7d3 --format=…%B | head
+-60` while auditing whose commit had landed under them. **That is tool output — the half of the index
+that IS covered — so the hit was a reader, exactly as the paragraph above says a hit can be.** I wrote
+that rule and broke it one paragraph later, and the resulting claim named a session, in a commit, on a
+public remote. Retracted in the commit that follows `0721787`; nobody has established who wrote `b33d7d3`
+any more than who wrote `449f641`.
+  **So the draft-versus-committed test does not work in this repo at all.** Text absent from every diff
+is not thereby unpublished, and a transcript snippet that looks like drafting is *more* likely to be
+someone reading a commit body than anyone composing. If you must ask whether a string was ever
+committed, the answer needs `git log --all --grep` **and** `-S` **and** `git grep`, and a miss from any
+one of them is not a miss.
 
 ⚠️ **A LAYOUT SWEEP MEASURES ONE VALUE OF EVERY VARIABLE IT DOES NOT SET, AND A HUD IS MADE OF VARIABLES.**
 A landscape pass checked `#tutBar` against `#score`, `#best`, `#combo`, `#center` and `#pauseBtn` as
