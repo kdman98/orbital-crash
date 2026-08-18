@@ -1557,18 +1557,20 @@
        and ears" and a two-item wardrobe in its own room would look like a system pretending to be one.
        Moved out on the author's call — see the #skins panel, which is where that argument is answered.) -->
 
-  <!-- STEERING MODEL. Two touch controls, both shipped, neither retired.
-         ⚠️ THE SENSITIVITY ROW BELOW SERVES BOTH, and the number means the same thing in each — see the
-       identity argued at `stickK`. That is why this is a mode switch and not a second slider: there is
-       one scale, read two ways.
-         `.on` lights DRAG rather than lighting "the enabled one", because neither is enabled — it marks
-       the row as moved off its default, which is the only thing a two-way choice can usefully show. -->
+  <!-- STEERING MODEL. Two touch controls, and they are not two settings of one control:
+         ABS   thumb travel -> the star's POSITION.  Move 60px, the star moves 120px, then stops.
+         STICK thumb deflection -> the star's VELOCITY. Hold it off-origin and the star keeps going.
+       A distance and a rate. The sensitivity row below scales each model's OWN parameter — 2.00x on
+       screen for ABS, `speed:14` for STICK — so 100% is the tuned figure in both and the slider trims
+       down from there. One knob, two quantities, which is why it is a mode switch and not a slider.
+         `.on` lights STICK rather than "the enabled one", because neither is enabled — it marks the row
+       as moved off its default, which is the only thing a two-way choice can usefully show. -->
   <div class="setrow" id="setMode">
     <div class="st">
       <div class="sn" data-t="set.mode">Steering</div>
-      <div class="sd" data-t="set.modeD">Whether your thumb sets the star's position, or only moves it.</div>
+      <div class="sd" data-t="set.modeD">Whether your thumb moves the star a distance, or steers it like a stick.</div>
     </div>
-    <button class="sw" id="swMode">Point</button>
+    <button class="sw" id="swMode">Stick</button>
   </div>
 
   <!-- WHICH SIDE STEERS. Mirrors the zones AND the words that name them; see `sideVars`. -->
@@ -1583,17 +1585,14 @@
   <!-- TOUCH STEERING SENSITIVITY. Hidden on a fine pointer, because it describes a control that device
        does not have — the same rule #touchCtl and the keyboard legend already follow.
          ⚠️ NO SWITCH BESIDE IT, unlike Sound. There is no "off" for steering.
-         ⚠️ STILL THE ZONE'S WIDTH IN BOTH MODES, and drag mode does not strictly need it to be. Drag
-       could have taken its gain from a free multiplier and left the seam at 50%, keeping the action
-       quarters full width at every stop. It shares the zone instead so that the seam does not JUMP when
-       you switch modes, and so `stickK` stays the single source of the scale — one number moving one
-       geometry, rather than two knobs that happen to agree. The cost is that low sensitivity narrows the
-       corners in drag mode too, for a reason drag mode does not have. -->
+         ⚠️ NO LONGER THE ZONE'S WIDTH, and that stopped being true when the absolute map was removed.
+       The map's scale WAS the seam (`k = zoneWidth/W`), so sensitivity had to move it and moving it
+       narrowed the Overdrive and flip quarters. Both surviving models scale by a free multiplier, so the
+       seam is fixed at half and the corners keep a full quarter at every stop. -->
   <div class="setrow" id="setSens">
     <div class="st">
       <div class="sn"><span data-t="set.sens">Touch steering</span> <span class="snv" id="sensReadout">100%</span></div>
-      <div class="sd" data-t="set.sensD">How far the star travels for a given sweep of your thumb. Lower is finer: it
-        widens the steering zone, so the Overdrive and Flip corners get narrower to match.</div>
+      <div class="sd" data-t="set.sensD">How strongly your thumb moves the star.</div>
       <input type="range" id="sensRange" class="rng" min="60" max="100" step="5" value="100"
              data-ta="set.sensA" aria-label="Touch steering sensitivity">
     </div>
@@ -1737,11 +1736,12 @@ const ZONE={x:REF_SHORT/2, y:REF_SHORT/2,
   // `innerWidth` per event would reintroduce exactly the per-event viewport read this block exists to
   // avoid, and would carry the 0-viewport hazard documented in `resize()` into the input path.
   vw:REF_SHORT,
-  // ⚠️ THE SENSITIVITY LIVES HERE, NOT ON `store`, AND THE REASON IS ORDER. `resize()` is called at load
-  // (see the bottom of this block) and `store` is declared ~80 lines further down, so reading
-  // `store.touchSens` from resize() is a temporal-dead-zone ReferenceError at boot — the exact class of
-  // fault this file has been bitten by before and the one `node --check` does not catch. `store` copies
-  // its value in here once it exists, and the settings row writes both.
+  // ⚠️ `sens` IS NOW DEAD AND IS KEPT ONLY AS A TOMBSTONE. It lived here rather than on `store` because
+  // `resize()` runs at load while `store` is declared ~80 lines below, so reading `store.touchSens` from
+  // resize() was a temporal-dead-zone ReferenceError at boot — a real fault this file has been bitten by
+  // and one `node --check` does not catch. That ordering hazard is gone with the reason for it: the seam
+  // is a fixed half now, so resize() reads no sensitivity at all. Deliberately NOT deleted, because the
+  // boot-order trap it documents is the thing anyone re-coupling geometry to a setting needs to read.
   sens:100};
 function resize(){
   const vw=window.innerWidth, vh=window.innerHeight;   // the real viewport, in CSS pixels
@@ -1757,7 +1757,10 @@ function resize(){
   W=vw/S; H=vh/S;                                      // the same viewport, in design units
   // ...and the touch partition, still in CSS px. Capped at 0.85 so the action quarters cannot be
   // squeezed to nothing by a slider: below ~15% of the width they stop being targets a thumb can find.
-  ZONE.x=vw*Math.min(0.85, 0.5*100/ZONE.sens); ZONE.y=vh*0.5; ZONE.vw=vw;
+  // ⚠️ FIXED AT HALF, no longer `min(0.85, 0.5*100/sens)`. That expression existed because the absolute
+  // map's scale WAS the zone width; both surviving models scale by a multiplier instead, so the seam has
+  // no reason to move and the action quarters keep a full quarter each at every sensitivity.
+  ZONE.x=vw*0.5; ZONE.y=vh*0.5; ZONE.vw=vw;
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
   ctx.setTransform(S*DPR,0,0,S*DPR,0,0);               // one transform carries both scales
@@ -1997,29 +2000,32 @@ const store={
   //   It is also the better model for a player. Mute is a thing you do for a moment and undo; a level is
   // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
   vol:clamp(num('orbitalcrash_vol',1),0,1),
-  // TOUCH STEERING SENSITIVITY, 60-100, where 100 is the shipped geometry.
-  //   ⚠️ IT IS THE ZONE'S WIDTH, AND IT COULD NOT HAVE BEEN ANYTHING ELSE. The move zone is an ABSOLUTE
-  // map of the arena (see the STICK block), so its scale is not a free parameter — it is pinned by
-  // "the zone shows the whole arena", `k = zoneWidth / W`. The only way to move arena-units-per-pixel is
-  // to move the zone's width, and widening it is the same thing as narrowing the Overdrive and flip
-  // quarters. A slider that pretended otherwise would either stop the thumb reaching the arena edges or
-  // start bending the diagonals.
+  // TOUCH STEERING SENSITIVITY, 60-100, where 100 is the tuned value in whichever model is selected.
+  //   ⚠️ THE PARAGRAPH THAT STOOD HERE ARGUED IT "COULD NOT HAVE BEEN ANYTHING ELSE" THAN THE ZONE'S
+  // WIDTH, and that was true of exactly one control — the absolute map, whose scale was pinned by "the
+  // zone shows the whole arena", `k = zoneWidth/W`. The map is deleted. Both surviving models read thumb
+  // TRAVEL, whose scale is a free multiplier, so the seam no longer moves and the Overdrive and flip
+  // quarters keep a full quarter at every stop. A constraint that outlived the thing imposing it.
+  //   It scales each model's OWN parameter, and they are different quantities: ABS a distance ratio
+  // (2.00x on screen at 100%), STICK a rate (`STICK.speed` 14 units/frame at 100%). One number, two
+  // meanings — which is honest, because the two controls are not two settings of one control.
   touchSens:clamp(num('orbitalcrash_touchsens',100),60,100),
-  // TOUCH STEERING MODEL, 'map' (shipped) or 'drag'. Default 'map', so nobody's control changes under
-  // them on update.
-  //   ⚠️ THE SENSITIVITY ABOVE MEANS THE SAME THING IN BOTH, AND THAT IS NOT A COINCIDENCE — it is an
-  // identity. Map mode's per-pixel gain is `1/k = W/zoneWidth`; substitute `zoneWidth = vw*0.5*(100/sens)`
-  // and `W = vw/S` and it reduces to `2*(sens/100)/S` design units per CSS px, with the `vw` cancelling.
-  // Drag mode multiplies by that same expression directly. So at 100% both move the star 2.00x the thumb
-  // ON SCREEN, at 80% both 1.60x, at 60% both 1.20x — one number, one meaning, no second scale to learn.
-  //   The two differ in WHERE the travel is measured from, which is the whole choice: map reads absolute
-  // thumb POSITION (one spot on the glass is one spot in the arena, all run), drag reads thumb TRAVEL
-  // (only movement counts, so a lift-and-regrip banks nothing and the whole side stays usable).
-  //   ⚠️ `drag` IS THE MODEL v2 RETIRED, restored deliberately as an OPTION rather than as the default.
-  // It was rejected as the ONLY control because the thumb-to-star relationship drifts with every
-  // re-grip; that objection is about not being able to escape it, and it does not transfer to a choice.
-  // See the STICK block for the full tombstone.
-  touchMode:(LS.getItem('orbitalcrash_touchmode')==='drag')?'drag':'map',
+  // TOUCH STEERING MODEL, 'abs' or 'stick'.
+  //     abs   — thumb TRAVEL sets the star's POSITION. Move 60px, the star moves 120px, then stops.
+  //     stick — thumb DEFLECTION sets the star's VELOCITY. Hold it off-origin and the star keeps going.
+  //   A distance and a rate. No value of the sensitivity turns one into the other, which is why this is
+  // a mode and not a slider position.
+  //   ⚠️ BOTH ARE MODELS THIS GAME PREVIOUSLY RETIRED, and the third — the absolute position map that
+  // replaced them — is the one now deleted. That is the author's call and it is not a reversal: each was
+  // rejected as the ONLY control, `stick` for being speed-capped (~5x slower than a mouse across open
+  // ground) and the displacement drag for drifting on every re-grip. Both objections are about being
+  // unable to escape the model, and neither transfers to a choice between two. The stick's cap is now on
+  // the sensitivity slider, so the complaint that retired it has a knob attached for the first time.
+  //   ⚠️ DEFAULT IS `stick`, WHICH IS NOT WHAT THIS BRANCH SHIPPED. The absolute map was the default and
+  // is now deleted, so SOMETHING had to change for an existing player; `stick` is the one the author
+  // named as the familiar control, so it is the smaller surprise of the two. A stored 'map' from the
+  // build in between falls through to 'stick' rather than to a mode that no longer exists.
+  touchMode:(LS.getItem('orbitalcrash_touchmode')==='abs')?'abs':'stick',
   // WHICH SIDE STEERS. false = move zone on the left (shipped). true = move zone on the right, with the
   // Overdrive and flip quarters mirrored to the left.
   //   ⚠️ IT REWRITES COPY, NOT ONLY GEOMETRY. Three legend rows and three tutorial lines NAME a side in
@@ -2159,10 +2165,10 @@ const L={ en:{
   // gives is a property of the zone being narrower than the screen, not of any one steering model.
   // The argument is worked properly at `STICK`.
   'set.sens':'Touch steering',
-  'set.sensD':'How far the star travels for a given sweep of your thumb. Lower is finer: it widens the steering zone, so the Overdrive and Flip corners get narrower to match.',
+  'set.sensD':'How strongly your thumb moves the star.',
   'set.sensA':'Touch steering sensitivity',
-  'set.mode':'Steering', 'set.modeD':"Whether your thumb sets the star's position, or only moves it.",
-  'set.mode.map':'Point', 'set.mode.drag':'Drag',
+  'set.mode':'Steering', 'set.modeD':'Whether your thumb moves the star a distance, or steers it like a stick.',
+  'set.mode.abs':'Drag', 'set.mode.stick':'Stick',
   'set.side':'Steering side', 'set.sideD':'Which half steers, with the Overdrive and flip corners on the other.',
   'set.side.l':'Left', 'set.side.r':'Right',
   'tc.move':'<b>{Mv} side</b> Steer star',
@@ -2361,10 +2367,10 @@ const L={ en:{
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> 일시정지 &nbsp;·&nbsp; <kbd>M</kbd> 음소거',
   // 세 구역을 위치로 부릅니다. 동작이 아니라 자리를 말하는 편이 지도에 가깝고, 화면을 보면 바로 확인됩니다.
   'set.sens':'터치 조종',
-  'set.sensD':'엄지를 같은 거리만큼 움직였을 때 별이 얼마나 가는지를 정합니다. 낮출수록 조종이 섬세해지고, 대신 조종 영역이 넓어져서 오버드라이브와 색 반전 구역이 그만큼 좁아집니다.',
+  'set.sensD':'엄지 움직임이 별을 얼마나 크게 움직일지 정합니다.',
   'set.sensA':'터치 조종 감도',
-  'set.mode':'조종 방식', 'set.modeD':'엄지의 위치로 별을 두거나, 움직인 만큼만 옮깁니다.',
-  'set.mode.map':'위치', 'set.mode.drag':'드래그',
+  'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 몰지 정합니다.',
+  'set.mode.abs':'드래그', 'set.mode.stick':'스틱',
   'set.side':'조종 위치', 'set.sideD':'조종할 쪽을 정하고, 오버드라이브와 색 반전은 반대쪽으로 갑니다.',
   'set.side.l':'왼쪽', 'set.side.r':'오른쪽',
   'tc.move':'<b>{Mv}</b> 별 조종',
@@ -6395,8 +6401,9 @@ function step(){
   stepOverdrive(dt);  // Overdrive state → physics flags, and the drain (before physics reads them)
   director(dt);
 
-  // (No stepStick. The move zone writes `pointer` and stepPlayer's chase — the same one the mouse uses
-  //  — does the moving, so touch and mouse are one code path from here down. See the STICK block.)
+  // stepStick is a no-op unless the rate stick is BOTH the chosen model and currently held, so the ABS
+  // path and the mouse stay exactly one code path from here down — see the STICK block.
+  stepStick();        // adds velocity straight to P; stepPlayer's clamp and P.dx bookkeeping then cover it
   stepPlayer(dt);
   stepTutorial(dt);   // inert unless tutMode; reads P after the move, which is what the travel test wants
 
@@ -10761,7 +10768,7 @@ function paintSettings(){
   // reproduce on purpose.
   // The two touch models and the two sides. Not `sw()` above: that helper prints on/off, and neither of
   // these rows has an off — both print the name of the state they are IN.
-  const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='drag'); bm.textContent=T('set.mode.'+store.touchMode); }
+  const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
   const bs=el('swSide'); if(bs){ bs.classList.toggle('on', store.moveRight); bs.textContent=T(store.moveRight?'set.side.r':'set.side.l'); }
   const sr=el('sensRange');
   if(sr && document.activeElement!==sr) sr.value=store.touchSens;
@@ -10804,7 +10811,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('skins').classList.co
 // language during a run, and the pause panel is not where you would look for it.
 function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
 el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
-el('swMode').onclick  =()=>{ store.touchMode=(store.touchMode==='drag')?'map':'drag'; save(); paintSettings(); };
+el('swMode').onclick  =()=>{ store.touchMode=(store.touchMode==='stick')?'abs':'stick'; save(); paintSettings(); };
 // ⚠️ `applyLang()` IS NOT OPTIONAL HERE, and it is what separates this row from every other switch. The
 // legend and three tutorial lines NAME the side, and they are painted once by the data-t loops rather
 // than per frame — flip the geometry without re-running them and the game spends the rest of the session
@@ -10827,7 +10834,7 @@ el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
 // player who lets go and touches the field is steering with the value they just chose, with no commit
 // step in between.
 //   ⚠️ THIS USED TO SAY THE PLAYER COULD "SEE THE STEERING HALF WIDEN UNDER THEIR THUMB", AND THERE IS
-// NOTHING TO SEE. `ZONE.x` is read by `stickSet`, `zoneOf` and the probe and is drawn by NOTHING — the
+// NOTHING TO SEE. `ZONE.x` is read by `zoneOf` and the probe and is drawn by NOTHING — the
 // seam has no rendered form at any sensitivity, so the sentence described feedback that was never built
 // and justified `input` with it. `input` is still right, for the reason above; the reason it USED to
 // give was fiction. If the seam is ever drawn, this comment gets its original claim back honestly —
@@ -10958,13 +10965,26 @@ function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; 
 // costs vertical range: the arena's full height lands in the middle ~201px of the zone, and above or
 // below that band the star simply pins to the arena's edge — which is what the existing arena clamp
 // already does, so the band needs no code of its own.
+// ⚠️ `bandY` AND THE LETTERBOX WENT WITH THE ABSOLUTE MAP. They existed to fit a 2.17-aspect arena into
+// a 1.09-aspect zone without stretching the diagonals, which is a problem only a POSITION map has: both
+// controls here read thumb TRAVEL, and travel needs a scale, not a frame. Nothing letterboxes now.
 const STICK={
-  // Where the letterboxed band sits in the zone, 0=top 0.5=centre 1=bottom. Centred is the honest
-  // default and may well be wrong: a thumb rests LOW on a phone, and if the live band wants to be
-  // lower this is the one number that moves it. A live object for the reason SKY and the old TILT were
-  // — nobody can settle a feel number off a bot, and the probe can sweep it between runs.
-  bandY: 0.5,
+  // ---- the rate stick. These three are v2's, unchanged, and they were tuned against the GAME rather
+  // than against any sensor, which is why they transfer intact.
+  dead : 6,     // CSS px of slop around the origin — below this the star does not move at all.
+  full : 64,    // CSS px of deflection for full speed. A thumb pivots through about this much without
+                // the hand leaving its grip; past it the ORIGIN follows, so you never run out of stick
+                // before you run out of zone.
+  speed: 14,    // design units per frame at full deflection, before moveMult and before sensitivity.
+                //   ⚠️ THIS CEILING IS WHAT RETIRED THE STICK THE FIRST TIME. The complaint was that a
+                // touch player crossed open ground ~5x slower than a mouse player, whose chase is
+                // uncapped (0.185 of the gap can be 37px in one frame). 14 clears the Charger dash of
+                // 9.5 by ~47%, so it was never too slow to ESCAPE — it was too slow to TRAVEL. The
+                // sensitivity slider now scales it, which is the first time that complaint has had a
+                // knob attached to it; if it still reads slow at 100%, this number is the one to raise.
 };
+let stickVec={x:0,y:0};        // unit-ish deflection, 0..1 of full — read once per frame by stepStick
+let stickOX=0, stickOY=0;      // the stick's origin in CSS px; it FOLLOWS past full deflection
 let stickId=null;              // the finger steering, so its release can be told from any other
 let odTouchId=null;            // the finger HOLDING Overdrive, so its release can be told from any other
 const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
@@ -10975,60 +10995,95 @@ const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
 // which is the other half of what was wrong before: the rate model's flat 14/frame ceiling made a touch
 // player ~5× slower across open ground than a mouse player, and no absolute model can reintroduce that
 // because it never names a speed at all.
-// THE ONE SCALE BOTH MODELS SHARE. Map mode fits the arena into the zone with it; drag mode multiplies
-// thumb travel by its reciprocal.
-//   ⚠️ DRAG'S GAIN IS DERIVED FROM THIS EXPRESSION, NOT FROM THE ALGEBRA IT REDUCES TO. `1/k` equals
-// `2*(sens/100)/S` design units per CSS px only while the zone is WIDTH-bound, and `Math.min` is what
-// decides that: on a landscape phone `zw/W` is 0.25 against `zh/H` 0.50, so width binds and the two
-// agree — but a tablet or a portrait viewport can bind on height, and there the closed form is simply
-// wrong. Sharing the expression makes the modes identical on every viewport by construction, instead of
-// by a coincidence that holds on the hardware someone happened to measure.
-function stickK(){ return Math.min(ZONE.x/W, (ZONE.y*2)/H); }
-// WHERE THE MOVE ZONE STARTS, in CSS px. 0 normally; with the zones inverted the zone is flush to the
-// right edge, so everything that reads a thumb x has to subtract this first.
+// ⚠️ THE ABSOLUTE MAP IS GONE, and with it the reason the sensitivity was ever the ZONE'S WIDTH. That
+// model's scale was pinned by "the zone shows the whole arena" — `k = zoneWidth/W` — so the only way to
+// change arena-units-per-pixel was to move the seam, and moving the seam narrowed the Overdrive and flip
+// quarters. Both controls here read thumb TRAVEL, whose scale is a free multiplier, so the seam is fixed
+// at half the width and the corners keep a full quarter each at every sensitivity. The cost the old
+// description had to apologise for is not a cost any more; it was the map's, and the map has left.
+//   The two live models, and the whole of the difference between them:
+//     ABS   thumb travel -> the star's POSITION.  Move 60px, the star moves 120px, then stops.
+//     STICK thumb deflection -> the star's VELOCITY. Hold it off-origin and the star keeps going.
+// One is a distance, the other is a rate, and no sensitivity value turns either into the other.
+
+// ONE KNOB, SCALING EACH MODEL'S OWN PARAMETER. 100% is the tuned value in both — 2.00x on screen for
+// ABS, v2's `speed:14` for STICK — so the default is the shipped feel and the slider only trims down.
+//   ⚠️ THE 60 FLOOR IS NOW ARBITRARY. It was set by the map's 0.85 zone cap (`0.5*100/60 = 0.833`), a
+// geometric limit that no longer exists. Left at 60-100 because widening a range is a feel decision and
+// nobody has held this on a phone yet; there is no longer anything in the code stopping it.
+function touchScale(){ return store.touchSens/100; }
+// Design units of star per CSS px of thumb, in ABS. The 2 is the number the author asked to keep: at
+// 100% the star travels exactly twice as far as the thumb ON SCREEN, since `2/S` design units render as
+// `2` CSS px. It is written as the constant it is rather than derived from the zone, because it no
+// longer has anything to do with the zone.
+function absUnits(){ return 2/S*touchScale(); }
+// WHERE THE MOVE ZONE STARTS, in CSS px. 0 normally; inverted, the zone is flush to the right edge.
 function stickX0(){ return store.moveRight ? (ZONE.vw-ZONE.x) : 0; }
 
-function stickSet(x,y){
-  const zw=ZONE.x, zh=ZONE.y*2;                 // the move zone, in CSS px
-  const k=stickK();                             // letterbox: fit the arena into the zone, one scale
-  const ox=stickX0()+(zw-W*k)/2, oy=(zh-H*k)*STICK.bandY;
-  pointer.x=(x-ox)/k; pointer.y=(y-oy)/k; pointer.has=true;
-}
-// ---- DRAG MODE. Only TRAVEL counts, so the target accumulates instead of being assigned. ----
+// ---- ABS. Only TRAVEL counts, so the target accumulates instead of being assigned. ----
 // ⚠️ THE ACCUMULATOR IS CLAMPED TO THE ARENA, and it has to be. Left unbounded, a sweep past the edge
 // banks travel the player cannot see, and the drag back spends that debt before the star moves at all —
 // a control that stops responding for exactly as long as you overshot it. Clamping at the boundary
-// makes an overshoot cost nothing, which is the behaviour a trackpad against a screen edge already has.
+// makes an overshoot cost nothing, which is what a trackpad against a screen edge already does.
 let stickRef={x:0,y:0};       // the last thumb position, in CSS px — the reference travel is measured from
-function stickMove(x,y){
-  if(store.touchMode!=='drag'){ stickSet(x,y); return; }
-  const k=stickK();
-  pointer.x=clamp(pointer.x+(x-stickRef.x)/k, 0, W);
-  pointer.y=clamp(pointer.y+(y-stickRef.y)/k, 0, H);
+function stickAbs(x,y){
+  const u=absUnits();
+  pointer.x=clamp(pointer.x+(x-stickRef.x)*u, 0, W);
+  pointer.y=clamp(pointer.y+(y-stickRef.y)*u, 0, H);
   stickRef.x=x; stickRef.y=y; pointer.has=true;
 }
-// ⚠️ THE GRAB IS THE WHOLE DIFFERENCE BETWEEN THE TWO MODELS, so it is one function and not a flag
-// buried in the handler. Map mode ASSIGNS on touch-down: the star starts travelling the moment the thumb
-// lands, because a position is being read. Drag mode assigns NOTHING and only sets the reference, so
-// grabbing never moves the star and a lift-and-regrip is free.
-//   Deliberately NOT `reanchorPointer()` for the drag case, though it looks like the same job: that sets
-// `settleT=1.0`, which caps the follow speed for a second so a resuming run glides rather than
-// teleports. On a grab that cap is a full second of sluggish first drag, on every single touch-down.
-function stickGrab(x,y){
-  if(store.touchMode==='drag'){
-    stickRef.x=x; stickRef.y=y;
-    if(P){ pointer.x=P.x; pointer.y=P.y; }    // accumulate from where the star actually is
-    pointer.has=true;
-  } else stickSet(x,y);
+// ---- STICK. v2's rate control, brought across unchanged except for the sensitivity factor. ----
+// THE ORIGIN FOLLOWS PAST FULL DEFLECTION. Without it a thumb that goes down near the zone's edge runs
+// out of zone before it runs out of stick, so full speed is unreachable in that direction — a control
+// that is quietly weaker one way for a reason the player cannot see.
+function stickDeflect(x,y){
+  let dx=x-stickOX, dy=y-stickOY;
+  const m=Math.hypot(dx,dy);
+  if(m>STICK.full){
+    const k=(m-STICK.full)/m;
+    stickOX+=dx*k; stickOY+=dy*k;
+    dx-=dx*k; dy-=dy*k;
+  }
+  const mm=Math.min(m,STICK.full);
+  // ⚠️ ONE DEAD ZONE ON THE MAGNITUDE, NOT ONE PER AXIS. Dead-zoning the components independently
+  // notches the diagonals: push at 45 degrees just past the threshold and both are still individually
+  // suppressed, so the star does not move at all in the exact direction you are pointing.
+  if(mm<=STICK.dead){ stickVec.x=stickVec.y=0; return; }
+  const r=(mm-STICK.dead)/(STICK.full-STICK.dead);   // linear past the dead zone; mm is already clamped
+  stickVec.x=dx/mm*r; stickVec.y=dy/mm*r;
 }
-// The star must STOP where it is when the thumb lifts, not keep chasing the last target it was given.
-// reanchorPointer() puts the target back on the core and caps the follow speed briefly, which is the
-// same thing the game already does when a run resumes.
-function stickClear(){ stickId=null; reanchorPointer(); }
+// THE STICK ADDS VELOCITY TO P DIRECTLY rather than feeding a target to stepPlayer's chase, and that is
+// deliberate: expressing a rate as a position offset means picking an offset whose CHASE velocity equals
+// the speed you wanted, which welds this control to the 0.185 coefficient — retune the chase for the
+// mouse and touch silently changes speed. stepPlayer's clamp and P.dx bookkeeping cover it on the very
+// next line, exactly as they cover the keyboard nudge.
+function stepStick(){
+  if(stickId===null || store.touchMode!=='stick' || !P) return;
+  pointer.has=false;                                 // the stick drives; the chase must let go
+  const sp=STICK.speed*touchScale()*P.moveMult;
+  P.x+=stickVec.x*sp; P.y+=stickVec.y*sp;
+}
+
+function stickMove(x,y){ if(store.touchMode==='stick') stickDeflect(x,y); else stickAbs(x,y); }
+// ⚠️ THE GRAB IS WHERE THE TWO MODELS DIVERGE, so it is one function rather than a flag in the handler.
+// Neither banks anything on touch-down — ABS sets the travel reference, STICK sets the origin — which is
+// what makes a lift-and-regrip free in both.
+//   Deliberately NOT `reanchorPointer()` for ABS, though it looks like the same job: that sets
+// `settleT=1.0`, capping the follow speed for a second so a resuming run glides rather than teleports.
+// On a grab that is a full second of sluggish first drag, on every single touch-down.
+function stickGrab(x,y){
+  if(store.touchMode==='stick'){ stickOX=x; stickOY=y; stickVec.x=stickVec.y=0; return; }
+  stickRef.x=x; stickRef.y=y;
+  if(P){ pointer.x=P.x; pointer.y=P.y; }      // accumulate from where the star actually is
+  pointer.has=true;
+}
+// The star must STOP when the thumb lifts. ABS reanchors the target onto the core; STICK zeroes its
+// deflection, which is the same statement in the other model's units.
+function stickClear(){ stickId=null; stickVec.x=stickVec.y=0; reanchorPointer(); }
 
 // ZONE BOUNDS ARE IN CSS PIXELS, because pointer events are. Every other length in this file is in
-// design units and the single divide in `stickSet` is what keeps that honest — this is the one input
-// that never converts, so it compares against the cached viewport halves and NOT against W/2 and H/2.
+// design units, and the conversion in `absUnits`/`stepStick` is what keeps that honest — this is the one
+// input that never converts, so it compares against the cached viewport halves and NOT against W/2 and H/2.
 // Those are design units: on a phone S is about 0.5, so W/2 is roughly the full screen width and every
 // touch on the device would resolve to 'move'.
 function zoneOf(x,y){
@@ -11060,11 +11115,10 @@ canvas.addEventListener('pointerdown',e=>{
     // First finger into the half owns the stick. A second one there is ignored rather than stealing it:
     // a palm or a resting knuckle must not take the steering away from the thumb that is using it.
     // ⚠️ THE THREE LINES THAT STOOD HERE DESCRIBED A CONTROL THIS BRANCH DID NOT HAVE. They said the
-    // touch-down "sets the REFERENCE and banks nothing, so grabbing the stick never moves the star",
-    // which was true of the DISPLACEMENT model and survived its deletion — under the absolute map
-    // `stickSet` assigns a target on contact, so a touch-down at zone x=200 sends the star to arena
-    // x≈796 immediately. The sentence is true again now, but only in `drag` mode, which is exactly why
-    // it could sit here reading correctly for two models it did not describe. See `stickGrab`.
+    // touch-down "sets the REFERENCE and banks nothing, so grabbing the stick never moves the star" —
+    // true of the retired displacement model, FALSE under the absolute map that replaced it (which
+    // assigned a target on contact), and true again now of both surviving models. It read as current
+    // prose across three controls, two of which it did not describe. See `stickGrab`.
     case 'move': if(stickId===null){ stickId=e.pointerId; stickGrab(e.clientX,e.clientY); } break;
     case 'od':   if(odTouchId===null){ odTouchId=e.pointerId; overdrive(); } break;
     default:     flip();                                  // ON PRESS — see the top of this block
@@ -11620,17 +11674,19 @@ window.__orbital=window.__polaris=window.__flux={
   // WAS RETIRED, and the sentence after it ("a displacement control does not have one") described that
   // same deleted control. Both read as current prose for two whole models. Kept as a note rather than
   // deleted silently, because this is the third stale-comment instance in the touch block alone.
-  //   `unitsPerCssPx` is the scale BOTH modes share — one thumb pixel in arena units, identical on each
-  // axis by construction. It is read off `stickK()` rather than recomputed here: the probe restating the
-  // formula is how a probe comes to disagree with the thing it measures, which is worse than no probe.
-  //   `band` is where the live strip actually is in CSS px — the thing to check when the control feels
-  // like it has a dead edge. `x0` is the zone's left edge, 0 normally and non-zero when mirrored.
-  //   `mode` and `ref` are what a harness needs to tell the two controls apart: in 'drag' the target
-  // accumulates from `ref` and a touch-down banks nothing, in 'map' it is assigned outright.
-  stick(){ const zh=ZONE.y*2, k=stickK();
-           return {id:stickId, mode:store.touchMode, moveRight:store.moveRight,
-                   unitsPerCssPx:+(1/k).toFixed(3), bandY:STICK.bandY, x0:+stickX0().toFixed(1),
-                   band:{top:+((zh-H*k)*STICK.bandY).toFixed(1), h:+(H*k).toFixed(1)},
+  //   ⚠️ THE TWO MODELS REPORT DIFFERENT QUANTITIES BECAUSE THEY ARE DIFFERENT QUANTITIES. `absUnits`
+  // is a DISTANCE ratio (arena units per CSS px of travel) and `stickSpeed` is a RATE (units per frame
+  // at full deflection). A single `unitsPerCssPx` field covering both, which is what stood here, would
+  // be a number that means two things — and both are read off the live functions rather than restated,
+  // since a probe reciting the formula is how it comes to disagree with what it measures.
+  //   `vec` and `origin` are the stick's live state; `ref` is ABS's travel reference. `x0` is the zone's
+  // near edge, 0 normally and non-zero when mirrored.
+  stick(){ return {id:stickId, mode:store.touchMode, moveRight:store.moveRight, sens:store.touchSens,
+                   x0:+stickX0().toFixed(1),
+                   absUnitsPerCssPx:+absUnits().toFixed(3),
+                   stickSpeedPerFrame:+(STICK.speed*touchScale()).toFixed(2),
+                   vec:{x:+stickVec.x.toFixed(3), y:+stickVec.y.toFixed(3)},
+                   origin:{x:+stickOX.toFixed(1), y:+stickOY.toFixed(1)},
                    ref:{x:stickRef.x, y:stickRef.y},
                    target:{x:+pointer.x.toFixed(1), y:+pointer.y.toFixed(1), has:pointer.has}}; },
   // `SKY.every` is the repaint cadence — set it to 1 for the no-cache arm. The frame numbers come off
