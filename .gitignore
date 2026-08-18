@@ -43,6 +43,37 @@ DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 
+# ⚠️ NOT IGNORED, ON PURPOSE, AND DO NOT "FIX" IT: `ios/App/App.xcodeproj/project.pbxproj` carries
+# `DEVELOPMENT_TEAM = JZB45AQ78T` on both build configurations, and it has been world-readable since the
+# repository went public. It is NOT a credential — a Team ID ships inside every signed iOS app anyone can
+# download from the App Store; it identifies the developer account and grants no access to it. Checked
+# 2026-08-18: no real signing material is tracked anywhere (`.p12`, `.mobileprovision`, `.key`, `.pem`,
+# `.cer` all return zero), and the value is absent from `index.html`, so nothing the web build serves
+# carries it.
+#   It entered in `a55699e` (2026-08-05), FOUR DAYS BEFORE the repository went public, so no push has
+# ever newly exposed it — a claim worth checking before repeating, because it was made and was wrong:
+# `git grep -c JZB45AQ78T origin/master -- ios/App/App.xcodeproj/project.pbxproj` returns 2, and it is on
+# all three pushed branches. Author reviewed and accepted it on 2026-08-18.
+#   ⚠️ THE PURGE IS THE EXPENSIVE MOVE AND THE ONLY ONE THAT COULD ACTUALLY HURT. `a55699e` is an
+# ancestor of `origin/master`, so rewriting moves the FROZEN NAN-submission tip `631bfbf`, and about 55%
+# of PATCHNOTE's resolving commit citations change SHA — 76 of 137 on both branches as of this commit,
+# reproduced by two independent extractions. ⚠️ RE-RUN IT RATHER THAN QUOTING IT: the count grows with
+# PATCHNOTE, and it moved inside a single afternoon — v2 read 71 of 132 four hours before this note was
+# written, and three new entries carried it to 76 of 137. The ratio has held at ~55%; the absolute number
+# has not. Recipe, because a figure without one is not evidence, and this one went stale while being
+# written into a paragraph about reproducible figures:
+#     BT=$(printf '\x60'); for h in $(grep -o "${BT}[0-9a-f]\{7,40\}${BT}" docs/PATCHNOTE.md \
+#       | tr -d "${BT}" | sort -u); do git rev-parse --verify -q "$h^{commit}" >/dev/null \
+#       && git merge-base --is-ancestor a55699e "$h" && echo "$h"; done | wc -l
+# All three branches are pushed, so a purge means force-pushing public history. Same call as SCOPE.md
+# above and for the same reason: accepted, not purged.
+#   ⚠️ AND MOVING IT TO AN xcconfig DOES NOT WORK HERE, which is the repair everyone reaches for first.
+# `CODE_SIGN_STYLE = Automatic`, so Xcode writes `DEVELOPMENT_TEAM` back into the pbxproj on the next GUI
+# build; and `baseConfigurationReference` belongs to CocoaPods on both configurations, which `npm run
+# sync` regenerates via `pod install`. The change greps clean and is overridden in practice — the same
+# shape as the inline `top`/`right` that `b33d7d3` had to delete for exactly this reason. If you try it
+# anyway, verify by REOPENING Xcode and re-grepping the pbxproj, not by reading the diff.
+
 # The key art's SOURCE candidates — several MB of generated PNGs kept for reference while choosing.
 # The SHIPPED art is art/*.webp and those ARE tracked; this is the cutting-room floor. Ignored rather
 # than deleted because re-deriving a crop or a colour correction needs the original, and regenerating
