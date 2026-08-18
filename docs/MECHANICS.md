@@ -3129,6 +3129,21 @@ the 16px quoted above are **history rather than the current rule** — grep `ind
 either. The mechanism did not move, and an entry whose evidence is a measurement outlives the line it
 measured.
 
+⚠️ **A LAYOUT SWEEP MEASURES ONE VALUE OF EVERY VARIABLE IT DOES NOT SET, AND A HUD IS MADE OF VARIABLES.**
+A landscape pass checked `#tutBar` against `#score`, `#best`, `#combo`, `#center` and `#pauseBtn` as
+rectangle intersection — twelve cases, both languages, every step — and reported **zero collisions**. It
+was true. It was also taken at `score = 0` and `best = 0`, which are the only two values of those stats
+that cannot collide, because both are left-anchored and grow rightward into a bar whose left edge is
+pinned by a max-width cap. The real first overlap is at **score 10**. Nothing in the sweep could have
+said so: it enumerated *elements* exhaustively and *states* not at all, and exhaustiveness along the axis
+you did enumerate reads exactly like coverage.
+  **The check that works is a positive control** — run the same measurement with the fix disabled and
+confirm it reports the failure. A verification that cannot produce a red has not been shown to detect
+anything. Applied here: `.tut` removed → `hitsScore=true, hitsBest=true`; `.tut` present → both false.
+  The general form, since this is the third instance in this file: **ask what the instrument would do if
+the bug were present.** The sky-cache rig, the `curl`-versus-DOM marker and this one are all the same
+fault — a clean result nobody could distinguish from a broken comparison.
+
 ⚠️ **THE GAME'S OWN SERVICE WORKER SERVES A STALE BUILD TO EVERY RELOAD, AND A CACHE-BUSTING QUERY DOES
 NOT HELP** — the worker answers the request before the network sees it. Three reloads of a genuinely
 edited file measured the *old* strings; `sw.js` had registered, was controlling the page, and was serving
