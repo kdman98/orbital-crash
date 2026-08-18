@@ -11356,6 +11356,20 @@ updateMotionBtn();
 //  AUDIO (procedural, WebAudio)
 // =====================================================================
 let AC=null, master=null, ambGain=null, ambFilter=null, ambReady=false, ambNoteT=0;
+// ---- COMPOSED MUSIC, IF A TRACK IS PRESENT ----------------------------------------------------
+// ⚠️ AN <audio> ELEMENT AND NOT fetch()+decodeAudioData, AND THE CSP IS WHY. The policy on this page
+// sets `connect-src 'none'`, so fetch and XHR are refused — the textbook way to load a buffer cannot
+// work here and fails at runtime, not at build time. There is no `media-src` directive, so media falls
+// back to `default-src 'self'`, which permits a same-origin file. So the element route needs NO CSP
+// change; the fetch route would need `connect-src 'self'`, which was deliberately tightened to 'none'
+// after an iOS build and is not worth re-opening for this.
+//   Routed into `master`, therefore through the compressor, because a music bed is the one voice that
+// is always on and summing it past the limiter is how the mix clips in a dense fight.
+//   ABSENT IS A SUPPORTED STATE. If `audio/music.mp3` 404s or fails to decode, `musOk` stays false and
+// the procedural bed keeps playing. Shipping the loader before the track exists therefore breaks
+// nothing, and dropping the track in needs no code change — only a `sw.js` CACHE bump.
+const MUSIC_URL='audio/music.mp3';
+let musEl=null, musGain=null, musOk=false;
 let compOut=null;                      // the compressor, held for the seam — see where it is built
 function audioInit(){
   if(AC){ if(AC.state==='suspended') AC.resume(); return; } // heal a context left suspended (e.g. quit from pause)
@@ -11398,19 +11412,38 @@ function buildAmbient(){
       const g=AC.createGain(); g.gain.value=i<2?0.5:0.24; o.connect(g); g.connect(ambFilter); o.start();
     });
     ambReady=true;
+    // The element is created unconditionally; whether it becomes audible depends on the file existing.
+    try{
+      musEl=new Audio(MUSIC_URL); musEl.loop=true; musEl.preload='auto';
+      musGain=AC.createGain(); musGain.gain.value=0.0001; musGain.connect(master);
+      AC.createMediaElementSource(musEl).connect(musGain);
+      musEl.addEventListener('canplaythrough',()=>{ musOk=true; },{once:true});
+      musEl.addEventListener('error',()=>{ musOk=false; });   // no track yet: the procedural bed stays
+    }catch(e){ musOk=false; }
   }catch(e){}
 }
 function updateAmbient(inten,dt){
+  // ⚠️ ABOVE THE GUARD ON PURPOSE. Everything below returns early while the context is suspended, but an
+  // <audio> element is NOT suspended by the context — it keeps advancing its own currentTime through a
+  // pause, so the track would drift by exactly the length of every pause and resume somewhere else.
+  if(musEl){
+    const want = AC && AC.state==='running' && gainNow()>0;
+    if(want && musEl.paused) musEl.play().catch(()=>{});
+    else if(!want && !musEl.paused) musEl.pause();
+  }
   if(!ambReady || !AC || AC.state!=='running')return; // don't schedule notes while suspended (pause / hidden tab)
   const now=AC.currentTime;
+  if(musOk && musGain) musGain.gain.setTargetAtTime(lerp(0.45,0.60,inten)*store.vol, now, 0.6);
   // The bed is scaled by the level as well as gated by it. It already passes through `master`, so this
   // is a SECOND application of the same number — deliberate: the ambient is the one voice that is always
   // on, and it wants to recede faster than the cues as the slider comes down, or a low setting leaves a
   // drone with the game's transients pushed under it.
-  ambGain.gain.setTargetAtTime(gainNow()<=0?0:lerp(0.02,0.06,inten)*store.vol, now, 0.5);
+  // A composed track REPLACES the bed rather than layering over it — two beds in the same register
+  // fight, and the drone was tuned to sit alone.
+  ambGain.gain.setTargetAtTime((gainNow()<=0||musOk)?0:lerp(0.02,0.06,inten)*store.vol, now, 0.5);
   ambFilter.frequency.setTargetAtTime(lerp(300,1500,inten), now, 0.7);
   ambNoteT-=dt;
-  if(ambNoteT<=0){ ambNoteT=lerp(2.6,0.6,inten)*rand(0.7,1.4); ambPluck(inten); }
+  if(ambNoteT<=0){ ambNoteT=lerp(2.6,0.6,inten)*rand(0.7,1.4); if(!musOk) ambPluck(inten); }
   stormT-=dt;
   if(stormT<=0){ stormT=lerp(1.9,0.62,inten)*rand(0.82,1.2); stormHit(inten); }
 }
