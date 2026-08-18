@@ -14,7 +14,7 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-18
 
-### The Bestiary stops being reachable by iOS, in the two ways it still was `v2-ios` `af20d79`
+### The Bestiary stops being reachable by iOS, in the two ways it still was `v2` `51204ca` `v2-ios` `af20d79`
 Double-tapping the roster raised the iOS selection loupe, and the Dynamic Island sat on the first card.
 One cause for both: `bestiary.html` is a **separate document** loaded as an `<iframe>`, so nothing
 index.html sets on its own `html,body` applies to it — not `user-select`, not `touch-action`, and not
