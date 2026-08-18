@@ -3143,6 +3143,24 @@ anything. Applied here: `.tut` removed → `hitsScore=true, hitsBest=true`; `.tu
   The general form, since this is the third instance in this file: **ask what the instrument would do if
 the bug were present.** The sky-cache rig, the `curl`-versus-DOM marker and this one are all the same
 fault — a clean result nobody could distinguish from a broken comparison.
+  ⚠️ **AND THE FOURTH INSTANCE WAS COMMITTED BY THE SESSION THAT PORTED THIS ENTRY, FOUR COMMITS LATER.**
+Sweeping the same bar against `#score` I enumerated six steps by five scores, felt thorough, and pinned a
+third variable I never noticed I was setting: the number's **rendering**. The rig wrote the digits as
+`String(v)`; the HUD writes `score.toLocaleString()`, so the four-digit column measured `1000` where the
+game shows `1,000`. That separator is worth ~10px and it flips two cells from clear to overlapping —
+steps 2 and 6 went +1.6 and +5.5 to **-8.8 and -4.9** — which falsified the headline ("only step 5
+collides") while leaving the conclusion the fix rested on untouched. **Six-by-five is what made it feel
+like coverage**, which is this entry's own thesis arriving one layer lower: not an un-enumerated axis
+this time, but a variable that does not look like one because the *product* sets it, not the test.
+  **The general form: ask what the product does to your value between the variable you set and the
+pixels you measure.** `toLocaleString`, `text-transform`, `font-variant-numeric:tabular-nums`, `Intl`
+anything, a template that pads or truncates. A sweep sets the variable and trusts the render.
+  ⚠️ **What caught it was a margin, not care — and the margin is the reusable part.** One cell read
+**+1.6px clear**, on a step nothing depended on, in a table I had already committed. Nothing flagged it;
+it was simply too tight to be a coincidence next to neighbours in the tens. **A margin that small is a
+measurement asking to be re-run** — probe the boundary rather than trusting the sample, because a sweep
+reports the columns you chose and says nothing about where the sign changes. First-overlap-by-step took
+one more call than the table did and is the form that cannot hide a flip between columns.
 
 ⚠️ **THE GAME'S OWN SERVICE WORKER SERVES A STALE BUILD TO EVERY RELOAD, AND A CACHE-BUSTING QUERY DOES
 NOT HELP** — the worker answers the request before the network sees it. Three reloads of a genuinely
