@@ -8985,21 +8985,17 @@ function drawBoss(){
     //   The information is not lost, which is why this is a deletion and not a trade. The wake already
     // points: four echo rings stream off the trailing edge along -ux,-uy, i.e. they encode the same
     // bearing the line drew, from the same body, without printing a hairline across the play area.
-    //   THE SENTINEL KEEPS ITS CIRCLE, and it is not the same mark. Its hunt branch in bossMove re-centres
-    // its orbit on your core and SPIRALS IN: it moves tangentially at up to HUNT_TANG the whole time while
-    // `huntR` shrinks, so a straight line described a path it takes only at the instant it arrives — the
-    // same defect class as a hull drawn inside its own collider. The circle is the shape it is genuinely
-    // flying, and the radius is a countdown the wake cannot express. Left standing pending the author's
-    // call, since the request names a "line" and this is the one kind that never drew one.
-    if(b.variant==='sentinel'){
-      const R=(b.huntR!==undefined)?b.huntR:d;
-      ctx.strokeStyle=hexA(oc,0.16+0.12*Math.sin(elapsed*6)); ctx.lineWidth=2; ctx.setLineDash([6,12]);
-      // squashed to 0.8 to match the ellipse bossMove actually walks (`ty` uses `R*0.8`), or the mark
-      // would be a promise the motion misses by 20% on the vertical.
-      ctx.save(); ctx.translate(P.x,P.y); ctx.scale(1,0.8);
-      ctx.beginPath(); ctx.arc(0,0,R,0,TAU); ctx.stroke(); ctx.restore();
-      ctx.setLineDash([]);
-    }
+    //   THE SENTINEL'S CIRCLE WENT TOO, ON THE AUTHOR'S CALL, and the argument for keeping it is recorded
+    // because it was a good one and it lost anyway. That mark was not a line: the hunt branch in bossMove
+    // re-centres the orbit on your core and SPIRALS IN, moving tangentially the whole time while `huntR`
+    // shrinks, so a dashed circle at `huntR` (squashed 0.8 to match the ellipse `ty` actually walks) was
+    // the shape it genuinely flew, and its radius was a countdown the wake cannot encode. What outweighed
+    // that: one kind carrying a hunt telegraph after three lost theirs reads as an inconsistency rather
+    // than as a distinction, and the telegraph a player cannot name is one they treat as decoration.
+    //   ⚠️ SO THE HUNT NOW HAS NO DEDICATED MARK ON ANY KIND, WHICH IS A DELIBERATE FLOOR AND NOT AN
+    // OVERSIGHT. If a hunt ever needs to be read again, the answer is not to restore this circle — it is
+    // the same argument the deleted line lost: a faint dashed shape held for the ~5s a hunt takes stops
+    // reading as a telegraph. Whatever replaces it has to survive being on screen that long.
     ctx.lineWidth=3.5;
     for(let i=1;i<=4;i++){
       const w=(elapsed*1.5+i*0.25)%1;
@@ -9453,7 +9449,21 @@ function drawEnemies(){
         if(e.tgx!==undefined){
           const ex=e.tgx, ey=e.tgy;                     // the LOCKED point — a fixed mark on the ground,
                                                         // not a stub that slides as the Dot drifts
-          ctx.strokeStyle=hexA(c,0.28+0.42*t); ctx.lineWidth=1.5+1.5*t; ctx.setLineDash([9,9]);
+          // ⚠️ `/S` — THE ONLY THREE STROKES IN THIS FILE THAT HOLD A SCREEN SIZE, AND THE REASON IS
+          // MEASURED. `resize()` fits the arena with S = min(1, min(sw,sh)/REF_SHORT), REF_SHORT 800, and
+          // `ctx.setTransform(S*DPR,…)` bakes S in — so every lineWidth in this file is a WORLD unit and
+          // shrinks with the arena. On a 393pt phone S is 0.49, which put this lane at 0.74-1.47 CSS px
+          // and the reticle below at 0.74, against 1.5-3.0 on a desktop. The telegraph was half-width on
+          // the device it ships to, and the author reported exactly that: unrecognisable on a phone.
+          // This branch is the one that actually reaches a phone, so the defect was worst here.
+          // Dividing by S is a no-op at S=1 by construction, so desktop is untouched.
+          //   WIDTH ONLY — NOT RADIUS, NOT POSITION. Stroke width carries no meaning here, so it is free
+          // to be legible. The reticle's RADIUS is `e.r + P.r`, the real kill radius, and the note below
+          // says why moving it would make the mark lie; the wind-up nose is documented as inside the hull
+          // by construction at 0.93r, and screen-locking THAT would push it outside the hull on a phone
+          // and break the standing rule against rings drawn outside a body. Size that means something
+          // stays in world units. This is the distinction to apply if any other mark needs the same fix.
+          ctx.strokeStyle=hexA(c,0.28+0.42*t); ctx.lineWidth=(1.5+1.5*t)/S; ctx.setLineDash([9/S,9/S]);
           ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(ex,ey); ctx.stroke(); ctx.setLineDash([]);
           // Reticle collapsing onto the end of the lane — the countdown made spatial. It settles on
           // exactly `e.r + P.r`, so what it collapses to IS the radius that kills; shrink it further and
@@ -9463,7 +9473,7 @@ function drawEnemies(){
           // standoff — and it is true. Same precedent as the mine telegraph, drawn at exactly the radius
           // it will cover.
           const RET=e.r+(P?P.r:15);
-          ctx.strokeStyle=hexA(c,0.3+0.45*t); ctx.lineWidth=1.5;
+          ctx.strokeStyle=hexA(c,0.3+0.45*t); ctx.lineWidth=1.5/S;   // screen-locked; see the lane above
           ctx.beginPath(); ctx.arc(ex,ey, RET+26*(1-t), 0, TAU); ctx.stroke();
         }
       } else if(e.cst==='dash'){ // motion streak
