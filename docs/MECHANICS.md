@@ -3243,9 +3243,30 @@ the flattering one** — it made the trap sound so load-bearing that two people 
 a nicer story than the truth and was reconstructed from nothing but timestamps.
   What actually generalises has nothing to do with sessions agreeing: **a line a doc quotes can be
 replaced in more than one working tree before anyone re-reads the doc.** Checking that the quote is
-current in the tree you happen to be standing in is not checking it at all. Note too that `git log`
-cannot tell you who wrote a commit here — every session commits as the same author — so "which session
-did this" is answered by the reflog and by comparing bytes, never by the author field.
+current in the tree you happen to be standing in is not checking it at all.
+  ⚠️ **AND `git log` CANNOT NAME THE SESSION, BECAUSE EVERY SESSION COMMITS AS THE SAME AUTHOR.** All of
+`b33d7d3`, `449f641` and `af20d79` read `author=SF93`. The author and committer fields carry no
+provenance here and neither does the subject line. Three instruments do carry some, and each answers a
+different question:
+  1. `git reflog show <branch> --date=iso` — records the *operation*, so `commit:` distinguishes a
+     working-tree write from `cherry-pick:`/`am:`/`apply:`, i.e. text somebody typed from text git moved.
+  2. `git merge-base --is-ancestor A B` plus a hash of the region — identical bytes with no ancestry
+     link means the tree was written, not merged.
+  3. `mcp__ccd_session_mgmt__search_session_transcripts` — searches *other* sessions' transcripts and
+     will name a candidate outright.
+  ⚠️ **THE THIRD ONE HAS A FAILURE MODE THAT READS EXACTLY LIKE EXONERATION, AND IT IS NOT "UNRELIABLE" —
+IT IS MECHANICAL.** It indexes message content and tool OUTPUT. It does not index tool INPUT. So code
+written through a tool call — a heredoc, an `Edit`, a `Write` — is invisible to it unless the same text
+happens to be echoed back in that command's output. Verified both directions: searching `Schwerwiegend`,
+which only ever exists as git's stderr, returns five sessions, so tool output is indexed; while searching
+`-webkit-touch-callout`, a string demonstrably authored into `bestiary.html` by `af20d79`, does **not**
+return the session that wrote it — it was written inside a heredoc and the command's own grep filter did
+not echo that line. Its two hits are both sessions that were *sent a message* quoting it, neither of
+which authored anything.
+  So: **a hit can land on a reader rather than a writer, and a miss is the expected result for anyone who
+edits through tools — which is everyone.** Its silence is worth nothing; its hits are leads. Used here it
+narrowed `449f641` to a named candidate co-located in both worktrees nineteen seconds later, and that is
+all it did — the field is narrowed, not closed, and no session is named in this file as the author.
 
 ⚠️ **A LAYOUT SWEEP MEASURES ONE VALUE OF EVERY VARIABLE IT DOES NOT SET, AND A HUD IS MADE OF VARIABLES.**
 A landscape pass checked `#tutBar` against `#score`, `#best`, `#combo`, `#center` and `#pauseBtn` as
