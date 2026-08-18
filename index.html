@@ -306,6 +306,9 @@
      lands in the middle of a quarter rather than on its extreme corner. ⚠️ This is the one part of the
      scheme argued from ergonomics rather than measured — it wants a real thumb on a real phone. */
   /* A row describing a control this device does not have is the same lie #controls was hidden for. */
+  /* A row that is hidden because it cannot do anything in the current mode — not dimmed like `.off`,
+     which means "this control is on but its effect is currently zero". This one has no effect to have. */
+  .setrow.gone{display:none !important;}
   #setSens,#setMode,#setSide{display:none;}
   @media (pointer:coarse){
     #setSens,#setMode,#setSide{display:flex;}
@@ -1593,7 +1596,11 @@
     <div class="st">
       <div class="sn"><span data-t="set.sens">Touch steering</span> <span class="snv" id="sensReadout">100%</span></div>
       <div class="sd" data-t="set.sensD">How strongly your thumb moves the star.</div>
-      <input type="range" id="sensRange" class="rng" min="60" max="100" step="5" value="100"
+      <!-- ⚠️ step=5 BECAUSE IT DIVIDES 190 EXACTLY. A range steps from `min`, so with min=10 any step
+           that does not divide (max-min) puts the MAXIMUM out of reach — step 15 walks 10,25,…,190 and
+           200 is unselectable. The divisors of 190 are 1,2,5,10,19,38,95,190; of those, 5 is the one
+           that also lands exactly on the 100 default. Same trap the follow row was fixed for. -->
+      <input type="range" id="sensRange" class="rng" min="10" max="200" step="5" value="100"
              data-ta="set.sensA" aria-label="Touch steering sensitivity">
     </div>
   </div>
@@ -2000,7 +2007,7 @@ const store={
   //   It is also the better model for a player. Mute is a thing you do for a moment and undo; a level is
   // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
   vol:clamp(num('orbitalcrash_vol',1),0,1),
-  // TOUCH STEERING SENSITIVITY, 60-100, where 100 is the tuned value in whichever model is selected.
+  // TOUCH STEERING SENSITIVITY, 10-200, where 100 is the tuned value in whichever model is selected.
   //   ⚠️ THE PARAGRAPH THAT STOOD HERE ARGUED IT "COULD NOT HAVE BEEN ANYTHING ELSE" THAN THE ZONE'S
   // WIDTH, and that was true of exactly one control — the absolute map, whose scale was pinned by "the
   // zone shows the whole arena", `k = zoneWidth/W`. The map is deleted. Both surviving models read thumb
@@ -2009,7 +2016,12 @@ const store={
   //   It scales each model's OWN parameter, and they are different quantities: ABS a distance ratio
   // (2.00x on screen at 100%), STICK a rate (`STICK.speed` 14 units/frame at 100%). One number, two
   // meanings — which is honest, because the two controls are not two settings of one control.
-  touchSens:clamp(num('orbitalcrash_touchsens',100),60,100),
+  //   ⚠️ 10-200 ON THE AUTHOR'S CALL, WIDENED FROM 60-100. The old floor was never a feel decision: it
+  // was `0.5*100/60 = 0.833`, the point where the map's 0.85 zone cap bit, and it outlived the map by a
+  // commit. The range now spans 0.20x-4.00x on screen for ABS and 1.4-28 units/frame for STICK — the top
+  // being ~3x the Charger dash of 9.5, which is the fastest thing that hunts you.
+  //   A stored 60-100 from before is inside the new range and needs no migration.
+  touchSens:clamp(num('orbitalcrash_touchsens',100),10,200),
   // TOUCH STEERING MODEL, 'abs' or 'stick'.
   //     abs   — thumb TRAVEL sets the star's POSITION. Move 60px, the star moves 120px, then stops.
   //     stick — thumb DEFLECTION sets the star's VELOCITY. Hold it off-origin and the star keeps going.
@@ -2081,7 +2093,7 @@ const RUNS_KEPT=10;
 // The one-way copy the ZONE comment above describes. Runs after `store` exists and before any settings
 // row can change it; `applyTouchSens` is what keeps them in step from then on.
 ZONE.sens=store.touchSens; resize();
-function applyTouchSens(v){ store.touchSens=clamp(Math.round(v),60,100); ZONE.sens=store.touchSens; resize(); save(); }
+function applyTouchSens(v){ store.touchSens=clamp(Math.round(v),10,200); ZONE.sens=store.touchSens; resize(); save(); }
 
 function save(){
   try{                                                      // Safari private mode throws on write even when reads work
@@ -2369,7 +2381,7 @@ const L={ en:{
   'set.sens':'터치 조종',
   'set.sensD':'엄지 움직임이 별을 얼마나 크게 움직일지 정합니다.',
   'set.sensA':'터치 조종 감도',
-  'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 몰지 정합니다.',
+  'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 조종할지 정합니다.',
   'set.mode.abs':'드래그', 'set.mode.stick':'스틱',
   'set.side':'조종 위치', 'set.sideD':'조종할 쪽을 정하고, 오버드라이브와 색 반전은 반대쪽으로 갑니다.',
   'set.side.l':'왼쪽', 'set.side.r':'오른쪽',
@@ -10770,9 +10782,19 @@ function paintSettings(){
   // these rows has an off — both print the name of the state they are IN.
   const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
   const bs=el('swSide'); if(bs){ bs.classList.toggle('on', store.moveRight); bs.textContent=T(store.moveRight?'set.side.r':'set.side.l'); }
+  // ⚠️ THE FOLLOW ROW DOES NOTHING IN STICK MODE, so it is hidden rather than left sitting there inert.
+  // Measured, 20 held frames of full deflection: the star travels 280 units at followSens 100, 50 AND
+  // 10 alike — exactly 20*STICK.speed — because `stepStick` writes P directly and clears `pointer.has`,
+  // so `stepPlayer`'s chase never runs. In ABS the same test gives 196.66 / 171.29 / 62.33, i.e. the row
+  // is live there and only there. A slider a player can drag with no effect reads as a broken game.
+  const fRow=el('setFollow'); if(fRow) fRow.classList.toggle('gone', store.touchMode==='stick');
   const sr=el('sensRange');
   if(sr && document.activeElement!==sr) sr.value=store.touchSens;
   const so=el('sensReadout'); if(so) so.textContent=store.touchSens+'%';
+  // ⚠️ THIS ROW HAD NO TRACK FILL AT ALL until the range widened — the other two sliders set `--p` and
+  // this one never did, so its fill sat wherever the last painted row left it. `(v-min)/(max-min)`, the
+  // same fraction-of-track the follow row's note argues for: 190, not 200, or the fill leads the handle.
+  if(sr) sr.style.setProperty('--p',((store.touchSens-10)/1.90)+'%');
   // The follow row, under the same active-element guard as the volume row below and for the same reason.
   const fr=el('followRange');
   if(document.activeElement!==fr) fr.value=store.followSens;
@@ -11008,9 +11030,8 @@ const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
 
 // ONE KNOB, SCALING EACH MODEL'S OWN PARAMETER. 100% is the tuned value in both — 2.00x on screen for
 // ABS, v2's `speed:14` for STICK — so the default is the shipped feel and the slider only trims down.
-//   ⚠️ THE 60 FLOOR IS NOW ARBITRARY. It was set by the map's 0.85 zone cap (`0.5*100/60 = 0.833`), a
-// geometric limit that no longer exists. Left at 60-100 because widening a range is a feel decision and
-// nobody has held this on a phone yet; there is no longer anything in the code stopping it.
+//   The range is 10-200 — see the store comment for why the old 60 floor was the deleted map's geometry
+// rather than anyone's feel decision.
 function touchScale(){ return store.touchSens/100; }
 // Design units of star per CSS px of thumb, in ABS. The 2 is the number the author asked to keep: at
 // 100% the star travels exactly twice as far as the thumb ON SCREEN, since `2/S` design units render as
