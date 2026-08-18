@@ -3227,12 +3227,25 @@ and left `#bestiaryClose` at 16px, still under the Dynamic Island. It needed its
 `right:max(16px,env(safe-area-inset-right,0px))`. Measured, both before and after, because the wrong
 version of this rule had already been written into a comment as if it were established.
   ⚠️ **That rule is no longer in this branch, and the entry is unchanged — which is the distinction worth
-keeping.** `b33d7d3` generalised it to `#bestiaryClose,#recordsClose,#skinsClose,#settingsClose` at
-`max(22px,env(...))`, the panel's own margin, having found the other three carried no safe-area clearance
-at all; it got there by citing the `#bestiary` comment, which states this same rule. So the selector and
-the 16px quoted above are **history rather than the current rule** — grep `index.html` before repeating
-either. The mechanism did not move, and an entry whose evidence is a measurement outlives the line it
-measured.
+keeping.** It was generalised to `#bestiaryClose,#recordsClose,#skinsClose,#settingsClose` at
+`max(22px,env(...))`, the panel's own margin, after the other three turned out to carry no safe-area
+clearance at all. On this branch `449f641` did it; `b33d7d3` did the same on `v2` and reached here later
+through the merge. So the selector and the 16px quoted above are **history rather than the current
+rule** — grep `index.html` before repeating either. The mechanism did not move, and an entry whose
+evidence is a measurement outlives the line it measured.
+  ⚠️ **AND THE INTERESTING PART IS NOT THAT TWO BRANCHES AGREED — IT IS THAT THE DOC WENT STALE IN BOTH
+BEFORE EITHER WAS RE-READ.** `449f641` and `b33d7d3` carry the CSS rule and the eight lines of prose
+above it byte for byte (`md5` of the comment block: `0096d9b8…` in both) thirty-three seconds apart, and
+`449f641` does not descend from `b33d7d3` — the reflog records it as a plain `commit`, not a pick or an
+apply, so the text arrived by someone writing the working tree, not by git moving it. **A first draft of
+this entry said two sessions had converged on the fix independently. They had not, and that version was
+the flattering one** — it made the trap sound so load-bearing that two people hit it separately, which is
+a nicer story than the truth and was reconstructed from nothing but timestamps.
+  What actually generalises has nothing to do with sessions agreeing: **a line a doc quotes can be
+replaced in more than one working tree before anyone re-reads the doc.** Checking that the quote is
+current in the tree you happen to be standing in is not checking it at all. Note too that `git log`
+cannot tell you who wrote a commit here — every session commits as the same author — so "which session
+did this" is answered by the reflog and by comparing bytes, never by the author field.
 
 ⚠️ **A LAYOUT SWEEP MEASURES ONE VALUE OF EVERY VARIABLE IT DOES NOT SET, AND A HUD IS MADE OF VARIABLES.**
 A landscape pass checked `#tutBar` against `#score`, `#best`, `#combo`, `#center` and `#pauseBtn` as
