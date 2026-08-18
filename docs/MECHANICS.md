@@ -3121,6 +3121,13 @@ edges lie **outside** the padding — so padding moves in-flow children only. Ad
 and left `#bestiaryClose` at 16px, still under the Dynamic Island. It needed its own
 `right:max(16px,env(safe-area-inset-right,0px))`. Measured, both before and after, because the wrong
 version of this rule had already been written into a comment as if it were established.
+  ⚠️ **That rule is no longer in this branch, and the entry is unchanged — which is the distinction worth
+keeping.** `b33d7d3` generalised it to `#bestiaryClose,#recordsClose,#skinsClose,#settingsClose` at
+`max(22px,env(...))`, the panel's own margin, having found the other three carried no safe-area clearance
+at all; it got there by citing the `#bestiary` comment, which states this same rule. So the selector and
+the 16px quoted above are **history rather than the current rule** — grep `index.html` before repeating
+either. The mechanism did not move, and an entry whose evidence is a measurement outlives the line it
+measured.
 
 ⚠️ **THE GAME'S OWN SERVICE WORKER SERVES A STALE BUILD TO EVERY RELOAD, AND A CACHE-BUSTING QUERY DOES
 NOT HELP** — the worker answers the request before the network sees it. Three reloads of a genuinely
