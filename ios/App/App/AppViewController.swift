@@ -16,6 +16,12 @@ import Capacitor
 /// arbitrating between it and a finger, not re-enabling a switch.
 class AppViewController: CAPBridgeViewController {
 
+    #if DEBUG
+    private var displayLink: CADisplayLink?
+    private var linkTicks = 0
+    private var linkStart: CFTimeInterval = 0
+    #endif
+
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         runDebugProbe()
@@ -52,6 +58,9 @@ class AppViewController: CAPBridgeViewController {
         // flag lives in localStorage, so it survives removing the launch argument, reinstalling, and
         // rebooting — a player who armed it once keeps paying `probeSave()` every 240 frames forever,
         // and nothing on screen says so. Checked BEFORE `--probe` so that passing both disarms.
+        // Native-side counterpart to `--refresh`. Answers a question NO amount of JavaScript can, because
+        // every JS timer in this process is downstream of whatever WebKit decides to do.
+        if args.contains("--displaylink") { measureDisplayLink(); return }
         if args.contains("--refresh") { awaitSeam(then: Self.refreshJS, attempt: 0); return }
         if args.contains("--probe-off") { awaitSeam(then: Self.probeOffJS, attempt: 0); return }
         if args.contains("--probe") { awaitSeam(then: Self.probeJS, attempt: 0); return }
@@ -96,6 +105,61 @@ class AppViewController: CAPBridgeViewController {
       return armed ? 'recording' : 'armed';
     })()
     """
+
+    /// ⚠️ THE ONLY INSTRUMENT HERE THAT IS NOT DOWNSTREAM OF WEBKIT, WHICH IS THE WHOLE POINT.
+    /// `--refresh` and the frame probe both sample `requestAnimationFrame`, so if WebKit clamps rAF they
+    /// report the clamp and CANNOT distinguish it from the panel itself running at 60. Both readings come
+    /// back 17ms either way. CADisplayLink is driven by CoreAnimation directly, so it sees the display.
+    ///
+    /// Three numbers, and the comparison between them is the answer:
+    ///   · `maximumFramesPerSecond` — what iOS says this screen can do RIGHT NOW. 120 on a ProMotion
+    ///     phone; it drops to 60 under Low Power Mode or Accessibility's Limit Frame Rate, so this also
+    ///     re-checks both device settings without anyone having to trust a Settings screen.
+    ///   · the measured CADisplayLink rate — what native actually GETS, having asked for 120.
+    ///   · rAF, from `--refresh` — what the web layer gets.
+    /// maximumFramesPerSecond=120 and a link at ~120 while rAF sits at 60 is WebKit clamping rAF, and no
+    /// web-side change can reach it. All three at 60 means the display is at 60 and the web layer is
+    /// innocent. A link stuck at 60 while the screen claims 120 is ours — a missing plist key or an
+    /// unset frame-rate range.
+    ///
+    /// `preferredFrameRateRange` is set explicitly because a CADisplayLink does NOT default to the
+    /// panel's maximum: without a range iOS is free to serve 60 and be entirely correct, which would
+    /// fake exactly the result this exists to rule out.
+    private func measureDisplayLink() {
+        #if DEBUG
+        let l = CADisplayLink(target: self, selector: #selector(onDisplayLink(_:)))
+        // ⚠️ Guarded because the deployment target predates iOS 15. Without the range a CADisplayLink is
+        // free to serve 60 and be correct, which would fake the exact result this exists to rule out.
+        if #available(iOS 15.0, *) {
+            l.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+        }
+        linkTicks = 0
+        linkStart = 0
+        l.add(to: .main, forMode: .common)
+        displayLink = l
+        #endif
+    }
+
+    @objc private func onDisplayLink(_ l: CADisplayLink) {
+        #if DEBUG
+        if linkStart == 0 { linkStart = l.timestamp; return }
+        linkTicks += 1
+        let elapsed = l.timestamp - linkStart
+        guard elapsed >= 3.0 else { return }
+        let screen = view.window?.windowScene?.screen ?? UIScreen.main
+        var range = "unavailable (<iOS 15)"
+        if #available(iOS 15.0, *) {
+            range = "pref=\(l.preferredFrameRateRange.preferred) max=\(l.preferredFrameRateRange.maximum)"
+        }
+        let hz = Double(linkTicks) / elapsed
+        // One preformatted argument: NSLog's variadic form is unavailable to Swift.
+        let msg = String(format: "ORBITAL_DISPLAYLINK: measured %.1f Hz over %.2fs (%d ticks) | screen maximumFramesPerSecond=%d | link range %@",
+                         hz, elapsed, linkTicks, screen.maximumFramesPerSecond, range)
+        NSLog("%@", msg)
+        l.invalidate()
+        displayLink = nil
+        #endif
+    }
 
     /// Answers the one question the frame probe structurally CANNOT: is the panel running at 120Hz?
     ///
