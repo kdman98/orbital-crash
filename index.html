@@ -6249,7 +6249,10 @@ function stepMotes(dt){
       motes.splice(i,1);
       moteN++; moteT=0.8;
       if(!odOn) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
-      score+=MOTE_SCORE;
+      // Motes ride the same curve as kills, deliberately: they are the receipt for an annihilation you
+      // already earned, so paying them at a flat rate while kills scale would make the loot the part of
+      // the loop that stops mattering as you play better.
+      score+=Math.round(MOTE_SCORE*(1+Math.min(1,combo/40)));
       // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
       // several times a second, on top of the Core, on the exact pixels the flip read happens on.
       //   BUT THAT RULED OUT TEXT, NOT A MARK, and for a long time this was the only event in the game
@@ -7385,7 +7388,19 @@ function onKill(e){
   // Every kill is worth the same wherever it happens. Where you stand is already priced by the things
   // that decide the fight: closing the range is how a Volley connects, and it is what walks you into an
   // Anomaly's point-blank fire.
-  const gain=KILL_SCORE;
+  // ⚠️ COMBO PAYS SCORE NOW, AND UNTIL THIS LINE IT NEVER DID. `streakTier` has always fed `P.charge`
+  // through MCHG — so skill bought POWER, power bought survival, and survival bought score. Three links,
+  // and the number at the top of the screen only ever moved with the last of them. Two players who
+  // lasted the same three minutes scored the same however cleanly either had played.
+  //   Measured before changing it, because the first reading was backwards: purges are 6% of a run's
+  // score at Epoch I rising to ~22% by Epoch XII, NOT the majority. Flat kill and Mote income is 78-94%
+  // of the total throughout, at 94.3 +/- 6.2 pts/s parked at Epoch I. So the lever that moves the score
+  // is the one you pull every second, and that is where the multiplier belongs.
+  //   /40 AND NOT /150, and the difference is the whole edit. The first attempt scaled against PEAK
+  // combo (~47) and moved the rate by 0.1% — every hit severs the streak, so combo spends its life far
+  // below its peak and the curve has to be steep enough to bite down there. Capped at 2x: doubling is a
+  // reward, tripling is a different game.
+  const gain=Math.round(KILL_SCORE*(1+Math.min(1,combo/40)));
   score+=gain;
   tutKills++;   // the tutorial's "you have annihilated five things" test — score cannot serve, since Motes pay into it too
   // Flux Motes: annihilations shed collectible loot carrying the Dot's colour.
