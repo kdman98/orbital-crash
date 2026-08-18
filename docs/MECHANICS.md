@@ -2852,7 +2852,17 @@ the saved record carries the raw arrays because **every record is cumulative fro
 in the menu first has both mixed in, and the menu has no Act transitions at all, which would flatter the
 very comparison the probe exists to make. Histograms subtract; percentiles do not.
 
-⚠️ **It flushes to `localStorage` and a later launch reads it, because reading it live is the load.** This
+**On a device, run it with `--probe`.** A launch argument on the App scheme (Product → Scheme → Edit
+Scheme → Run → Arguments) that reports the PREVIOUS session's record into the Xcode console as
+`ORBITAL_PROBE_RESULT:` and arms the next one. Two launches by design: Run, play with nothing attached,
+Run again to read it. ⚠️ **Read `recordingNow` first** — the first `--probe` launch finds the flag unset,
+and `probeInit()` latches `PROBE.on` at boot, so that session records nothing however long you play it.
+⚠️ **The expression must never call `probeSave()`**: at launch the accumulators are empty and the flush
+would overwrite the record it exists to read, reporting success the whole way. It reads before it arms
+for the same reason — `orbitalcrash_probe_out` is overwritten every 240 frames, 2s at 120Hz.
+
+⚠️ **Attaching Safari's Web Inspector to take this reading is the same defect in a nicer UI.** It flushes
+to `localStorage` and a later launch reads it, because reading it live is the load. This
 is the fix this file prescribed after two rigs disagreed 4× on the same change. It works: on a packaged
 WebView the record is readable straight off disk at
 `…/Containers/Data/Application/<id>/Library/WebKit/<bundle>/WebsiteData/Default/*/*/LocalStorage/localstorage.sqlite3`,

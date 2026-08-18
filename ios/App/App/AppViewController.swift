@@ -44,12 +44,53 @@ class AppViewController: CAPBridgeViewController {
     private func runDebugProbe() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
+        // `--probe` is sugar for the one expression anyone actually wants, because the alternative is
+        // retyping ~20 lines of JavaScript into Xcode's argument field, where it is stored as ONE
+        // scheme string with no syntax checking and no error if you fumble a quote — it simply reports
+        // ORBITAL_PROBE_ERR and looks like the probe is broken. A named flag cannot be mistyped silently.
+        if args.contains("--probe") { awaitSeam(then: Self.probeJS, attempt: 0); return }
         guard let i = args.firstIndex(of: "--evalJS"), i + 1 < args.count else { return }
         awaitSeam(then: args[i + 1], attempt: 0)
         #endif
     }
 
     #if DEBUG
+    /// The canonical frame-probe expression: report the PREVIOUS session's record, then arm the next.
+    ///
+    /// THE TWO-LAUNCH SHAPE IS NOT AN INCONVENIENCE, IT IS THE MEASUREMENT. MECHANICS is explicit that
+    /// reading the accumulators live is the load — that is the defect which made two rigs disagree 4x on
+    /// the same change, and attaching a Web Inspector during a run is the same mistake wearing a nicer
+    /// UI. So this never reads a running session: it reads what the last one flushed to localStorage and
+    /// leaves the current one alone to record with nothing attached.
+    ///
+    /// ⚠️ IT READS BEFORE IT ARMS, AND IT MUST NEVER CALL `probeSave()`. `orbitalcrash_probe_out` is
+    /// overwritten every `PROBE.flush` = 240 frames — 2s at 120Hz, 4s at 60 — so the previous session's
+    /// record survives only in the window between page load and the first flush of this one. Capturing it
+    /// into `__probeResult` here moves it into memory, where a later flush cannot reach it. Calling
+    /// `probeSave()` from this expression would flush the accumulators as they are AT LAUNCH, which are
+    /// empty, over the exact record it exists to read — a self-erasing probe that reports success.
+    ///
+    /// `recordingNow` is the field to read first. The very first `--probe` launch finds the flag unset,
+    /// so THAT session is not recording however long you play it — `probeInit()` latches `PROBE.on` at
+    /// boot and nothing re-reads it. The flag it sets takes effect on the next launch. Saying so in the
+    /// payload costs one line and removes the only way to spend ten minutes measuring nothing.
+    private static let probeJS = """
+    (function(){
+      var armed=false;
+      try{ armed = localStorage.getItem('orbitalcrash_probe')==='1'; }catch(e){}
+      var last=null;
+      try{ last = window.__orbital.probeLast(); }catch(e){}
+      try{ localStorage.setItem('orbitalcrash_probe','1'); }catch(e){}
+      window.__probeResult = {
+        recordingNow: armed,
+        next: armed ? 'RECORDING. Play, then Run again to read this session.'
+                    : 'ARMED for next launch. This session is NOT recording - Run again, then play.',
+        last: last
+      };
+      return armed ? 'recording' : 'armed';
+    })()
+    """
+
     /// ⚠️ POLLS FOR THE SEAM RATHER THAN SLEEPING A GUESSED INTERVAL, because the guess was wrong the
     /// first time it ran and it failed in the most misleading way available: a flat 1.0s delay after
     /// `capacitorDidLoad` reported `TypeError: undefined is not an object (evaluating
