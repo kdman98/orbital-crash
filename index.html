@@ -135,6 +135,40 @@
   #score{left:18px;top:16px;}
   #score .v{font-size:clamp(28px,6.5vw,50px);letter-spacing:-.02em;text-shadow:0 0 18px rgba(56,224,255,.35);}
   #best{left:20px;top:74px;}#best .v{font-size:14px;color:var(--dim);}
+  /* ⚠️ BOTH STATS ARE HIDDEN FOR THE WHOLE TUTORIAL, AND THE SAME GUARD ALREADY DECIDED IT ELSEWHERE.
+     `store.best` is written under a guard that excludes `tutMode` and the record row is filed the same
+     way — so a tutorial's score is discarded the moment it ends, and neither number the player watched
+     during the lesson survives it. The mode declared itself unscored and the HUD was the last part of
+     the game not told.
+       It is also a COLLISION, which is what found it. Both stats are left-anchored and their right edges
+     grow with the digits; `#tutBar` is centred and its left edge is PINNED at (vw-540)/2 by the
+     max-width cap, so they converge as the score does. Measured here at 667x375 landscape, ko:
+       #best   0 -> 25.0px clear · 5,165 -> 0.8px · 48,320 -> -8.7px · 1,204,880 -> -32.5px
+       #score  0 -> 17.3px clear ·    20 -> -10.8px ·    100 -> -39.0px
+     ⚠️ ONLY STEP 5 COLLIDES, AND THE REASON IS THE CAP RATHER THAN THE SCORE. Step 5's line is the only
+     one of the six long enough to reach the 540 cap; measured at every step, the other five clear by
+     1.6-180px at every score tested, because a bar narrower than the cap is centred and its left edge
+     sits far right of these stats. So the trigger is *which step you are on*, and the score only decides
+     how badly.
+     ⚠️ AND AT STEP 5 IT IS GUARANTEED, NOT MERELY REACHABLE. Step 3 gates on `tutKills>=5` and every
+     kill pays `KILL_SCORE` (20) with no tutMode guard on any `score+=` site, so a player arrives at step
+     5 with **at least 100** — never the 17.3px-clear zero column. Minimum real-world gap -39.0px, and
+     `#tutBar` is z-index 6 against the HUD's 5, so the digits are covered rather than blended.
+       That makes `#score` much the worse half: `#best` needs a five-digit record AND a returning player,
+     where `#score` needs nothing and fails on every run. Motes pay in as well at `MOTE_SCORE` each, but
+     they are shed BY annihilations, so they can never arrive before the kill that sheds them.
+       ⚠️ THE COLLISION IS LANDSCAPE-ONLY AND THAT IS WHY IT SURVIVED. In portrait `@media
+     (max-width:560px)` moves the bar to top:112, clear of both stats; at 667 and 844 that query never
+     fires, top stays 58, and the bar straddles them. iOS is landscape-locked both ways round, so the
+     orientation that hides the bug is the one the app cannot enter.
+       Display, not markup: both keep updating, so nothing that reads either needs a tutorial branch and
+     the menu behind the overlay still shows the record. Chosen over the alternatives because it is the
+     only repair with NO layout cost — narrowing the 540 cap buys back the wrapping the type scale just
+     spent, moving `top` below the score's box (75.4 here) puts the bar on the star, and shrinking the
+     score's face mid-lesson makes it change size between modes. The lesson does not lose its readout:
+     steps 2, 3, 5 and 6 each carry their own progress counter in the bar's note line, which is the
+     number the player is actually working against. Author's call. */
+  #hud.tut #score, #hud.tut #best{display:none;}
 
   /* THE WISH PICKER. Wraps rather than scrolling, unlike the death receipt's tally: four cards is a
      fixed count that can be laid out for, where that row's length depended on how the run went.
@@ -4899,6 +4933,7 @@ function tutAdvance(){
 // there is nothing left for the flag to choose and both call sites simply stop.
 function tutFinish(){
   tutMode=false; state='menu';
+  el('hud').classList.remove('tut');   // pairs with the toggle at the other tutMode assignment
   el('tutBar').classList.add('hidden');
   el('menu').classList.add('hidden'); el('dead').classList.add('hidden'); menuChrome(false);
   el('tutDone').classList.remove('hidden');
@@ -10219,6 +10254,10 @@ function startRun(mode, startAct){
   audioInit();
   labMode = (mode==='lab');
   tutMode = (mode==='tut');
+  // Mirrored onto the HUD here and cleared in tutFinish, which are the ONLY two places tutMode is
+  // assigned. Driving it off the flag rather than off the four sites that toggle #tutBar's `hidden`
+  // keeps the stats and the bar from ever disagreeing about which mode is running.
+  el('hud').classList.toggle('tut', tutMode);
   // ⚠️ testMode is "some mode that is not survival and not the Lab", so a third string would have fallen
   // into it silently and run the tutorial as Boss Rush. Both exclusions, explicitly.
   testMode = !!mode && !labMode && !tutMode; lastWasTest=testMode;
