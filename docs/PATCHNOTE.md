@@ -48,6 +48,9 @@ text could be selected, and the only reason was which document it happens to liv
 ### The tutorial HUD stops showing two numbers it was already throwing away `v2-ios` `178ebca` `ebc2005`
 `#score` and `#best` are hidden for the whole tutorial, behind `#hud.tut`. The mode had already decided
 this everywhere else: both are written under `if(!testMode && !labMode && !tutMode)`, so a tutorial's
+[⚠️ that condition is wrong and the entry's conclusion is not — the best-record write carries only
+`!testMode && !labMode`, and what stops a tutorial reaching it is an early `return` in `die()` six lines
+above. Corrected in MECHANICS; left standing here because the change it describes did land as described.]
 score is discarded the moment it ends and the record it might have beaten is never consulted. The HUD was
 the last part of the game still displaying them.
 

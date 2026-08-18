@@ -3087,6 +3087,16 @@ mode had already decided it: `store.best` and the record row are both written un
 was the last part of the game still displaying numbers the mode had opted out of keeping. The lesson does
 not lose its readout — steps 2, 3, 5 and 6 each carry a progress counter in the bar's note line, which is
 the number the player is actually working against.
+  ⚠️ **THE CONCLUSION ABOVE IS RIGHT AND THE GUARD IT NAMES IS NOT THE ONE DOING THE WORK.** The
+best-record write reads `if(score>store.best && !testMode && !labMode)` — **no `tutMode` in it**, on
+both branches. What actually protects the record is an early return six lines higher in `die()`:
+`if(tutMode){ endOverdrive(); killQ.length=0; tutFinish(); return; }`. A tutorial never reaches the
+write at all, so nothing is discarded there — it is never attempted.
+  Worth correcting because the wrong version points maintenance at the wrong line: someone greps the
+condition, does not find it, and either calls the doc stale or 'repairs' a guard that was never the
+mechanism. And if that early return is ever moved or removed, the protection this paragraph describes
+stops existing while the condition it names still reads exactly as before. (`grantAchv` genuinely does
+carry the three-way condition — see the Grants note — which is what made the wrong one plausible.)
 
 ⚠️ **It is also a collision, and the collision is the general trap: anything left-anchored in the HUD
 converges with `#tutBar` as its digits grow.** The bar is centred, so its left edge is *pinned* at
