@@ -66,12 +66,34 @@ DerivedData/
 # 907548e that this branch has never cited, this branch carrying d91786d and ecf1599 that v2 has never
 # cited, and ALL FOUR descendants of a55699e. So both totals match (137 = 135+2) and both descendant
 # counts match (76 = 74+2) over sets that differ in BOTH directions — not because the branches are in
-# step, but because the differences happen to balance. Timing is not what makes them agree, and they
-# will go on agreeing while holding different things.
+# step, but because the differences happen to balance.
 #   ⚠️ WHICH MAKES THIS FIGURE USELESS AS A SYNC CHECK, AND THAT IS THE TRAP RATHER THAN THE STALENESS.
 # "Both branches report 76/137" is exactly the evidence someone reaches for to conclude the two are in
-# step on PATCHNOTE, and here it returns a false yes. Compare the SETS, never the counts:
+# step on PATCHNOTE, and here it returns a false yes. THE COUNT CANNOT TELL "IN SYNC" FROM "DIFFERING BY
+# AN EQUAL AMOUNT IN EACH DIRECTION", which is the whole reason to compare the sets and not the sizes.
+#   ⚠️ AND THIS NOTE ALSO SAID "THEY WILL GO ON AGREEING WHILE HOLDING DIFFERENT THINGS", WHICH WAS THE
+# MIRROR OF THE CLAUSE IT WAS CORRECTING AND IS ALSO GONE. That predicted the future from a 2-vs-2
+# balance that nothing holds in place: one new citation on either branch makes it 138/137 and the totals
+# separate. The clause it replaced predicted divergence, this one predicted agreement, and NEITHER WAS
+# MEASURED — the temptation both times was to say what happens next, when the finding is only about what
+# the count can distinguish. It was not even close to tested: f7b3f25 landed on v2 at 17:44:59, after
+# both notes, and left the count at 137 solely because it touched MECHANICS.md and index.html rather
+# than PATCHNOTE.md. Sentence surviving, measurement absent.
+# Compare the SETS, never the counts:
+#     cite(){ BT=$(printf '\x60'); git show "$1:docs/PATCHNOTE.md" \
+#       | grep -o "${BT}[0-9a-f]\{7,40\}${BT}" | tr -d "${BT}" | sort -u \
+#       | while read -r h; do git rev-parse --verify -q "$h^{commit}" >/dev/null && echo "$h"; done; }
 #     comm -3 <(cite origin/v2) <(cite origin/v2-ios)     # empty, or they are not in sync
+#     comm -3 <(cite origin/v2) <(cite origin/v2)         # POSITIVE CONTROL — must be 0 lines
+#   ⚠️ THE CONTROL IS NOT DECORATION. A set-difference that silently always prints something looks
+# exactly like a working check, and is the failure this line replaces; run it once so you know the
+# comparison can go green. ⚠️ AND `cite` READS `origin/*` — the PUSHED tree, not the worktree, unlike the
+# BT recipe below which reads the file on disk. The two answer different questions and will disagree
+# whenever anything is committed and unpushed.
+#   ⚠️ THE ONE-LINER ABOVE SHIPPED WITH NO `cite` DEFINED AT ALL — not in this note, not in the repo, not
+# on PATH — nine lines above "a figure without one is not evidence". The remedy for the unreproducible
+# figure was itself unrunnable, which is the same fault one level up, and it survived because a recipe
+# that is READ rather than RUN looks identical either way.
 # The ratio has held at ~55%; the absolute has not, on the branch that changed. Recipe, because a figure without one is
 # not evidence — and the v2 copy of this note went stale between draft and commit, inside the paragraph
 # arguing for reproducible figures:
