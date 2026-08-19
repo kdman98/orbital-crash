@@ -494,8 +494,9 @@
   #menu .btn.sm.tut{background:rgba(10,15,28,.92);
     box-shadow:0 0 0 1.5px rgba(56,224,255,.66) inset;}
   #menu .btn.sm.tut:hover{background:rgba(17,25,44,.95);}
-  /* The two text-only rows have no box to make opaque, so they get weight and a shadow instead —
-     they are read against whatever the art happens to be doing behind them. */
+  /* The one text-only row left has no box to make opaque, so it gets weight and a shadow instead —
+     it is read against whatever the art happens to be doing behind it. (`.doornote` was the other
+     row named here and went with the practice doors it captioned.) */
   #menu .ref{text-shadow:0 1px 6px rgba(0,0,0,.9);}
   /* ⚠️ z-index:-1 AND NOT 0, AND THIS WAS A REAL BUG FOR AS LONG AS THE SCRIM HAS EXISTED. The scrim is
      a BACKDROP — its whole job is to darken the key art so the menu can be read over it. At `z-index:0`
@@ -1051,19 +1052,37 @@
        so it takes a size and a step of brightness here and nowhere else. */
     /* ⚠️ BRIGHTER HERE, AND ONLY HERE. `.ref` ships 13px in --ink with a 24%-white underline, tuned
        against a flat .94 wash where dim grey IS the quiet register. Over a planet limb the same values
-       are simply not readable, which is what the author reported. It takes size, weight and a hard
-       shadow rather than a scrim, because the row sits low enough that darkening the band that far
-       would put a black bar across the bottom of the picture. (`.doornote` was the other half of this
-       pair and is gone with the practice doors it captioned.) */
-    /* ⚠️ THE LINKS SIT ON THE PLANET LIMB, WHICH IS THE BRIGHTEST THING IN THE LOWER FRAME, so white
-       text on a shadow is not enough on its own — a shadow darkens what is behind each glyph, and the
-       limb's rim is brighter than the shadow is dark. The row gets its own backing instead, sized to
-       the links rather than to the screen so it reads as a control strip and not as a black bar across
-       the picture. Lifted clear of the bezel in the same pass; it was bottoming out at 95.4%. */
-    #menu .refs        {grid-column:1/3;grid-row:5;margin-top:2px;margin-bottom:6px;
-      background:rgba(5,8,16,.62);border-radius:100px;padding:3px 16px 4px;}
-    #menu .ref{color:#ffffff;font-size:15px;border-bottom-color:rgba(255,255,255,.62);
-      text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95);}
+       are simply not readable, which is what the author reported. It takes size and weight rather
+       than a scrim, because the row sits low enough that darkening the band that far would put a
+       black bar across the bottom of the picture. (`.doornote` was the other half of this pair and is
+       gone with the practice doors it captioned. The hard shadow this sentence used to name went on
+       2026-08-19 — see the block below.) */
+    /* ⚠️ THE PILL AND THE HARD SHADOW ARE RETIRED, 2026-08-19, AND THE CLAIM THAT ASKED FOR THEM IS
+       KEPT BELOW BECAUSE THE PREMISE IS THE POINT. Both were added while `#menuScrim` was painting ON
+       TOP of this row — see the z-index note on the base `.ref` rule — so the links really were being
+       read through 94% black. The symptom was real. The cause written down for it was not.
+         PORTRAIT IS THE CONTROL GROUP, AND IT SETTLES THIS: it has never carried either compensation,
+       its links sit on the same limb, and they read white. Confirmed by toggling both off in the live
+       page at 844×390 and at 780×520 — the 3/2 boundary, where the layout is tallest and the limb
+       passes directly behind the row — with no legibility loss at either. The scrim does this job now,
+       which is what a scrim is for.
+         RETIRED: `background:rgba(5,8,16,.62)`, `border-radius:100px` and `padding:3px 16px 4px` on
+       `.refs`; `text-shadow:0 1px 3px #000,0 0 10px rgba(0,0,0,.95)` on `.ref`. The base
+       `0 1px 6px rgba(0,0,0,.9)` carries the row. The 10px cloud at 95% was the expensive half — it
+       fattened thin Korean strokes and blotted out the limb arc wherever a word crossed it.
+         THE RETIRED CLAIM, VERBATIM, so nobody re-derives it from the same screenshot: "THE LINKS SIT
+       ON THE PLANET LIMB, WHICH IS THE BRIGHTEST THING IN THE LOWER FRAME, so white text on a shadow
+       is not enough on its own — a shadow darkens what is behind each glyph, and the limb's rim is
+       brighter than the shadow is dark." Every in-flow element on that screen was washed when that
+       was observed. ⚠️ A symptom seen under a rendering bug yields a CORRECT observation with a WRONG
+       cause, and it is the cause that gets written down and outlives the fix.
+         THE BEZEL CLEARANCE THE SAME PASS BOUGHT SURVIVES, measured rather than assumed: the padding
+       went with the pill, so the links drop 4px. 844×390 goes 90.77% → 91.79% of viewport height,
+       780×520 goes 93.08% → 93.85%, and the gap under the row goes 36px → 32px at both. Both are clear
+       of the 95.4% this row was bottoming out at, and the 26px the overlay reserves below them does
+       not move — that is `margin-bottom` plus the safe-area padding, neither of which was the pill. */
+    #menu .refs        {grid-column:1/3;grid-row:5;margin-top:2px;margin-bottom:6px;}
+    #menu .ref{color:#ffffff;font-size:15px;border-bottom-color:rgba(255,255,255,.62);}
     /* One size for all four: the author asked for 게임 시작 to match 튜토리얼, and the practice pair
        to match those. Colour still separates the primary — it is the only opaque cyan on the screen. */
     /* ⚠️ FIXED HEIGHT AND FLEX CENTRING, NOT PADDING, AND THE REASON OUTLIVED THE CASE THAT FOUND IT.
