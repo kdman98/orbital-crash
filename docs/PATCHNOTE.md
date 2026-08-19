@@ -14,6 +14,45 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-19
 
+### The Charger's arrowhead remembers where it went `v2` `cad5e12`
+The hull's heading is state now (`e.ha`), eased toward a target in the step, instead of a three-way
+expression evaluated in the draw. Author: *"why does charger changes direction after dash? doesnt affect
+game since it enters resting time, but it changes direction."*
+
+**The old expression fell through to `e.ph` below 0.4 px/frame, and `e.ph` is `rand(0,TAU)` stamped at
+spawn** — a rotation phase for the Bomber's blink and the hexagon's spin, not a heading. Traced with `ph`
+pinned to 108.9°:
+
+| frame | state | source | heading | jump |
+|---|---|---|---|---|
+| 85 | dash → rest, speed 6.96 | velocity | 170.1° | 0.0° |
+| **102** | rest, **speed 0.36** | **`e.ph`** | **108.9°** | **61.3°** |
+| 140 | spent, speed 1.43 | velocity | 128.0° | 19.2° |
+
+A parked body has no velocity to derive a heading from, so the target is simply **absent** when nothing
+defines it, and absent means hold. It keeps the heading it dashed on.
+
+⚠️ **A second disagreement went with it, and it was never reported.** During the wind-up the hull and the
+nose glow read `e.aimx/e.aimy` — captured when the wind *starts*, never updated — while the dashed lane in
+the same block draws to the locked point from the *current* position, and the dash re-derives its heading
+from that same vector. The two marks pointed at different things for the whole wind-up, and the body flew
+the lane's line. All three now show the line the dash will actually fly (verified mid-wind-up: hull 140.8°,
+lane 140.8°).
+
+**Eased, with a cap on the step.** The ease is what makes rest → wind → dash read as one movement — the
+wind-up becomes the Charger visibly *taking aim* over its 0.9s. The cap exists because an exponential ease
+front-loads: 25% of a 180° reversal is 45° on the first frame, measured at 37.4°. `CHG_TURN_MAX` = 0.15
+rad/frame is sized against the body's own turn rate (median 1.34°/frame over 337 approach frames, p90
+7.21 — both inside it), so the arrow cannot lag a Charger that is genuinely travelling.
+
+Two defects caught while verifying, neither of which a syntax check finds: `nha` reached for a const in a
+different branch of the draw loop (a ReferenceError on every wind-up), and the two charger blocks in the
+step loop are sequential rather than exclusive, so a re-arming body ran the turn twice and the worst step
+went 8.59° → 11.0°. The heading is also wrapped each step — `+=` alone had it at −512° after three cycles.
+
+The **Harrier has the identical defect and is left alone**; its comment claimed "parked bodies keep their
+last sensible axis", which is not what `e.ph` does, so the claim is corrected in place.
+
 ### The Anomaly hits for 20 on contact, and the ternary that priced the difference is gone with it `v2` `1d9c373`
 All four kinds now deal `BOSS_DMG` = 20 on contact. The three older kinds were 30; the Singularity was
 already 20 through `DRAW_DMG`, so the two arms of `variant==='singularity' ? DRAW_DMG : 30` became the
