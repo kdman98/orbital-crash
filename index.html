@@ -5305,7 +5305,29 @@ const MSL={
   seeker:{sp:3.3, r:9,  life:9.6, turn:0.055, seekFor:1.45},
   ring:  {sp:4.6, r:9,  life:6.0},
   mine:  {sp:0.9, r:11, life:3.4, arm:1.2, blast:104},   // FUSE, not reach — see the block above
-  spear: {sp:9.2, r:8,  life:4.0, tel:0.55},
+  // ⚠️ `tel` IS THE THIRD CLOCK IN THIS TABLE THAT IS NOT REACH, and unlike the mine's fuse it costs
+  // the flight nothing: the telegraph branch in stepLances `continue`s BEFORE `L.life-=dt`, so making it
+  // longer cannot fizzle a spear. Measured both sides of the change below: 0 mid-arena expiries either
+  // way, so the table's no-fizzle note above still holds and did not need re-deriving.
+  //   0.55 -> 1.3 BECAUSE THE OLD VALUE WAS THE DASH'S OWN LENGTH, TO THE FRAME. `b.lunging=0.55` and
+  // this were two independent constants that happened to be equal, so the three spears launched on
+  // exactly the frame the dash ended — from LUNGE_OVER, 150px PAST you. Against a pilot that does not
+  // move, which is the geometric floor, they left the muzzle 93px from the Star (n=150, range 91-95)
+  // and crossed it in 0.17s. That is the same "coin flip with a red line drawn on it" LUNGE_TEL was
+  // raised to 1.3 to abolish, rebuilt one stage later inside the same move.
+  //   Author: "it shoots 3 missile(A) after dash(B). the gap between A and B" / "1.3s, time before
+  // spears fire". MEASURED A/B at Epoch III on one identical scripted pilot path:
+  //     dash start -> spears launch   0.55s  ->  1.28s      (exact, n=132 / n=126)
+  //     flight time to reach the Star 0.47s  ->  0.59s
+  //     that pilot ate                27.3%  ->  22.2%
+  // The absolute hit rate means nothing — it is one sinusoid, not a player. Only the delta is readable.
+  //   ⚠️ THE EXTRA 0.75s IS SEPARATION, NOT WARNING, and the difference is where to go next if this
+  // is still too hard. A charging spear RE-AIMS AT YOU EVERY FRAME until it launches, so a longer line
+  // hands you no time to dodge — it locks onto wherever you stand at launch either way. What it buys is
+  // distance: the Anomaly is 115px further into its withdrawal (mean) when they leave. So the next lever
+  // is the re-aim and NOT this number: lock `L.a` early and the spear finally gets a telegraph you can
+  // answer during, which is the rule LUNGE_TEL already states one stage up for the lane itself.
+  spear: {sp:9.2, r:8,  life:4.0, tel:1.3},   // tel is the aim line — read the block above before moving it
   // ⚠️ THE SCREEN'S NODE IS THE SECOND ENTRY IN THIS TABLE WHOSE `life` IS NOT REACH, and for a different
   // reason than the mine's fuse: a node spends `SCR_UP+SCR_HOLD` = 3.65s riding a circle at ZERO net
   // displacement, then slings off the tangent at `SCR_W*SCR_R/60` and has to clear the arena from there.
