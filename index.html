@@ -3078,6 +3078,8 @@ const GHOST_HOLD=0.07;
 let resumeT=0; const READY_DUR=1.2; // brief breather after picking a perk
 let pointer={x:W/2,y:H/2,has:false};
 let settleT=0; // brief speed cap after a resume so the core glides instead of teleporting
+let drawRelT=-1; // seconds since the Singularity's Draw let go; -1 = no release pending. See DRAW_REL —
+                 // module-level rather than on the boss ONLY because it has to survive the boss's death.
 let keys={};
 const DOTSPD=1.22; // livelier field: speeds up rings, neutrals & wandering matter — NOT the opposite-charge inward pull
 const RING_FIRE_HC=0.5; // a flip only FLINGS once hold-charge passes this — quick taps just reverse; a Hungry (held) flip clears
@@ -5803,6 +5805,63 @@ const DRAW_AWAY=0.30;     // the OUTWARD-RADIAL component of that displacement i
                           //   re-derive the whole block if DRAW_T, DRAW_CAP, DRAW_AWAY, HUNT_SPD.singularity
                           //   or `P.moveMult`'s 1.4 moves. The band's own 66-162 comes from the ring shell
                           //   and `boss.r + dot.r`, so it moves with the eddy coefficient too.
+const DRAW_REL=60;        // px/frame the ceiling GAINS PER SECOND once the Draw lets go, and this constant
+                          // closes a defect the cap created. Author: *"stacked movement that was restricted
+                          // by Singularity are done at once, when the Singularity's pull is ended, making
+                          // too much movement instantly."*
+                          //   ⚠️ THE CAP NEVER STACKED ANYTHING — WHAT ACCUMULATES IS THE GAP, and that is
+                          // why the fault lives in this mechanic rather than in the input layer. Two of the
+                          // three models chase a TARGET: mouse is `(pointer-P)*0.185` and v2-ios's ABS mode
+                          // accumulates thumb travel into the same `pointer`. Neither is slowed by the clamp
+                          // in stepPlayer — only the STAR is. So for 2.2s the target runs and the body
+                          // crawls, and the frame the cap lifts, the chase spends the whole arrears at
+                          // 18.5% of a gap that is now arena-sized.
+                          //   MEASURED, 1440x900 (W=1440,H=900,S=1), Anomaly pinned, cursor flicked to the
+                          // far corner on the first drawing frame and HELD there — i.e. the player does
+                          // nothing at all except stop moving the mouse:
+                          //     while drawing    1.87 px/frame        (DRAW_CAP*DRAW_AWAY, as designed)
+                          //     release frame  205.05 px/frame        110x, in ONE frame
+                          //     and 13 frames to close 90% of an 1110px gap.
+                          // Fleeing straight down instead of cornering still gives 1.86 -> 63.73, so this
+                          // is not a corner case in either sense of the word.
+                          //   ⚠️ AND ON THIS BRANCH THE ABS MODE MAKES IT LITERAL RATHER THAN GEOMETRIC.
+                          // There the arrears is not "where the cursor happens to be" — `stickAbs` ADDS
+                          // thumb travel to `pointer` frame by frame, so a thumb that keeps sweeping while
+                          // the star cannot follow is banking a debt, clamped only by the arena. Measured
+                          // here, 390x844 (W=800, H=1731, S=0.4875), thumb sweeping the move zone for the
+                          // whole Draw and FREEZING on the release frame so that everything after it is
+                          // arrears and nothing else:
+                          //     banked gap at release   521 units — 30% of the arena's long axis
+                          //     old first frame         96.3 units (0.185 * 521), in one frame
+                          //     now                      8.2 units, paid out over 53 frames (0.88s)
+                          // This is the author's "stacked" in its plainest form: travel expressed during
+                          // the 2.2s the game was refusing it, delivered afterwards. ⚠️ The ramp BOUNDS
+                          // that payout, it does not cancel it — the star still ends where the thumb asked.
+                          // Cancelling it would mean leashing `pointer` to the star while the Draw is up,
+                          // which is the same move `stickAbs`'s own arena clamp already makes at the edges
+                          // ("an overshoot costs nothing"), and is the lever to reach for if the payout
+                          // itself is unwanted rather than merely too fast. STICK mode banks nothing and
+                          // never did: it is a rate, so it has no arrears to pay.
+                          //   THE FIX IS A CEILING THAT OPENS, NOT A SECOND CAP. The release frame keeps
+                          // exactly DRAW_CAP and the ceiling then rises linearly at this rate, so there is
+                          // no step at the moment of release AND no cliff at the end of it: the clamp stops
+                          // the first frame the chase asks for less than the ceiling, which by construction
+                          // is a frame on which it was doing nothing. A fixed-duration ramp was written
+                          // first and thrown away — 6.2->14 over 0.5s spends 303px, so an 1110px gap still
+                          // had ~800 left when the window closed and the teleport merely happened half a
+                          // second later. Anything that ends on a CLOCK has that failure; ending on "the
+                          // clamp no longer binds" cannot.
+                          //   60 IS SET BY THE ORDINARY CHASE, NOT BY THE WORST CASE. A 100px gap — a
+                          // normal cursor lead in open play — asks 18.5 px/frame, which this ceiling reaches
+                          // in (18.5-6.2)/60 = 0.21s. So a fifth of a second after the pull ends the star is
+                          // already moving at a speed it reaches all the time, and only a genuinely
+                          // arena-sized arrears is still being paid after that: the 1110px case takes 0.70s
+                          // and peaks at 48 px/frame instead of 205.
+                          //   ⚠️ THE RAMP MUST OUTLIVE THE ANOMALY, so unlike every other piece of Draw
+                          // state it CANNOT live on the boss — killing a Singularity mid-Draw drops the cap
+                          // on that same frame and is the one release the player is most likely to have
+                          // been fighting the pull through. `drawRelT` is therefore module-level, and it is
+                          // reset in startRun beside `settleT` for the reason that reset exists.
 // THE PERIOD, and since the countdown was fixed to run during flight (see updateBoss) it really is the
 // period rather than a gap between waves. 3.6-5.4 → 2.8-4.4, which with `pace.cad` lands at ~4.5s mean at
 // Epoch I and ~3.6s at Epoch III, against a measured 7.45 / 6.89 before. Roughly double the rate: the
@@ -6672,9 +6731,20 @@ function stepPlayer(dt){
   // caps the frame's total displacement, so an input model with no ceiling of its own is exactly the case
   // it was built for. Re-measured after the change: 636.82 unclamped, **1.860** with the Draw up — the
   // same figure the original table recorded for both the mouse and the stick.
-  // State lives on the boss, never in a module-level flag: it dies with the Anomaly, so no reset path can
+  // THE CAP'S OWN STATE LIVES ON THE BOSS AND STILL DOES: it dies with the Anomaly, so no reset path can
   // leak a cap into the next run — the fault `FEAT`'s single reset and the warn-clearing rule both exist for.
-  if(boss && !boss.dead && boss.drawT>0 && P.lastX!==undefined){
+  // ⚠️ THIS USED TO READ "never in a module-level flag", FULL STOP, and DRAW_REL's ramp is the one thing
+  // that cannot obey it: a release has to be able to outlive the body that caused it, and the commonest
+  // release of all is the player killing the Singularity while it is pulling them. So `drawRelT` is
+  // module-level BY THE SAME ARGUMENT, not in spite of it — and it therefore carries the obligation the
+  // rule was protecting: it is reset in startRun, beside `settleT`. The rule that survives is "state that
+  // can leak into the next run must have exactly one reset site", which is what the original sentence was
+  // actually defending; "put it on the boss" was only the cheapest way to satisfy it.
+  //   `drawing` is re-read every frame and the ramp clock is re-zeroed while it holds, so the release
+  // always starts from a full ceiling of DRAW_CAP however the Draw ended — expired, or Anomaly killed.
+  const drawing = !!(boss && !boss.dead && boss.drawT>0);
+  if(drawing) drawRelT=0; else if(drawRelT>=0) drawRelT+=dt;
+  if((drawing || drawRelT>=0) && P.lastX!==undefined){
     let dx=P.x-P.lastX, dy=P.y-P.lastY;
     // ⚠️ CLAMP FIRST, THEN TAX — AND THE OTHER ORDER IS SILENTLY DEAD CODE. Taxing before the clamp looks
     // identical and measures identical, because every input model's raw displacement is already far above
@@ -6682,16 +6752,29 @@ function stepPlayer(dt){
     // clamp cuts that back to 6.2, and the tax has changed NOTHING. It would have bitten only where the
     // raw move was already under the cap — i.e. it would tax a gentle nudge and leave a full-speed
     // retreat alone, which is exactly backwards. Measured before the fix: away and tangential both 6.200.
-    const cap=DRAW_CAP*P.moveMult, len=Math.hypot(dx,dy);
+    // The ONE ceiling, and the release is the same ceiling opening rather than a second mechanism — see
+    // DRAW_REL. While drawing it is flat; after, it gains DRAW_REL px/frame per second of elapsed release.
+    const cap=(drawing?DRAW_CAP:DRAW_CAP+DRAW_REL*drawRelT)*P.moveMult, len=Math.hypot(dx,dy);
     if(len>cap){ const s=cap/len; dx*=s; dy*=s; }   // total magnitude, never per-axis: per-axis notches
                                                     // the diagonals, the fault STICK.dead was fixed for
-    const bx=P.x-boss.x, by=P.y-boss.y, bd=Math.hypot(bx,by);
-    if(bd>0.001){
-      // Split the CAPPED move into the component pointing away from the Anomaly and the rest. Only the
-      // away half is taxed; sideways and inward keep the full cap, which is what leaves the player an arc
-      // to choose while it reels them in — and what makes speed spent sideways speed not spent resisting.
-      const ux=bx/bd, uy=by/bd, out=dx*ux+dy*uy;
-      if(out>0){ const k=out*(1-DRAW_AWAY); dx-=ux*k; dy-=uy*k; }
+    // ⚠️ THE RELEASE ENDS ON "IT NO LONGER BINDS", NOT ON A CLOCK, and this `else` is the whole of that.
+    // The frame the chase asks for less than the ceiling is a frame on which this block changed nothing,
+    // so handing control back on exactly that frame is continuous by construction — there is no value of
+    // a timeout that can promise the same, which is what the discarded fixed-window version proved.
+    else if(!drawing) drawRelT=-1;
+    // ⚠️ THE TAX IS THE DRAW'S, NOT THE RELEASE'S — and this guard is also what keeps `boss` from being
+    // read when there is none. The commonest way out of a Draw is killing the body, and `boss` is null on
+    // the very next frame; without `drawing &&` this line would throw a TypeError into `frame`'s catch
+    // and take the run down at the exact moment the player earned it.
+    if(drawing){
+      const bx=P.x-boss.x, by=P.y-boss.y, bd=Math.hypot(bx,by);
+      if(bd>0.001){
+        // Split the CAPPED move into the component pointing away from the Anomaly and the rest. Only the
+        // away half is taxed; sideways and inward keep the full cap, which is what leaves the player an arc
+        // to choose while it reels them in — and what makes speed spent sideways speed not spent resisting.
+        const ux=bx/bd, uy=by/bd, out=dx*ux+dy*uy;
+        if(out>0){ const k=out*(1-DRAW_AWAY); dx-=ux*k; dy-=uy*k; }
+      }
     }
     P.x=P.lastX+dx; P.y=P.lastY+dy;
   }
@@ -10532,7 +10615,10 @@ function startRun(mode, startAct){
   el('epochcue').classList.remove('show'); el('actlab').classList.remove('bump'); purgeRew=0;
   boss=null;bossFlash=0;lances.length=0;bossN=0;anomLog.length=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
-  pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0;
+  // `drawRelT` joins the two lines it sits on for the reason they are here: it is the only piece of Draw
+  // state that is NOT on the boss (see DRAW_REL), so it is the only piece a dead Anomaly cannot clear —
+  // a run ended mid-release would otherwise open the next one with a ceiling still ramping.
+  pointer.x=P.x; pointer.y=P.y; pointer.has=true; settleT=0; drawRelT=-1;
   el('menu').classList.add('hidden'); menuChrome(false);
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');

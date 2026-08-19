@@ -586,6 +586,48 @@ pointer chase, the keyboard nudge and the arena clamp — all above it. So `(P.x
 there is the frame's total input displacement across every device at once. **Anything added later that
 moves the Star must land above that line or it silently bypasses every such effect.**
 
+#### The cap has to open, not lift — and for two and a half years it lifted
+
+⚠️ **The clamp slowed the STAR and never touched the TARGET, so the gap between them banked.** Two of the
+three models chase a target rather than expressing a speed: the mouse's is the cursor, and on `v2-ios`
+the ABS mode literally accumulates thumb travel into the same `pointer`. Under a Draw the target keeps
+running while the body crawls at `DRAW_CAP`, and on the frame the cap expired the chase spent the whole
+arrears at once — 18.5% of a gap that was now arena-sized, in one frame. Author, reporting it: *"stacked
+movement that was restricted by Singularity are done at once, when the Singularity's pull is ended,
+making too much movement instantly."*
+
+Measured before the fix, 1440×900, Anomaly pinned, cursor flicked to the far corner on the first drawing
+frame and then held still:
+
+| | while drawing | release frame | to close 90% of the gap |
+|---|---|---|---|
+| far corner, 1110px banked | 1.87 px/f | **205.05 px/f** | 13 frames |
+| straight away, 346px banked | 1.86 px/f | 63.73 px/f | 13 frames |
+| `v2-ios` ABS, 521px banked | 1.86 px/f | 96.3 px/f | — |
+
+**`DRAW_REL` makes the ceiling open instead.** The release frame keeps exactly `DRAW_CAP` and the ceiling
+then rises linearly, so there is no step at the release *and* no cliff at the end of one: the clamp stops
+the first frame the chase asks for less than the ceiling, which is by construction a frame on which it
+was doing nothing. **A fixed-duration ramp cannot promise that** — one was built first, and at 6.2→14
+over 0.5s it spent 303px, so an 1110px gap still had ~800 left when the window closed and the teleport
+merely happened half a second later. Anything that ends on a *clock* has that failure mode.
+
+The rate is set by the ordinary chase rather than by the worst case: a 100px gap — a normal cursor lead —
+asks 18.5 px/f, which the ceiling reaches in about a fifth of a second. The 1110px case now peaks at 42
+px/f and takes 0.70s.
+
+⚠️ **The ramp clock is the one piece of Draw state that is not on the boss, and that is deliberate.**
+Every other piece dies with the Anomaly, which is exactly what a release must *not* do: killing a
+Singularity mid-Draw is the commonest release there is, and the one the player is most likely to have
+been fighting the pull through. It therefore carries the obligation that rule was protecting — a single
+reset site, in `startRun`, beside `settleT`.
+
+⚠️ **The ramp bounds the payout; it does not cancel it.** On `v2-ios`'s ABS mode the arrears is real
+banked travel and the Star still ends where the thumb asked, 0.88s later instead of instantly. Cancelling
+it would mean leashing `pointer` to the Star while the Draw is up — the same move `stickAbs`'s arena
+clamp already makes at the edges — and that is the lever to reach for if the payout itself is unwanted
+rather than merely too fast. STICK mode banks nothing and never did: it is a rate, so it has no arrears.
+
 ⚠️ **Clamp first, then tax; the other order is dead code that measures identical.** Every model's raw
 displacement is already far above any sane cap, so taxing before clamping removes a share of a number the
 clamp then discards. It would bite only where the raw move was *under* the cap — taxing a gentle nudge
