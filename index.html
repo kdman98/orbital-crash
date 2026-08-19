@@ -8089,14 +8089,38 @@ function spawnBurst(x,y,color,n,spd,hx,hy){
 function spawnRing(x,y,color,R,out){
   parts.push({x,y,vx:0,vy:0,life:.5,max:.5,color,r:6,ring:true,R,out:!!out});
 }
+// ⚠️ FLOATING TEXT IS SIZED IN WORLD UNITS, SO IT SHRANK WITH THE ARENA — SAME DEFECT AS THE CHARGER
+// TELEGRAPH'S STROKE WIDTHS, ONE LAYER OUT. `ctx.font` is set inside the baked `setTransform(S*DPR,…)`,
+// so an authored `size` is a world unit. At S=0.49125 on a 393pt phone the gold reward channel was
+// rendering at 8.4-10.8 CSS px and the default at 6.9.
+//   THE FIX IS NOT `size/S`, AND THAT DISTINCTION IS THE WHOLE DESIGN. Full screen-lock is correct for a
+// stroke — a line that doubles is still a line — and wrong for text: it puts the damage-taken readout,
+// which clamps to 28, at 28 CSS px on a 393px-wide screen, where it competes with the field it is
+// reporting on. So: compensate fully UNTIL the compensation would exceed 1.5x, then stop.
+//   Three properties, each load-bearing:
+//     · Desktop is untouched BY CONSTRUCTION, not by luck — at S=1, 1/S is 1 and min(1.5,1) is 1.
+//     · The cap only bites below a 533px short axis (1/S > 1.5). Tablets and anything larger get FULL
+//       parity automatically, so this is a ceiling on a general correction rather than a phone branch.
+//     · A uniform multiplier PRESERVES THE SIZE RANKING. The obvious alternative — a minimum rendered
+//       size — flattens it: at a 13px floor, 17/20/22 all land on 13 and three distinct readouts stop
+//       being distinguishable, which is the one thing the size channel exists to do.
+//   Phone result: 10.3-20.6 CSS px, against 6.9-13.8 before.
+const TXT_LIFT=1.5;
+const txtLift=()=>Math.min(TXT_LIFT,1/S);
 function pushText(x,y,txt,color,life,size){
   // occupancy nudge: if a live text already sits near this spot, step up so labels stack legibly
   // instead of overprinting into an unreadable smear (many call sites anchor to the Core at P.x)
+  //   ⚠️ THE BOX SCALES WITH THE GLYPHS OR THE SIZE FIX MANUFACTURES OVERLAPS. This test is in world
+  // units and was already SMALLER than a 22px label; growing text 1.5x while leaving it at 64x20 would
+  // tighten the separation exactly where the labels got bigger. Scaling by the same lift holds the
+  // SCREEN relationship invariant — which is preserving today's behaviour, not changing it — and is
+  // identical on desktop, where the lift is 1.
+  const L=txtLift();
   for(let g=0; g<5; g++){
     let clash=false;
-    for(const o of texts){ if(o.life>0 && Math.abs(o.x-x)<64 && Math.abs(o.y-y)<20){ clash=true; break; } }
+    for(const o of texts){ if(o.life>0 && Math.abs(o.x-x)<64*L && Math.abs(o.y-y)<20*L){ clash=true; break; } }
     if(!clash) break;
-    y-=20;
+    y-=20*L;
   }
   texts.push({x,y,txt,color,life,max:life,vy:-0.8,size:size||14});
 }
@@ -9821,10 +9845,11 @@ function drawLances(){
 const CANVAS_FONT='-apple-system,system-ui,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
 function drawTexts(){
   ctx.textAlign='center'; ctx.textBaseline='middle';
+  const lift=txtLift();          // hoisted: one read of S per frame, not one per label. See TXT_LIFT.
   for(const t of texts){
     const a=clamp(t.life/t.max,0,1);
     ctx.globalAlpha=a; ctx.fillStyle=t.color;
-    ctx.font='800 '+t.size+'px '+CANVAS_FONT;
+    ctx.font='800 '+(t.size*lift)+'px '+CANVAS_FONT;
     ctx.fillText(t.txt,t.x,t.y);
   }
   ctx.globalAlpha=1;
