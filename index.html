@@ -1627,6 +1627,20 @@
     <button class="sw" id="swMotion">Off</button>
   </div>
 
+  <!-- LARGER DOTS. Next to Reduced motion because it is the same KIND of switch — something you turn on
+       so the game reaches you better, not something that changes what the game is. It is shown on every
+       device rather than hidden behind a coarse-pointer query like #setFollow: the default already answers
+       the device (see `store.bigDots`), and a player on a small laptop is allowed to want it too.
+         ⚠️ The description is ONE line and the second half of it is the load-bearing half. "Bigger Dots"
+       alone reads as a difficulty change, which is the exact thing this setting exists NOT to be. -->
+  <div class="setrow">
+    <div class="st">
+      <div class="sn" data-t="set.dots">Larger Dots</div>
+      <div class="sd" data-t="set.dotsD">Only the drawn size changes; what can touch you stays the same.</div>
+    </div>
+    <button class="sw" id="swDots">Off</button>
+  </div>
+
   <!-- (The Star skin row stood here, on the argument that Settings answers "how does this reach my eyes
        and ears" and a two-item wardrobe in its own room would look like a system pretending to be one.
        Moved out on the author's call — see the #skins panel, which is where that argument is answered.) -->
@@ -2074,6 +2088,28 @@ const store={
   followSens:clamp(num('orbitalcrash_followsens',100),1,100),
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
   cb:LS.getItem('orbitalcrash_cb')==='1',                     // red-green colourblind palette — see PAL
+  // LARGER DOTS — the draw-only bloom, see DOT_BLOOM. Hull grows, collider does not, difficulty does not.
+  //   ⚠️ THE DEFAULT IS DERIVED FROM THE DEVICE AND THEN NEVER AGAIN, the same contract `lang` two rows
+  // below states at length: a stored choice is never second-guessed. A player who turns this off on a
+  // phone must not find it back on next launch, and there is no way for them to tell that from a broken
+  // switch. `??` and not `||`, because `false` is a real stored answer here and `||` would discard it.
+  //   WHY IT DEFAULTS ON FOR SMALL SCREENS AND OFF OTHERWISE. Author: *"law 4 doesnt apply to Mobile,
+  // like when screen is too small. but it is now too big for PC/Web."* The world is in design units and
+  // `S` scales the render, so the SAME body is 8 CSS px of radius on a desktop and 3.9 on a phone — the
+  // bloom is a fix for the second number, and on a screen where that number was never the problem it is
+  // just a bigger Dot. Two signals, either sufficient: a coarse pointer (which is the whole of the case
+  // on v2-ios, where the shell is always a phone), or a short axis under the reference the game was
+  // tuned at, which is `S<1` stated before `resize()` has had a chance to run.
+  //   ⚠️ THE SIZE TEST IS GUARDED THE WAY `resize()` GUARDS ITS OWN, and for the same reason: a phone
+  // reports 0x0 transiently, and `Math.min(0,0) < 800` is TRUE — an ungated test would hand every
+  // desktop that boots through a 0-frame a default it did not ask for. A degenerate viewport answers
+  // nothing and leaves the decision to the pointer.
+  bigDots:(()=>{ const v=LS.getItem('orbitalcrash_bigdots');
+                 if(v==='1'||v==='0') return v==='1';
+                 const coarse=(()=>{ try{ return matchMedia('(pointer: coarse)').matches; }catch(e){ return false; } })();
+                 const vw=window.innerWidth, vh=window.innerHeight;
+                 const small=(vw>0 && vh>0) && Math.min(vw,vh)<REF_SHORT;
+                 return coarse || small; })(),
   // ⚠️ THE BROWSER DECIDES ONCE, AND ONLY ONCE. A stored choice is never second-guessed: a Korean
   // speaker who deliberately switched to English on a ko-KR machine must not be flipped back on every
   // reload, and there is no way for them to tell the difference between that and a broken switch.
@@ -2118,6 +2154,7 @@ function save(){
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
     LS.setItem('orbitalcrash_cb',store.cb?'1':'0');
+    LS.setItem('orbitalcrash_bigdots',store.bigDots?'1':'0');
     LS.setItem('orbitalcrash_lang',store.lang);
     LS.setItem('orbitalcrash_startact',store.startActMax);
     LS.setItem('orbitalcrash_startsel',store.startAct);
@@ -2244,6 +2281,8 @@ const L={ en:{
   'set.cbD':'For red-green colourblindness. Turns the red pole orange, so it stands off the dark field as well as cyan does, and moves the Gilded Bounty ring to violet.',
   'set.motion':'Reduced motion',
   'set.motionD':'Calmer shake and flashes when something dies close to you.',
+  'set.dots':'Larger Dots',
+  'set.dotsD':'Only the drawn size changes; what can touch you stays the same.',
   'set.follow':'Pointer follow',
   'set.followD':'How fast the star closes on your cursor.',
   'set.followA':'Pointer follow speed',
@@ -2420,6 +2459,9 @@ const L={ en:{
   'set.cbD':'적록색약을 위한 설정입니다. 빨간색 극을 주황색으로 바꿔 어두운 필드에서 청록색만큼 잘 보이게 하고, 황금색 링은 보라색으로 바뀝니다.',
   'set.motion':'모션 줄이기',
   'set.motionD':'가까운 곳에서 뭔가 터질 때 흔들림과 섬광을 줄입니다.',
+  // 입자, not 점 — it is the word the tutorial already uses for a Dot ('같은 색 입자에 가까이 가세요').
+  'set.dots':'입자 크게 보기',
+  'set.dotsD':'보이는 크기만 커지고, 부딪히는 범위는 그대로입니다.',
   'set.follow':'커서 따라오기',
   'set.followD':'별이 커서를 따라오는 속도입니다.',
   'set.followA':'커서 따라오기 속도',
@@ -3491,6 +3533,50 @@ function freshRun(){
 //   ⚠️ THE ANNULUS AND THE TWIN-LOBE SILHOUETTES ARE NOW FREE, and that is not an invitation to reuse
 // them casually — the Planet below deliberately takes NEITHER, because a new species wearing a retired
 // one's outline inherits every expectation the old one taught.
+// ============================================================================================
+//  ⚠️ THE HULL IS NO LONGER THE COLLIDER, AND THIS TABLE IS THE COLLIDER. 2026-08-19.
+//  `e.r` here is CONTACT ONLY. What gets drawn is `e.r + dotBloom()` — a SETTING, `store.bigDots`, off by
+//  default on a desktop and on by default where the screen is small. See DOT_BLOOM and the single site in
+//  drawEnemies that applies it. Every number in this table is exactly what it was before
+//  that change, so nothing that reads `e.r` moved: contact, annihilation, the spatial grid, ring capture,
+//  formation spacing, every telegraph envelope. The game is bit-for-bit as hard as it was.
+//
+//  WHY, AND IT IS THE AUTHOR'S CALL RATHER THAN A DERIVATION: *"dart is too small. overall Dots are
+//  quite small, i think."* … *"can it be only size gets bigger, and hitbox is old one? so it is visually
+//  bigger but collides much slowly. reason why it is needed is for IOS/mobile. i cant see well, but i
+//  dont want difficulty going up."* The first pass did the honest thing and moved BOTH — every radius
+//  +3, which brought +8-13% on the contact envelope with it. This is that pass with the collider put back.
+//    ⚠️ AND THEN IT BECAME A SWITCH, one message later, because the fix was right for one device and
+//  wrong for the other: *"law 4 doesnt apply to Mobile, like when screen is too small. but it is now too
+//  big for PC/Web. can i make it env-based or option?"* It is both — the DEFAULT reads the device, the
+//  player overrides it, and the override is never second-guessed. See `store.bigDots`.
+//
+//  ⚠️ IT BREAKS LAW 4 ON PURPOSE AND THE DIRECTION IS THE WHOLE DEFENCE. Law 4 exists because a hull
+//  drawn SMALLER than its collider kills you before anything visibly touches you — a drawing that lies
+//  in the direction of "you were safe, and then you were dead". This lies the other way: the hull is
+//  3px WIDE of the collider, so the worst it can produce is a frame where two discs visibly kiss and
+//  nothing happens. That reads as a near miss, which is what it is.
+//    The file already errs this way and says so. The Brute's hexagon over-draws to 1.155r at the corners
+//  — 3.1px at r20, the same order as this — and its own note calls that "the safe direction (the same
+//  direction the Charger's arrowhead already errs in)". MECHANICS' law 4 names THREE that already
+//  overhang — Brute hexagon, Charger arrowhead, Planet ring — and it already calls that direction
+//  forgiving. So this constant does not introduce the exception; it makes it uniform across the roster,
+//  puts it on ONE line instead of three silhouettes, and writes down what it costs.
+//
+//  ⚠️ WHAT MAY NOT USE THE BLOOM, and this is the part that keeps the lie survivable: anything drawn
+//  OUTSIDE a hull is a statement about reach, and those must stay on `e.r`. Both live sites are marked
+//  at the point of use — the Charger's reticle (`RET=e.r+P.r`) and the dashed envelope ring — and the
+//  general rule is the one drawEnemies already carried: "`e.r + P.r` or nothing". A mark that says
+//  "here is where you die" drawn off a bloomed radius would be lying in law 4's OWN direction, 3px at a
+//  time, which is the one thing this exception does not buy.
+//
+//  ⚠️ AND IT IS DELIBERATELY IN WORLD UNITS, NOT SCREEN-LOCKED. The obvious move for a legibility fix is
+//  to lock it to CSS px so it grows on a phone, where the problem actually is — that is what this file
+//  does for line widths and floating text, which mean nothing. It is wrong here: the bloom would then be
+//  6.2 world units on a phone against 3 on a desktop, so the same body would sit at a different fraction
+//  of its own collider depending on the screen, and what you learned about a near miss on one device
+//  would be false on the other. A constant world offset keeps the hull/collider relationship identical
+//  everywhere and still delivers the phone its +37% on a Dart, because the ratio is what the eye reads.
 const ETYPE={
   drift:  {r:11, hp:1, mass:1.0,  maxsp:3.4, seek:0.22, dmg:8},
   fast:   {r:8,  hp:1, mass:0.7,  maxsp:6.4, seek:0.42, dmg:6},
@@ -9039,8 +9125,9 @@ function drawField(){
   }
 }
 // ⚠️ THE HALO MUST HAVE NO EDGE. A flat-alpha disc has a hard visible boundary, and a visible boundary
-// reads as a statement about reach — which at `e.r*1.9` is false in both directions against the real
-// envelope `e.r+P.r`. They agree only at r=16.67: a Mini draws 13.3 against 22 lethal (8.7px of killing
+// reads as a statement about reach — which at `1.9x the hull` is false in both directions against the
+// real envelope `e.r+P.r` (and since DOT_BLOOM it is scaled off `RD`, so it is a statement about a hull
+// that is itself 3px wide of the collider — one more reason this thing may not have an edge). They agree only at r=16.67: a Mini draws 13.3 against 22 lethal (8.7px of killing
 // space OUTSIDE the halo) while a Brute draws 38.0 against 35 (3px to spare). One cue, opposite lessons.
 // The fix is to remove the EDGE, not to move it. Sizing the halo to `e.r+15` puts a 22px cloud around a
 // 7px Mini, turns a 40-Dot field into fog, and makes a HUD element of every Dot, which is how you end
@@ -9058,6 +9145,39 @@ function glowSprite(col){
   gx.fillStyle=rg; gx.fillRect(0,0,N,N);
   return GLOW[col]=cv;
 }
+// THE BLOOM — the only number that separates a Dot's hull from its collider, and the ONLY place it is
+// applied is the `RD` on the first line of the loop below, through the one reader under it.
+//   ⚠️ IT IS OPT-IN, AND WHAT THE SETTING BUYS DEPENDS ENTIRELY ON THE SCREEN. `S` scales the render, so
+// the same Dart is 8 CSS px of radius on a desktop and 3.9 on a phone: at the second number the bloom is
+// legibility and at the first it is just a bigger Dot. `store.bigDots` therefore defaults ON for a coarse
+// pointer or a short axis under REF_SHORT, OFF otherwise, and a stored answer beats both. Read the block at ETYPE before touching it:
+// this is a deliberate, argued break of law 4, in the forgiving direction, at the author's request, and
+// it is worth exactly as much as the discipline that keeps it out of the envelope marks.
+//   3 AND NOT MORE, AND THE CEILING IS THE STAR. Contact for the modal Dot is `P.r + drift.r` = 26, so at
+// +3 a hull kisses another hull about 12% of the envelope before anything happens — the width of the
+// misjudgement a player can make and be forgiven for. At +6 that is a quarter of the envelope and the
+// near-miss stops reading as near; at that point the honest fix is to move the collider and accept the
+// difficulty, which is the pass this one replaced. It is also why the SMALLEST body sets the feel: the
+// Dart draws 11 against a collider of 8, the widest ratio in the roster at 1.375, and it is the one to
+// look at first if this ever reads as a lie rather than as mercy.
+//   ⚠️ IT DOES NOT REACH THE ANOMALY. `drawBoss` is a different function and the boss's r37 is untouched:
+// its integrity ring is drawn AT `b.r+P.r` and is the most load-bearing envelope mark in the game.
+//   VERIFIED ON BOTH BRANCHES, and the two halves needed their own instruments:
+//     COLLIDER — bracketed per species with the star seeded on the arena centre so the pointer chase
+//       contributes zero (asserted, not assumed — see law 4's catch-it note in MECHANICS for the run
+//       where that assumption passed 8/8 by coincidence). All eight hit at `e.r+P.r-0.5`, miss at
+//       `+0.5`, and MISS AT `+3` — the separation at which the drawn discs first touch. That last
+//       column is the feature: the hulls kiss and nothing happens.
+//     HULL — sampled off the canvas. A Drifter's fill holds ~218 out to 13 design units and drops to
+//       50 at 14, i.e. a hard edge at 14 against a collider of 11. The STAR is the control and must
+//       read its own `P.r`: it holds to 14 and drops at 15. One instrument, one bloomed body and one
+//       unbloomed — which is what makes the 14 evidence rather than a number off a scan.
+const DOT_BLOOM=3;
+// ⚠️ ONE READER, AND EVERY DRAW SITE GOES THROUGH IT. `DOT_BLOOM` is the AMOUNT and this is whether it
+// applies — a second place deciding "is the setting on" is how a hull and the thing that scales with it
+// end up disagreeing by three pixels for one species. Cheap enough to call per body: one property read
+// and a branch, against a loop that is already doing arcs and gradients.
+const dotBloom=()=>store.bigDots?DOT_BLOOM:0;
 function drawEnemies(){
   // The contact ghost rides this same loop, so every species' art applies to it for free — and a plain
   // snapshot is safe here precisely because this loop never writes to `e`. Drawn last so it sits on top
@@ -9065,8 +9185,16 @@ function drawEnemies(){
   for(const e of (contactGhost ? [...enemies, contactGhost] : enemies)){
     if(e.type==='boss')continue;
     const c = COL[e.color];
+    // ⚠️ `RD` IS THE HULL AND `e.r` IS THE COLLIDER, and from here down the DEFAULT IS `RD`. See
+    // DOT_BLOOM above. Every mark that belongs to the body — the disc, the hexagon, the arrowhead,
+    // the lobes, the plates, the core dot, the wakes, the fuse — is interior and takes `RD`, so a
+    // face keeps its proportions and no skin has to know this happened. The two exceptions are the
+    // marks drawn OUTSIDE a hull, and both are labelled where they are: they are statements about
+    // reach and they stay on `e.r`. If you add a mark here, the question is not "which radius looks
+    // right" but "does this mark promise the player anything about where they die".
+    const RD = e.r + dotBloom();
     // glow — same extent as before, but ramped to zero so there is no boundary to aim at
-    const GR=e.r*1.9;
+    const GR=RD*1.9;
     ctx.drawImage(glowSprite(c), e.x-GR, e.y-GR, GR*2, GR*2);
     // (THE SPLITTER'S BINARY stood here — two overlapping lobes at 0.72r offset 0.30, two nuclei, on a
     //  turning seam, so that "pop this and you get MORE of them" read off the silhouette alone. The
@@ -9085,9 +9213,9 @@ function drawEnemies(){
       // colour"; two halves say the true thing, which is "this one does not care which pole you hold".
       // The seam turns (like the Splitter's) so it is never edge-on and lost in a crowd.
       ctx.fillStyle=COL.red;
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na, na+Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x,e.y,RD, na, na+Math.PI); ctx.fill();
       ctx.fillStyle=COL.cyan;
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r, na+Math.PI, na+TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x,e.y,RD, na+Math.PI, na+TAU); ctx.fill();
     } else if(e.type==='charger'){
       // SPENT CHARGERS KEEP THE HULL AND LOSE THE FILL. They must not drop to a plain disc: at r=13 that
       // IS a Drifter (r=11), so a dmg:16 Dot would spend ~62% of its life wearing the exact drawing of
@@ -9102,7 +9230,7 @@ function drawEnemies(){
       // its heading says "this one is not yours to gather, it is going somewhere".
       const ha=(e.aimx!==undefined && (e.cst==='wind'||e.cst==='dash')) ? Math.atan2(e.aimy,e.aimx)
              : (Math.hypot(e.vx,e.vy)>0.4 ? Math.atan2(e.vy,e.vx) : e.ph);
-      const ca=Math.cos(ha), sa=Math.sin(ha), R=e.r*1.25;
+      const ca=Math.cos(ha), sa=Math.sin(ha), R=RD*1.25;
       ctx.beginPath();
       ctx.moveTo(e.x+ca*R,            e.y+sa*R);                       // nose
       ctx.lineTo(e.x-ca*R*0.72-sa*R*0.78, e.y-sa*R*0.72+ca*R*0.78);    // port barb
@@ -9114,7 +9242,7 @@ function drawEnemies(){
       // runs under `lighter`: stacked fills saturate toward white and destroy the red/cyan contrast the
       // polarity law depends on (the boss body wraps itself in source-over at its own draw for exactly
       // this reason). An empty outline costs one stroke and reveals the glow behind it.
-      if(e.spent){ ctx.strokeStyle=c; ctx.lineWidth=Math.max(2,e.r*0.22); ctx.stroke(); }
+      if(e.spent){ ctx.strokeStyle=c; ctx.lineWidth=Math.max(2,RD*0.22); ctx.stroke(); }
       else ctx.fill();
     } else if(e.type==='bomber'){
       // THE BOMBER IS A MINE — a spiked hull, not a disc. A plain circle wearing a faint ring is very
@@ -9128,10 +9256,10 @@ function drawEnemies(){
       // rough edge" at speed and at distance, which is the exact read this exists to break. Fewer,
       // deeper points (0.50r) survive peripheral vision, and an odd count keeps it from reading as a
       // symmetrical flower at any rotation.
-      const NB=7, spin=e.ph+elapsed*0.7, inr=e.r*0.50;
+      const NB=7, spin=e.ph+elapsed*0.7, inr=RD*0.50;
       ctx.beginPath();
       for(let k=0;k<NB*2;k++){
-        const ba=spin+k*Math.PI/NB, br=(k%2)?inr:e.r;
+        const ba=spin+k*Math.PI/NB, br=(k%2)?inr:RD;
         const bxp=e.x+Math.cos(ba)*br, byp=e.y+Math.sin(ba)*br;
         if(k===0) ctx.moveTo(bxp,byp); else ctx.lineTo(bxp,byp);
       }
@@ -9154,9 +9282,9 @@ function drawEnemies(){
       // a direction that ROTATES. That is why the ellipse is not allowed to be the hull shape.
       const hv=Math.hypot(e.vx,e.vy);
       const ha=hv>0.35?Math.atan2(e.vy,e.vx):e.ph;   // parked bodies keep their last sensible axis
-      const hc=Math.cos(ha), hs=Math.sin(ha), hoff=e.r*0.30;
-      ctx.beginPath(); ctx.arc(e.x-hc*hoff, e.y-hs*hoff, e.r*0.72,0,TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(e.x+hc*hoff, e.y+hs*hoff, e.r*0.72,0,TAU); ctx.fill();
+      const hc=Math.cos(ha), hs=Math.sin(ha), hoff=RD*0.30;
+      ctx.beginPath(); ctx.arc(e.x-hc*hoff, e.y-hs*hoff, RD*0.72,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x+hc*hoff, e.y+hs*hoff, RD*0.72,0,TAU); ctx.fill();
     } else if(e.type==='planet'){
       // THE PLANET IS A BODY COMING APART — a whole core with five PLATES around it, and the gaps between
       // the plates WIDEN as it charges. That widening is the entire charge readout: no bar, no ring, no
@@ -9199,13 +9327,13 @@ function drawEnemies(){
       // mine's 9 -> 15 rad/s). That justification was sound in isolation and still lost: imminence is worth
       // less than identification, and the core's brightness carries it at no cost to the outline.
       const f=clamp((e.burn||0)/PLANET_FUSE,0,1);
-      const NP=5, inr=e.r*0.42, gap=0.22+0.08*f, base=e.ph+elapsed*0.30;
+      const NP=5, inr=RD*0.42, gap=0.22+0.08*f, base=e.ph+elapsed*0.30;
       ctx.beginPath(); ctx.arc(e.x,e.y,inr,0,TAU); ctx.fill();      // the core stays whole
       for(let k=0;k<NP;k++){
         const c0=base+k*TAU/NP+0.11*Math.sin(e.ph*3+k*2.3);         // uneven plates, stable per Dot
         const a0=c0+gap, a1=c0+TAU/NP-gap;
         ctx.beginPath();
-        ctx.arc(e.x,e.y,e.r,a0,a1,false);
+        ctx.arc(e.x,e.y,RD,a0,a1,false);
         ctx.arc(e.x,e.y,inr,a1,a0,true);
         ctx.closePath(); ctx.fill();
       }
@@ -9219,7 +9347,11 @@ function drawEnemies(){
       // species identity on a 300-body screen, so a Drifter that stopped being a plain disc would not be
       // a costume, it would be a new species nobody can name.
       //   Note it draws its own core dot — see `noCore` below, which now excludes this type outright.
-      (DOT_FACE.drift[skinPick('drift')]||DOT_FACE.drift.plain)(ctx,c,e);
+      // ⚠️ THE HULL IS PASSED IN, NOT DERIVED. A face cannot see `RD` and must not re-derive it: the
+      // wardrobe swatch calls these same functions with a PORTRAIT radius and no bloom, and a face that
+      // read the setting itself would grow the preview too — a swatch is a relative-size statement, not
+      // a frame of play. One caller, one number, both readings correct.
+      (DOT_FACE.drift[skinPick('drift')]||DOT_FACE.drift.plain)(ctx,c,e,RD);
     } else if(e.type==='heavy'){
       // THE BRUTE IS A HEXAGON. It was a plain disc, separated from a Drifter by size alone (20 vs 11) —
       // and size is the weakest channel in the game: Dots overlap, they are read in peripheral vision,
@@ -9227,7 +9359,7 @@ function drawEnemies(){
       // silhouette still tells the truth about the space it occupies; the corners over-draw to 1.155r,
       // which errs in the safe direction (the same direction the Charger's arrowhead already errs in).
       // Straight edges are what survive scaling — an internal mark at 9.75 CSS px does not.
-      const HR=e.r*1.1547, hs=e.ph+elapsed*0.35;   // slow spin so it is never lost edge-on
+      const HR=RD*1.1547, hs=e.ph+elapsed*0.35;   // slow spin so it is never lost edge-on
       ctx.beginPath();
       for(let k=0;k<6;k++){
         const ha2=hs+k*Math.PI/3, hx=e.x+Math.cos(ha2)*HR, hy=e.y+Math.sin(ha2)*HR;
@@ -9235,7 +9367,7 @@ function drawEnemies(){
       }
       ctx.closePath(); ctx.fill();
     } else {
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x,e.y,RD,0,TAU); ctx.fill();
     }
     // Core dot — one on most things, and DELIBERATELY NONE on three.
     // The absences are marks in their own right, which is the cheapest channel there is:
@@ -9258,7 +9390,7 @@ function drawEnemies(){
                 || (e.type==='harrier') || (e.type==='drift');
     ctx.fillStyle='rgba(255,255,255,0.85)';
     if(!noCore){
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(e.type==='neutral'?0.24:0.34),0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x,e.y,RD*(e.type==='neutral'?0.24:0.34),0,TAU); ctx.fill();
     }
     if(e.type==='neutral'){
       // no marker ring any more. It sat at 0.62r straight across the seam and chopped the two halves
@@ -9267,8 +9399,8 @@ function drawEnemies(){
       // boundary between the two charges rather than as another concentric ring.
       ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.5;
       ctx.beginPath();
-      ctx.moveTo(e.x+Math.cos(na)*e.r, e.y+Math.sin(na)*e.r);
-      ctx.lineTo(e.x-Math.cos(na)*e.r, e.y-Math.sin(na)*e.r);
+      ctx.moveTo(e.x+Math.cos(na)*RD, e.y+Math.sin(na)*RD);
+      ctx.lineTo(e.x-Math.cos(na)*RD, e.y-Math.sin(na)*RD);
       ctx.stroke();
     } else if(e.type==='harrier'){
       // TWO NUCLEI ON THE HEADING, and a WAKE — and the wake is where the mechanic actually lives.
@@ -9291,15 +9423,15 @@ function drawEnemies(){
       // earned. The gate is a truth check, not a species switch — see the seek note at ETYPE.
       const hv2=Math.hypot(e.vx,e.vy);
       const ha2=hv2>0.35?Math.atan2(e.vy,e.vx):e.ph;
-      const hc2=Math.cos(ha2), hs2=Math.sin(ha2), ho2=e.r*0.30;
+      const hc2=Math.cos(ha2), hs2=Math.sin(ha2), ho2=RD*0.30;
       if(hv2>1.2){
-        ctx.strokeStyle=hexA(c,0.38); ctx.lineWidth=e.r*0.8; ctx.lineCap='round';
+        ctx.strokeStyle=hexA(c,0.38); ctx.lineWidth=RD*0.8; ctx.lineCap='round';
         ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x-e.vx*3.4, e.y-e.vy*3.4); ctx.stroke();
         ctx.lineCap='butt';
       }
       ctx.fillStyle='rgba(255,255,255,0.85)';
-      ctx.beginPath(); ctx.arc(e.x-hc2*ho2, e.y-hs2*ho2, e.r*0.26,0,TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(e.x+hc2*ho2, e.y+hs2*ho2, e.r*0.26,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x-hc2*ho2, e.y-hs2*ho2, RD*0.26,0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x+hc2*ho2, e.y+hs2*ho2, RD*0.26,0,TAU); ctx.fill();
     } else if(e.type==='planet'){
       // THE CORE GOES WHITE-HOT AS IT CHARGES — the second, redundant channel, for the same reason the
       // Bomber gets a blink on top of its spikes: at a distance, or under a crowd, the plate gaps are a
@@ -9314,7 +9446,7 @@ function drawEnemies(){
       // brightening point inside a hull cannot be mistaken for a different body.
       const f=clamp((e.burn||0)/PLANET_FUSE,0,1);
       ctx.fillStyle=hexA('#ffffff',0.5+0.5*f);
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*(0.14+0.22*f),0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x,e.y,RD*(0.14+0.22*f),0,TAU); ctx.fill();
     } else if(e.type==='fast'){
       // THE DART GETS A WAKE. It and the Drifter are the two most common Dots in the sky (8.1 and 20.1
       // per sample, sharing the screen in 77% of them) and radius alone — 8 against 11 — cannot separate
@@ -9326,7 +9458,7 @@ function drawEnemies(){
       // behind a Dot promises nothing about the space in front of it.
       const sp2=Math.hypot(e.vx,e.vy);
       if(sp2>1.2){
-        ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=e.r*0.9;
+        ctx.strokeStyle=hexA(c,0.42); ctx.lineWidth=RD*0.9;
         ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x-e.vx*2.2, e.y-e.vy*2.2); ctx.stroke();
       }
     } else if(e.type==='bomber'){
@@ -9363,7 +9495,7 @@ function drawEnemies(){
       const wx=Math.sin(elapsed*13.7+e.ph)*0.9, wy=Math.cos(elapsed*11.1+e.ph*1.7)*0.9;
       ctx.globalCompositeOperation='source-over';
       ctx.fillStyle=hexA(COL.lime,0.62+0.38*bl);
-      ctx.beginPath(); ctx.arc(e.x+wx,e.y+wy,e.r*(0.26+0.16*bl),0,TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x+wx,e.y+wy,RD*(0.26+0.16*bl),0,TAU); ctx.fill();
       ctx.globalCompositeOperation='lighter';
     } else if(e.type==='charger' && e.spent){
       // COOLDOWN CLOCK, as a WEDGE FROM THE CENTRE rather than an arc around the rim. An arc is not a
@@ -9376,7 +9508,7 @@ function drawEnemies(){
       const frac=clamp((e.cool||0)/CHG_COOL,0,1);
       ctx.fillStyle=hexA(c,0.55);
       ctx.beginPath(); ctx.moveTo(e.x,e.y);
-      ctx.arc(e.x,e.y,e.r*0.78,-Math.PI/2,-Math.PI/2+TAU*(1-frac));
+      ctx.arc(e.x,e.y,RD*0.78,-Math.PI/2,-Math.PI/2+TAU*(1-frac));
       ctx.closePath(); ctx.fill();
     } else if(e.type==='charger'){
       if(e.cst==='wind'){
@@ -9395,7 +9527,7 @@ function drawEnemies(){
         const nha=(e.aimx!==undefined)?Math.atan2(e.aimy,e.aimx):e.ph;
         ctx.fillStyle=hexA('#ffffff',0.35+0.6*t);
         ctx.beginPath();
-        ctx.arc(e.x+Math.cos(nha)*e.r*0.55, e.y+Math.sin(nha)*e.r*0.55, e.r*(0.16+0.22*t),0,TAU);
+        ctx.arc(e.x+Math.cos(nha)*RD*0.55, e.y+Math.sin(nha)*RD*0.55, RD*(0.16+0.22*t),0,TAU);
         ctx.fill();
         if(e.tgx!==undefined){
           const ex=e.tgx, ey=e.tgy;                     // the LOCKED point — a fixed mark on the ground,
@@ -9422,12 +9554,12 @@ function drawEnemies(){
           // it is drawn on the GROUND rather than on a body, so it marks a place instead of implying a
           // standoff — and it is true. Same precedent as the mine telegraph, drawn at exactly the radius
           // it will cover.
-          const RET=e.r+(P?P.r:15);
+          const RET=e.r+(P?P.r:15);   // ⚠️ `e.r`, NOT `RD` — this is the kill radius, see DOT_BLOOM
           ctx.strokeStyle=hexA(c,0.3+0.45*t); ctx.lineWidth=1.5/S;   // screen-locked; see the lane above
           ctx.beginPath(); ctx.arc(ex,ey, RET+26*(1-t), 0, TAU); ctx.stroke();
         }
       } else if(e.cst==='dash'){ // motion streak
-        ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=e.r*1.3;
+        ctx.strokeStyle=hexA(c,0.5); ctx.lineWidth=RD*1.3;
         ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x-e.vx*2.5, e.y-e.vy*2.5); ctx.stroke();
       }
     }
@@ -9441,6 +9573,8 @@ function drawEnemies(){
       const urg=e.gild<2?14:7;
       ctx.strokeStyle=hexA(COL.gold,0.55+0.35*Math.sin(elapsed*urg));
       ctx.lineWidth=2.5; ctx.setLineDash([5,4]);
+      // ⚠️ `e.r`, NOT `RD` — the one mark in the game drawn outside a hull is the one that may never
+      // carry the bloom. See DOT_BLOOM: a reach mark off a bloomed radius lies in law 4's direction.
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r+(P?P.r:15),0,TAU); ctx.stroke(); ctx.setLineDash([]);
     }
   }
@@ -9497,7 +9631,9 @@ const STAR_FACE={
 };
 // DOT FACES. Same shape as STAR_FACE and the same two laws, with one clause added that the star does not
 // need: a Dot's silhouette is its SPECIES, read in peripheral vision on a screen holding hundreds of
-// them, so a Dot face may not change the disc at all. Interior only, and `e.r` stays hull and collider.
+// them, so a Dot face may not change the disc at all. Interior only. ⚠️ `e.r` is the COLLIDER now and the
+// disc is drawn at the HULL, which arrives as the fourth argument — see DOT_BLOOM. A face never derives
+// it, because the field and the wardrobe swatch want different answers from the same function.
 //   ⚠️ TAKES THE COLOUR AS A PARAMETER even though drawEnemies has already set `ctx.fillStyle=c` two
 // lines up. The redundancy is deliberate and it is the same call STAR_FACE made: the wardrobe swatch
 // draws these onto its OWN canvas, where no such assignment has happened, and a face that read the
@@ -9506,11 +9642,15 @@ const DOT_FACE={
   drift:{
     // What the game has always drawn: a filled disc and a white core at 0.34r. Lifted out of the shared
     // `else` branch unchanged, so `plain` is bit-identical to the build before the seam existed.
-    plain(g,c,e){
+    plain(g,c,e,R){
+      // ⚠️ `R` IS HANDED IN AND IS THE HULL. A face may not compute it and may not read `e.r`: the field
+      // passes the bloomed radius, the wardrobe swatch passes its own portrait radius, and both are
+      // right. See DOT_BLOOM. (`??` keeps a face callable by anything that predates the parameter.)
+      R=R??e.r;
       g.fillStyle=c;
-      g.beginPath(); g.arc(e.x,e.y,e.r,0,TAU); g.fill();
+      g.beginPath(); g.arc(e.x,e.y,R,0,TAU); g.fill();
       g.fillStyle='rgba(255,255,255,0.85)';
-      g.beginPath(); g.arc(e.x,e.y,e.r*0.34,0,TAU); g.fill();
+      g.beginPath(); g.arc(e.x,e.y,R*0.34,0,TAU); g.fill();
     },
     // A BEAD: the same disc with the core opened into a ring. Deliberately the smallest change available —
     // one mark swapped for its own outline — because the Drifter is the body you see most of and the first
@@ -9521,12 +9661,13 @@ const DOT_FACE={
     // transparent bite in the field. Additive blending needs no erasing anyway — the ring's "hole" is the
     // body's own colour, still there, never drawn over. Negative space here means NOT DRAWING, which is
     // exactly how the Planet's plate gaps work; nothing in this pass may use a destination-* operator.
-    bead(g,c,e){
+    bead(g,c,e,R){
+      R=R??e.r;                     // the hull, handed in — see `plain` above and DOT_BLOOM
       g.fillStyle=c;
-      g.beginPath(); g.arc(e.x,e.y,e.r,0,TAU); g.fill();
+      g.beginPath(); g.arc(e.x,e.y,R,0,TAU); g.fill();
       g.strokeStyle='rgba(255,255,255,0.85)';
-      g.lineWidth=Math.max(1, e.r*0.16);
-      g.beginPath(); g.arc(e.x,e.y,e.r*0.42,0,TAU); g.stroke();
+      g.lineWidth=Math.max(1, R*0.16);
+      g.beginPath(); g.arc(e.x,e.y,R*0.42,0,TAU); g.stroke();
     },
   },
 };
@@ -9559,9 +9700,16 @@ function drawPlayer(){
   // ---- THE STAR: body, lit hemisphere, ring halo ----
   // ⚠️ THE STAR'S CRISP EDGE IS EXACTLY `P.r`, and it has to be. Contact is `e.r + P.r`, so if the hull
   // you can see is smaller than P.r you die BEFORE your own edge touches anything — which is the one
-  // direction a drawing must never lie in (§2 of the glossary; the enemy hulls all draw at `e.r`). With
-  // the rim on P.r, two hulls meeting on screen IS the frame of contact, for every circular body, with
-  // no extra cue: star 15 + Drifter 11 = 26 = `e.r + P.r`.
+  // direction a drawing must never lie in (§2 of the glossary).
+  // ⚠️ THE OTHER HALF OF THAT SENTENCE IS NOW FALSE AND IS KEPT HERE BECAUSE THE ASYMMETRY IS THE POINT.
+  // It read "the enemy hulls all draw at `e.r`", and since DOT_BLOOM they draw at `e.r + 3`. So two hulls
+  // meeting on screen is no longer the frame of contact: they OVERLAP by 3px first, and the hit lands
+  // when the CENTRES reach `e.r + P.r` — star 15 + Drifter 11 = 26, unchanged, against discs that touch
+  // at 29. That gap is the mercy DOT_BLOOM was asked for and it is entirely on the Dot's side.
+  //   ⚠️ WHICH IS EXACTLY WHY THE STAR MUST NOT BLOOM TOO. One true edge has to survive, and it has to be
+  // this one: every forgiving frame the bloom produces is a Dot reaching visually into a star that is
+  // telling the truth about itself. Bloom the star as well and the two lies COMPOUND — 6px of overlap
+  // before contact — and there would be nothing left on screen a player could calibrate against.
   // The rim is a STROKE, so its outer edge is `radius + lineWidth/2` — the arc is drawn inset by half
   // the width and the Dot fills to P.r underneath it. Move one without the other and the rim either
   // detaches into a floating ring or overshoots the envelope.
@@ -10595,7 +10743,12 @@ function bindFrameEsc(f){
 let bestiaryBound=false;
 function openBestiary(){
   const f=el('bestiaryFrame');
-  const want='bestiary.html?lang='+store.lang;
+  // `dots` rides along for the same reason `lang` does: this page shares no code with the game and an
+  // iframe cannot read the opener's localStorage across every browser's partitioning rules. The chart
+  // has to draw the body the player is being asked to recognise, so it follows the setting rather than
+  // picking one — and because the src is COMPARED rather than merely set, toggling the switch and
+  // reopening reloads the frame, which is exactly what should happen here.
+  const want='bestiary.html?lang='+store.lang+'&dots='+(store.bigDots?1:0);
   if(f.getAttribute('src')!==want){
     f.setAttribute('src',want);
     if(!bestiaryBound){ bestiaryBound=true; f.addEventListener('load',()=>bindFrameEsc(f)); }
@@ -10784,7 +10937,11 @@ function skinSwatch(cat,faceId){
   const g=cv.getContext('2d'); g.scale(dpr,dpr);
   // A DOT IS DRAWN SMALLER THAN THE STAR, in the proportion the field uses (11 against 15), because the
   // wardrobe should not quietly promise that a skin changes a body's size. It is the same reason a face
-  // may not move `e.r`: everything about a body's scale is a statement about what it can reach.
+  // may not move `e.r`: a body's COLLIDER is a statement about what it can reach, and a costume does not
+  // get to make it. ⚠️ Since DOT_BLOOM the hull and the collider are different numbers, so the rule needs
+  // saying more precisely than it used to: a face may draw the hull it is handed and may not move `e.r`.
+  // The 11-against-15 here is the collider ratio and is deliberately NOT bloomed — this swatch is a
+  // relative-size statement about the wardrobe, not a rendering of a body on the field.
   const x=SKIN_SW/2, y=SKIN_SW/2, c=COL.cyan;
   const r=SKIN_SW*(cat==='star'?0.33:0.24);
   const halo=g.createRadialGradient(x,y,0,x,y,r*2);
@@ -10799,7 +10956,10 @@ function skinSwatch(cat,faceId){
     // to orient itself, it gets a parked one at a fixed phase — the swatch is a portrait, not a frame of
     // play, and a spinning preview would be a different kind of lie from the one it is avoiding.
     const tbl=DOT_FACE[cat]||{};
-    (tbl[faceId]||tbl[(SKINS[cat]||[{}])[0].id]||DOT_FACE.drift.plain)(g,c,{x,y,r,ph:0,vx:0,vy:0});
+    // The portrait radius is passed as the hull, DELIBERATELY UNBLOOMED: this swatch is a statement
+    // about relative size in the wardrobe, and growing it with a gameplay-legibility setting would make
+    // the panel look like the skin had changed the body. See DOT_BLOOM.
+    (tbl[faceId]||tbl[(SKINS[cat]||[{}])[0].id]||DOT_FACE.drift.plain)(g,c,{x,y,r,ph:0,vx:0,vy:0},r);
   }
   return cv;
 }
@@ -10903,6 +11063,7 @@ function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=T(on?'sw.on':'sw.off'); };
   sw('swCb', store.cb);
   sw('swMotion', store.reduceMotion);
+  sw('swDots', store.bigDots);
   sw('swSound', !store.mute);
   // ⚠️ NEVER WRITE .value WHILE THE SLIDER IS THE ACTIVE ELEMENT. This repaints on a 400ms poll, and
   // assigning `value` mid-drag snaps the handle back under the finger to whatever the last committed
@@ -10948,6 +11109,9 @@ function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
 el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
 el('swCb').onclick    =()=>{ store.cb=!store.cb; save(); applyPalette(); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
+// No render() and no field repaint: this changes a radius the very next frame reads, and Settings opens
+// over a live field from the pause panel — the change is visible behind the panel as soon as it is made.
+el('swDots').onclick  =()=>{ store.bigDots=!store.bigDots; save(); paintSettings(); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
 // `input`, not `change`: the level has to follow the finger, or you are setting a volume you cannot hear
 // until you let go — which is the one thing a volume control must not ask of you.

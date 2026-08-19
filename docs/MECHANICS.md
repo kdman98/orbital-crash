@@ -104,15 +104,48 @@ resized.
 
 *Catch it:* sample luminance outward from a hull. Any step over ~10 outside it is a claimed edge.
 
-### 4. Hitbox is hull
-`e.r` is both the drawn hull and the collider, for every species and the Anomaly. **Never split them.**
-A render-only shrink puts the kill edge outside a hull that looks safe, which is law 3 in its worst
-form. Three silhouettes overhang — Brute hexagon, Charger arrowhead, Planet ring — but those draw
-*bigger* than they collide, which is the forgiving direction.
+### 4. Hitbox is hull — for the Anomaly, and in one direction for Dots
+`e.r` is the collider. A render-only **shrink** is the thing this law exists to forbid: it puts the kill
+edge outside a hull that looks safe, which is law 3 in its worst form, and nothing may ever do it.
+
+⚠️ **The law used to read "never split them" and Dots split them, on request, since 2026-08-19.** With
+**Larger Dots** on, a Dot's hull is `e.r + DOT_BLOOM`, three design units wide of its collider: *"can it
+be only size gets bigger, and hitbox is old one? … i cant see well, but i dont want difficulty going up."*
+The Anomaly is **not** included and `b.r` remains hull and collider both.
+
+**It is a setting, and the default reads the device.** `S` scales the render, so the same Dart is 8 CSS px
+of radius on a desktop and 3.9 on a phone — at the second number the bloom is legibility, at the first it
+is just a bigger Dot: *"law 4 doesnt apply to Mobile, like when screen is too small. but it is now too big
+for PC/Web."* `store.bigDots` defaults **on** for a coarse pointer or a short axis under `REF_SHORT` and
+**off** otherwise; a stored choice is never second-guessed, the same contract `lang` keeps. So on a
+desktop this law is unsplit unless a player asks for the split.
+
+**The direction is the whole defence, and the law already conceded it.** Three silhouettes overhang
+already — Brute hexagon, Charger arrowhead, Planet ring — and this section has always called that *the
+forgiving direction*: the worst a wide hull produces is a frame where two discs visibly kiss and nothing
+happens, which reads as the near miss it is. The bloom does not introduce the exception; it makes it
+uniform, moves it from three silhouettes onto one constant, and states the price.
+
+**What may not carry it:** anything drawn *outside* a hull, because that is law 3's territory — a reach
+mark off a bloomed radius would lie in this law's own forbidden direction, three px at a time. Both live
+sites (the Charger's reticle, the dashed envelope ring) stay on `e.r` and are labelled at the point of
+use. **And the star does not bloom**, deliberately: one true edge has to survive for the player to
+calibrate against, and two bloomed hulls would compound to 6px of pre-contact overlap.
 
 *Catch it:* bracket the separation at which contact actually fires; it must land on `e.r + P.r` for
-all nine species plus the boss. Bracket on the separation that **existed at end of frame**, not the
-one you seeded — the star chases the pointer and is yanked before contact resolves.
+all nine species plus the boss — **`e.r`, not the drawn hull**, which is now 3 wider on every Dot.
+⚠️ *Since the bloom, "it looked like it touched" is no longer evidence either way* — a screenshot
+cannot bracket this any more, only the numbers can.
+
+⚠️ **And the rig has to prove the star did not move, not merely be written as though it did not.**
+This section has always said to bracket on the separation that existed at *end of frame*, because the
+star chases the pointer and is yanked before contact resolves. That warning is not enough on its own:
+running the bracket from a hardcoded `(400,400)` passed 8/8 on one branch and failed 8/8 on the other,
+and **both runs were measuring the chase**. `startRun` parks the pointer on the arena centre, so the
+pass was the case where the seed happened to equal that centre and the chase was zero-length; the
+failing branch merely had a different viewport, a centre 60px away, and a star that flew there every
+frame. Seed the probe at `W/2, H/2` **and assert the star's displacement is 0** — a whole category
+passing or failing at once is a statement about the instrument, never about the eight species.
 
 ### 5. The silhouette law
 Every species owns a distinct outline or internal marking, and **colour is never one of them** — hue
@@ -904,6 +937,20 @@ Dots are your threat *and* your ammunition.
 | **Charger** | the only Dot your magnetism does not own; arrowhead, solid armed and hollow spent |
 | **Neutral** | wears both poles on a turning seam; the one Dot the colour law does not reach |
 | **Harrier** | the only Dot that **orbits** you instead of arriving at you. Second only to the Dart in free flight (cruise 2.089 against 2.580). Caught by the Field like anything else, but inside it keeps its momentum and loses the whirl, so it flies an ellipse — apogee ~180, perigee ~75, ~1.2s a revolution — halving its apogee over 19 turns. Twin lobes strung along its heading, plus a wake |
+
+⚠️ **Every Dot's HULL gains +3 with the Larger Dots setting on, added 2026-08-19; no collider moved.** Author: *"dart is too small. overall
+Dots are quite small, i think."* … *"can it be only size gets bigger, and hitbox is old one? … reason why
+it is needed is for IOS/mobile. i cant see well, but i dont want difficulty going up."* The world is in
+design units and `S` scales the render, so a phone halves every hull — the Dart was 3.9 CSS px of radius,
+which is the same sentence this file already carried about the deleted Mini without noticing it now
+described a shipping species. The add is flat rather than proportional because the complaint is about
+absolute size: it is +27% on the Dart and +13% on the Planet, and a proportional bump does the reverse.
+Order and every absolute gap between species are unchanged, as is every number in `ETYPE`.
+
+**A first pass moved the collider with it and was reverted.** That version cost +8–13% on the contact
+envelope, and the author did not want the difficulty. See law 4 for the split that replaced it and for
+why it became a switch rather than a constant, and `DOT_BLOOM` for why the amount is in world units
+rather than screen-locked.
 
 ### The Bomber's detonation
 Colour-blind, sized just past the ring orbit radius, and priced so trash dies and a
