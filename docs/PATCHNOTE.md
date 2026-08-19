@@ -14,6 +14,88 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-19
 
+### Larger Dots — a setting that grows the hull and leaves the hitbox where it was `v2` `fc8c10e` `v2-ios` `2428dfb`
+A Dot's drawn hull is now `e.r + DOT_BLOOM` (3 design units) when **Larger Dots** is on, and `e.r`
+when it is off. `ETYPE` is byte-identical either way: **not one line of the stat table is in the diff**,
+so contact, annihilation, the spatial grid, ring capture, formation spacing and every telegraph
+envelope are exactly where they were. Author: *"can it be only size gets bigger, and hitbox is old one?
+… i cant see well, but i dont want difficulty going up."*
+
+**The default reads the device and the player overrides it.** On for a coarse pointer or a short axis
+under the 800 reference, off otherwise — *"law 4 doesnt apply to Mobile, like when screen is too small.
+but it is now too big for PC/Web."* A stored answer is never second-guessed, the same contract the
+language selector keeps. The size test carries `resize()`'s own 0-viewport guard: `Math.min(0,0) < 800`
+is true, so an ungated one would hand a default to every desktop that boots through a 0-frame.
+
+The add is **flat, not proportional** — +27% on the Dart against +13% on the Planet, which is the
+opposite of what scaling gives and the right way round for a complaint about absolute size. Order and
+every absolute gap between species are untouched. It is in **world units, not screen-locked**, so the
+hull/collider relationship is identical on every device; screen-locking would make a near miss learned
+on one device false on the other.
+
+⚠️ **This breaks law 4 deliberately, and MECHANICS' law 4 is rewritten rather than quietly violated.**
+The direction is the defence: a hull drawn *smaller* than its collider kills you before anything
+visibly touches you, and this lies the other way — the worst it produces is two discs visibly kissing
+with nothing happening. Law 4 already named three silhouettes that overhang (Brute hexagon, Charger
+arrowhead, Planet ring) and already called that the forgiving direction. Marks drawn *outside* a hull
+may not carry the bloom and do not: the Charger's reticle and the dashed envelope ring stay on `e.r`,
+labelled at the point of use. **The Star does not bloom**, so one true edge survives to calibrate
+against.
+
+Verified per species on both branches, with the collider bracketed and the hull sampled off the canvas:
+
+| | drawn edge | collider | hits at | misses at |
+|---|---|---|---|---|
+| off | 11 | 11 | 25.5 | 26.5 and 29 |
+| on | 14 | 11 | 25.5 | 26.5 and 29 |
+
+That last column is the feature: 29 is where the drawn discs first touch, and nothing happens there.
+The Star reads its own 15 in both rows and is the control that makes the 14 mean anything.
+
+⚠️ **A first pass moved the collider with the hull and was reverted wholesale** — +3 on every `ETYPE`
+radius, +8–13% on the contact envelope, and five derived thresholds dragged along with it (the 52px
+walkable bound, the 22px self-annihilation floor, the Noose's N<8, the Pulse density bound, the Cross
+hub). None of that survives. The measurement that priced it does not survive either and should not be
+quoted: a parked pilot at n=12 put the intake change at −5.2 ±18.6 (SE), i.e. nothing findable, on a
+pilot that does not dodge.
+
+### The Draw slowed the Star and never touched the target `v2` `43ecd1d` `v2-ios` `db90b96`
+The Singularity's speed cap now releases through a ceiling that **opens** rather than one that lifts.
+`DRAW_REL` = 60 px/frame per second of elapsed release, applied at the same site in `stepPlayer` the
+cap uses. Author: *"stacked movement that was restricted by Singularity are done at once, when the
+Singularity's pull is ended, making too much movement instantly."*
+
+**The cap never stacked anything — what accumulates is the gap.** Two of the three input models chase a
+target: the mouse's is the cursor, and v2-ios's ABS mode accumulates thumb travel into the same
+`pointer`. The clamp slows only the Star, so the target runs for 2.2s while the body crawls, and the
+frame the cap lifts the chase spends the whole arrears at 18.5% of a gap that is now arena-sized.
+
+Measured at 1440×900, Anomaly pinned, cursor flicked to the far corner on the first drawing frame and
+then held still — the player does nothing except stop moving the mouse:
+
+| | while drawing | release frame | after |
+|---|---|---|---|
+| 1110px banked | 1.87 px/f | **205.05 px/f** | 7.2 → peak 42.2, 0.68s |
+| 346px banked | 1.86 px/f | 63.73 px/f | 7.2 → peak 22.2, 0.38s |
+| v2-ios ABS, 521px banked | 1.86 px/f | 96.3 px/f | 8.2, paid over 0.88s |
+
+**The release frame keeps exactly `DRAW_CAP`, and the ramp ends on "the clamp no longer binds" rather
+than on a clock** — so there is no step at the release and no cliff at the end of one. A fixed-duration
+version was built first and thrown away: 6.2→14 over 0.5s spends 303px, so an 1110px gap still had ~800
+left when the window closed and the teleport merely happened half a second later. The rate is set by
+the ordinary chase, not the worst case — a 100px gap asks 18.5 px/f, which the ceiling reaches in 0.21s.
+
+⚠️ **The ramp clock is the one piece of Draw state not on the boss**, and the comment forbidding
+module-level flags is corrected rather than left standing: a release has to outlive the body that
+caused it, and killing a Singularity mid-Draw is the commonest release there is. It carries the
+obligation that rule was protecting — one reset site, in `startRun`, beside `settleT`. Verified with
+the boss killed mid-Draw (ramp runs, no null read), with a second Draw landing mid-release (snaps back
+to 1.87), and with a run restarted mid-release (no residual ceiling).
+
+The ramp **bounds** the payout rather than cancelling it: on v2-ios's ABS mode the Star still ends
+where the thumb asked, 0.88s later instead of instantly. Leashing `pointer` to the Star during a Draw
+is the lever if the payout itself is ever unwanted. STICK mode banks nothing — it is a rate.
+
 ### The link row drops the pill and the hard shadow it was given under the scrim bug `v2` `c5f756d` `v2-ios` `9de953f`
 In landscape (`min-aspect-ratio:3/2`) the links carried a `rgba(5,8,16,.62)` pill on `.refs` and a
 `0 1px 3px #000, 0 0 10px rgba(0,0,0,.95)` double shadow on `.ref`. Both were added while `#menuScrim`
