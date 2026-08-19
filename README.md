@@ -10,15 +10,16 @@ browser and you can switch it on the menu.
 
 | | Mouse and keyboard | Touchscreen |
 |---|---|---|
-| **Steer** | `Mouse` — the star chases your pointer | **left half** — drag it like a stick; the star keeps going the way you push |
+| **Steer** | `Mouse` — the star chases your pointer | **left side** — drag; the star travels exactly as far as your finger does |
 | **Flip** | `Space` or `Click` — reverse your poles | **bottom right** — press |
 | **Overdrive** | hold `Shift` or `Right-click` | **top right** — hold |
 | **Pause · Mute** | `P` / `Esc` · `M` | the `❚❚` button, top right corner |
 
-On a touchscreen the screen is a map: one half steers, two quarters act. Which zone your finger lands
-in is decided when it touches down and never re-read, so a steering thumb that wanders never turns into
-a flip. Nothing is dragged onto the screen and nothing has to be aimed at — there is no on-screen stick
-to find, because the whole left half is the stick.
+On a touchscreen the screen is a map: the left side steers, two corners act. Which zone your finger
+lands in is decided when it touches down and never re-read, so a steering thumb that wanders never turns
+into a flip. Nothing is dragged onto the screen and nothing has to be aimed at — there is no on-screen
+stick to find, because the whole steering zone is the control. It is half the width by default, and
+*Settings → Touch steering* widens it to as much as 83% if you want a finer thumb.
 
 **Goal** — survive, and score. **Core Integrity** is your health: matter of the *opposite* charge
 damages it on contact, and the run ends when it reaches zero. Matter of *your* colour passes through

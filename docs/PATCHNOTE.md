@@ -132,8 +132,15 @@ doors (`e9f7d19` on v2, `71eb905` on v2-ios).
 
 ### The tutorial stops showing two numbers it was already throwing away `v2` `9039869` `v2-ios` `178ebca` `ebc2005`
 `#score` and `#best` are hidden for the whole tutorial. The mode already declared itself unscored — the
-record is written under a guard that excludes `tutMode`, so a tutorial's score is discarded the moment it
-ends, and the HUD was the last part of the game not told. Answering the flag `907548e` raised and left
+record is not reachable from a tutorial, so its score is discarded the moment it ends, and the HUD was
+the last part of the game not told.
+  ⚠️ **THE MECHANISM NAMED HERE WAS WRONG AND THE CONCLUSION WAS NOT**, and the correction arrived on
+the branch this entry did not come from. This read "written under a guard that excludes `tutMode`";
+the best-record write at `index.html` carries no such guard, and what actually stops a tutorial
+reaching it is an early `return` in `die()` — `if(tutMode){ endOverdrive(); killQ.length=0;
+tutFinish(); return; }` — several lines above. Verified in the merge rather than copied: the v2-ios
+entry for the same change carried this correction, the v2 entry that superseded it did not, and
+merging the two branches is what put them side by side. Answering the flag `907548e` raised and left
 open; author chose hide-during-tutorial.
 
 ⚠️ **The collision is caused by the bar's width cap, not by the score, and only one step reaches it.**
@@ -227,6 +234,33 @@ feed back. ⚠️ *The commit records "Oracle `b713a7`, unchanged" and that figu
 the fold producing it was never committed, so it is not reproducible; see the note in `.oracle.js`,
 which measures the same suite at `6af5363e`. Repeated here as what was claimed, not as evidence. The
 argument that holds is that the edit is CSS-only.*
+
+### "Left half" was true only at the default `v2-ios` `ecf1599`
+The touch legend and the tutorial named the move zone a **half** in both languages. That was accurate
+the day the partition shipped — `ZONE.x` was `vw*0.5` and nothing moved it. Then the sensitivity slider
+shipped, and it works *by moving that seam*: `vw*min(0.85, 0.5*100/sens)`. Measured at 767px across the
+five stops, the move zone runs **50.0 / 55.6 / 62.5 / 71.4 / 83.3%** of the width — so at 60% the "half"
+is five sixths of the screen and the two "quarters" are 16.7%-wide strips.
+
+⚠️ **The word was wrong for exactly the players who went looking for the setting.** Everyone on the
+default read a true legend; only someone who had already decided the steering needed adjusting saw the
+lie. Now *Left side* / *왼쪽*, true at every stop, and it costs nothing to say: the seam is not drawn, so
+"half" was never a claim a thumb could check. The right-hand rows are untouched — those zones stay on
+the right at every stop.
+
+Two claims that had outlived their arguments went with it. The `sensRange` handler justified `input`
+over `change` by saying a player could **watch the seam widen under their thumb**; `ZONE.x` is read by
+`stickSet`, `zoneOf` and the probe and is drawn by *nothing*. `input` is still right — the value is live
+the moment you let go — but its stated reason was fiction. That same absence is why `set.sensD` keeps a
+second sentence where every sibling row makes do with one: it carries information with no visual form,
+which [MECHANICS](MECHANICS.md) had already said out loud and the panel now records. And MECHANICS still
+called the zone **"a virtual stick"** two rewrites after the stick was retired, while the string-table
+comment credited "the stick" for not parking the thumb on the star — a property of the zone being
+narrower than the screen, not of any steering model. Which makes the 85% cap load-bearing twice over:
+it is also what keeps `TOUCH_LIFT` retired.
+
+Found by opening the settings panel after merging `v2`'s contrast pass, which bumped `.setrow .sd` from
+11.5px to 12.5px and made the row long enough to look at.
 
 ### The scrim was painting over the menu, not behind it `v2`
 `#menuScrim` goes to **`z-index:-1`**. It was `0`, and a *positioned* element at `z-index:0` paints in a
@@ -699,6 +733,146 @@ repeating it two hundred lines away.**
 ---
 
 ## 2026-08-11
+
+### Touch steering gets a sensitivity slider, and it can only be the zone's width `v2-ios`
+Author: *"make sensitivity option then"* — after being told the absolute map costs 2× the pre-v2
+sensitivity. Settings → **Touch steering**, 60–100%, default 100, coarse pointers only, persisted.
+
+⚠️ **It moves the ZONE'S WIDTH, because nothing else was available to move.** An absolute map's scale is
+pinned by "the zone shows the whole arena" — `k = zoneWidth / W` — so arena-units-per-pixel is not a free
+parameter. Turning it down any other way would either stop the thumb reaching the arena edges or start
+bending the diagonals. Widening the steering half IS narrowing the Overdrive and flip quarters, and the
+setting's own copy says so instead of hiding it.
+
+| setting | zone width | sensitivity |
+|---|---|---|
+| 100% *(default)* | 437px — half | 3.98 u/px |
+| 80% | 546px | 3.18 u/px |
+| 60% | 728px | 2.39 u/px |
+
+Capped at 85% of the width so the action quarters stay above ~131px. ⚠️ **Even 60% does not reach the
+pre-v2 1.99**: that number needed the whole screen, which is exactly what the partition spends.
+
+⚠️ **The value lives on `ZONE`, not on `store`, and the reason is boot order.** `resize()` is called at
+line 1467 and `store` is declared at 1550, so reading `store.touchSens` from `resize()` is a
+temporal-dead-zone `ReferenceError` at load — caught by reading the ordering before trusting it, not by
+running it, because it is exactly what `node --check` misses.
+
+Verified at 874×402: slider sweeps 437→546→728px of zone and 3.98→3.18→2.39 u/px, both arena edges stay
+reachable at every setting (15 and 1724 of 1739), flip and Overdrive still fire in the narrowed
+quarters, the value persists, the row is hidden on a fine pointer, and both languages render.
+
+### The move zone is an absolute map now, and that is the third model `v2-ios`
+Author: *"still i dont feel natural. alternative stick control would solve the problem? idk"* — after the
+rate stick, and after the displacement drag that replaced it. Two models, one complaint, and it turns
+out one cause.
+
+| model | what a thumb position meant | why it failed |
+|---|---|---|
+| rate stick | "keep going this way" | never says *where*; capped at 14/frame against the mouse's 74–148 |
+| displacement | "move the star this far from wherever it was" | the thumb↔star relationship **drifted** with every re-grip |
+| **absolute** *(now)* | **"the star is here"** | — |
+
+**Neither of the first two ever answered "where".** A trackpad gets away with that because the pad is
+not the screen and there is a cursor to watch; on glass, beside the thing you are steering, it does not.
+So the zone is a **miniature of the arena**: one thumb position means one arena position, the same one,
+all run. Lift and replace the thumb in the same spot and the star is where it was.
+
+It writes `pointer` rather than moving `P`, so the star is carried by **the same chase line the mouse
+uses** — touch inherits the mouse's responsiveness by construction, and the "5× slower than a mouse"
+defect cannot come back because an absolute model never names a speed.
+
+⚠️ **Your thumb is not on the star, and cannot be.** Half a screen mapped onto a whole arena means a
+thumb at zone x=200 puts the star at arena x≈796. It *points at* the star. Every absolute scheme that
+fits in a half-width zone pays that; the pre-v2 control had the star under the thumb only because it
+steered from the whole screen.
+
+⚠️ **Letterboxed, never stretched.** Zone aspect 1.09 against arena 2.17 — stretching would scale x twice
+as hard as y and send a 45° sweep off at ~63°. Fitting costs vertical range: the arena's height lands in
+the middle 201px, and outside it the star pins to the edge. **And the honest cost: 3.98 units per CSS px
+against the pre-v2 1.99 — half the width for the same arena is exactly 2× the sensitivity**, which is
+arithmetic, not tuning. The only ways out are giving up the partition or giving up isotropy.
+
+*Verified at 874×402:* thumb (100,200) → star (398,396); sweep to (380,260) → (1512,635); return to the
+same thumb spot → (398.6,396.2), **within 0.6 units — no drift**. x=3 pins at 15, x=434 reaches 1724 of
+1739, so the whole arena is reachable. Flip, Overdrive, steer-while-burning, mouse and the Draw clamp
+all unaffected.
+
+⚠️ **Caught by a symbol diff, not by reading:** the edit that installed this swallowed `zoneOf`,
+`isTouch` and `odTouchId` along with the stick internals it meant to remove — a `ReferenceError` at load
+that no syntax check sees. Comparing the top-level declaration list before and after found all three in
+one pass. ⚠️ And the dev pane's console **does not clear on navigation**: the stale error survived the
+fix and had to be disproved by asking the live page, not by reading the buffer.
+
+### Tilt is removed outright, because the control it would come back to no longer exists `v2-ios`
+Author: *"we might remove tilt from now on."* Gone: `stepTilt`, `onTilt`, `tiltMap`, `tiltCurve`,
+`tiltCalibrate`, the `TILT` constants, `tiltVec`/`tiltRaw`, `window.__nativeTilt`, `#tiltDiag` and
+`updateTiltDiag`, plus the CoreMotion bridge on the native side. ~180 lines of JS and ~60 of Swift.
+`MotionBridgeViewController` is now **`AppViewController`** — the motion is gone and a class named for
+it would be a name that lies; it carries only the DEBUG JS probe. Storyboard and pbxproj follow.
+
+⚠️ **This retires *"The bridge is kept intact and unwired"* from the port entry below.** That was a real
+argument — ~40 lines of verified Swift, and a `TILT.tau` that took two passes and a measurement to
+settle, both worth preserving rather than re-deriving. It was overtaken by the very next change rather
+than by anyone changing their mind: **the move zone is a *displacement* now and tilt is a *rate***, so
+restoring it would not be re-enabling a feature, it would be designing a second steering model and
+arbitrating between it and a finger. **The decision was always the work; the code never was** — which is
+exactly what stopped the code being worth keeping.
+
+⚠️ **The measured finding outlives the deleted code.** On a real iPhone in this WebView,
+`DeviceOrientationEvent.requestPermission()` exists and its promise **rejects**, and attaching the
+listener anyway delivers **nothing** — even though Capacitor implements the documented host hook and
+answers `.grant`. Anyone reviving tilt starts from `git log -- ios/App/App/*ViewController.swift`, not
+from the web API. Two lessons stay behind in the STICK block: the **rate argument** (why that model was
+wrong for a finger) and the **sample-rate scar** (per-event smoothing meant a 30→60Hz bridge change
+silently halved the control speed — the reason the stick banks its displacement and applies it on the
+fixed tick).
+
+Verified at 874×402: `__orbital.tilt`, `__orbital.TILT` and `window.__nativeTilt` are all `undefined`,
+`#tiltDiag` is gone, no seam key matches `/tilt/i`, and steer / flip / Overdrive all still fire
+(50px → exactly 159.2 units) with **zero console errors**. `BUILD SUCCEEDED` on iPhone 17 after the
+rename.
+
+### The move zone follows your finger now, because a finger is not an angle `v2-ios`
+Author, from the device: *"moving is not following my finger movement, acceleration is applied little
+late."* Both halves were real, and both trace to one mistake — **the virtual stick inherited tilt's rate
+model along with tilt's own speed constant.**
+
+**It was speed-capped and the mouse is not.** `stepPlayer` chases the pointer at `0.185 × gap` per frame,
+uncapped; the stick's ceiling was a flat 14.
+
+| | rate model | mouse |
+|---|---|---|
+| across a 400-unit gap | 14/frame | **74/frame** |
+| across an 800-unit gap | 14/frame | **148/frame** |
+
+In an arena 1739 × 800 that is a touch player **~5× slower across open ground than a mouse player**.
+⚠️ And 14 is the number `settleT` uses for the engine's *deliberate slow glide on resume* — the stick ran
+permanently at the speed the game reserves for slowing you down on purpose.
+
+**Reversals cost 128px of thumb.** At full deflection the floating origin sat 64px behind the finger, so
+full speed the other way meant crossing the dead zone and the whole ramp again. That is precisely what
+"acceleration applied a little late" feels like.
+
+**The rate argument never applied to a finger.** The tilt block argues, correctly, that an angle means
+*keep going this way* rather than *be there* — inherent to an angle, which has no position to offer.
+**A finger has a position and a displacement.** None of it transferred; it came across because the code
+did, and nobody re-derived it at the new site.
+
+So the move zone is a **displacement**: the star travels as far as the finger did on the glass, times
+`STICK.gain` 1.6, through the same `/S` divide `setPointer` uses for the mouse. Measured at 874×402
+(`unitsPerCssPx` 3.184): touch-down alone moves **0**; 50px moves exactly **159.2**; **reversal is free**
+at −31.84 on the same frame; a 2px nudge moves 6.37 so there is no dead zone; a re-grip 300px away moves
+0; 60 frames held still drift **0.000**; a 200px swipe banks 636.8 against the old ceiling of 14. Zero
+console errors, and the flip, Overdrive and mouse paths are all unchanged.
+
+⚠️ **Given up deliberately: you cannot hold a heading.** Crossing the arena is a drag and a re-grip
+rather than a lean. Re-gripping is lossless by construction — a fresh touch sets a fresh reference.
+⚠️ **`gain` is not multiplied by `moveMult`**, unlike every other movement — moveMult scales a speed and
+there is no speed here. Overdrive lifting a displacement would change the control under you mid-ride.
+⚠️ **Not yet felt on the device.** The numbers are exact and the model is right; whether 1.6 is the right
+gain is a hand judgement. It is a live object, so the probe can sweep it between runs
+(`__orbital.STICK.gain=2.2`) rather than costing a rebuild per guess.
 
 ### The sky cache has a number at last, and it is half the size it was `v2`
 **The open question is answered for a composited rig.** `__orbital.probe()` — a frame-interval instrument

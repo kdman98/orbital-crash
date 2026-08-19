@@ -78,6 +78,16 @@ DerivedData/
 #     comm -3 <(cite origin/v2) <(cite origin/v2)         # POSITIVE CONTROL — must be 0 lines
 # ⚠️ RUN THE CONTROL: a set-difference that always prints something looks exactly like a working check.
 # And `cite` reads `origin/*`, the PUSHED tree, unlike the recipe below which reads the file on disk.
+#   ⚠️ TWO LESSONS THAT LIVED ONLY ON v2-ios AND WOULD HAVE DIED WITH THE BRANCH. (1) This note once
+# said "they will go on agreeing while holding different things" — a PREDICTION, and the mirror of the
+# clause it was correcting, which had predicted divergence. Neither was measured; the 2-vs-2 balance is
+# held in place by nothing, and one new citation on either side makes it 138/137. The finding is only
+# ever about what the count can DISTINGUISH, and both times the temptation was to say what happens next.
+# (2) The `comm -3` one-liner below once shipped with **no `cite` defined at all** — not in this note,
+# not in the repo, not on PATH — nine lines above "a figure without one is not evidence". The remedy for
+# the unreproducible figure was itself unrunnable, and it survived because a recipe that is READ rather
+# than RUN looks identical either way. Both faults are why the definition is now inline and the control
+# is mandatory.
 # Recipe, because a figure without one is not evidence, and this one went stale while being
 # written into a paragraph about reproducible figures:
 #     BT=$(printf '\x60'); for h in $(grep -o "${BT}[0-9a-f]\{7,40\}${BT}" docs/PATCHNOTE.md \

@@ -467,16 +467,25 @@ geometry — `zoneOf(x,y)` in CSS pixels against the cached viewport halves:
 
 |  |  |
 |---|---|
-| **left half** | MOVE — a virtual stick |
-| **top-right quarter** | OVERDRIVE — hold to burn |
-| **bottom-right quarter** | FLIP — press to reverse poles |
+| **left side** | MOVE — an absolute map of the arena |
+| **top-right corner** | OVERDRIVE — hold to burn |
+| **bottom-right corner** | FLIP — press to reverse poles |
 
-Move is the half because it is the only *continuous* verb; the other two are instants, and an instant
-wants a target rather than a field. **Overdrive sits above flip because the two must be usable at once** —
+⚠️ **This table said "left half", "quarter", "quarter" and "a virtual stick", and all four were stale.**
+The stick was retired two rewrites ago — the zone is an absolute map now (below). And the fractions are
+the *default*, not the partition: `touchSens` works by moving the seam, so the move zone runs 50 → 83.3%
+of the width across the slider's five stops and the two act zones shrink to 16.7%-wide strips to match.
+Measured at 767px: **50.0 / 55.6 / 62.5 / 71.4 / 83.3%**. Naming them by fraction was wrong for exactly
+the players who went looking for the setting, so the in-game legend now says *Left side* too.
+
+Move is the largest zone because it is the only *continuous* verb; the other two are instants, and an
+instant wants a target rather than a field. **Overdrive sits above flip because the two must be usable at once** —
 Overdrive is held for seconds and you keep flipping through the ride, so they cannot share a thumb.
-Verified: three fingers down simultaneously, the star moving at 19.6 units/frame while burning, a flip
-landing mid-burn, and the burn surviving it. On device, the tutorial certifies all three by gating each
-step on performing the verb — 1/6 → 2/6 drag, 4/6 → 5/6 flip, 5/6 → 6/6 Overdrive hold.
+Verified: three fingers down simultaneously, the star steering while burning, a flip landing mid-burn,
+and the burn surviving it. On device, the tutorial certifies all three by gating each step on performing
+the verb — 1/6 → 2/6 drag, 4/6 → 5/6 flip, 5/6 → 6/6 Overdrive hold. *(That check originally read "the
+star moving at 19.6 units/frame while burning" — `14 × moveMult`, a figure belonging to the rate model
+and to a coupling the displacement model deliberately dropped. See below.)*
 
 ⚠️ **That ergonomic argument is a LANDSCAPE argument, and the lock is native-only.** In the shell it is
 settled and top-right really is where the grip rests an index finger. **On the web it is settled by
@@ -505,23 +514,80 @@ in it, and it is why `TAP_SLOP`, `TAP_TIME` and `tapMoved` are gone.
 steering meant the finger had to reach every part of the arena, so it covered the arena, so the star had
 to be drawn 55px above the fingertip to stay readable. A stick does not park your thumb on the star.
 
-**The stick is a rate, with a floating origin.** Touch-down sets the origin; the offset from it is a
-direction and a magnitude, fed to P as velocity. `STICK.dead` 6px, `STICK.full` 64px, `STICK.speed` 14
-design units/frame before `moveMult` — **the one tuned number inherited intact from tilt**, because it
-was set against the game rather than against a sensor (Charger dash 9.5, Volley 8.4, Comet 7.6; 14 clears
-the Charger by ~47%). Measured at exactly 14.00/frame idle and 19.60 under Overdrive.
+**The move zone is an ABSOLUTE MAP of the arena.** One thumb position means one arena position, the
+same one, for the whole run. `stickSet` letterboxes the arena into the zone and writes the result into
+`pointer` — so the star is chased by the **same line in `stepPlayer` the mouse uses**, at 0.185 of the
+gap per frame, and touch inherits the mouse's responsiveness by construction rather than by tuning.
 
-⚠️ **The origin follows past full deflection.** Without it a thumb going down near the left edge runs out
-of zone before it runs out of stick, and full speed is unreachable in that direction for a reason the
-player cannot see. Verified: shoved 200px from a 100px origin, the origin lands on exactly 236.
+⚠️ **This is the THIRD model, and the first two failed the same test for the same reason.** Both were
+reported as "not natural":
 
-⚠️ **One dead zone on the magnitude, not one per axis.** Per-axis is right for tilt, where the two axes
-are genuinely two readings. A stick has one offset, and dead-zoning components independently **notches
-the diagonals** — push at 45° just past the threshold and both components are still individually
-suppressed, so the star does not move at all in the direction you are pointing. Verified un-notched at
-(5,5): both components 0.013.
+| model | what a thumb position meant | why it failed |
+|---|---|---|
+| rate stick | "keep going this way" | never says *where*; capped at 14/frame against the mouse's 74–148 |
+| displacement | "move the star this far from wherever it was" | the thumb↔star relationship **drifted** with every re-grip — it had no fixed value at all |
+| **absolute** *(now)* | **"the star is here"** | — |
 
-**No low-pass, and that is not an omission.** Tilt smoothed because an accelerometer reading is noisy. A
+A trackpad gets away with drift because the pad is not the screen and there is a cursor to watch. On
+glass, with the thing you are steering visible beside your thumb, it does not.
+
+⚠️ **YOUR THUMB IS NOT ON THE STAR, AND CANNOT BE.** Half a screen is mapped onto a whole arena, so a
+thumb at zone x=200 puts the star at arena x≈796, drawn at screen x≈400 — the thumb *points at* the star
+rather than carrying it. That is the price of steering from a half-width zone and every absolute scheme
+that fits in one pays it. The pre-v2 control had the star **on** the thumb only because it steered from
+the whole screen, which is also why it needed `TOUCH_LIFT` to stop the thumb hiding it.
+
+⚠️ **Letterboxed, never stretched.** The zone is 437×402 CSS px against an arena of 1739×800 design
+units — aspect 1.09 against 2.17. Stretching to fill would scale x twice as hard as y, so a 45° thumb
+sweep would send the star off at **~63°** and every diagonal would lie. Fitting instead costs vertical
+range: the arena's full height lands in the middle **201px** of the zone (`stick().band`), and outside
+that the star pins to the arena edge — which the existing arena clamp already does, so the band needs no
+code. `STICK.bandY` moves the strip if a thumb rests lower than centre; it is a live object because no
+bot can settle it.
+
+**The cost, stated plainly: 3.98 units per CSS px, twice the pre-v2 scheme's 1.99.** Half the width for
+the same arena is exactly 2× the sensitivity, and that is arithmetic rather than a tuning choice — the
+only ways out are giving up the partition or giving up isotropy.
+
+**`store.touchSens` is the first of those two, sold to the player as a slider.** Settings → *Touch
+steering*, 60–100%, default 100. ⚠️ **It moves the ZONE'S WIDTH, and it could not have moved anything
+else**: an absolute map's scale is pinned by "the zone shows the whole arena" (`k = zoneWidth / W`), so
+arena-units-per-pixel is not a free parameter. A slider that pretended otherwise would either stop the
+thumb reaching the arena edges or start bending the diagonals. Widening the steering zone is the same
+act as narrowing the Overdrive and flip corners, and the copy says so rather than hiding it.
+
+⚠️ **That copy is the ONLY signal the player gets, and a comment used to claim otherwise.** The
+`sensRange` handler justified `input` over `change` by saying a player could watch the seam widen under
+their thumb — but `ZONE.x` is read by `stickSet`, `zoneOf` and the probe and is **drawn by nothing**, at
+any sensitivity. `input` is still correct (the value is live the moment you let go), but its stated
+reason was fiction. This is also why `set.sensD` keeps a second sentence when every sibling row on the
+panel makes do with one: it is carrying information that has no visual form.
+
+| setting | zone width | sensitivity |
+|---|---|---|
+| 100% *(default)* | 437px — half | 3.98 u/px |
+| 80% | 546px | 3.18 u/px |
+| 60% | 728px | 2.39 u/px |
+
+Capped at 85% of the width so the action corners cannot be squeezed below ~131px, which is about where
+a thumb stops finding a target it cannot see. The cap does a second job that is easy to miss: it keeps
+the steering zone narrower than the screen at every stop, which is the condition under which the thumb
+POINTS at the star rather than carrying it — i.e. it is also what keeps `TOUCH_LIFT` retired. ⚠️ **Even at 60% it does not reach the pre-v2 1.99** — that
+number needed the whole screen, and the whole screen is what the partition spends.
+
+⚠️ **The sensitivity lives on `ZONE`, not on `store`, and that is an ORDER constraint rather than a
+style choice.** `resize()` runs at load and `store` is declared ~80 lines below it, so reading
+`store.touchSens` from `resize()` is a temporal-dead-zone `ReferenceError` at boot — the class of fault
+`node --check` does not catch and this file has been bitten by before. `store` copies its value into
+`ZONE.sens` once it exists; `applyTouchSens` writes both.
+
+*Verified at 874×402:* thumb (100,200) → star (398, 396); sweep to (380,260) → star (1512, 635); return
+to the **same** thumb spot → star (398.6, 396.2), back within **0.6 units** — no drift. Thumb x=3 pins
+the star at 15 and x=434 reaches 1724 of a 1739-wide arena, so the whole field is reachable. Flip,
+Overdrive, steering-while-burning, the mouse path and the Draw clamp all unaffected.
+
+
+**No smoothing and no dead zone, and that is not an omission.** Tilt smoothed because an accelerometer reading is noisy. A
 touch offset is two integers the compositor already resolved. Filtering would buy nothing and cost lag.
 
 #### The two models disagree under an external force, and only a clamp reconciles them
@@ -617,43 +683,40 @@ duplicate and moves to the top-right corner, into the less-pressed zone and onto
 **This is the one part of the scheme argued from ergonomics rather than measured** — it wants a real
 thumb on a real phone.
 
-### Tilt, retired
+### Tilt, removed
 
-**Tilt no longer steers anything, on any device.** `stepTilt` is deleted; the three-zone touch control
-above replaced it, and `stepStick` occupies its slot in `step()` by the same route — a rate added to P
-directly rather than a target fed through the position chase.
+**Tilt is gone — all of it.** `stepTilt`, `onTilt`, `tiltMap`, `tiltCurve`, `tiltCalibrate`, the `TILT`
+constants, `tiltVec`/`tiltRaw`, `window.__nativeTilt`, `#tiltDiag` and `updateTiltDiag`; and on the
+native side the CoreMotion bridge, which took `MotionBridgeViewController` with it — that file is now
+`AppViewController` and carries only the DEBUG JS probe. About 180 lines of JS and 60 of Swift.
 
-⚠️ **The bridge is kept intact and unwired, not deleted.** `MotionBridgeViewController.swift` still reads
-CoreMotion at 60Hz and still calls `window.__nativeTilt`; `onTilt` still calibrates, remaps and smooths;
-`tiltVec` is still maintained and still readable from the seam. What no longer exists is a **consumer**.
-That is deliberate — the bridge is ~40 lines of verified Swift and `TILT.tau` took two passes and a
-measurement to settle, so it is worth keeping whole rather than re-derived.
+**It went in two steps, and the second one is the interesting one.** It stopped *steering* when the
+three-zone touch control landed, and was deliberately **kept intact and unwired** on the argument that
+the bridge was ~40 lines of verified Swift and `TILT.tau` had taken two passes and a measurement to
+settle — worth preserving rather than re-deriving. That was right at the time and was overtaken by the
+next change: **the control tilt would return to no longer exists.** The move zone is a *displacement*
+now and tilt is a *rate*, so putting it back is not re-enabling a feature — it is designing a second
+steering model and deciding what happens when it and a finger both ask for the star. **The decision is
+the work; the code was never the work**, which is what made keeping the code stop being worth it.
 
-⚠️ **So `tiltVec` is now an observation, not a control.** Anything reading it is reading a sensor, not
-the input the player is using. Do not reintroduce a consumer without deciding what happens when it and a
-finger both ask for the star — the old answer was STRICT TILT-ONLY, and that answer went with the control.
+⚠️ **The measured finding outlives the deleted code, and it is the reason not to start from
+`requestPermission`.** On a real iPhone in this WebView, `DeviceOrientationEvent.requestPermission()`
+exists and its promise **rejects**, and attaching the listener anyway delivers **nothing** — even though
+Capacitor implements the documented host hook (`webView(_:requestDeviceOrientationAndMotionPermissionFor:)`)
+and answers `.grant`. Nor is it the scheme: `iosScheme` cannot be https, and `localhost` already confers
+secure-context privileges. **The web sensor path is a dead end on this stack.** That is why the bridge
+was native, and anyone reviving tilt should start from `git log -- ios/App/App/*ViewController.swift`
+rather than from the web API.
 
-**What went with it, and why each one had to.** `touchSteers` and `refreshTouchSteer()` existed to make
-tilt and touch mutually exclusive, and there is nothing left to be exclusive of. `#tiltDiag`,
-`TILT_STALE_MS`, `tilt.stale` and `tilt.ok` existed because a dead feed meant an **unplayable game** —
-strict tilt-only meant a tilt device did not steer by touch at all. Touch cannot stop working now, so
-warning about a silent sensor would be reporting a fault in a component nothing depends on, which trains
-players to ignore the band this game keeps clear for real news. The tutorial's third device case
-(`tut.*.tilt`) went the same way.
+⚠️ **`orbitalcrash_tilt` in localStorage is inert and there is now nothing that could read it.**
 
-**The rate argument outlived the sensor and is now the stick's.** An offset means *keep going this way*,
-not *be there*; feeding a rate through the 18.5%-of-the-gap chase would weld the control's speed to that
-coefficient, so retuning the mouse would silently change touch. See *Touch* above.
+**Two things tilt taught that are still load-bearing, and both now live in the STICK block.** The *rate*
+argument — an angle means "keep going this way", not "be there" — survives as the explanation of why
+that model was wrong for a finger. And the *sample-rate scar*: tilt's smoothing was a per-event fraction,
+so a bridge change from 30Hz to 60Hz silently halved the control speed and was reported as "tilt reaction
+is a little slow". That is why the stick banks its displacement and applies it on the fixed tick instead
+of writing `P` from a pointer handler.
 
-⚠️ **`orbitalcrash_tilt` is still deliberately not read**, and there is now nothing that could read it.
-The key is inert, not migrated.
-
-⚠️ **There is still no `requestPermission` call anywhere in the file, and the reason has not changed.**
-The web sensor path was measured and abandoned: on Android Chrome `requestPermission` does not exist, so
-arming attached the listener and readings simply flowed. Inside the Capacitor WebView the promise rejects
-outright even though Capacitor's `WKUIDelegate` answers the real permission with `.grant` — the JS
-permission API and the native sensor gate are two different doors, and the JS one is nailed shut. **This
-is why the bridge was native in the first place**, and it stays true whether or not anything consumes it.
 
 **LANDSCAPE is enforced natively, both ways round.** ⚠️ **This section said "portrait" until 2026-08-10,
 five days after the code stopped agreeing with it** — `c6b59b5` moved the plist and the manifest to
@@ -2889,6 +2952,22 @@ differ by 60% (+6.7 vs +10.8ms); that spread is the honest error bar on any sing
 boolean test per frame when off, and it writes nothing.** It is the instrument this file spent months
 saying did not exist.
 
+⚠️ **THE ARMING IS IN `localStorage`, SO THE XCODE SCHEME CANNOT TURN IT OFF — AND THE SCHEME EDITOR IS
+WHERE PEOPLE WILL LOOK.** `App.xcscheme` ships `--probe-off` with `isEnabled="NO"`, which reads to anyone
+opening it as "the probe is off". It is not an off switch; it is **default hygiene** — it stops the
+scheme from arming anything on every Run, and it parks the flag's name where it can be found. The flag
+disarms only by *executing*, because `--probe-off` clears `orbitalcrash_probe` and a launch argument that
+is unticked never runs. So the flag survives unticking it, removing it, reinstalling the app and
+rebooting the phone: the key lives in the WebView's data container, not in the build.
+  The sequence is **tick → Run → untick → Run**, and it is four steps rather than two because
+`probeInit()` latches `PROBE.on` at boot — the launch that disarms is not the launch that comes up clean,
+the next one is. `--probe` reports `recordingNow` before re-arming, so it can answer "is it still on?" at
+the cost of turning it back on; follow it with `--probe-off` and one more launch.
+  ⚠️ **A Release build cannot reach any of this** — the whole hook is `#if DEBUG`, while `PROBE.on` lives
+in `index.html` and is not gated at all. So a profile armed under Debug keeps paying `probeSave()` every
+240 frames under Release, with nothing on screen saying so and no flag available to stop it. Disarm
+before switching configurations, or delete the app to drop the container.
+
 **It records frame INTERVALS, never JS wall time**, and that is the whole design. Canvas draw calls are
 queued, so timing the JS around them prices the enqueue and not the draw — the exact mistake that made
 every dev-pane figure worthless and inverted the cache's result. A frame whose work overruns vsync
@@ -2901,7 +2980,17 @@ the saved record carries the raw arrays because **every record is cumulative fro
 in the menu first has both mixed in, and the menu has no Act transitions at all, which would flatter the
 very comparison the probe exists to make. Histograms subtract; percentiles do not.
 
-⚠️ **It flushes to `localStorage` and a later launch reads it, because reading it live is the load.** This
+**On a device, run it with `--probe`.** A launch argument on the App scheme (Product → Scheme → Edit
+Scheme → Run → Arguments) that reports the PREVIOUS session's record into the Xcode console as
+`ORBITAL_PROBE_RESULT:` and arms the next one. Two launches by design: Run, play with nothing attached,
+Run again to read it. ⚠️ **Read `recordingNow` first** — the first `--probe` launch finds the flag unset,
+and `probeInit()` latches `PROBE.on` at boot, so that session records nothing however long you play it.
+⚠️ **The expression must never call `probeSave()`**: at launch the accumulators are empty and the flush
+would overwrite the record it exists to read, reporting success the whole way. It reads before it arms
+for the same reason — `orbitalcrash_probe_out` is overwritten every 240 frames, 2s at 120Hz.
+
+⚠️ **Attaching Safari's Web Inspector to take this reading is the same defect in a nicer UI.** It flushes
+to `localStorage` and a later launch reads it, because reading it live is the load. This
 is the fix this file prescribed after two rigs disagreed 4× on the same change. It works: on a packaged
 WebView the record is readable straight off disk at
 `…/Containers/Data/Application/<id>/Library/WebKit/<bundle>/WebsiteData/Default/*/*/LocalStorage/localstorage.sqlite3`,
@@ -3104,6 +3193,48 @@ worked and could not: `.oracle.js` is pasted *after* load, so nothing it defines
 that cannot fire is worse than no gate, because it looks like cover.** That applies to any future
 boot-time check, and the fact that this particular one is now unnecessary does not retire the rule.
 
+**The HUD's two stats are hidden for the whole tutorial** (`#hud.tut #score, #hud.tut #best`), and the
+mode had already decided it: `store.best` and the record row are both written under
+`if(!testMode && !labMode && !tutMode)`, so a tutorial's score is discarded the moment it ends. The HUD
+was the last part of the game still displaying numbers the mode had opted out of keeping. The lesson does
+not lose its readout — steps 2, 3, 5 and 6 each carry a progress counter in the bar's note line, which is
+the number the player is actually working against.
+  ⚠️ **THE CONCLUSION ABOVE IS RIGHT AND THE GUARD IT NAMES IS NOT THE ONE DOING THE WORK.** The
+best-record write reads `if(score>store.best && !testMode && !labMode)` — **no `tutMode` in it**, on
+both branches. What actually protects the record is an early return six lines higher in `die()`:
+`if(tutMode){ endOverdrive(); killQ.length=0; tutFinish(); return; }`. A tutorial never reaches the
+write at all, so nothing is discarded there — it is never attempted.
+  Worth correcting because the wrong version points maintenance at the wrong line: someone greps the
+condition, does not find it, and either calls the doc stale or 'repairs' a guard that was never the
+mechanism. And if that early return is ever moved or removed, the protection this paragraph describes
+stops existing while the condition it names still reads exactly as before. (`grantAchv` genuinely does
+carry the three-way condition — see the Grants note — which is what made the wrong one plausible.)
+
+⚠️ **It is also a collision, and the collision is the general trap: anything left-anchored in the HUD
+converges with `#tutBar` as its digits grow.** The bar is centred, so its left edge is *pinned* at
+`(vw − 540)/2` by the max-width cap — 63.5px at 667, 152px at 844 — while a stat's right edge is a
+function of the number in it. Measured at 667×375, ko, step 5:
+
+| | clear at 0 | first overlap |
+|---|---|---|
+| `#score` | 17.3px | **10** → −10.8px |
+| `#best` | 25.0px | 48,320 → −8.7px |
+
+`#score` is the worse of the two by an order of magnitude: `score += MOTE_SCORE` carries no `tutMode`
+guard and step 3 asks for five motes, so **every tutorial passes 25 before halfway**, and it wears the
+`clamp(28px,6.5vw,50px)` face against best's 14px. `#tutBar` is z-index 6 against the HUD's 5, so digits
+are covered rather than blended.
+
+⚠️ **The bug is landscape-only, which is exactly why it survived.** In portrait `@media (max-width:560px)`
+moves the bar to `top:112px`, clear of both stats; at 667 and 844 that query never fires and `top` stays
+58. iOS is landscape-locked both ways round (Info.plist), **so the orientation that hides the bug is the
+one the app cannot enter** — and a portrait sweep, however careful, reports a clean layout.
+
+Hiding was chosen over the three alternatives because it is the only one with no layout cost. Narrowing
+the 540 cap buys back the wrapping the type scale just spent; moving `top` below the score's box (75.4 at
+667, but **82 at 844**, where the face hits its 50px clamp ceiling) puts the bar on the star; shrinking
+the score's face mid-lesson makes it change size between modes.
+
 **The copy is the author's.** Only the bracketed device verbs vary, and they must: steps 1, 4 and 5 were
 written as *"Move the mouse"*, *"Click"* and *"Hold shift"*, all three describing a desktop — the exact
 fault the deleted menu paragraph carried for months. See **Language** below for why `tutDev()` returns a
@@ -3299,12 +3430,81 @@ and left `#bestiaryClose` at 16px, still under the Dynamic Island. It needed its
 `right:max(16px,env(safe-area-inset-right,0px))`. Measured, both before and after, because the wrong
 version of this rule had already been written into a comment as if it were established.
   ⚠️ **That rule is no longer in this branch, and the entry is unchanged — which is the distinction worth
-keeping.** `b33d7d3` generalised it to `#bestiaryClose,#recordsClose,#skinsClose,#settingsClose` at
-`max(22px,env(...))`, the panel's own margin, having found the other three carried no safe-area clearance
-at all; it got there by citing the `#bestiary` comment, which states this same rule. So the selector and
-the 16px quoted above are **history rather than the current rule** — grep `index.html` before repeating
-either. The mechanism did not move, and an entry whose evidence is a measurement outlives the line it
-measured.
+keeping.** It was generalised to `#bestiaryClose,#recordsClose,#skinsClose,#settingsClose` at
+`max(22px,env(...))`, the panel's own margin, after the other three turned out to carry no safe-area
+clearance at all. On this branch `449f641` did it; `b33d7d3` did the same on `v2` and reached here later
+through the merge. So the selector and the 16px quoted above are **history rather than the current
+rule** — grep `index.html` before repeating either. The mechanism did not move, and an entry whose
+evidence is a measurement outlives the line it measured.
+  ⚠️ **AND THE INTERESTING PART IS NOT THAT TWO BRANCHES AGREED — IT IS THAT THE DOC WENT STALE IN BOTH
+BEFORE EITHER WAS RE-READ.** `449f641` and `b33d7d3` carry the CSS rule and the eight lines of prose
+above it byte for byte (`md5` of the comment block: `0096d9b8…` in both) thirty-three seconds apart, and
+`449f641` does not descend from `b33d7d3` — the reflog records it as a plain `commit`, not a pick or an
+apply, so the text arrived by someone writing the working tree, not by git moving it. **A first draft of
+this entry said two sessions had converged on the fix independently. They had not, and that version was
+the flattering one** — it made the trap sound so load-bearing that two people hit it separately, which is
+a nicer story than the truth and was reconstructed from nothing but timestamps.
+  What actually generalises has nothing to do with sessions agreeing: **a line a doc quotes can be
+replaced in more than one working tree before anyone re-reads the doc.** Checking that the quote is
+current in the tree you happen to be standing in is not checking it at all.
+  ⚠️ **AND `git log` CANNOT NAME THE SESSION, BECAUSE EVERY SESSION COMMITS AS THE SAME AUTHOR.** All of
+`b33d7d3`, `449f641` and `af20d79` read `author=SF93`. The author and committer fields carry no
+provenance here and neither does the subject line. Three instruments do carry some, and each answers a
+different question:
+  1. `git reflog show <branch> --date=iso` — records the *operation*, so `commit:` distinguishes a
+     working-tree write from `cherry-pick:`/`am:`/`apply:`, i.e. text somebody typed from text git moved.
+  2. `git merge-base --is-ancestor A B` plus a hash of the region — identical bytes with no ancestry
+     link means the tree was written, not merged.
+  3. `mcp__ccd_session_mgmt__search_session_transcripts` — searches *other* sessions' transcripts and
+     will name a candidate outright.
+  ⚠️ **THE THIRD ONE HAS A FAILURE MODE THAT READS EXACTLY LIKE EXONERATION, AND IT IS NOT "UNRELIABLE" —
+IT IS MECHANICAL.** It indexes message content and tool OUTPUT. It does not index tool INPUT. So code
+written through a tool call — a heredoc, an `Edit`, a `Write` — is invisible to it unless the same text
+happens to be echoed back in that command's output. Verified both directions: searching `Schwerwiegend`,
+which only ever exists as git's stderr, returns five sessions, so tool output is indexed; while searching
+`-webkit-touch-callout`, a string demonstrably authored into `bestiary.html` by `af20d79`, does **not**
+return the session that wrote it — it was written inside a heredoc and the command's own grep filter did
+not echo that line. Its two hits are both sessions that were *sent a message* quoting it, neither of
+which authored anything.
+  So: **a hit can land on a reader rather than a writer, and a miss is the expected result for anyone who
+edits through tools — which is everyone.** Its silence is worth nothing; its hits are leads. Used here it
+narrowed `449f641` to a named candidate co-located in both worktrees nineteen seconds later, and that is
+all it did — the field is narrowed, not closed, and no session is named in this file as the author.
+  ⚠️ **AND THERE IS A SECOND COVERAGE BOUNDARY SITTING BEHIND THE FIRST: `git log -S` SEARCHES DIFF
+CONTENT AND `git grep` SEARCHES FILE CONTENT, SO NEITHER SEARCHES COMMIT MESSAGES.** `--grep` does. That
+is an ordinary git fact and harmless in most repositories; here it is not, because **this repo puts ten
+to a hundred and fifty lines of reasoning in every commit message** — PATCHNOTE's opening says so
+explicitly — which means a large fraction of the project's prose exists *only* in messages and is
+invisible to both of the searches people reach for first.
+  The failure it produces is specific and I walked straight into it. A transcript snippet showed a clause
+that `git log --all -S` reported at **0 commits**, so it read as unpublished composition, so it read as
+authorship. Every step of that is wrong: the clause is line 13 of `b33d7d3`'s *message*, `--grep` finds
+it in one call, and the peer's transcript holds it because they ran `git show b33d7d3 --format=…%B | head
+-60` while auditing whose commit had landed under them. **That is tool output — the half of the index
+that IS covered — so the hit was a reader, exactly as the paragraph above says a hit can be.** I wrote
+that rule and broke it one paragraph later, and the resulting claim named a session, in a commit, on a
+public remote. Retracted in the commit that follows `0721787`; nobody has established who wrote `b33d7d3`
+any more than who wrote `449f641`.
+  **So the draft-versus-committed test does not work in this repo at all.** Text absent from every diff
+is not thereby unpublished, and a transcript snippet that looks like drafting is *more* likely to be
+someone reading a commit body than anyone composing. If you must ask whether a string was ever
+committed, the answer needs `git log --all --grep` **and** `-S` **and** `git grep`, and a miss from any
+one of them is not a miss.
+
+⚠️ **A LAYOUT SWEEP MEASURES ONE VALUE OF EVERY VARIABLE IT DOES NOT SET, AND A HUD IS MADE OF VARIABLES.**
+A landscape pass checked `#tutBar` against `#score`, `#best`, `#combo`, `#center` and `#pauseBtn` as
+rectangle intersection — twelve cases, both languages, every step — and reported **zero collisions**. It
+was true. It was also taken at `score = 0` and `best = 0`, which are the only two values of those stats
+that cannot collide, because both are left-anchored and grow rightward into a bar whose left edge is
+pinned by a max-width cap. The real first overlap is at **score 10**. Nothing in the sweep could have
+said so: it enumerated *elements* exhaustively and *states* not at all, and exhaustiveness along the axis
+you did enumerate reads exactly like coverage.
+  **The check that works is a positive control** — run the same measurement with the fix disabled and
+confirm it reports the failure. A verification that cannot produce a red has not been shown to detect
+anything. Applied here: `.tut` removed → `hitsScore=true, hitsBest=true`; `.tut` present → both false.
+  The general form, since this is the third instance in this file: **ask what the instrument would do if
+the bug were present.** The sky-cache rig, the `curl`-versus-DOM marker and this one are all the same
+fault — a clean result nobody could distinguish from a broken comparison.
 
 ⚠️ **A LAYOUT SWEEP MEASURES ONE VALUE OF EVERY VARIABLE IT DOES NOT SET, AND A HUD IS MADE OF VARIABLES.**
 A landscape pass checked `#tutBar` against `#score`, `#best`, `#combo`, `#center` and `#pauseBtn` as
@@ -4975,7 +5175,7 @@ the one human reference tape reaches Epoch V at 271s with 39,105 — **1.75× th
 score for the same depth.** Where a threshold needs a score-at-depth, the tape is the anchor and the
 bot is not. The item offered two ways out — "either
 a real touch scheme or an honest desktop-only gate" — and shipping on iOS settled which. See *Touch*:
-three zones, move on the left half, Overdrive and flip on the right quarters.
+three zones, move on the left side, Overdrive and flip on the right corners.
 
 *What the item described is gone rather than fixed.* "Every touch-down currently calls `flip()`" and the
 Android long-press → `contextmenu` → unintended-Overdrive path both belonged to the intent-split scheme,

@@ -155,42 +155,53 @@
      the game not told.
        It is also a COLLISION, which is what found it. Both stats are left-anchored and their right edges
      grow with the digits; `#tutBar` is centred and its left edge is PINNED at (vw-540)/2 by the
-     max-width cap, so they converge as the score does. Measured here at 667x375 landscape, ko:
+     max-width cap, so they converge as the score does. Measured at 667x375 landscape, ko, step 5:
        #best   0 -> 25.0px clear · 5,165 -> 0.8px · 48,320 -> -8.7px · 1,204,880 -> -32.5px
-       #score  0 -> 17.3px clear ·    20 -> -10.8px ·    100 -> -39.0px
-     ⚠️ STEP 5 IS THE ONLY ONE THAT COLLIDES AT A SCORE THE TUTORIAL GUARANTEES, AND THE TRIGGER IS THE
-     CAP RATHER THAN THE SCORE. Step 5's line is the only one of the six long enough to reach the 540
-     cap; a capped bar is pinned at (vw-540)/2 while every narrower one is centred far to the right. The
-     score at which each step first overlaps, measured at 667x375 through `toLocaleString()` because
-     that is what `scoreV` is written with:
-       step 5 -> 10   ·   steps 2 and 6 -> 1,000   ·   steps 1, 3 and 4 -> 1,000,000
-     Step 2 precedes the kill step and so sits at 0 in any real run. Step 6's threshold is reachable in
-     principle and I have NOT established whether a tutorial gets there; it does not change the repair,
-     which hides both stats for all six steps.
-       ⚠️ AN EARLIER VERSION OF THIS COMMENT SAID "ONLY STEP 5 COLLIDES" AND PUT STEP 2 AT +1.6px CLEAR
-     AT A SCORE OF 1000. That measurement set the digits as "1000"; the HUD writes "1,000", and the
-     separator is worth about 10px — step 2 is -8.8px there, an overlap. The sweep varied the score and
-     held the FORMATTING fixed at a value the game never renders, which is the trap two entries down in
-     MECHANICS about enumerating one axis exhaustively and another not at all, committed by the session
-     that had just ported it. The conclusion the fix rests on is unchanged: step 5, guaranteed, >=100.
-     ⚠️ AND AT STEP 5 IT IS GUARANTEED, NOT MERELY REACHABLE. Step 3 gates on `tutKills>=5` and every
-     kill pays `KILL_SCORE` (20) with no tutMode guard on any `score+=` site, so a player arrives at step
-     5 with **at least 100** — never the 17.3px-clear zero column. Minimum real-world gap -39.0px, and
-     `#tutBar` is z-index 6 against the HUD's 5, so the digits are covered rather than blended.
-       That makes `#score` much the worse half: `#best` needs a five-digit record AND a returning player,
-     where `#score` needs nothing and fails on every run. Motes pay in as well at `MOTE_SCORE` each, but
-     they are shed BY annihilations, so they can never arrive before the kill that sheds them.
+       #score  0 -> 17.3px clear ·    10 -> -10.8px · 100 -> -39.0px ·     1,000 -> -77.5px
+     ⚠️ `#score` IS THE WORSE OF THE TWO AND IT WAS FOUND SECOND. `#best` needs five digits and a
+     returning player; `#score` collides at 10 — but WHICH STEP you are on decides whether that matters,
+     and the trigger is the BAR rather than the score. Only step 5's line is long enough to reach the
+     540 max-width cap; a capped bar pins its left edge at (667-540)/2 = 63.5, while every narrower one
+     centres far to the right and clears. First-overlap score by step, measured by the v2 session on
+     `9039869`/`d24ef5e` and not reproduced here:
+       step 5 -> 10  ·  steps 2 and 6 -> 1,000  ·  steps 1, 3 and 4 -> 1,000,000
+       ⚠️ v2 CARRIED THE SAME ROW AS `20 -> -10.8px` AND BOTH ARE CORRECT, which is worth one line
+     because on the merge it reads as two branches disagreeing about a measurement. `.stat .v` sets
+     `font-variant-numeric:tabular-nums`, so the gap tracks the DIGIT COUNT and not the value: 10 and
+     20 are both two digits and both land on -10.8px. 10 is kept because it is the first-overlap
+     score named in the row above; 20 was chosen on the other branch because it is `KILL_SCORE`.
+     ⚠️ WHAT MAKES STEP 5 THE ONE THAT MATTERS IS THAT IT IS GUARANTEED, NOT MERELY REACHABLE. Step 3
+     gates on `done:()=>tutKills>=5` at `KILL_SCORE=20` each, and no `score+=` site carries a tutMode
+     guard, so nobody arrives at step 5 below 100 — well past the -10.8px row. ⚠️ THE COMBO MULTIPLIER
+     LANDED AFTER THIS PARAGRAPH AND DOES NOT DISTURB IT, because the bound this argument needs is a
+     FLOOR: a kill pays `KILL_SCORE*(1+min(1,combo/40))`, and that factor is x1 at combo 0 and never
+     less, so 100 remains the minimum and a real arrival is >=100 rather than exactly 100. Only the
+     "each" is now approximate; the guarantee is not. The 17.3px-clear zero
+     column above cannot occur in a real run; the real minimum is -39.0px. Step 2 sits at 0 in any real
+     run because it precedes the kill step. Whether a run reaches 1,000 by step 6 is NOT established.
+       ⚠️ Two wrong versions of this paragraph shipped before this one, both asserting a mechanism
+     instead of tracing it. First: "`score += MOTE_SCORE` … step 3 asks for five motes — every tutorial
+     reaches 25 before the halfway point". Step 3 counts KILLS, and Motes are shed BY annihilations
+     (`motes.push` sits in the same handler as `score+=gain`), so a Mote cannot pay into the score
+     before the kill that shed it — and the line under `tutKills++` says exactly that. Second, mine:
+     "step 3 hands them over on its FIRST kill". Step 3's bar is one of the short ones and clears at
+     score 20 by a wide margin; the first kill changes the number, not the collision.
+       ⚠️ AND A RIG NOTE THAT COST A FOURTH VERSION: the HUD renders `score.toLocaleString()`, so any
+     sweep writing digits as `String(v)` measures a number the game never displays. The separator is
+     worth ~10px, which flipped two four-digit cells from clear to overlapping. It also carries the
+     `clamp(28px,6.5vw,50px)` face rather than best's 14px, so it overlaps by 10.8px where best manages
+     0.8px, and `#tutBar` is z-index 6 against the HUD's 5: the digits are covered, not blended.
        ⚠️ THE COLLISION IS LANDSCAPE-ONLY AND THAT IS WHY IT SURVIVED. In portrait `@media
      (max-width:560px)` moves the bar to top:112, clear of both stats; at 667 and 844 that query never
-     fires, top stays 58, and the bar straddles them. iOS is landscape-locked both ways round, so the
-     orientation that hides the bug is the one the app cannot enter.
+     fires, top stays 58, and the bar straddles them. iOS is landscape-locked both ways round
+     (Info.plist), so the orientation that hides the bug is the one the app cannot enter.
        Display, not markup: both keep updating, so nothing that reads either needs a tutorial branch and
      the menu behind the overlay still shows the record. Chosen over the alternatives because it is the
      only repair with NO layout cost — narrowing the 540 cap buys back the wrapping the type scale just
-     spent, moving `top` below the score's box (75.4 here) puts the bar on the star, and shrinking the
-     score's face mid-lesson makes it change size between modes. The lesson does not lose its readout:
-     steps 2, 3, 5 and 6 each carry their own progress counter in the bar's note line, which is the
-     number the player is actually working against. Author's call. */
+     spent, moving `top` below the score's box (75.4 at 667, 82 at 844) puts the bar on the star, and
+     shrinking the score's face mid-lesson makes it change size between modes. The lesson does not lose
+     its readout: steps 2, 3, 5 and 6 each carry their own progress counter in the bar's note line, which
+     is the number the player is actually working against. Author's call. */
   #hud.tut #score, #hud.tut #best{display:none;}
 
   /* THE WISH PICKER. Wraps rather than scrolling, unlike the death receipt's tally: four cards is a
@@ -335,7 +346,10 @@
      for two reasons: that zone is pressed a small fraction as often as the flip zone, and a HELD press
      lands in the middle of a quarter rather than on its extreme corner. ⚠️ This is the one part of the
      scheme argued from ergonomics rather than measured — it wants a real thumb on a real phone. */
+  /* A row describing a control this device does not have is the same lie #controls was hidden for. */
+  #setSens,#setMode,#setSide{display:none;}
   @media (pointer:coarse){
+    #setSens,#setMode,#setSide{display:flex;}
     #muteBtn,#motionBtn{display:none;}
     #pauseBtn{top:16px;bottom:auto;}
     /* ⚠️ FOUND ON THE DEVICE, NOT IN THE BROWSER: the Overdrive button rendered "오버드라이브 SHIFT 유지"
@@ -1205,14 +1219,26 @@
      and leaving nothing in its place stopped being right the moment touch steered again. Two legends
      rather than one rewritten in JS, because the two legends answer to different input devices. */
   @media (pointer:coarse){ .hint,#controls{display:none;} }
-  /* ⚠️ THE POINTER FOLLOW ROW IS FINE-POINTER ONLY *ON THIS BRANCH*, AND THE RULE INVERTS ON THE MERGE.
-     Touch here is the rate stick: `stepStick` writes P directly and clears `pointer.has`, so the chase
-     this row tunes is not in a thumb's code path at all and the row would be a control that does
-     nothing — the same lie #controls above is hidden for. On v2-ios the move zone writes `pointer` and
-     the chase carries it, so there this IS the touch steering knob and this one line has to go. Left as
-     a single self-contained rule, rather than folded into the query above, so the merge has one obvious
-     thing to delete instead of a clause to pick out of a list. */
-  @media (pointer:coarse){ #setFollow{display:none;} }
+  /* (⚠️ AND IT STAYS DELETED — CONFIRMED BY MEASUREMENT ON THE BRANCH MERGE, not merely carried.
+     The row is live for a mouse (827.72 / 720.97 / 262.35 design units over 20 frames at sens
+     1.0 / 0.5 / 0.1) AND live for a thumb in Drag mode (196.66 / 171.29 / 62.33, measured on
+     v2-ios). It is inert only under the stick, which is one of two user-selectable touch modes, so
+     a coarse-pointer query would hide a working control from every Drag player. The note below is
+     kept verbatim because it predicted this merge and got it right — but it is a QUOTE from v2-ios and
+     reads as one: inside it, "THIS branch" means v2-ios and "v2" means the pre-merge web branch.
+     Neither exists now, and nothing inside the fence describes the tree you are reading. Left
+     unedited rather than re-tensed, because a note whose whole value is that it called the shot in
+     advance stops being evidence the moment somebody tidies it.
+     ----- quoted from v2-ios, unmodified -----
+     ⚠️ `@media (pointer:coarse){ #setFollow{display:none;} }` STOOD HERE AND WAS DELETED ON THE MERGE
+     THAT BROUGHT IT, which is what it was written to have done. On v2 the chase is a mouse-only path —
+     `stepStick` writes P directly and clears `pointer.has` — so the row described a control a thumb
+     never reached and hiding it was the same call as #controls above. On THIS branch the move zone
+     writes `pointer` and the chase carries it, measured at a constant 0.815 gap decay per frame, so the
+     row is live for touch and hiding it would remove the steering knob from the only device that ships.
+     Kept as a note rather than deleted silently: the rule will come back on every future v2 merge that
+     touches this block, and it has to be deleted every time.
+     ----- end quote ----- ) */
   /* ⚠️ A 2x2 GRID LIVED HERE AND WENT WITH THE CODEX LINK. It existed because FOUR labels could not
      share a row on a phone, and it made that wrap deliberate rather than accidental. At three it did
      the precise thing it was written to prevent — 2 then 1, which reads as a layout that ran out of
@@ -1234,15 +1260,6 @@
   @media (pointer:coarse){ #touchCtl{display:flex;} }
   .hidden{display:none!important;}
 
-  /* Tilt state. Amber rather than red: a fault here is "this control is not available", not damage.
-     Centred at the top because in landscape that is the one band no HUD element occupies and no thumb
-     covers — the corners are all spoken for by score, bars and buttons. pointer-events stays off so it
-     can never eat a tap on a device where tapping is the only working input left. */
-  #tiltDiag{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:6;pointer-events:none;
-    max-width:min(86vw,520px);text-align:center;font-size:11px;letter-spacing:.06em;line-height:1.5;
-    color:var(--gold);background:rgba(8,12,26,.72);border:1px solid rgba(255,207,77,.28);
-    border-radius:9px;padding:5px 11px;}
-  #tiltDiag.ok{color:var(--dim);border-color:rgba(255,255,255,.12);}
 
   /* THE TUTORIAL INSTRUCTION. Sized to be read at a glance mid-play, not to be studied: one sentence,
      high contrast, and large enough to take in while the field is moving underneath it.
@@ -1436,11 +1453,24 @@
        mouse, Shift and right-click to a device with none of them; for a while nothing replaced it,
        which was defensible only while tilt was the sole touch control and there was nothing to say.
        Touch steers again on every phone browser, so there is.
-         All three rows say WHERE, because the control is a map now: the left half steers, the top right
+         All three rows say WHERE, because the control is a map now: the left side steers, the top right
        burns, the bottom right flips. The first row used to be filled by paintTouchCtl() instead of being
-       written here, back when a web phone dragged and the native app leaned. -->
+       written here, back when a web phone dragged and the native app leaned.
+         ⚠️ THE BAN ON THE WORD "HALF" IS LIFTED. This read '"SIDE", NOT "HALF", AND THE SENSITIVITY
+       SLIDER IS WHY — the slider works BY widening the move zone, `vw*min(0.85, 0.5*100/sens)`, so at
+       60% the "half" is 83.3% of the width', with a table measured at 767px: 50.0 / 55.6 / 62.5 / 71.4 /
+       83.3% across the five stops. Every figure was true when it was taken. The expression is gone:
+       `resize()` sets `ZONE.x = vw*0.5` unconditionally and says so in its own comment, and `ZONE.sens`
+       is a documented tombstone with no reader anywhere in this file. The seam is a fixed half at every
+       stop, so "half" is now the precise word, and `set.sideD` uses it in both languages.
+         These three rows keep "side" because it is still TRUE and re-teaching a legend costs a player
+       their muscle memory — not because anything forbids the alternative any more. Worth noticing HOW
+       this survived: a stale justification misleads the next reader, but a stale PROHIBITION acts as a
+       veto, and respecting a veto looks like discipline, so nobody audits it. Obeying this one would
+       have edited an accurate string into a vaguer one. When a comment states a limit and the limit is
+       what is blocking you, measure it against the shipping code before you accept it. -->
   <div id="touchCtl">
-    <div class="cr" data-th="tc.move"><b>Left half</b> Steer star</div>
+    <div class="cr" data-th="tc.move"><b>Left side</b> Steer star</div>
     <div class="cr" data-th="tc.od"><b>Top right</b> Hold: Overdrive</div>
     <div class="cr" data-th="tc.flip"><b>Bottom right</b> Reverse poles</div>
   </div>
@@ -1454,11 +1484,6 @@
        `fx.purged` for the kicker and `hud.epoch` for the name — so nothing here is authored copy that
        could drift out of step with the top-centre slot saying the same thing. See the CSS block. -->
   <div id="epochcue"><div class="k"></div><div class="n"></div></div>
-  <!-- TILT STATE. Lives in the HUD rather than the menu because it has to be readable while a run is
-       going wrong, not only before one starts. Two jobs: name the failure when tilt is dead (the game
-       is uncontrollable then, and silence would be cruel), and on the menu show the live vector so the
-       tilt can be aimed by hand on a device with no console attached. -->
-  <div id="tiltDiag" class="hidden"></div>
   <button id="pauseBtn">❚❚</button>
   <button id="motionBtn" data-tt="btn.motion" title="Reduced motion: calmer shake and flashes">✺</button>
   <button id="muteBtn">♪</button>
@@ -1645,22 +1670,85 @@
        and ears" and a two-item wardrobe in its own room would look like a system pretending to be one.
        Moved out on the author's call — see the #skins panel, which is where that argument is answered.) -->
 
-  <!-- POINTER FOLLOW. A level with no switch beside it, unlike Sound: there is no "off" for steering,
-       and a row that offered one would be offering to make the game unplayable.
-         Hidden on a coarse pointer — see the #setFollow rule for why, and for what has to change the
-       day the absolute-map touch control lands on this branch. -->
+  <!-- STEERING MODEL. Two touch controls, and they are not two settings of one control:
+         ABS   thumb travel -> the star's POSITION.  Move 60px, the star moves 120px, then stops.
+         STICK thumb deflection -> the star's VELOCITY. Hold it off-origin and the star keeps going.
+       A distance and a rate. The sensitivity row below scales each model's OWN parameter — 2.00x on
+       screen for ABS, `speed:14` for STICK — so 100% is the tuned figure in both and the slider trims
+       down from there. One knob, two quantities, which is why it is a mode switch and not a slider.
+         `.on` lights STICK rather than "the enabled one", because neither is enabled — it marks the row
+       as moved off its default, which is the only thing a two-way choice can usefully show. -->
+  <div class="setrow" id="setMode">
+    <div class="st">
+      <div class="sn" data-t="set.mode">Steering</div>
+      <div class="sd" data-t="set.modeD">Whether your thumb moves the star a distance, or steers it like a stick.</div>
+    </div>
+    <button class="sw" id="swMode">Stick</button>
+  </div>
+
+  <!-- WHICH SIDE STEERS. Mirrors the zones AND the words that name them; see `sideVars`. -->
+  <div class="setrow" id="setSide">
+    <div class="st">
+      <div class="sn" data-t="set.side">Steering side</div>
+      <div class="sd" data-t="set.sideD">Which half of the screen steers, with Overdrive and flip on the other.</div>
+    </div>
+    <button class="sw" id="swSide">Left</button>
+  </div>
+
+  <!-- MOVEMENT SENSITIVITY. Hidden on a fine pointer, because it describes a control that device
+       does not have — the same rule #touchCtl and the keyboard legend already follow.
+         ⚠️ NO SWITCH BESIDE IT, unlike Sound. There is no "off" for steering.
+         ⚠️ NO LONGER THE ZONE'S WIDTH, and that stopped being true when the absolute map was removed.
+       The map's scale WAS the seam (`k = zoneWidth/W`), so sensitivity had to move it and moving it
+       narrowed the Overdrive and flip quarters. Both surviving models scale by a free multiplier, so the
+       seam is fixed at half and the corners keep a full quarter at every stop. -->
+  <!-- FOLLOW SPEED. Restored on the branch merge — see the ⚠️ on `FOLLOW.sens` for the measurement
+       that put it back, and the marker in the stylesheet for why it is NOT hidden on a coarse pointer.
+         ⚠️ NOT "POINTER FOLLOW", AND NOT "YOUR CURSOR". The old strings named a mouse, which was fair
+       when only a mouse reached the chase; on this branch Drag mode writes `pointer` from a thumb and
+       the same knob governs it. v2-ios's objection to the row — that it "named a CURSOR on a device
+       that has none" — was correct about the WORDS and was answered by deleting the row instead of
+       rewording it. The row is back with wording that covers both inputs. -->
   <div class="setrow" id="setFollow">
     <div class="st">
-      <div class="sn"><span data-t="set.follow">Pointer follow</span> <span class="snv" id="followReadout">100%</span></div>
-      <div class="sd" data-t="set.followD">How fast the star closes on your cursor.</div>
+      <div class="sn"><span data-t="set.follow">Follow speed</span> <span class="snv" id="followReadout">100%</span></div>
+      <div class="sd" data-t="set.followD">How fast the star closes on where you point it.</div>
       <!-- ⚠️ step=1, NOT the volume row's 5 or this row's own former 10. A range steps from `min`, so
            min=1 with step=10 walks 1,11,…,91 and the MAXIMUM — which is also the default — is not
            selectable at all. Any step other than 1 has to divide 99 exactly, and 1 is the only one of
            those a player would thank you for. -->
       <input type="range" id="followRange" class="rng" min="1" max="100" step="1" value="100"
-             data-ta="set.followA" aria-label="Pointer follow speed">
+             data-ta="set.followA" aria-label="Follow speed">
     </div>
   </div>
+
+  <div class="setrow" id="setSens">
+    <div class="st">
+      <div class="sn"><span data-t="set.sens">Movement sensitivity</span> <span class="snv" id="sensReadout">100%</span></div>
+      <div class="sd" data-t="set.sensD">How strongly your thumb moves the star.</div>
+      <!-- ⚠️ step=5 BECAUSE IT DIVIDES 190 EXACTLY. A range steps from `min`, so with min=10 any step
+           that does not divide (max-min) puts the MAXIMUM out of reach — step 15 walks 10,25,…,190 and
+           200 is unselectable. The divisors of 190 are 1,2,5,10,19,38,95,190; of those, 5 is the one
+           that also lands exactly on the 100 default. Same trap the follow row was fixed for. -->
+      <input type="range" id="sensRange" class="rng" min="10" max="200" step="5" value="100"
+             data-ta="set.sensA" aria-label="Movement sensitivity">
+    </div>
+  </div>
+
+  <!-- ⚠️ THE POINTER FOLLOW ROW WAS DELETED HERE, AND v2 STILL HAS IT. This is now the SECOND thing in
+       this block that must be removed on every v2 -> v2-ios merge; the first was the
+       `@media (pointer:coarse){ #setFollow{display:none;} }` rule noted up in the stylesheet.
+         Why it went: it named a CURSOR on a device that has none, and — measured — it does nothing at
+       all under the rate stick, which is this branch's default. `stepStick` writes P directly and clears
+       `pointer.has`, so `stepPlayer`'s chase never runs: 20 held frames of full deflection travel 280
+       units at followSens 100, 50 and 10 alike, exactly 20 * STICK.speed. Under ABS the same test gives
+       196.66 / 171.29 / 62.33, so the control was live in exactly one of two modes and misnamed in both.
+         ⚠️ THE CHASE ITSELF IS NOT DELETED and must not be — ABS writes a target to `pointer` and the
+       chase is what carries the star to it. Only the SETTING is gone; `FOLLOW.sens` is pinned at 1, the
+       shipped tune, so ABS behaves exactly as it did with the slider at its 100% default. What ABS loses
+       is a smoothing knob nobody asked for, on a row named for hardware this branch does not have.
+         On v2 the row is correct as it stands: there the chase IS the mouse control and there IS a
+       cursor. Do not delete it there. -->
 
   <!-- SOUND IS A LEVEL, AND THE SWITCH BESIDE IT IS STILL A SWITCH. The row keeps both because they are
        not the same verb: the level is set once, mute is done for a moment and undone. Collapsing them
@@ -1789,7 +1877,19 @@ let PADT=0,PADR=0,PADB=0,PADL=0;
 // seeded finite for the same reason W and H are: a harness that reports innerWidth 0 would otherwise
 // put both seams at 0 and drop EVERY touch into the same zone, which is a control scheme that looks
 // like it is working right up until nothing steers. See `zoneOf`.
-const ZONE={x:REF_SHORT/2,y:REF_SHORT/2};
+const ZONE={x:REF_SHORT/2, y:REF_SHORT/2,
+  // The viewport width, cached beside the seams and for the same reason they are: with the move zone on
+  // the RIGHT its near edge is `vw - x`, so `zoneOf` needs the width on every touch. Reading
+  // `innerWidth` per event would reintroduce exactly the per-event viewport read this block exists to
+  // avoid, and would carry the 0-viewport hazard documented in `resize()` into the input path.
+  vw:REF_SHORT,
+  // ⚠️ `sens` IS NOW DEAD AND IS KEPT ONLY AS A TOMBSTONE. It lived here rather than on `store` because
+  // `resize()` runs at load while `store` is declared ~80 lines below, so reading `store.touchSens` from
+  // resize() was a temporal-dead-zone ReferenceError at boot — a real fault this file has been bitten by
+  // and one `node --check` does not catch. That ordering hazard is gone with the reason for it: the seam
+  // is a fixed half now, so resize() reads no sensitivity at all. Deliberately NOT deleted, because the
+  // boot-order trap it documents is the thing anyone re-coupling geometry to a setting needs to read.
+  sens:100};
 function resize(){
   const vw=window.innerWidth, vh=window.innerHeight;   // the real viewport, in CSS pixels
   // A DEGENERATE VIEWPORT MUST NOT REACH THE DIVIDE. A phone reports 0x0 transiently — mid orientation
@@ -1817,7 +1917,13 @@ function resize(){
   S=Math.min(1, Math.min(sw,sh)/REF_SHORT);
   W=sw/S; H=sh/S;                                      // the play rect, in design units
   VX0=-PADL/S; VY0=-PADT/S; VW=vw/S; VH=vh/S;          // the physical viewport, in the same units
-  ZONE.x=vw*0.5; ZONE.y=vh*0.5;                        // ...and the touch partition, still in CSS px
+  // ...and the touch partition, still in CSS px.
+  // ⚠️ FIXED AT HALF, no longer `min(0.85, 0.5*100/sens)` — whose 0.85 was a floor under the action
+  // quarters, keeping a slider from squeezing them below ~15% of the width. That expression existed
+  // because the absolute map's scale WAS the zone width; both surviving models scale by a multiplier
+  // instead, so the seam has no reason to move, the quarters need no floor, and each keeps a full
+  // quarter at every sensitivity.
+  ZONE.x=vw*0.5; ZONE.y=vh*0.5; ZONE.vw=vw;
   canvas.width=vw*DPR; canvas.height=vh*DPR;
   canvas.style.width=vw+'px'; canvas.style.height=vh+'px';
   // ONE TRANSFORM CARRIES BOTH SCALES AND THE INSET. The translate is what makes design-unit (0,0) the
@@ -2076,16 +2182,48 @@ const store={
   //   It is also the better model for a player. Mute is a thing you do for a moment and undo; a level is
   // a thing you set once. Collapsing them means the M key has to invent a volume to come back to.
   vol:clamp(num('orbitalcrash_vol',1),0,1),
-  // POINTER FOLLOW SENSITIVITY, 1-100, where 100 is the shipped chase AND the maximum.
-  //   ⚠️ STORED AS AN INTEGER PERCENT, NOT AS THE MULTIPLIER, so the slider, the readout and the
-  // localStorage value are all the same number and none of them has to round. `FOLLOW.sens` is the
-  // only place it becomes a fraction, and it is derived there rather than stored here — see the FOLLOW
-  // block for what the range means and why the ceiling is the shipped chase rather than a multiple of it.
-  //   A stored 140 or 200 from the range this replaced clamps to 100 on load, which is the right answer
-  // and needs no migration: the value it clamps to is the one that setting was asking for anyway.
-  //   Read by FOLLOW's declaration, which sits ~4400 lines below this one, so there is no ordering
-  // hazard in this direction. The reverse would be one: nothing above `store` may read FOLLOW.
+  // TOUCH STEERING SENSITIVITY, 10-200, where 100 is the tuned value in whichever model is selected.
+  //   ⚠️ THE PARAGRAPH THAT STOOD HERE ARGUED IT "COULD NOT HAVE BEEN ANYTHING ELSE" THAN THE ZONE'S
+  // WIDTH, and that was true of exactly one control — the absolute map, whose scale was pinned by "the
+  // zone shows the whole arena", `k = zoneWidth/W`. The map is deleted. Both surviving models read thumb
+  // TRAVEL, whose scale is a free multiplier, so the seam no longer moves and the Overdrive and flip
+  // quarters keep a full quarter at every stop. A constraint that outlived the thing imposing it.
+  //   It scales each model's OWN parameter, and they are different quantities: ABS a distance ratio
+  // (2.00x on screen at 100%), STICK a rate (`STICK.speed` 14 units/frame at 100%). One number, two
+  // meanings — which is honest, because the two controls are not two settings of one control.
+  //   ⚠️ 10-200 ON THE AUTHOR'S CALL, WIDENED FROM 60-100. The old floor was never a feel decision: it
+  // was `0.5*100/60 = 0.833`, the point where the map's 0.85 zone cap bit, and it outlived the map by a
+  // commit. The range now spans 0.20x-4.00x on screen for ABS and 1.4-28 units/frame for STICK — the top
+  // being ~3x the Charger dash of 9.5, which is the fastest thing that hunts you.
+  //   A stored 60-100 from before is inside the new range and needs no migration.
+  touchSens:clamp(num('orbitalcrash_touchsens',100),10,200),
   followSens:clamp(num('orbitalcrash_followsens',100),1,100),
+  // TOUCH STEERING MODEL, 'abs' or 'stick'.
+  //     abs   — thumb TRAVEL sets the star's POSITION. Move 60px, the star moves 120px, then stops.
+  //     stick — thumb DEFLECTION sets the star's VELOCITY. Hold it off-origin and the star keeps going.
+  //   A distance and a rate. No value of the sensitivity turns one into the other, which is why this is
+  // a mode and not a slider position.
+  //   ⚠️ BOTH ARE MODELS THIS GAME PREVIOUSLY RETIRED, and the third — the absolute position map that
+  // replaced them — is the one now deleted. That is the author's call and it is not a reversal: each was
+  // rejected as the ONLY control, `stick` for being speed-capped (~5x slower than a mouse across open
+  // ground) and the displacement drag for drifting on every re-grip. Both objections are about being
+  // unable to escape the model, and neither transfers to a choice between two. The stick's cap is now on
+  // the sensitivity slider, so the complaint that retired it has a knob attached for the first time.
+  //   ⚠️ DEFAULT IS `stick`, WHICH IS NOT WHAT THIS BRANCH SHIPPED. The absolute map was the default and
+  // is now deleted, so SOMETHING had to change for an existing player; `stick` is the one the author
+  // named as the familiar control, so it is the smaller surprise of the two. A stored 'map' from the
+  // build in between falls through to 'stick' rather than to a mode that no longer exists.
+  touchMode:(LS.getItem('orbitalcrash_touchmode')==='abs')?'abs':'stick',
+  // WHICH SIDE STEERS. false = move zone on the left (shipped). true = move zone on the right, with the
+  // Overdrive and flip quarters mirrored to the left.
+  //   ⚠️ IT REWRITES COPY, NOT ONLY GEOMETRY. Three legend rows and three tutorial lines NAME a side in
+  // both languages, and a control that moved while the words did not would be worse than no option at
+  // all — the tutorial would be instructing the player to press the wrong half. The strings carry
+  // `{mv}`/`{act}` tokens for this and are resolved through `sideVars()`; see the applier.
+  moveRight:LS.getItem('orbitalcrash_moveright')==='1',
+  // (`followSens` STOOD HERE. It is not a setting on this branch any more — see the marker where its
+  //  settings row was. `orbitalcrash_followsens` may still be in a player's localStorage; it is simply
+  //  never read, which needs no migration because the value it held is the value now hardcoded.)
   reduceMotion:LS.getItem('orbitalcrash_reduceMotion')==='1', // comfort: near-kills shake/flash/hitstop
   cb:LS.getItem('orbitalcrash_cb')==='1',                     // red-green colourblind palette — see PAL
   // LARGER DOTS — the draw-only bloom, see DOT_BLOOM. Hull grows, collider does not, difficulty does not.
@@ -2143,13 +2281,22 @@ const store={
                    return (o&&typeof o==='object'&&!Array.isArray(o)) ? o : {}; }catch(e){ return {}; } })(),
 };
 const RUNS_KEPT=10;
+// The one-way copy the ZONE comment above describes. Runs after `store` exists and before any settings
+// row can change it; `applyTouchSens` is what keeps them in step from then on.
+ZONE.sens=store.touchSens; resize();
+function applyTouchSens(v){ store.touchSens=clamp(Math.round(v),10,200); ZONE.sens=store.touchSens; resize(); save(); }
+function applyFollowSens(v){ store.followSens=clamp(Math.round(v),1,100); FOLLOW.sens=store.followSens/100; save(); }
+
 function save(){
   try{                                                      // Safari private mode throws on write even when reads work
     LS.setItem('orbitalcrash_best2',store.best);
     LS.setItem('orbitalcrash_achv',JSON.stringify([...store.achv]));
     LS.setItem('orbitalcrash_mute',store.mute?'1':'0');
     LS.setItem('orbitalcrash_vol',store.vol);
+    LS.setItem('orbitalcrash_touchsens',store.touchSens);
     LS.setItem('orbitalcrash_followsens',store.followSens);
+    LS.setItem('orbitalcrash_touchmode',store.touchMode);
+    LS.setItem('orbitalcrash_moveright',store.moveRight?'1':'0');
     LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
     LS.setItem('orbitalcrash_reduceMotion',store.reduceMotion?'1':'0');
@@ -2211,14 +2358,25 @@ const L={ en:{
   'ctl.od':'<kbd>Shift</kbd><kbd>R-Click</kbd> Hold: Overdrive',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> Pause &nbsp;·&nbsp; <kbd>M</kbd> Mute',
   // THE THREE ZONES, NAMED BY WHERE THEY ARE. The legend the player gets is a map, so it says the place
-  // and not the gesture — "left half", not "drag". Under the intent-split scheme the place was
+  // and not the gesture — "left side", not "drag". Under the intent-split scheme the place was
   // meaningless (any finger anywhere could be any verb) and these rows had to name gestures instead.
   //   `tc.drag` also carried a clause explaining that the star rides above your fingertip, which was a
-  // legend apologising for a layout: TOUCH_LIFT existed because absolute steering parked your thumb on
-  // the star. The stick does not, so there is nothing to explain.
-  'tc.move':'<b>Left half</b> Steer star',
-  'tc.od':'<b>Top right</b> Hold: Overdrive',
-  'tc.flip':'<b>Bottom right</b> Reverse poles',
+  // legend apologising for a layout: TOUCH_LIFT existed because the pre-v2 control steered from the
+  // WHOLE screen, which is the case that parks your thumb on the star. Mapping a narrower zone onto the
+  // full arena does not — the thumb POINTS at the star instead of carrying it — so there is nothing to
+  // explain. ⚠️ This used to credit "the stick", which stopped existing two rewrites ago; the reason it
+  // gives is a property of the zone being narrower than the screen, not of any one steering model.
+  // The argument is worked properly at `STICK`.
+  'set.sens':'Movement sensitivity',
+  'set.sensD':'How strongly your thumb moves the star.',
+  'set.sensA':'Movement sensitivity',
+  'set.mode':'Steering', 'set.modeD':'Whether your thumb moves the star a distance, or steers it like a stick.',
+  'set.mode.abs':'Drag', 'set.mode.stick':'Stick',
+  'set.side':'Steering side', 'set.sideD':'Which half of the screen steers, with Overdrive and flip on the other.',
+  'set.side.l':'Left', 'set.side.r':'Right',
+  'tc.move':'<b>{Mv} side</b> Steer star',
+  'tc.od':'<b>Top {act}</b> Hold: Overdrive',
+  'tc.flip':'<b>Bottom {act}</b> Reverse poles',
   'btn.motion':'Reduces the shaking and flashing effects.',
 
   // ---- canvas text ----
@@ -2283,9 +2441,9 @@ const L={ en:{
   'set.motionD':'Calmer shake and flashes when something dies close to you.',
   'set.dots':'Larger Dots',
   'set.dotsD':'Only the drawn size changes; what can touch you stays the same.',
-  'set.follow':'Pointer follow',
-  'set.followD':'How fast the star closes on your cursor.',
-  'set.followA':'Pointer follow speed',
+  'set.follow':'Follow speed',
+  'set.followD':'How fast the star closes on where you point it.',
+  'set.followA':'Follow speed',
   'set.sound':'Sound',
   'set.soundD':'The ambient bed and every cue on top of it.',
   'set.soundA':'Sound level',
@@ -2311,7 +2469,7 @@ const L={ en:{
   'tut.doneH':'Shall we play the real game now?',
   'tut.play':'Enter the field',
   'tut.1.desktop':'Move the mouse',
-  'tut.1.touch':'Drag the left half',
+  'tut.1.touch':'Drag the {mv} side',
   'tut.1.ok':"That's how you move!",
   'tut.2':'Look at your current colour, and get close to the same-coloured dots!',
   'tut.2.note':'{n} / 4 gathered',
@@ -2320,10 +2478,10 @@ const L={ en:{
   'tut.3.note':'{n} / 5 cleared',
   'tut.3.ok':'That is how you clear Dots out.',
   'tut.4.desktop':'Click to flip your colour.',
-  'tut.4.touch':'Press the bottom right to flip your colour.',
+  'tut.4.touch':'Press the bottom {act} to flip your colour.',
   'tut.4.ok':'Focus — friend and foe have just swapped colours!',
   'tut.5.desktop':'Hold Shift to enter Overdrive and sweep Dots in a wider, faster circle.',
-  'tut.5.touch':'Hold the top right to enter Overdrive and sweep Dots in a wider, faster circle.',
+  'tut.5.touch':'Hold the top {act} to enter Overdrive and sweep Dots in a wider, faster circle.',
   'tut.5.noteOn':'burning',
   'tut.5.noteOff':'The Overdrive is charged!',
   'tut.5.noteSpent':'The Overdrive is spent!',
@@ -2421,9 +2579,16 @@ const L={ en:{
   'ctl.od':'<kbd>Shift</kbd><kbd>우클릭</kbd> 유지: 오버드라이브',
   'ctl.pause':'<kbd>P</kbd><kbd>Esc</kbd> 일시정지 &nbsp;·&nbsp; <kbd>M</kbd> 음소거',
   // 세 구역을 위치로 부릅니다. 동작이 아니라 자리를 말하는 편이 지도에 가깝고, 화면을 보면 바로 확인됩니다.
-  'tc.move':'<b>왼쪽 절반</b> 별 조종',
-  'tc.od':'<b>오른쪽 위</b> 유지: 오버드라이브',
-  'tc.flip':'<b>오른쪽 아래</b> 색 반전',
+  'set.sens':'움직임 민감도',
+  'set.sensD':'엄지 움직임이 별을 얼마나 크게 움직일지 정합니다.',
+  'set.sensA':'움직임 민감도',
+  'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 조종할지 정합니다.',
+  'set.mode.abs':'드래그', 'set.mode.stick':'스틱',
+  'set.side':'조종 위치', 'set.sideD':'별을 조종할 화면의 절반을 선택합니다. 오버드라이브와 색 반전은 반대 절반에서 사용 가능합니다.',
+  'set.side.l':'왼쪽', 'set.side.r':'오른쪽',
+  'tc.move':'<b>{Mv}</b> 별 조종',
+  'tc.od':'<b>{Act} 위</b> 유지: 오버드라이브',
+  'tc.flip':'<b>{Act} 아래</b> 색 반전',
   'btn.motion':'흔들리거나 번쩍거리는 효과를 줄입니다.',
 
   // ---- canvas text ----
@@ -2462,9 +2627,9 @@ const L={ en:{
   // 입자, not 점 — it is the word the tutorial already uses for a Dot ('같은 색 입자에 가까이 가세요').
   'set.dots':'입자 크게 보기',
   'set.dotsD':'보이는 크기만 커지고, 부딪히는 범위는 그대로입니다.',
-  'set.follow':'커서 따라오기',
-  'set.followD':'별이 커서를 따라오는 속도입니다.',
-  'set.followA':'커서 따라오기 속도',
+  'set.follow':'따라오는 속도',
+  'set.followD':'별이 가리킨 지점까지 얼마나 빠르게 따라붙는지 정합니다.',
+  'set.followA':'따라오는 속도',
   'set.sound':'소리',
   'set.soundD':'배경음과 그 위에 얹히는 모든 효과음.',
   'set.soundA':'소리 크기',
@@ -2491,7 +2656,7 @@ const L={ en:{
   'tut.doneH':'이제 본 게임을 해볼까요?',
   'tut.play':'게임 시작',
   'tut.1.desktop':'마우스를 움직여 보세요',
-  'tut.1.touch':'왼쪽 절반을 드래그해 보세요',
+  'tut.1.touch':'{Mv}을 드래그해 보세요',
   'tut.1.ok':'그렇게 움직이시면 돼요!',
   'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
   'tut.2.note':'{n} / 4 수집',
@@ -2500,10 +2665,10 @@ const L={ en:{
   'tut.3.note':'{n} / 5 제거',
   'tut.3.ok':'이렇게 입자들을 제거할 수 있어요.',
   'tut.4.desktop':'클릭해서 색을 뒤집으세요.',
-  'tut.4.touch':'오른쪽 아래를 눌러 색을 뒤집으세요.',
+  'tut.4.touch':'{Act} 아래를 눌러 색을 뒤집으세요.',
   'tut.4.ok':'집중하세요, 적과 아군은 이제 반대 색상이니까요!',
   'tut.5.desktop':'Shift를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
-  'tut.5.touch':'오른쪽 위를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
+  'tut.5.touch':'{Act} 위를 누르고 있으면 오버드라이브 상태로 진입해서, 더 넓고 빠른 범위로 입자들을 돌릴 수 있어요.',
   'tut.5.noteOn':'연소 중',
   'tut.5.noteOff':'오버드라이브는 충전되어 있어요!',
   'tut.5.noteSpent':'충전된 양을 다 사용했네요!',
@@ -4944,7 +5109,7 @@ const tutDev=()=>matchMedia('(pointer: coarse)').matches ? 'touch' : 'desktop';
 // a mouse is the exact fault the old menu paragraph had. `tutDev()` picks which of the three WHOLE
 // sentences to show, so the line a player reads is theirs on every device — and, now, in every language.
 const TUT_STEPS=[
-  { say:()=>T('tut.1.'+tutDev()),
+  { say:()=>T('tut.1.'+tutDev(),sideVars()),
     setup:()=>{},
     done:()=>tutTravel>400,
     ok:()=>T('tut.1.ok') },
@@ -4958,11 +5123,11 @@ const TUT_STEPS=[
     note:()=>T('tut.3.note',{n:Math.min(tutKills,5)}),
     done:()=>tutKills>=5,
     ok:()=>T('tut.3.ok') },
-  { say:()=>T('tut.4.'+tutDev()),
+  { say:()=>T('tut.4.'+tutDev(),sideVars()),
     setup:()=>{ for(let i=0;i<5;i++) tutDrop(P.polarity); },
     done:()=>tutFlips>=1,
     ok:()=>T('tut.4.ok') },
-  { say:()=>T('tut.5.'+tutDev()),
+  { say:()=>T('tut.5.'+tutDev(),sideVars()),
     setup:()=>{ P.charge=1; for(let i=0;i<8;i++) tutDrop(Math.random()<0.5?'red':'cyan'); },
     // ⚠️ THREE STATES, NOT TWO, AND THE THIRD ONE IS THE COMMON CASE. `noteOff` used to cover everything
     // that was not burning — including a meter the player had just emptied. A full meter is exactly 3.0s
@@ -5791,16 +5956,24 @@ const DRAW_REL=60;        // px/frame the ceiling GAINS PER SECOND once the Draw
                           //     and 13 frames to close 90% of an 1110px gap.
                           // Fleeing straight down instead of cornering still gives 1.86 -> 63.73, so this
                           // is not a corner case in either sense of the word.
-                          //   ⚠️ ON v2-ios IT IS WORSE AND IT IS LITERAL, which is worth knowing here even
-                          // though this branch cannot reproduce it: that branch's ABS touch mode ADDS thumb
-                          // travel to `pointer`, so the arrears is banked rather than merely geometric.
-                          // Measured there at 390x844: 521 units banked over one Draw, an old first frame
-                          // of 96.3. The fix is this same constant and the same site — do not port a
-                          // second mechanism into the input layer to cover it.
-                          //   ⚠️ THIS BRANCH'S TOUCH IS A RATE STICK AND BANKS NOTHING, so on v2 the fault
-                          // is the mouse's alone. That is not a reason to gate the ramp on input model:
-                          // the clamp above is deliberately one mechanic for all three (see its block),
-                          // and a release that only existed for one of them would be the first crack in that.
+                          //   ⚠️ AND ON THIS BRANCH THE ABS MODE MAKES IT LITERAL RATHER THAN GEOMETRIC.
+                          // There the arrears is not "where the cursor happens to be" — `stickAbs` ADDS
+                          // thumb travel to `pointer` frame by frame, so a thumb that keeps sweeping while
+                          // the star cannot follow is banking a debt, clamped only by the arena. Measured
+                          // here, 390x844 (W=800, H=1731, S=0.4875), thumb sweeping the move zone for the
+                          // whole Draw and FREEZING on the release frame so that everything after it is
+                          // arrears and nothing else:
+                          //     banked gap at release   521 units — 30% of the arena's long axis
+                          //     old first frame         96.3 units (0.185 * 521), in one frame
+                          //     now                      8.2 units, paid out over 53 frames (0.88s)
+                          // This is the author's "stacked" in its plainest form: travel expressed during
+                          // the 2.2s the game was refusing it, delivered afterwards. ⚠️ The ramp BOUNDS
+                          // that payout, it does not cancel it — the star still ends where the thumb asked.
+                          // Cancelling it would mean leashing `pointer` to the star while the Draw is up,
+                          // which is the same move `stickAbs`'s own arena clamp already makes at the edges
+                          // ("an overshoot costs nothing"), and is the lever to reach for if the payout
+                          // itself is unwanted rather than merely too fast. STICK mode banks nothing and
+                          // never did: it is a rate, so it has no arrears to pay.
                           //   THE FIX IS A CEILING THAT OPENS, NOT A SECOND CAP. The release frame keeps
                           // exactly DRAW_CAP and the ceiling then rises linearly at this rate, so there is
                           // no step at the moment of release AND no cliff at the end of it: the clamp stops
@@ -6546,9 +6719,9 @@ function step(){
   stepOverdrive(dt);  // Overdrive state → physics flags, and the drain (before physics reads them)
   director(dt);
 
+  // stepStick is a no-op unless the rate stick is BOTH the chosen model and currently held, so the ABS
+  // path and the mouse stay exactly one code path from here down — see the STICK block.
   stepStick();        // adds velocity straight to P; stepPlayer's clamp and P.dx bookkeeping then cover it
-                      // (no dt: like the tilt step it replaces, its speed is per-frame against this fixed
-                      //  60Hz tick, which is also why the constant transfers without rescaling)
   stepPlayer(dt);
   stepTutorial(dt);   // inert unless tutMode; reads P after the move, which is what the travel test wants
 
@@ -6627,19 +6800,36 @@ function step(){
 // this one, so a player at 100% is capped to `DRAW_CAP*P.moveMult` exactly as one at 1% is. The
 // Singularity's mechanic prices movement, not the control that produced it.
 //
-// ⚠️ ON THIS BRANCH IT IS A MOUSE KNOB ONLY. Touch here is the rate stick — `stepStick` writes P itself
-// and clears `pointer.has`, so a thumb never enters this branch at all. On v2-ios the move zone writes
-// `pointer` and this chase carries it, which makes the same object the touch steering knob there. The
-// row's media query in the CSS is the half that has to flip on that merge; this code does not.
+// ⚠️ ON THIS BRANCH IT IS THE TOUCH STEERING KNOB, NOT A MOUSE-ONLY ONE — the sentence that stood here
+// said the opposite and was written on v2, where it is true. There the thumb is a rate stick: `stepStick`
+// writes P itself and clears `pointer.has`, so it never enters this branch. Here `stepStick` does not
+// exist; the move zone is an absolute map that writes `pointer`, and this chase is what carries the star
+// to it. Measured on a dispatched touch after the merge: the gap decays by a constant 0.815 per frame,
+// i.e. exactly this 0.185, with nothing else acting.
+//   ⚠️ SO THIS IS THE SECOND OF TWO STEERING KNOBS HERE, and they are not interchangeable. `touchSens`
+// sets WHERE the target lands (the zone's width, `k = zoneWidth/W`); `FOLLOW.sens` sets HOW FAST the
+// star closes on it. Turning one down does not substitute for the other, and a report of "steering feels
+// wrong" has to say which half it means before either is moved.
 const FOLLOW={
   k   : 0.185,                  // gap fraction per frame at 60Hz — the shipped chase
   cap : 0.62,                   // ceiling after moveMult — unreachable at a 100% max; see above
-  sens: store.followSens/100,   // the player's multiplier, 0.01–1.0
+  // ⚠️ A SETTING AGAIN, AND THE ARGUMENT FOR PINNING IT DID NOT SURVIVE THE MERGE. v2-ios pinned this
+  // at 1 and deleted its row on two grounds: that it "named a CURSOR on a device that has none", and
+  // that it measured INERT — 20 held frames travelling 280 units at followSens 100, 50 and 10 alike.
+  // Both were true of that branch's DEFAULT touch mode and of nothing else. `stepStick` writes P
+  // directly and clears `pointer.has`, so the chase never runs under the stick; but `stickAbs` writes
+  // `pointer` and the chase is exactly what carries it, and the same branch measured 196.66 / 171.29 /
+  // 62.33 there. One branch, two modes, live in one of them — the note said so and the pin did not.
+  //   Re-measured on the merged tree for the input the pin actually broke: the MOUSE, which this branch
+  // serves and the iOS build does not. 20 frames of chase from a parked star toward a cursor 423 CSS px
+  // away travel **827.72 / 720.97 / 262.35** design units at sens 1.0 / 0.5 / 0.1 — a factor of 3.2.
+  // Live for every mouse player, and for every touch player in Drag mode.
+  //   `/100` restores the old scale exactly: the default 100 gives 1, bit-identical to the pinned value
+  // (`0.185*1 === 0.185`), so no existing player's chase changes and the oracle digest cannot move.
+  // `orbitalcrash_followsens` was never cleared from localStorage, so a returning player gets their own
+  // old number back rather than the default.
+  sens: store.followSens/100,
 };
-// The setter, so the slider and the physics cannot drift apart: one function writes both, exactly as
-// `setVolume` owns the pair above. `clamp` here and again in `store` is deliberate belt-and-braces —
-// this one guards a bad call, that one guards a hand-edited localStorage value.
-function applyFollowSens(v){ store.followSens=clamp(Math.round(v),1,100); FOLLOW.sens=store.followSens/100; save(); }
 
   // ----- player follow pointer (speed-capped briefly after a resume: glide, never teleport) -----
 function stepPlayer(dt){
@@ -6661,13 +6851,27 @@ function stepPlayer(dt){
   if(kx||ky){ const sp=6.5*P.moveMult; const l=Math.hypot(kx,ky); P.x+=kx/l*sp; P.y+=ky/l*sp; }
   // ---- THE DRAW: one clamp, every input model ----------------------------------------------------
   // ⚠️ THIS SITE IS LOAD-BEARING AND IT IS NOT ARBITRARY. `P.lastX/lastY` are written ONLY at the foot of
-  // this function, and the only four writes to `P.x/P.y` in the whole file are the stick (stepStick, which
-  // runs immediately above this in step()), the pointer chase, the keyboard nudge, and the arena clamp on
-  // the next line. So `(P.x-P.lastX, P.y-P.lastY)` HERE is this frame's total input displacement across
+  // this function, and the only THREE writes to `P.x/P.y` in the whole file are the pointer chase, the
+  // keyboard nudge, and the arena clamp on the next line.
+  //   ⚠️ IT SAID FOUR, AND THE FOURTH WAS `stepStick`. Touch used to move P itself, immediately above this
+  // in step(); it now writes a TARGET into `pointer` and is carried by the chase like a mouse, so the
+  // fourth writer is gone and touch reaches this line through the first of the three. Nothing about the
+  // clamp changed and nothing had to: it has always measured the FRAME'S TOTAL displacement rather than
+  // any particular writer, which is exactly why it survived two rewrites of the touch control without
+  // being touched. Re-measured after each: 1.860 with the Draw up, the same figure as the original. So `(P.x-P.lastX, P.y-P.lastY)` HERE is this frame's total input displacement across
   // mouse, touch and keyboard at once. Transforming it here is what makes the Draw one mechanic instead of
   // three, and it is why touch does not need its own tuning: a mouse player's unbounded gap-proportional
-  // chase and a thumb at full deflection arrive at this line as the same quantity and leave it clamped to
-  // the same ceiling. ⚠️ Anything added later that moves P must land ABOVE this line or it bypasses the Draw.
+  // chase and a thumb's swipe arrive at this line as the same quantity and leave it clamped to the same
+  // ceiling. ⚠️ Anything added later that moves P must land ABOVE this line or it bypasses the Draw.
+  //   ⚠️ THE TOUCH HALF OF THAT CLAIM WAS WRITTEN AGAINST A CONTROL THAT NO LONGER EXISTS, AND SURVIVED
+  // THE CHANGE — which is worth recording, because it did not have to. The thumb was a virtual stick
+  // then: a RATE, "hard-capped at 64px of deflection, with nothing left to give", and the original
+  // measurement read 14.00 for it against the mouse's 92.3. It is a DISPLACEMENT now, with no ceiling at
+  // all — a fast swipe banks 636.8 units in a frame — so the sentence about deflection was false the day
+  // the stick changed. **The clamp did not care, and that is the design working rather than luck:** it
+  // caps the frame's total displacement, so an input model with no ceiling of its own is exactly the case
+  // it was built for. Re-measured after the change: 636.82 unclamped, **1.860** with the Draw up — the
+  // same figure the original table recorded for both the mouse and the stick.
   // THE CAP'S OWN STATE LIVES ON THE BOSS AND STILL DOES: it dies with the Anomaly, so no reset path can
   // leak a cap into the next run — the fault `FEAT`'s single reset and the warn-clearing rule both exist for.
   // ⚠️ THIS USED TO READ "never in a module-level flag", FULL STOP, and DRAW_REL's ramp is the one thing
@@ -7833,12 +8037,11 @@ function bomberBlast(e){
 function beginReady(){ resumeT=READY_DUR; state='ready'; lastT=performance.now(); acc=0; }
 // Neutral is re-taken at the start of every run, so however you happen to be holding the phone when the
 // field opens becomes level. Sitting up between runs should not cost you a drift.
-// ⚠️ `tiltCalibrate()` RAN HERE AND NO LONGER DOES. It re-zeroed the sensor to however the phone was
-// being held as the run started, which was load-bearing while tilt steered and is now calibrating
-// something nothing reads. The stick's equivalent is the line that replaced it: zero the VECTOR but
-// keep the finger's origin, so a run resuming under a thumb that never lifted stops the star instead of
-// cashing whatever deflection was frozen across the pause. The next pointermove re-establishes it.
-function endReady(){ state='play'; acc=0; reanchorPointer(); stickVec.x=stickVec.y=0; }
+// ⚠️ `tiltCalibrate()` RAN HERE AND NO LONGER DOES, and neither does the displacement reset that briefly
+// replaced it. Both existed because their controls carried STATE across the break — a sensor zero, then a
+// banked drag — and an absolute map carries none: the thumb's position means the same arena position
+// before the pause and after it. `reanchorPointer()` alone is right, and it was already here.
+function endReady(){ state='play'; acc=0; reanchorPointer(); }
 function skipReady(){ if(state==='ready'){ resumeT=0; endReady(); } }
 
 // =====================================================================
@@ -10218,7 +10421,6 @@ function updateHUD(){
     bb.querySelector('.bl').textContent = T(key);
     bb.querySelector('.bl').style.color = (drawing || boss.hunt>0) ? COL.red : ''; }
   else bb.classList.add('hidden');
-  updateTiltDiag();
   // THE TOUCH LEGEND IS A REMINDER, NOT A HUD ELEMENT, and the difference is 53px of a 812px phone.
   // Left permanently on it sat straight through the Core Integrity and Capacitor bars — the keyboard
   // legend it replaces never collided with them because it was hidden on exactly the devices where
@@ -10230,25 +10432,6 @@ function updateHUD(){
 }
 const TOUCH_CTL_S=6;
 
-// THIS PANEL IS RETIRED, AND THE REASON IS THE POINT: THERE IS NO LONGER A FAULT TO REPORT.
-//
-// It existed because tilt could leave a player holding a device that did nothing. STRICT TILT-ONLY meant
-// a tilt device did not steer by touch at all, so a dead feed was not a degraded control — it was an
-// unplayable game, and silence would have been cruel. It showed the stale-feed warning everywhere and,
-// on the menu, the live vector, so the sign convention could be checked by hand on a device with no
-// console attached.
-//   ⚠️ WHAT KILLED IT IS THE ZONE SCHEME, NOT A TIDY-UP. Touch now steers on every device, selected per
-// event, and it cannot stop working — there is no sensor in the path to go quiet. The one failure this
-// panel still knew how to name, CoreMotion going silent after a resume, is now worth exactly nothing to
-// the player: the star keeps moving. Warning about it would be reporting a fault in a component nothing
-// depends on, which trains people to ignore the band this game keeps clear for real news.
-//   `TILT_STALE_MS`, `tilt.stale` and `tilt.ok` go with it. `tiltLastT` stays — it is what the seam
-// reports staleness off, and a bridge that has stopped is still worth being able to SEE while nobody is
-// being told about it. See the `stepTilt` tombstone for what else survives unwired.
-function updateTiltDiag(){
-  const d=el('tiltDiag'); if(!d) return;
-  d.classList.add('hidden');
-}
 
 // =====================================================================
 //  MAIN LOOP
@@ -10317,15 +10500,14 @@ function frameBody(now){
 // ambient still humming, no message. A bad frame is DROPPED and the loop survives; only a persistent
 // fault (8 in a row) halts — and it says so, instead of pretending to still run.
 let frameErrs=0;
-// THE FRAME COUNTER. Counts COMPOSITED frames — it increments once per rAF callback and nothing else
-// touches it, so it measures what the display actually showed rather than what any timer was asked to
-// do. That distinction is the whole reason this exists: every previous attempt to price the sky cache
-// measured *fill cost* in a pane that was free to discard the frames it never showed, which inverted
-// the result. See THE SKY CACHE.
-//   Deliberately not a rolling average and not drawn anywhere. It is a monotonic count plus the clock,
-// so a reader takes two samples and divides; an on-screen average would need a window length, and
-// picking one is how you end up measuring the window instead of the game.
-let frameN=0, frameT0=0;
+// ⚠️ A SECOND FRAME COUNTER STOOD HERE AND IT WAS THE WEAKER ONE. `frameN`/`frameT0` counted rAF
+// callbacks so a reader could take two samples and divide; THE FRAME PROBE below counts frame
+// INTERVALS, keeps histograms, and reports p50/p95/p99 and over-20ms. Both were written for the same
+// question and the probe is the one that answered it.
+//   Removed rather than kept as "the cheap one", because two instruments for one measurement is how a
+// later reader picks the weaker and gets a worse number: a mean alone cannot tell a steady 20ms from a
+// 16ms that hitches once a second, and that distinction is the whole shape of the failure being looked
+// for. Everything the counter reported — frames, elapsed, fps, `every` — the probe reports too.
 // =====================================================================
 //  THE FRAME PROBE — off unless asked, because the reading must not be the load
 // =====================================================================
@@ -10401,8 +10583,6 @@ function probeRead(raw){
            blit:one(PROBE.acc[0]), cadence:one(PROBE.acc[1]), pal:one(PROBE.acc[2]) };
 }
 function frame(now){
-  if(!frameT0) frameT0=now;
-  frameN++;
   if(PROBE.on) probeTick(now);
   try{ frameBody(now); frameErrs=0; }
   catch(err){
@@ -10604,7 +10784,7 @@ function startRun(mode, startAct){
   tutMode = (mode==='tut');
   // Mirrored onto the HUD here and cleared in tutFinish, which are the ONLY two places tutMode is
   // assigned. Driving it off the flag rather than off the four sites that toggle #tutBar's `hidden`
-  // keeps the stats and the bar from ever disagreeing about which mode is running.
+  // keeps the stat and the bar from ever disagreeing about which mode is running.
   el('hud').classList.toggle('tut', tutMode);
   // ONLY SURVIVAL HONOURS A DEEP START — the tutorial starts where it starts. Clamped against the stored
   // unlock as well as the cap, so a tampered save cannot open Epoch XX from the console.
@@ -10886,12 +11066,28 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('records').classList.
 // streak line and possibly an Anomaly's tip on screen — and `updateHUD` only runs from frameBody while
 // state is 'play'/'ready', which paused is not. Left to itself the HUD would sit in the old language on
 // the one screen where all of it is still and readable.
+// THE SIDE WORDS, resolved at paint time instead of baked into a second set of strings. Six strings name
+// a side across two languages, so a mirrored copy would be twelve more to keep in sync — and the pairs
+// differ only in the word itself. Korean needs no case (`Mv===mv`) and no particle change either: 왼쪽
+// and 오른쪽 both end in ㄱ, so 을 is correct for each and the rest of every sentence holds still.
+//   ⚠️ THIS IS THE HALF THE GEOMETRY CANNOT DO. Mirroring the zones without mirroring these words leaves
+// the tutorial telling a player to press the half that no longer flips, which is worse than not offering
+// the option — a wrong instruction in a tutorial is the one place the game cannot be argued with.
+function sideVars(){
+  const ko=store.lang==='ko', cap=w=>ko?w:w[0].toUpperCase()+w.slice(1);
+  const mv =store.moveRight ? (ko?'오른쪽':'right') : (ko?'왼쪽':'left');
+  const act=store.moveRight ? (ko?'왼쪽':'left')    : (ko?'오른쪽':'right');
+  return {mv, act, Mv:cap(mv), Act:cap(act)};
+}
 function applyLang(){
   document.documentElement.lang=store.lang;
-  document.querySelectorAll('[data-t]' ).forEach(n=>{ n.textContent=T(n.dataset.t);  });
-  document.querySelectorAll('[data-th]').forEach(n=>{ n.innerHTML  =T(n.dataset.th); });
-  document.querySelectorAll('[data-tt]').forEach(n=>{ n.title      =T(n.dataset.tt); });
-  document.querySelectorAll('[data-ta]').forEach(n=>{ n.setAttribute('aria-label',T(n.dataset.ta)); });
+  // Every loop gets the side words. Harmless on the strings that carry no token — T() leaves an unknown
+  // `{x}` exactly as it found it, so the 20-odd existing tokens ({n}, {name}, {r}…) are untouched.
+  const sv=sideVars();
+  document.querySelectorAll('[data-t]' ).forEach(n=>{ n.textContent=T(n.dataset.t ,sv); });
+  document.querySelectorAll('[data-th]').forEach(n=>{ n.innerHTML  =T(n.dataset.th,sv); });
+  document.querySelectorAll('[data-tt]').forEach(n=>{ n.title      =T(n.dataset.tt,sv); });
+  document.querySelectorAll('[data-ta]').forEach(n=>{ n.setAttribute('aria-label',T(n.dataset.ta,sv)); });
   // Painted here and not only in paintSettings, which runs on OPEN: the markup ships "English", so a
   // Korean player who never opened this panel had a pill sitting on the wrong word until they did.
   // The menu selector shows BOTH labels always; only which one is lit changes.
@@ -11069,15 +11265,25 @@ function paintSettings(){
   // assigning `value` mid-drag snaps the handle back under the finger to whatever the last committed
   // number was — the control fights you, and only on slow drags, which is the hardest kind of bug to
   // reproduce on purpose.
-  // The follow row, under the same active-element guard as the volume row below and for the same reason.
+  // The two touch models and the two sides. Not `sw()` above: that helper prints on/off, and neither of
+  // these rows has an off — both print the name of the state they are IN.
+  const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
+  const bs=el('swSide'); if(bs){ bs.classList.toggle('on', store.moveRight); bs.textContent=T(store.moveRight?'set.side.r':'set.side.l'); }
+  const sr=el('sensRange');
+  if(sr && document.activeElement!==sr) sr.value=store.touchSens;
+  const so=el('sensReadout'); if(so) so.textContent=store.touchSens+'%';
+  // ⚠️ THIS ROW HAD NO TRACK FILL AT ALL until the range widened — the other two sliders set `--p` and
+  // this one never did, so its fill sat wherever the last painted row left it. `(v-min)/(max-min)`, the
+  // same fraction-of-track the follow row's note argues for: 190, not 200, or the fill leads the handle.
+  if(sr) sr.style.setProperty('--p',((store.touchSens-10)/1.90)+'%');
+  // The follow row, under the same active-element guard as the rows above and for the same reason: a
+  // repaint mid-drag would snap the handle back to the stored value and the control would fight you.
   const fr=el('followRange');
-  if(document.activeElement!==fr) fr.value=store.followSens;
-  el('followReadout').textContent=store.followSens+'%';
-  // ⚠️ `--p` IS A FRACTION OF THE TRACK, NOT THE VALUE, and the two are still not the same number even
-  // now that the range ends at 100 — it STARTS at 1, so passing the raw percentage through would sit
-  // the fill about a point ahead of the handle. Small enough to look like a rendering seam rather than
-  // a bug, which is exactly why it is worth computing properly: (v-min)/(max-min).
-  fr.style.setProperty('--p',((store.followSens-1)/0.99)+'%');
+  if(fr && document.activeElement!==fr) fr.value=store.followSens;
+  const fo=el('followReadout'); if(fo) fo.textContent=store.followSens+'%';
+  // ⚠️ `--p` IS A FRACTION OF THE TRACK, NOT THE VALUE. The range ends at 100 but STARTS at 1, so the
+  // raw percentage would sit the fill about a point ahead of the handle: (v-min)/(max-min).
+  if(fr) fr.style.setProperty('--p',((store.followSens-1)/0.99)+'%');
   const r=el('volRange'), pct=Math.round(store.vol*100);
   if(document.activeElement!==r) r.value=pct;
   el('volReadout').textContent=pct+'%';
@@ -11107,6 +11313,14 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('skins').classList.co
 // language during a run, and the pause panel is not where you would look for it.
 function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
 el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
+el('swMode').onclick  =()=>{ store.touchMode=(store.touchMode==='stick')?'abs':'stick'; save(); paintSettings(); };
+// ⚠️ `applyLang()` IS NOT OPTIONAL HERE, and it is what separates this row from every other switch. The
+// legend and three tutorial lines NAME the side, and they are painted once by the data-t loops rather
+// than per frame — flip the geometry without re-running them and the game spends the rest of the session
+// telling the player to press the half that no longer does anything.
+//   `tutBarCache` too: the tutorial bar skips the DOM write when its html is unchanged, and the cache
+// outlives a settings visit. Clearing it forces the next tutPaint through with the new wording.
+el('swSide').onclick  =()=>{ store.moveRight=!store.moveRight; save(); tutBarCache=''; applyLang(); paintSettings(); };
 el('swCb').onclick    =()=>{ store.cb=!store.cb; save(); applyPalette(); paintSettings(); };
 el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 // No render() and no field repaint: this changes a radius the very next frame reads, and Settings opens
@@ -11121,11 +11335,27 @@ el('volRange').addEventListener('input',e=>{ audioInit(); setVolume(+e.target.va
 // One blip on release, not on every input event — a cue per step would be a burst of ~20 during a drag,
 // which is both unpleasant and useless as a level reference. Skipped at zero, where it is a lie.
 el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
+// `input`, not `change`: the new zone width is in force the instant the slider passes a stop, so a
+// player who lets go and touches the field is steering with the value they just chose, with no commit
+// step in between.
+//   ⚠️ THIS USED TO SAY THE PLAYER COULD "SEE THE STEERING HALF WIDEN UNDER THEIR THUMB", AND THERE IS
+// NOTHING TO SEE. `ZONE.x` is read by `zoneOf` and the probe and is drawn by NOTHING — the
+// seam has no rendered form at any sensitivity, so the sentence described feedback that was never built
+// and justified `input` with it. `input` is still right, for the reason above; the reason it USED to
+// give was fiction. If the seam is ever drawn, this comment gets its original claim back honestly —
+// ⚠️ AND THE SENTENCE THAT FOLLOWED IT WAS FALSE IN BOTH LANGUAGES. It read "until then `set.sensD`
+// saying the corners narrow is the only signal the player gets, which is precisely why that row keeps
+// its second sentence while every sibling makes do with one." Grepped: `set.sensD` is 'How strongly your
+// thumb moves the star.' and '엄지 움직임이 별을 얼마나 크게 움직일지 정합니다.' — ONE sentence each,
+// neither mentioning a corner. There is nothing to signal either way: the corners stopped narrowing when
+// the seam was fixed at half. A claim about what a STRING says is one grep from being checked, which is
+// exactly why nobody checks it — it reads as a description rather than as an assertion.
+el('sensRange').addEventListener('input',e=>{ applyTouchSens(+e.target.value); paintSettings(); });
+el('followRange').addEventListener('input',e=>{ applyFollowSens(+e.target.value); paintSettings(); });
 // `input`, not `change`: the chase changes as the slider moves, and this panel opens from the PAUSE
 // screen, so a player tuning it has their own live field behind the overlay to judge it against rather
 // than a number to commit blind. No audio cue on release — the volume row's blip is a level reference
 // and there is nothing equivalent to hear here.
-el('followRange').addEventListener('input',e=>{ applyFollowSens(+e.target.value); paintSettings(); });
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeSettings(); }});
 
 // =====================================================================
@@ -11135,16 +11365,16 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('settings').classList
 // forget it.
 // ⚠️ AND ONE SUBTRACT, WHICH IS NEW AND IS THE ONE PLACE THE PLAYFIELD INSET LEAKS OUT OF resize().
 // Pointer events are reported against the SCREEN, but design-unit (0,0) is now the play rect's corner,
-// so a raw `x/S` would land the cursor PADL/S units right of the mouse on any notched display.
-//   ⚠️ NOTHING ELSE ON THE INPUT PATH NEEDS IT, AND THE REASON IS NOT THE ONE THE iOS BRANCH GIVES —
-// this paragraph arrived from v2-ios naming a `stickMove` that does not exist here, which is exactly
-// the hazard of porting a conclusion across two branches that diverge on the input model. There the
-// thumb banks a DISPLACEMENT; here it is a RATE stick, and `stickSet` reads `dx = x - stickOX`, a
-// DEFLECTION — a difference of two screen-space values, so any common origin cancels before
-// `stepStick` ever turns it into motion. Same answer, different argument, and the argument is the part
-// that would have gone stale silently. `zoneOf` stays in raw CSS px on purpose either way: the touch
-// zones still cover the whole glass, including the strip beside the housing.
-// On a display with no insets PADL/PADT are 0 and this is the divide it always was.
+// so a raw `x/S` would land the cursor PADL/S units right of the mouse on any notched display. Nothing
+// else on the input path needs this: `stickMove` accumulates a DELTA (a scale, no origin) and clamps
+// to 0..W, and `zoneOf` deliberately stays in raw CSS px because the touch zones still cover the whole
+// glass. On a display with no insets PADL/PADT are 0 and this is the divide it always was.
+//   ⚠️ THIS PARAGRAPH EXISTED IN TWO CONTRADICTORY VERSIONS UNTIL THE BRANCHES MERGED, and the merge is
+// what fixed it rather than a review. v2 carried a variant arguing the same conclusion from `stickSet`
+// reading `dx = x - stickOX` — a DEFLECTION under a rate stick — because that was the control v2 had.
+// Both versions were locally true and each named a function the other branch did not define. Nothing
+// failed, nothing looked wrong, and only reading the mechanism against the local code could catch it;
+// with one branch there is now one control and one paragraph, and the class of fault is gone with it.
 function setPointer(x,y){ pointer.x=(x-PADL)/S; pointer.y=(y-PADT)/S; pointer.has=true; }
 // on resume: hold the target on the core and briefly cap follow speed, so re-engaging
 // the (possibly far) cursor glides smoothly rather than snapping/teleporting
@@ -11201,85 +11431,191 @@ function reanchorPointer(){ if(P){ pointer.x=P.x; pointer.y=P.y; } settleT=1.0; 
 // picked tilt for phone browsers that had no working sensor, and the stored `orbitalcrash_tilt` outlived
 // the switch that could undo it. A scheme chosen by the event that is currently being handled cannot be
 // wrong about the device, because it is not making a claim about the device.
+// ⚠️ THIS WAS A VIRTUAL STICK — A RATE — AND THE RATE ARGUMENT NEVER APPLIED TO A FINGER.
+//
+// Reported from the device as *"moving is not following my finger movement, acceleration is applied
+// little late"*, and both halves of that were real and measurable:
+//
+//   · THE RATE WAS SPEED-CAPPED AND THE MOUSE IS NOT. `stepPlayer` chases the pointer at `0.185 × gap`
+//     per frame, uncapped — 74 units/frame across a 400-unit gap, 148 across 800. The stick's ceiling
+//     was a flat 14. In an arena 1739 × 800 design units, that made a touch player roughly **5× slower
+//     across open ground than a mouse player**. Worse, the game already uses `cap=14` in `settleT` as
+//     its DELIBERATE slow glide on resume: the stick ran permanently at the speed the engine reserves
+//     for slowing you down on purpose.
+//   · REVERSALS COST 128px OF THUMB. At full deflection the floating origin sat 64px behind the finger,
+//     so reaching full speed the other way meant crossing the dead zone and the whole ramp again. That
+//     is exactly what "acceleration applied a little late" feels like.
+//
+// **The root error was inheriting tilt's model along with tilt's own speed constant.** The tilt block
+// argues, correctly, that an ANGLE means "keep going this way" rather than "be there" — that is
+// inherent to an angle, which has no position to offer. A FINGER HAS A POSITION AND A DISPLACEMENT, so
+// none of that reasoning transferred; it was carried across because the code was.
+//
+// So the move zone is DIRECT now: the star travels exactly as far as your finger did on the glass,
+// times a gain. No dead zone, no ramp, no floating origin, no ceiling, and reversal is free because
+// there is no state to unwind — a delta of zero moves nothing and a delta the other way moves the other
+// way, on the same frame.
+//   ⚠️ WHAT THIS GIVES UP, DELIBERATELY: you can no longer hold a heading. A rate keeps moving while you
+// hold it; a displacement only moves while you drag. Crossing the arena takes a drag and a re-grip
+// rather than a lean. Re-gripping is lossless by construction — a fresh touch sets a fresh reference and
+// only deltas count — which is the trackpad behaviour every player already has in their hands.
+// THE MOVE ZONE IS AN ABSOLUTE MAP OF THE ARENA, and this is the third model. The two before it both
+// failed the same test — "it does not feel natural" — for reasons that turned out to be the same reason:
+//
+//   · the RATE stick asked "which way", never "where", and was speed-capped at a fifth of the mouse;
+//   · the DISPLACEMENT drag asked "how far from wherever we were", so the relationship between thumb
+//     and star had no fixed value at all — it DRIFTED with every re-grip. That is what a trackpad gets
+//     away with only because the pad is not the screen and there is a cursor to watch.
+//
+// So the zone is a MINIATURE OF THE ARENA. One thumb position means one arena position, the same one,
+// for the whole run. Lift and put the thumb back in the same place and the star is where it was; there
+// is nothing to re-establish and nothing to accumulate.
+//   ⚠️ YOUR THUMB IS NOT ON THE STAR, AND CANNOT BE. Part of a screen is being mapped onto a whole
+// arena, so a thumb at zone x=200 puts the star at arena x≈796, which draws at screen x≈400 — the thumb
+// points at the star rather than carrying it. That is the price of steering from a zone narrower than
+// the screen, and it is paid by every absolute scheme that could fit in one. The pre-v2 control had the
+// star ON the thumb because it steered from the WHOLE screen and needed TOUCH_LIFT to stop the thumb
+// hiding it.
+//   The figures here are the 100% default, where the zone is half the width. `touchSens` widens it to
+// 83.3% at 60%, which SHRINKS the gap between thumb and star without closing it — the zone never reaches
+// the full width (`min(0.85, …)` holds it at 85%), so the thumb never lands on the star and TOUCH_LIFT
+// stays retired at every stop. That cap is load-bearing for this reason and not only for the corners.
+//
+// LETTERBOXED, NEVER STRETCHED. The zone is 437×402 CSS px on a landscape phone and the arena is
+// 1739×800 design units — aspect 1.09 against 2.17. Stretching to fill would scale x twice as hard as
+// y, so a 45° thumb sweep would send the star off at ~63° and every diagonal would lie. Fitting instead
+// costs vertical range: the arena's full height lands in the middle ~201px of the zone, and above or
+// below that band the star simply pins to the arena's edge — which is what the existing arena clamp
+// already does, so the band needs no code of its own.
+// ⚠️ `bandY` AND THE LETTERBOX WENT WITH THE ABSOLUTE MAP. They existed to fit a 2.17-aspect arena into
+// a 1.09-aspect zone without stretching the diagonals, which is a problem only a POSITION map has: both
+// controls here read thumb TRAVEL, and travel needs a scale, not a frame. Nothing letterboxes now.
 const STICK={
-  dead : 6,     // CSS px of slop around the origin. TAP_SLOP was 12 for a different job — telling a tap
-                // from a drag — and nothing has to make that distinction any more, so this can be
-                // tighter and the stick can answer sooner.
+  // ---- the rate stick. These three are v2's, unchanged, and they were tuned against the GAME rather
+  // than against any sensor, which is why they transfer intact.
+  dead : 6,     // CSS px of slop around the origin — below this the star does not move at all.
   full : 64,    // CSS px of deflection for full speed. A thumb pivots through about this much without
-                // the hand leaving its grip; past it the ORIGIN follows, so the player never runs out
-                // of stick before they run out of zone.
-  speed: 14,    // design units per frame at full deflection, before moveMult.
-                //   THE SAME NUMBER TILT USED, AND FOR THE SAME REASON — this is the one tuned figure
-                // that transfers intact from the control being retired, because it was set against the
-                // GAME rather than against the sensor: the fastest thing that hunts you is the Charger
-                // dash at CHG_SPD 9.5, Volley shots travel 8.4 and Comets 7.6, so 14 clears the Charger
-                // by ~47%. Multiplied by P.moveMult, so Overdrive lifts it to 19.6 exactly as it lifts
-                // every other kind of movement.
+                // the hand leaving its grip; past it the ORIGIN follows, so you never run out of stick
+                // before you run out of zone.
+  speed: 14,    // design units per frame at full deflection, before moveMult and before sensitivity.
+                //   ⚠️ THIS CEILING IS WHAT RETIRED THE STICK THE FIRST TIME. The complaint was that a
+                // touch player crossed open ground ~5x slower than a mouse player, whose chase is
+                // uncapped (0.185 of the gap can be 37px in one frame). 14 clears the Charger dash of
+                // 9.5 by ~47%, so it was never too slow to ESCAPE — it was too slow to TRAVEL. The
+                // sensitivity slider now scales it, which is the first time that complaint has had a
+                // knob attached to it; if it still reads slow at 100%, this number is the one to raise.
 };
-// ⚠️ NO LOW-PASS, AND THAT IS NOT AN OMISSION. Tilt smoothed because an accelerometer reading is noisy,
-// and the tilt block argues at length that the smoothing had to be a time constant rather than a
-// per-event fraction or the feel would be welded to the sample rate. A touch offset has none of that
-// problem: it is two integers the compositor has already resolved, exact on arrival. Filtering it would
-// buy nothing and cost lag — and lag is what this whole block exists to give back.
+let stickVec={x:0,y:0};        // unit-ish deflection, 0..1 of full — read once per frame by stepStick
+let stickOX=0, stickOY=0;      // the stick's origin in CSS px; it FOLLOWS past full deflection
 let stickId=null;              // the finger steering, so its release can be told from any other
-let stickOX=0, stickOY=0;      // the FLOATING origin: wherever this finger went down, and it moves
-const stickVec={x:0,y:0};      // unit direction x ramped magnitude, each component in [-1,1]
 let odTouchId=null;            // the finger HOLDING Overdrive, so its release can be told from any other
 const isTouch=e=>e.pointerType==='touch'||e.pointerType==='pen';
 
-// ZONE BOUNDS ARE IN CSS PIXELS, because pointer events are. Every other length in this file is in
-// design units and the single divide in setPointer() is what keeps that honest — this is the one input
-// that never converts, so it compares against the cached viewport halves and NOT against W/2 and H/2.
-// Those are design units: on a phone S is about 0.5, so W/2 is roughly the full screen width and every
-// touch on the device would resolve to 'move'.
-function zoneOf(x,y){
-  if(x<ZONE.x) return 'move';
-  return y<ZONE.y ? 'od' : 'flip';
-}
+// ⚠️ IT WRITES `pointer`, AND THAT IS THE POINT — there is no `stepStick` any more. The mapped position
+// is a TARGET, so it goes through the same `pointer` the mouse uses and is chased by the same line in
+// stepPlayer at 0.185 of the gap per frame. Touch therefore inherits the mouse's responsiveness exactly,
+// which is the other half of what was wrong before: the rate model's flat 14/frame ceiling made a touch
+// player ~5× slower across open ground than a mouse player, and no absolute model can reintroduce that
+// because it never names a speed at all.
+// ⚠️ THE ABSOLUTE MAP IS GONE, and with it the reason the sensitivity was ever the ZONE'S WIDTH. That
+// model's scale was pinned by "the zone shows the whole arena" — `k = zoneWidth/W` — so the only way to
+// change arena-units-per-pixel was to move the seam, and moving the seam narrowed the Overdrive and flip
+// quarters. Both controls here read thumb TRAVEL, whose scale is a free multiplier, so the seam is fixed
+// at half the width and the corners keep a full quarter each at every sensitivity. The cost the old
+// description had to apologise for is not a cost any more; it was the map's, and the map has left.
+//   The two live models, and the whole of the difference between them:
+//     ABS   thumb travel -> the star's POSITION.  Move 60px, the star moves 120px, then stops.
+//     STICK thumb deflection -> the star's VELOCITY. Hold it off-origin and the star keeps going.
+// One is a distance, the other is a rate, and no sensitivity value turns either into the other.
 
-function stickSet(x,y){
+// ONE KNOB, SCALING EACH MODEL'S OWN PARAMETER. 100% is the tuned value in both — 2.00x on screen for
+// ABS, v2's `speed:14` for STICK — so the default is the shipped feel and the slider only trims down.
+//   The range is 10-200 — see the store comment for why the old 60 floor was the deleted map's geometry
+// rather than anyone's feel decision.
+function touchScale(){ return store.touchSens/100; }
+// Design units of star per CSS px of thumb, in ABS. The 2 is the number the author asked to keep: at
+// 100% the star travels exactly twice as far as the thumb ON SCREEN, since `2/S` design units render as
+// `2` CSS px. It is written as the constant it is rather than derived from the zone, because it no
+// longer has anything to do with the zone.
+function absUnits(){ return 2/S*touchScale(); }
+// WHERE THE MOVE ZONE STARTS, in CSS px. 0 normally; inverted, the zone is flush to the right edge.
+function stickX0(){ return store.moveRight ? (ZONE.vw-ZONE.x) : 0; }
+
+// ---- ABS. Only TRAVEL counts, so the target accumulates instead of being assigned. ----
+// ⚠️ THE ACCUMULATOR IS CLAMPED TO THE ARENA, and it has to be. Left unbounded, a sweep past the edge
+// banks travel the player cannot see, and the drag back spends that debt before the star moves at all —
+// a control that stops responding for exactly as long as you overshot it. Clamping at the boundary
+// makes an overshoot cost nothing, which is what a trackpad against a screen edge already does.
+let stickRef={x:0,y:0};       // the last thumb position, in CSS px — the reference travel is measured from
+function stickAbs(x,y){
+  const u=absUnits();
+  pointer.x=clamp(pointer.x+(x-stickRef.x)*u, 0, W);
+  pointer.y=clamp(pointer.y+(y-stickRef.y)*u, 0, H);
+  stickRef.x=x; stickRef.y=y; pointer.has=true;
+}
+// ---- STICK. v2's rate control, brought across unchanged except for the sensitivity factor. ----
+// THE ORIGIN FOLLOWS PAST FULL DEFLECTION. Without it a thumb that goes down near the zone's edge runs
+// out of zone before it runs out of stick, so full speed is unreachable in that direction — a control
+// that is quietly weaker one way for a reason the player cannot see.
+function stickDeflect(x,y){
   let dx=x-stickOX, dy=y-stickOY;
   const m=Math.hypot(dx,dy);
-  // THE ORIGIN FOLLOWS PAST FULL DEFLECTION. Without it a thumb that goes down near the left edge runs
-  // out of zone before it runs out of stick, so full speed is unreachable in that direction — a control
-  // that is quietly weaker one way for a reason the player cannot see. Dragging the origin along keeps
-  // the whole range available from anywhere in the half, and lets you walk the stick across the zone the
-  // way a real one lets you hold a heading.
   if(m>STICK.full){
     const k=(m-STICK.full)/m;
     stickOX+=dx*k; stickOY+=dy*k;
     dx-=dx*k; dy-=dy*k;
   }
   const mm=Math.min(m,STICK.full);
-  // ⚠️ ONE DEAD ZONE ON THE MAGNITUDE, NOT ONE PER AXIS. Per-axis is what tiltCurve does and it is right
-  // for tilt, where the two axes really are two separate readings. A stick has ONE offset, and
-  // dead-zoning its components independently notches the diagonals: push at 45 degrees just past the
-  // threshold and both components are still individually suppressed, so the star does not move at all in
-  // the exact direction you are pointing.
+  // ⚠️ ONE DEAD ZONE ON THE MAGNITUDE, NOT ONE PER AXIS. Dead-zoning the components independently
+  // notches the diagonals: push at 45 degrees just past the threshold and both are still individually
+  // suppressed, so the star does not move at all in the exact direction you are pointing.
   if(mm<=STICK.dead){ stickVec.x=stickVec.y=0; return; }
   const r=(mm-STICK.dead)/(STICK.full-STICK.dead);   // linear past the dead zone; mm is already clamped
   stickVec.x=dx/mm*r; stickVec.y=dy/mm*r;
 }
-function stickClear(){ stickId=null; stickVec.x=stickVec.y=0; }
-
-// THE MOVE ZONE IS A RATE, NOT A POSITION, and the argument is the one the tilt block made at length —
-// it outlives tilt because it was never about the sensor. An offset from where you put your thumb down
-// means "keep going this way", not "be there". Feeding a rate through stepPlayer's position chase means
-// picking an offset whose chase velocity equals the speed you wanted, which silently welds this control
-// to that 0.185 coefficient: retune the chase for the mouse and touch changes speed for reasons nobody
-// would think to look for. So the stick adds velocity to P directly, exactly as the keyboard nudge does,
-// and stepPlayer's clamp and P.dx bookkeeping cover it on the very next line.
+// THE STICK ADDS VELOCITY TO P DIRECTLY rather than feeding a target to stepPlayer's chase, and that is
+// deliberate: expressing a rate as a position offset means picking an offset whose CHASE velocity equals
+// the speed you wanted, which welds this control to the 0.185 coefficient — retune the chase for the
+// mouse and touch silently changes speed. stepPlayer's clamp and P.dx bookkeeping cover it on the very
+// next line, exactly as they cover the keyboard nudge.
 function stepStick(){
-  if(stickId===null || !P) return;
+  if(stickId===null || store.touchMode!=='stick' || !P) return;
   pointer.has=false;                                 // the stick drives; the chase must let go
-  const sp=STICK.speed*P.moveMult;
-  P.x+=stickVec.x*sp; P.y+=stickVec.y*sp;            // stepPlayer clamps to the arena right after
+  const sp=STICK.speed*touchScale()*P.moveMult;
+  P.x+=stickVec.x*sp; P.y+=stickVec.y*sp;
+}
+
+function stickMove(x,y){ if(store.touchMode==='stick') stickDeflect(x,y); else stickAbs(x,y); }
+// ⚠️ THE GRAB IS WHERE THE TWO MODELS DIVERGE, so it is one function rather than a flag in the handler.
+// Neither banks anything on touch-down — ABS sets the travel reference, STICK sets the origin — which is
+// what makes a lift-and-regrip free in both.
+//   Deliberately NOT `reanchorPointer()` for ABS, though it looks like the same job: that sets
+// `settleT=1.0`, capping the follow speed for a second so a resuming run glides rather than teleports.
+// On a grab that is a full second of sluggish first drag, on every single touch-down.
+function stickGrab(x,y){
+  if(store.touchMode==='stick'){ stickOX=x; stickOY=y; stickVec.x=stickVec.y=0; return; }
+  stickRef.x=x; stickRef.y=y;
+  if(P){ pointer.x=P.x; pointer.y=P.y; }      // accumulate from where the star actually is
+  pointer.has=true;
+}
+// The star must STOP when the thumb lifts. ABS reanchors the target onto the core; STICK zeroes its
+// deflection, which is the same statement in the other model's units.
+function stickClear(){ stickId=null; stickVec.x=stickVec.y=0; reanchorPointer(); }
+
+// ZONE BOUNDS ARE IN CSS PIXELS, because pointer events are. Every other length in this file is in
+// design units, and the conversion in `absUnits`/`stepStick` is what keeps that honest — this is the one
+// input that never converts, so it compares against the cached viewport halves and NOT against W/2 and H/2.
+// Those are design units: on a phone S is about 0.5, so W/2 is roughly the full screen width and every
+// touch on the device would resolve to 'move'.
+function zoneOf(x,y){
+  if(store.moveRight ? (x>=ZONE.vw-ZONE.x) : (x<ZONE.x)) return 'move';
+  return y<ZONE.y ? 'od' : 'flip';
 }
 
 canvas.addEventListener('pointermove',e=>{
   if(!isTouch(e)){ setPointer(e.clientX,e.clientY); return; }
   if(e.pointerId!==stickId) return;                       // ignore every finger but the steering one
-  stickSet(e.clientX,e.clientY);
+  stickMove(e.clientX,e.clientY);
 });
 canvas.addEventListener('pointerdown',e=>{
   audioInit();   // the first gesture of a session lands on an HTML button, which never reaches the
@@ -11299,7 +11635,12 @@ canvas.addEventListener('pointerdown',e=>{
   switch(zoneOf(e.clientX,e.clientY)){
     // First finger into the half owns the stick. A second one there is ignored rather than stealing it:
     // a palm or a resting knuckle must not take the steering away from the thumb that is using it.
-    case 'move': if(stickId===null){ stickId=e.pointerId; stickOX=e.clientX; stickOY=e.clientY; stickVec.x=stickVec.y=0; } break;
+    // ⚠️ THE THREE LINES THAT STOOD HERE DESCRIBED A CONTROL THIS BRANCH DID NOT HAVE. They said the
+    // touch-down "sets the REFERENCE and banks nothing, so grabbing the stick never moves the star" —
+    // true of the retired displacement model, FALSE under the absolute map that replaced it (which
+    // assigned a target on contact), and true again now of both surviving models. It read as current
+    // prose across three controls, two of which it did not describe. See `stickGrab`.
+    case 'move': if(stickId===null){ stickId=e.pointerId; stickGrab(e.clientX,e.clientY); } break;
     case 'od':   if(odTouchId===null){ odTouchId=e.pointerId; overdrive(); } break;
     default:     flip();                                  // ON PRESS — see the top of this block
   }
@@ -11318,187 +11659,30 @@ window.addEventListener('pointerup',e=>{ if(!isTouch(e) && e.button===2) endOver
 window.addEventListener('pointercancel',()=>endOverdrive());
 
 // =====================================================================
-//  TILT  (the primary control on iOS)
+//  TILT — REMOVED
 // =====================================================================
-// WHY THIS DOES NOT GO THROUGH `pointer`. Everything else steers by naming a TARGET POSITION and letting
-// stepPlayer chase it at 18.5% of the gap per frame. Tilt is a RATE — an angle means "keep going this
-// way", not "be there". Feeding a rate through a position chase means picking an offset whose chase
-// velocity equals the speed you wanted, which silently welds this code to that 0.185 coefficient: retune
-// the chase for the mouse and tilt changes speed for reasons nobody would think to look for.
-//   So tilt adds velocity to P directly, exactly as the keyboard nudge does two lines below the chase
-// (stepPlayer). No shared constant, no coupling. `pointer.has` is cleared while tilt drives, or the chase
-// would drag the core back toward wherever the last touch left the target.
+// Tilt is gone: the CoreMotion bridge, `__nativeTilt`, `onTilt`, `tiltMap`, `tiltCurve`, the `TILT`
+// constants, `tiltVec`, `#tiltDiag` and `updateTiltDiag`. Roughly 180 lines of JS and the Swift half.
 //
-// SPEED, SET AGAINST WHAT IT HAS TO OUTRUN. The fastest thing that hunts you is the Charger dash at
-// CHG_SPD 9.5 units/frame; Volley shots travel 8.4, Comets 7.6. The keyboard nudge is 6.5, i.e. SLOWER
-// than a Charger, which is exactly why it is a nudge and not a control. 14 clears the Charger by ~47%.
-// It is multiplied by P.moveMult, so Overdrive lifts tilt to 19.6 just as it lifts every other movement.
-// One object rather than four consts, because these are the numbers that can only be settled by a human
-// holding a real phone — the Simulator does not synthesise device motion, so none of this can be dialled
-// in from here. As a live object they are tunable from the seam (__orbital.TILT.speed=17) between runs,
-// instead of costing a rebuild-and-reinstall per guess.
-const TILT={
-  dead : 3,     // degrees of slop around neutral. Hands tremble ~1°; below 3° nothing is meant.
-  full : 20,    // degrees from neutral for full speed — roughly the wrist's range before the screen
-                // tips far enough to be hard to read.
-  speed: 14,    // design units per frame at full deflection, before moveMult
-  // SMOOTHING AS A TIME CONSTANT, IN SECONDS — not a per-event fraction.
-  //   It was `ease:0.14` applied once per event, which silently welded the feel of the control to the
-  // SAMPLE RATE. Tuned against the web deviceorientation feed at 60Hz it meant ~110ms; the CoreMotion
-  // bridge then arrived at 30Hz and the identical coefficient became ~221ms to reach 63% and ~663ms to
-  // reach 95%. Nobody changed the smoothing and the controls got twice as slow. Reported as "tilt
-  // reaction is a little slow", which is exactly what 221ms is.
-  //   Expressed as tau it is rate-independent: 30Hz native and 60Hz web now feel identical, and a
-  // future change to the sample rate cannot quietly retune the game again.
-  //   70ms rather than the old 221ms also because CoreMotion hands us sensor-FUSED attitude, already
-  // filtered, where the web feed was raw enough to need the heavy averaging. Smoothing it twice was
-  // paying latency for noise that had already been removed.
-  tau  : 0.07,  // seconds to reach 63% of a new reading (95% at ~3x that)
-};
-
-let tiltOn=false, tiltReady=false, tiltRef=null;
-const tiltVec={x:0,y:0};                 // smoothed, dead-zoned, clamped to [-1,1] per axis
-const tiltRaw={beta:0,gamma:0,angle:0};  // last untouched reading, for the seam and for tuning on device
-// TWO WITNESSES, DOWN FROM THREE. The old set answered "which of four permission failures happened",
-// and there is no permission left to fail: the web sensor path is gone and the native bridge either
-// calls in or does not. What can still go wrong on a device is the feed STOPPING after it started, and
-// that is a question about time, not about verdicts — `tiltLastT` below answers it.
-let tiltEvents=0;                        // readings actually delivered; 0 means the bridge never called
-let tiltVerdict='none';                  // none | native — kept for the debug seam, not for logic
-
-// Neutral is wherever you were holding it when the run began — nobody plays with the phone flat, and the
-// comfortable angle differs per person and per posture (desk vs sofa vs bed). Clearing the reference makes
-// the next sample the new zero.
-let tiltLastT=0;   // performance.now() of the last reading; 0 means "no gap to measure yet"
-function tiltCalibrate(){ tiltRef=null; tiltVec.x=tiltVec.y=0; tiltLastT=0; }
-
-function tiltCurve(d){
-  const s=Math.sign(d), m=Math.abs(d);
-  if(m<=TILT.dead) return 0;
-  return s*Math.min(1,(m-TILT.dead)/Math.max(1,TILT.full-TILT.dead)); // linear past the dead zone, then clamped
-}
-
-// beta/gamma are in the DEVICE's frame and never rotate with the screen, so a landscape game must remap
-// them itself. screen.orientation.angle says how far the SCREEN has been turned from the device's native
-// portrait, and the two landscape cases differ by a sign on both axes — get this wrong and the game plays
-// mirrored in one hand and correct in the other.
-function tiltMap(db,dg,a){
-  if(a===90)  return {x: db, y:-dg};
-  if(a===270) return {x:-db, y: dg};
-  if(a===180) return {x:-dg, y:-db};
-  return {x: dg, y: db};                                       // 0 — portrait
-}
-
-function onTilt(e){
-  if(e.beta===null || e.gamma===null) return;                  // some devices report nulls before settling
-  tiltEvents++;                                                // counted BEFORE the maths: proves delivery
-  tiltOn=true;                                                 // DELIVERY is what turns tilt on, not a promise
-  const a=(window.screen && screen.orientation && typeof screen.orientation.angle==='number')
-    ? screen.orientation.angle : (window.orientation||0);
-  tiltRaw.beta=e.beta; tiltRaw.gamma=e.gamma; tiltRaw.angle=a;
-  if(tiltRef===null){ tiltRef={beta:e.beta,gamma:e.gamma}; tiltLastT=0; return; }  // this sample IS the new zero
-  const m=tiltMap(e.beta-tiltRef.beta, e.gamma-tiltRef.gamma, a);
-  const tx=tiltCurve(m.x), ty=tiltCurve(m.y);
-  // The smoothing factor comes from the time SINCE THE LAST READING, so the feel of the control does not
-  // depend on how fast the sensor reports.
-  //   The first reading after a calibration is SPENT, not guessed at. Assuming 1/60 for it instead left a
-  // measurable rate dependence — across 20-120Hz the same 200ms of tilt landed between 0.908 and 0.949,
-  // and only 60Hz matched theory, because the guess was only true at 60Hz. Skipping one sample costs
-  // ~16ms once per run, at the moment the phone is being held still to calibrate, and buys an identical
-  // response at every rate.
-  //   The 0.1s clamp covers a resume: after the app is backgrounded the gap can be minutes, exp() of that
-  // is 1, and the core would snap to full deflection on the first tick back.
-  const now=performance.now();
-  if(!tiltLastT){ tiltLastT=now; return; }
-  const gap=Math.min(0.1,(now-tiltLastT)/1000);
-  tiltLastT=now;
-  const k=1-Math.exp(-gap/Math.max(0.001,TILT.tau));
-  tiltVec.x+=(tx-tiltVec.x)*k;
-  tiltVec.y+=(ty-tiltVec.y)*k;
-}
-
-// TOMBSTONE — `stepTilt` IS GONE, AND WITH IT THE ONLY THING THAT EVER MOVED THE STAR BY TILT.
+// It stopped steering when the three-zone touch control landed, and was KEPT INTACT AND UNWIRED on the
+// argument that the bridge was ~40 lines of verified Swift and `TILT.tau` had taken two passes and a
+// measurement to settle, so it was worth preserving rather than re-deriving. That was a reasonable call
+// at the time and it has been overtaken: the control it would return to no longer exists. The move zone
+// is a DISPLACEMENT now (see the STICK block), and tilt is a rate — putting it back would not be
+// restoring a disabled feature, it would be designing a second steering model and deciding what happens
+// when it and a finger both ask for the star. That decision is the work; the code was never the work.
 //
-// It read `if(!tiltOn || touchSteers || !P) return;` and then added `tiltVec * TILT.speed * P.moveMult`
-// to P. The three-zone touch control replaced it (see the input block): the move half is a virtual stick
-// and `stepStick` now occupies its slot in `step()`, by the same route and for the same reason — a rate
-// added to P directly rather than a target fed through the position chase.
-//   ⚠️ EVERYTHING ABOVE THIS LINE STILL RUNS. The CoreMotion bridge still calls `__nativeTilt`, `onTilt`
-// still calibrates and smooths, and `tiltVec` is still maintained and still readable from the seam. What
-// no longer exists is a consumer. That is deliberate: the bridge is ~40 lines of verified Swift and the
-// smoothing below it is a tau that took two passes and a measurement to get right, so it is kept intact
-// and unwired rather than deleted and re-derived if tilt is ever wanted again.
-//   ⚠️ SO `tiltVec` IS NOW AN OBSERVATION, NOT A CONTROL. Anything that reads it is reading a sensor,
-// not the input the player is using. Do not reintroduce a consumer without deciding what happens when
-// both it and a finger ask for the star at once — the old answer was STRICT TILT-ONLY, and that answer
-// went with the control.
+// ⚠️ SO THIS IS NOT "DELETED, EASY TO RESTORE". `git log -- ios/App/App/*ViewController.swift` and the
+// history of this file have every line, and they are worth reading before anyone tries again — the web
+// `deviceorientation` path is a MEASURED dead end on this stack (the permission promise rejects inside
+// the Capacitor WebView even though Capacitor answers the real permission with `.grant`), which is why
+// the bridge was native in the first place. That finding outlives the code and is why `requestPermission`
+// must not simply be added back.
 //
-// `touchSteers` and `refreshTouchSteer()` are gone for the same reason. They existed to make tilt and
-// touch mutually exclusive, and there is nothing left to be exclusive of: touch is selected per event by
-// `isTouch(e)`, so a mouse and a finger no longer have to agree about what kind of device this is.
-
-// TOMBSTONE — WHY THERE IS NO `requestPermission` CALL ANYWHERE IN THIS FILE.
-// The web sensor was tried properly and measured on a real phone, and it does not work on the stack
-// this game ships on. iOS 13+ delivers nothing until `DeviceOrientationEvent.requestPermission()`
-// resolves from inside a user gesture, and it needs a secure context — `capacitor://localhost` and
-// https qualify, a plain `http://192.168.x.x` served to a phone for testing does not. Inside the
-// Capacitor WebView the promise REJECTS outright even though Capacitor's WKUIDelegate answers the real
-// permission with `.grant` (WebViewDelegationHandler.swift): the JS permission API and the native
-// sensor gate are two different doors, and the JS one is nailed shut.
-//   That is why the bridge below is native, and why the last of the web path went with the Settings
-// switch: the only browser it still worked in was Android Chrome, where it auto-armed with no way for
-// the player to refuse. Do not add it back without a switch to escape it.
-//
-// TILT IS A NATIVE-ONLY CONTROL NOW, AND DELIVERY IS THE ONLY THING THAT TURNS IT ON.
-//
-// It used to be a stored preference defaulting to `matchMedia('(pointer: coarse)')`, with a Settings
-// switch to escape it. That pairing was load-bearing in a way neither half admitted: STRICT TILT-ONLY
-// (see the input block) means a device on tilt does not steer by touch AT ALL, so every phone BROWSER
-// booted into a state where the star could not be moved unless a `deviceorientation` event actually
-// arrived — and on iOS Safari it arrives only if the player accepts a permission prompt. Miss the
-// prompt and the game is inert; the Settings switch was the sole way out, which is why every string in
-// the old `tiltFault()` ended "Turn Tilt off in Settings to steer by touch".
-//   The switch is gone, so that default cannot stay. Rather than replace one guess about the device
-// with another, the rule is now the same one `onTilt` already applies one level down — DELIVERY is the
-// verdict, not a promise and not a media query. `tiltDevice` is false everywhere until the native
-// CoreMotion bridge below hands over a reading, and nothing else can set it. Web and desktop steer by
-// pointer from boot; the iOS shell is on tilt from its first callback, ~33ms in.
-//   ⚠️ `orbitalcrash_tilt` IS DELIBERATELY NOT READ. Anyone who ever switched tilt ON in a phone
-// browser has '1' sitting in localStorage, and honouring it now would strand exactly the players this
-// change exists to rescue — with no switch left to undo it. The key is inert, not migrated.
-//   ⚠️ THE WEB `deviceorientation` PATH IS GONE ON PURPOSE, not by omission. On Android Chrome
-// `requestPermission` does not exist, so the old arming call attached the listener and readings simply
-// flowed — which after this change would hand an Android web player a tilt-steered game with nothing to
-// press. On iOS the web sensor was already measured to be a dead end inside the Capacitor WebView. So
-// there is one feed, it is native, and `onTilt` can no longer be reached twice.
-let tiltDevice=false;
-
-// NATIVE FEED. The iOS shell reads CoreMotion and calls this (ios/App/App/MotionBridgeViewController.swift,
-// 60Hz — it went 30 -> 60 to halve the staleness of a reading against a 16ms step), because WebKit will
-// not deliver the web sensor in that WebView.
-//   It hands over the SOURCE of two numbers and nothing else: the calibration, dead zone, orientation
-// remap, low-pass and speed curve all stay here, where they were already verified. onTilt cannot tell
-// the difference, and neither can anything downstream — which is why this is a bridge rather than a
-// second implementation of tilt.
-//   The takeover happens once and is also the moment this device becomes a tilt device. Calibrating
-// here matters: it re-zeros to however the phone is being held on the first reading.
-window.__nativeTilt=(beta,gamma)=>{
-  if(!tiltDevice){
-    tiltDevice=true; tiltReady=true; tiltVerdict='native';
-    tiltCalibrate();                                        // re-zero: this is a new sensor's frame
-  }
-  onTilt({beta,gamma});
-};
-// ⚠️ IT NO LONGER CHANGES HOW THE GAME IS STEERED. This used to call `refreshTouchSteer()` on the first
-// reading, and that one line was the whole takeover: the finger stopped steering ~33ms into the session
-// and the player never saw it happen. Both are gone. `tiltDevice` now records only that a bridge exists,
-// which is a fact about the shell and not a decision about the control.
-
-// THE TOUCH LEGEND IS STATIC NOW, so there is no paintTouchCtl(). It had one job — the steering line was
-// the single row that differed between a web phone (drag) and the native app (lean), and it had to be
-// REPAINTED rather than written at boot because a native shell starts as a touch device and became a
-// tilt device a frame or two later. With one touch scheme on every device, all three rows are the same
-// three rows everywhere and the HTML can just say them.
+// What survives here and is still true: the RATE argument, now living in the STICK block as the reason
+// the model was wrong for a finger, and the SAMPLE-RATE scar — tilt's smoothing was a per-event fraction,
+// so a bridge change from 30Hz to 60Hz silently halved the control speed. That is why the stick banks its
+// displacement and applies it on the fixed tick instead of writing P from a pointer handler.
 // Right-click no longer IGNITES — pointerdown already did, and on the platforms that raise contextmenu on
 // press rather than release this fired a second time in the same gesture. It only suppresses the menu now.
 canvas.addEventListener('contextmenu',e=>{ e.preventDefault(); });
@@ -11565,6 +11749,12 @@ let AC=null, master=null, ambGain=null, ambFilter=null, ambReady=false, ambNoteT
 // nothing, and dropping the track in needs no code change — only a `sw.js` CACHE bump.
 const MUSIC_URL='audio/music.mp3';
 let musEl=null, musGain=null, musOk=false;
+// ⚠️ WHY THE TRACK IS NOT PLAYING, KEPT RATHER THAN DISCARDED. `musOk` is a boolean and every failure
+// collapses into the same `false`: no file, a corrupt file, a codec the engine will not take, an
+// autoplay refusal. Those want different fixes and used to be indistinguishable — the play() rejection
+// went into an empty `.catch`, so a blocked track and an absent one both presented as silence with the
+// procedural bed running and nothing anywhere to read. Surfaced on the seam via `audio()`.
+let musWhy='';
 let compOut=null;                      // the compressor, held for the seam — see where it is built
 function audioInit(){
   if(AC){ if(AC.state==='suspended') AC.resume(); return; } // heal a context left suspended (e.g. quit from pause)
@@ -11613,8 +11803,20 @@ function buildAmbient(){
       musGain=AC.createGain(); musGain.gain.value=0.0001; musGain.connect(master);
       AC.createMediaElementSource(musEl).connect(musGain);
       musEl.addEventListener('canplaythrough',()=>{ musOk=true; },{once:true});
-      musEl.addEventListener('error',()=>{ musOk=false; });   // no track yet: the procedural bed stays
-    }catch(e){ musOk=false; }
+      musEl.addEventListener('error',()=>{ musOk=false; musWhy='load'; });  // no track yet: the bed stays
+      // ⚠️ THE ONLY play() THAT HAPPENS INSIDE A GESTURE, AND THAT IS THE WHOLE REASON IT IS HERE.
+      // `updateAmbient` drives the element from the rAF frame, where the gesture is long out of the call
+      // stack — fine in the Capacitor WebView, which opts out of the requirement entirely
+      // (`mediaTypesRequiringUserActionForPlayback = []` in CAPBridgeViewController), but NOT fine in
+      // mobile Safari, where this same file runs as an installed PWA and the first play() must be
+      // user-initiated. Every route into audioInit() is a gesture handler — the Start button through
+      // startRun, the volume slider's `input`, the canvas `pointerdown` — and buildAmbient is called
+      // synchronously from it, so this call inherits the activation and every later one is no longer
+      // the first. Inaudible: musGain is at 0.0001 until updateAmbient raises it, and updateAmbient
+      // pauses the element again on the next frame if the run has not asked for it.
+      musEl.play().then(()=>{ if(!(AC&&AC.state==='running'&&gainNow()>0)) musEl.pause(); })
+                  .catch(e=>{ musWhy=e&&e.name||'play'; });
+    }catch(e){ musOk=false; musWhy='build:'+((e&&e.name)||'?'); }
   }catch(e){}
 }
 function updateAmbient(inten,dt){
@@ -11623,7 +11825,7 @@ function updateAmbient(inten,dt){
   // pause, so the track would drift by exactly the length of every pause and resume somewhere else.
   if(musEl){
     const want = AC && AC.state==='running' && gainNow()>0;
-    if(want && musEl.paused) musEl.play().catch(()=>{});
+    if(want && musEl.paused) musEl.play().catch(e=>{ musWhy=e&&e.name||'play'; });
     else if(!want && !musEl.paused) musEl.pause();
   }
   if(!ambReady || !AC || AC.state!=='running')return; // don't schedule notes while suspended (pause / hidden tab)
@@ -12022,7 +12224,10 @@ window.__orbital=window.__polaris=window.__flux={
   // every voice used to sum straight into the destination and blow past 1.0 in a dense fight.
   audio(dt){ const d=dt||1/60;
     if(AC){ updateAmbient((state==='play')?intensity:0.08, d); updateHeart(d); }
-    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), stormT:+stormT.toFixed(3), gain:gainNow()}; },
+    // `musWhy` rides along because `musOk:false` alone cannot say WHICH failure it is, and the two it
+    // most often means — no file at all, and a refused play() — take opposite fixes.
+    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), stormT:+stormT.toFixed(3), gain:gainNow(),
+            musOk, musWhy, musPaused:musEl?musEl.paused:null, musT:musEl?+musEl.currentTime.toFixed(2):null}; },
   bus(){ return AC?{ctx:AC, master, comp:compOut, panMax:PAN_MAX, stormAt:STORM_AT, hpLow:HP_LOW}:null; },
   sfx,
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
@@ -12030,26 +12235,25 @@ window.__orbital=window.__polaris=window.__flux={
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
       odOn, odCd:+odCd.toFixed(3), odCount, odTotal:+odTotal.toFixed(2), odT:+odT.toFixed(2)}; },
   get odLog(){return odLog;}, get anomLog(){return anomLog;}, get hitLog(){return hitLog;},
-  // TILT. `raw` is the untouched sensor reading and `vec` the smoothed [-1,1] result, so a mirrored or
-  // dead axis can be told apart on a real phone: raw moving while vec stays 0 is a dead zone or a
-  // permission that never landed; vec moving the wrong way is a sign error in tiltMap for THIS angle.
-  tilt(){ return {on:tiltOn, ready:tiltReady, ref:tiltRef, raw:{...tiltRaw},
-                  vec:{x:+tiltVec.x.toFixed(3), y:+tiltVec.y.toFixed(3)},
-                  events:tiltEvents, verdict:tiltVerdict, device:tiltDevice,
-                  // What the smoothing actually costs you, in ms, rather than as a coefficient to
-                  // reason about. 63% is the honest "it responded" figure; 95% is "it has arrived".
-                  lagMs:{to63:Math.round(TILT.tau*1000), to95:Math.round(TILT.tau*3000)},
-                  staleMs:tiltLastT?Math.round(performance.now()-tiltLastT):null,
-                  // ⚠️ `steers:false` IS THE WHOLE STATUS OF THIS OBJECT. Everything above is a live
-                  // sensor reading that moves nothing — see the `stepTilt` tombstone. It is reported so
-                  // the bridge can still be checked on a real phone, not because the game reads it.
-                  steers:false, TILT:{...TILT}}; },
-  TILT, tiltCalibrate,
-  // THE CHASE, EXPOSED FOR THE REASON TILT IS: a feel number cannot be settled off a bot, so it has to
-  // be movable between runs without a reload. `FOLLOW.sens=1.6` is the live tune; `applyFollowSens(160)`
-  // is the same thing through the setter, which also persists it and repaints the row.
+  // ⚠️ THE `tilt()` REPORTER AND `TILT, tiltCalibrate` CAME ACROSS IN THIS MERGE AND WERE DROPPED ON
+  // PURPOSE — do not restore them by taking "both sides" the next time this conflicts. v2 still keeps
+  // tilt as an inert observation; THIS branch deleted the machinery outright, so `const TILT`, `tiltOn`,
+  // `tiltRaw`, `tiltVerdict`, `tiltDevice` and `tiltLastT` do not exist here at all. `TILT,` is
+  // shorthand in an OBJECT LITERAL, which evaluates at construction rather than on call, so carrying it
+  // over is not a dormant reference in a method nobody calls — it is a ReferenceError while
+  // `window.__orbital` is being built, i.e. the game does not boot. The kind `node --check` does not
+  // catch. Merge conflicts here are asymmetric: everything else in this file's settings work is
+  // additive, this one is a deletion, and a deletion looks identical to an empty side.
+  //
+  // THE CHASE, EXPOSED BECAUSE A FEEL NUMBER CANNOT BE SETTLED OFF A BOT — it has to be movable between
+  // runs without a rebuild-and-reinstall per guess, which on this branch is the expensive direction.
+  // `FOLLOW.sens=1.6` is the live tune, and it is now the ONLY way in — the setter and the settings row
+  // it persisted to are both deleted on this branch, so a value set here lasts until reload and no
+  // further. That is the right shape for a feel number nobody has settled yet.
   //   `lf` is what the physics actually uses this frame — the product after moveMult and the clamp — so
-  // a harness can assert the setting reached the sim rather than only that the store holds it.
+  // a harness can assert the setting reached the sim rather than only that the store holds it. On this
+  // branch that matters more than it did on v2: touch rides this chase, so `lf` is the touch control's
+  // response and not just the mouse's.
   FOLLOW, applyFollowSens,
   get lf(){ return clamp(FOLLOW.k*FOLLOW.sens*(P?P.moveMult:1),0,FOLLOW.cap); },
   // THE TOUCH ZONES, EXPOSED BECAUSE A SIMULATOR CANNOT PINCH AND A DESKTOP BROWSER HAS NO FINGERS.
@@ -12057,14 +12261,29 @@ window.__orbital=window.__polaris=window.__flux={
   // to assert the partition without synthesising a single event. `stick()` reports the live vector and
   // its floating origin, so a recorded drag can be checked against the speed it was supposed to ask for.
   zoneOf, STICK, get ZONE(){return {...ZONE};},
-  stick(){ return {id:stickId, ox:stickOX, oy:stickOY,
+  // ⚠️ THE `pending` FIELD THIS COMMENT USED TO DESCRIBE HAS NOT EXISTED SINCE THE DISPLACEMENT MODEL
+  // WAS RETIRED, and the sentence after it ("a displacement control does not have one") described that
+  // same deleted control. Both read as current prose for two whole models. Kept as a note rather than
+  // deleted silently, because this is the third stale-comment instance in the touch block alone.
+  //   ⚠️ THE TWO MODELS REPORT DIFFERENT QUANTITIES BECAUSE THEY ARE DIFFERENT QUANTITIES. `absUnits`
+  // is a DISTANCE ratio (arena units per CSS px of travel) and `stickSpeed` is a RATE (units per frame
+  // at full deflection). A single `unitsPerCssPx` field covering both, which is what stood here, would
+  // be a number that means two things — and both are read off the live functions rather than restated,
+  // since a probe reciting the formula is how it comes to disagree with what it measures.
+  //   `vec` and `origin` are the stick's live state; `ref` is ABS's travel reference. `x0` is the zone's
+  // near edge, 0 normally and non-zero when mirrored.
+  stick(){ return {id:stickId, mode:store.touchMode, moveRight:store.moveRight, sens:store.touchSens,
+                   x0:+stickX0().toFixed(1),
+                   absUnitsPerCssPx:+absUnits().toFixed(3),
+                   stickSpeedPerFrame:+(STICK.speed*touchScale()).toFixed(2),
                    vec:{x:+stickVec.x.toFixed(3), y:+stickVec.y.toFixed(3)},
-                   maxUnitsPerFrame:STICK.speed*(P?P.moveMult:1)}; },
-  // THE SKY CACHE'S INSTRUMENT. `SKY.every` is the repaint cadence — set it to 1 for the no-cache arm
-  // (see THE SKY CACHE) — and `fps()` hands back a COMPOSITED frame count with the wall time it took.
-  // Two samples and a subtraction, rather than an average whose window this file would have had to pick.
+                   origin:{x:+stickOX.toFixed(1), y:+stickOY.toFixed(1)},
+                   ref:{x:stickRef.x, y:stickRef.y},
+                   target:{x:+pointer.x.toFixed(1), y:+pointer.y.toFixed(1), has:pointer.has}}; },
+  // `SKY.every` is the repaint cadence — set it to 1 for the no-cache arm. The frame numbers come off
+  // `probe()` below, which is the only frame instrument in the file; see the note where the second one
+  // was removed.
   SKY,
-  fps(){ return {frames:frameN, ms:Math.round(performance.now()-frameT0), every:SKY.every}; },
   // THE FRAME PROBE (see its block above frame()). `probe()` reads the live accumulators; `probeArm()`
   // sets the flag and reloads, because arming has to happen before the first frame to be worth reading.
   // `probeLast()` returns the flushed record from a PREVIOUS run — that is the one to trust on a device,
