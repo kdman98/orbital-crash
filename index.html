@@ -4902,6 +4902,77 @@ const CHG_WIND=0.9, CHG_SPD=9.5, CHG_DECAY=0.99, CHG_REACH=250, CHG_DASH=1.2;
 // dash 0.5 + rest 0.9), so 5 makes the majority of its life the window where it is yours, without
 // deleting it from the fight the way retiring it permanently did.
 const CHG_COOL=5;
+// THE ARROWHEAD'S HEADING, AS STATE RATHER THAN AS AN EXPRESSION — and it is state because the thing it
+// has to survive is a body that has STOPPED. Author: *"why does charger changes direction after dash?
+// doesnt affect game since it enters resting time, but it changes direction."*
+//   ⚠️ WHAT IT WAS DOING, MEASURED. The hull read its angle from three sources with nothing guarding the
+// handover: the locked aim while winding or dashing, the live velocity above 0.4 px/frame, and `e.ph`
+// below it. `e.ph` is `rand(0,TAU)` STAMPED AT SPAWN — a rotation phase for the Bomber's blink and the
+// hexagon's spin, not a heading — so the fallback pointed nowhere in particular. Traced one cycle with
+// `ph` pinned to 108.9 deg: the dash ends at frame 85 still reading 170.1, the rest state bleeds velocity
+// at 0.84/frame, and at frame 102 the speed crosses 0.4 and the angle SNAPS 61.3 deg to `e.ph` — 0.28s
+// after the dash, in the middle of the rest, which is exactly where it was reported. It snaps a second
+// time (19.2 deg) when the spent body picks up speed and the velocity branch takes over again.
+//   THE FIX IS TO REMEMBER, NOT TO PICK BETTER. A parked body has no velocity to derive a heading from,
+// so the honest answer is the last heading it had: it went that way, and it has not turned since. `e.ha`
+// holds it, `e.ph` seeds it so a body that has never moved still has an angle, and the target below is
+// simply absent when nothing defines it — absent means HOLD, which is the whole repair.
+//   ⚠️ AND IT EASES RATHER THAN ASSIGNS, which is what makes the rest -> wind -> dash sequence read as one
+// movement. Every state change moves the target discontinuously and easing absorbs all of them at once:
+// the wind-up becomes the Charger visibly TAKING AIM over its 0.9s instead of the hull teleporting onto
+// the lane, and the arrival at `rest` is already aligned because the dash target IS the dash velocity.
+// 0.25/frame is 63% in 3.5 frames and 95% in 10 — under a fifth of a second, so it never reads as lag on
+// a body that is genuinely turning, and it is 54 frames of wind-up against 10 needed to settle.
+//   ⚠️ IT MUST NOT BE COMPUTED IN drawEnemies, and that is not a style preference: that loop also draws
+// `contactGhost`, a SNAPSHOT, and its opening comment turns on the loop never writing to `e`. Heading is
+// state now, so it belongs to the step. Called from the tail of stepCharger for an armed body and from
+// the spent branch for a cooling one, because those are the two paths a Charger can take through a frame.
+const CHG_TURN=0.25;
+// ⚠️ AND A CEILING ON THE STEP, BECAUSE AN EXPONENTIAL EASE FRONT-LOADS. `d*0.25` of a 180-degree
+// reversal is 45 degrees on the first frame — which is what a Charger that dashed PAST you and has to
+// turn around actually asks for, and it read as a snap rather than as a turn (measured 37.4 deg in one
+// frame before this line existed). The cap converts the large case into a constant angular rate, which
+// is what a body physically rotating looks like, while leaving small corrections to the ease.
+//   0.15 rad/frame = 8.6 deg/frame = 516 deg/s, so a full reversal takes 21 frames (0.35s) and the ease
+// governs anything under 34 degrees. SIZED AGAINST THE BODY'S OWN TURN RATE so the arrow cannot lag a
+// Charger that is genuinely travelling: sweeping its velocity direction over 337 approach frames with
+// the Star circling it, the median is 1.34 deg/frame and p90 is 7.21 — both inside the cap. The tail
+// runs to 23 deg/frame and is deliberately NOT covered: those frames are a nearly-stationary body
+// whose seek keeps re-pointing it, i.e. direction that is noise rather than travel, and an arrowhead
+// that whipped around to follow it would be reporting the noise.
+const CHG_TURN_MAX=0.15;
+function aimCharger(e){
+  if(e.ha===undefined) e.ha=e.ph;
+  let t=null;
+  // WIND: the direction to the LOCKED POINT, from where the body is NOW — which is the line the telegraph
+  // already draws and the line the dash will actually fly. It is deliberately NOT `e.aimx/e.aimy`: that
+  // pair is captured when the wind STARTS and never updated, while the body keeps drifting (`vx*=0.8`),
+  // so the hull and the dashed lane were pointing at two different things for the whole wind-up. The dash
+  // re-derives its heading from this same vector — see the wind->dash branch — so pointing here is what
+  // makes the promise and the delivery one direction.
+  if(e.cst==='wind' && e.tgx!==undefined){
+    const ax=e.tgx-e.x, ay=e.tgy-e.y;
+    if(Math.hypot(ax,ay)>0.001) t=Math.atan2(ay,ax);
+  } else {
+    // EVERYTHING ELSE READS VELOCITY, INCLUDING THE DASH. The dash could read the locked point too and it
+    // would be the same line — but the body ARRIVES at that point, so `tgx-e.x` goes to zero on the last
+    // frames and the angle it yields is noise. Velocity is the same direction and never degenerates.
+    const sp=Math.hypot(e.vx,e.vy);
+    if(sp>0.4) t=Math.atan2(e.vy,e.vx);
+  }
+  if(t===null) return;                       // nothing defines a heading this frame: HOLD, do not invent
+  // shortest way round, so a target across the -pi/+pi seam turns the short way instead of unwinding
+  let d=t-e.ha;
+  d=((d+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+  e.ha+=clamp(d*CHG_TURN, -CHG_TURN_MAX, CHG_TURN_MAX);
+  // ⚠️ AND THE ANGLE ITSELF IS WRAPPED, WHICH IS NOT COSMETIC. `+=` alone never brings it back inside
+  // a turn: a Charger that keeps turning the same way accumulates, and this was reading -512 degrees
+  // after three cycles in a 900-frame trace. `cos`/`sin` do not care until the magnitude is large
+  // enough to eat their precision, and a long session is exactly where that arrives — silently, as a
+  // hull that drifts off its own heading. It also makes the value unreadable from the seam, which is
+  // how the accumulation was spotted.
+  e.ha=((e.ha+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+}
 function stepCharger(e,dt){
   if(!e.cst){ e.cst='approach'; e.ct=0; }
   const dx=P.x-e.x, dy=P.y-e.y, d=Math.hypot(dx,dy)||1;
@@ -4953,6 +5024,7 @@ function stepCharger(e,dt){
     if(e.ct>0.9){ e.spent=true; e.cool=CHG_COOL; e.cst='approach'; e.ct=0; }
   }
   e.x+=e.vx; e.y+=e.vy;
+  aimCharger(e);          // after the move, so `wind` aims from where the body actually is this frame
 }
 
 // ---- boss "anomaly" ----
@@ -7018,6 +7090,15 @@ function stepEnemyForces(dt){
     if(e.type==='charger' && e.spent){
       e.cool-=dt;
       if(e.cool<=0){ e.spent=false; e.ring=0; e.cst='approach'; e.ct=0; }
+      // A SPENT CHARGER STILL POINTS SOMEWHERE, and this is the branch that owns it: it skips
+      // stepCharger for the whole cooldown, so without this its heading would freeze for five seconds
+      // while the Field visibly drags the body around.
+      // ⚠️ GUARDED ON `e.spent` AFTER the re-arm above, so the call happens EXACTLY ONCE PER FRAME. The
+      // two `if(e.type==='charger'…)` blocks here are sequential rather than exclusive — a body that
+      // re-arms on this frame falls straight into stepCharger below on the SAME frame — so an
+      // unguarded call ran the turn twice and the measured worst-case step went 8.6 deg to 11.0. Small,
+      // and it made the cap a number that was not true, which is the part worth closing.
+      if(e.spent) aimCharger(e);
     }
     if(e.type==='charger' && !e.spent){ stepCharger(e,dt); continue; }
     // FORMATION FLIGHT: while `hold` runs, a Dot flies its assigned vector and ignores seek and the
@@ -9449,8 +9530,12 @@ function drawEnemies(){
       // that and travels on a line of its own, so drawing it as one more disc set the wrong expectation
       // — players waited for it to join the ring, and it never does. A hard angular hull pointed along
       // its heading says "this one is not yours to gather, it is going somewhere".
-      const ha=(e.aimx!==undefined && (e.cst==='wind'||e.cst==='dash')) ? Math.atan2(e.aimy,e.aimx)
-             : (Math.hypot(e.vx,e.vy)>0.4 ? Math.atan2(e.vy,e.vx) : e.ph);
+      // ⚠️ ONE STORED ANGLE, EASED IN THE STEP — see `aimCharger`, which is also where the argument is.
+      // This used to be a three-way expression evaluated here, and its bottom branch fell through to
+      // `e.ph`, a random spawn phase, whenever the body slowed below 0.4 px/frame: the hull snapped 61
+      // degrees in one frame, 0.28s into every rest. It cannot be computed here now even if it were
+      // still cheap to: heading is state, and this loop draws `contactGhost` and must not write to `e`.
+      const ha=e.ha??e.ph;
       const ca=Math.cos(ha), sa=Math.sin(ha), R=RD*1.25;
       ctx.beginPath();
       ctx.moveTo(e.x+ca*R,            e.y+sa*R);                       // nose
@@ -9502,7 +9587,13 @@ function drawEnemies(){
       // ran long down the heading would claim lethal space that does not collide, and it would claim it in
       // a direction that ROTATES. That is why the ellipse is not allowed to be the hull shape.
       const hv=Math.hypot(e.vx,e.vy);
-      const ha=hv>0.35?Math.atan2(e.vy,e.vx):e.ph;   // parked bodies keep their last sensible axis
+      // ⚠️ THIS COMMENT SAID "parked bodies keep their last sensible axis" AND THAT IS NOT WHAT IT DOES.
+      // `e.ph` is `rand(0,TAU)` stamped at spawn, so a Harrier that drops under 0.35 px/frame — parked in
+      // a stalled ring, or shoved to a stop by the Wind — snaps to an angle unrelated to anything it has
+      // ever done. It is the same defect the Charger had and `aimCharger` fixes, and switching this line
+      // over is one call; it is left alone because the Charger is what was asked for and this species is
+      // rarely still. Do not re-derive "it keeps its axis" from the old sentence: measure it first.
+      const ha=hv>0.35?Math.atan2(e.vy,e.vx):e.ph;
       const hc=Math.cos(ha), hs=Math.sin(ha), hoff=RD*0.30;
       ctx.beginPath(); ctx.arc(e.x-hc*hoff, e.y-hs*hoff, RD*0.72,0,TAU); ctx.fill();
       ctx.beginPath(); ctx.arc(e.x+hc*hoff, e.y+hs*hoff, RD*0.72,0,TAU); ctx.fill();
@@ -9745,7 +9836,12 @@ function drawEnemies(){
         // the player is looking for that edge hardest. Stand visibly clear of it and take 16 damage.
         // A glow at the nose says "this end is about to happen to you" and states no distance at all.
         // Peak extent 0.55r + 0.38r = 0.93r, inside the hull by construction.
-        const nha=(e.aimx!==undefined)?Math.atan2(e.aimy,e.aimx):e.ph;
+        // THE SAME ANGLE AS THE HULL, deliberately: the nose is the hull's own tip heating up, so a
+        // second source would let the glow sit off the point it is supposed to be on. It read
+        // `atan2(aimy,aimx)` — the pre-drift aim — while the lane below drew to the locked point from
+        // the CURRENT position, so the two marks in this same block disagreed by the whole of the
+        // wind-up drift. Both are now the line the dash will actually fly.
+        const nha=e.ha??e.ph;
         ctx.fillStyle=hexA('#ffffff',0.35+0.6*t);
         ctx.beginPath();
         ctx.arc(e.x+Math.cos(nha)*RD*0.55, e.y+Math.sin(nha)*RD*0.55, RD*(0.16+0.22*t),0,TAU);
