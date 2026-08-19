@@ -14,6 +14,28 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-19
 
+### The Anomaly hits for 20 on contact, and the ternary that priced the difference is gone with it `v2` `1d9c373`
+All four kinds now deal `BOSS_DMG` = 20 on contact. The three older kinds were 30; the Singularity was
+already 20 through `DRAW_DMG`, so the two arms of `variant==='singularity' ? DRAW_DMG : 30` became the
+same number and the ternary collapsed — two constants agreeing by accident, which is the fault `dc3b242`
+is named after, three commits earlier. `DRAW_DMG` retires into `BOSS_DMG`; its IFRAME arithmetic moves
+with it unchanged (20 is **not** 20 dps — `IFRAME` is 0.8, so contact is ~25 effective dps delivered in
+20-point bites, and the bite is what the player reads).
+
+⚠️ **What the old split was pricing is still true and is now unpriced.** The 30 was priced against
+RECOIL: the three older kinds land one hit and break off, so it was one readable hit you could have
+walked away from, while the Singularity does not recoil and the same 30 would have been ~37 unanswerable
+dps parked on your skin. The recoil difference has not gone anywhere — it is simply no longer paid for,
+so at a flat 20 the **Singularity now has the harshest contact in the roster** in dps terms (20 per
+`IFRAME` window, continuously) against three kinds that take 20 once and let go. If that needs answering,
+the lever is the recoil, not this number. MECHANICS' "do not tidy the dmg back to the shared 30" is
+rewritten around that: the surviving half of the instruction is *do not fold this kind into the recoil
+branch*, and it carries more weight now than when it was written.
+
+Contact stays **flat across Epochs**, unlike a Dot's — `spawnEnemy` scales by `aDmg` and this does not.
+Verified live: all four variants report `dmg: 20` at spawn, and a Star parked on an Emitter takes
+20-point bites where it took 30.
+
 ### Larger Dots — a setting that grows the hull and leaves the hitbox where it was `v2` `fc8c10e` `v2-ios` `2428dfb`
 A Dot's drawn hull is now `e.r + DOT_BLOOM` (3 design units) when **Larger Dots** is on, and `e.r`
 when it is off. `ETYPE` is byte-identical either way: **not one line of the stat table is in the diff**,
