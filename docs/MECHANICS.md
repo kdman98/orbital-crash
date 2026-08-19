@@ -1582,14 +1582,24 @@ the Anomaly itself, and this kind simply removes your answer to them for a while
   `HUNT_SPD.singularity`. **Its Draw is its Hunt** — it drives `b.hunt` itself and is excluded from the
   generic hunt scheduler, because it has no station to leave.
 
-**Contact is a rate, not a hit, and that is what makes it legal.** `dmg` is 20 rather than the shared 30,
-set per-kind, and this kind is the only one that **does not recoil** on touching you. Those two facts are
-one decision. The recoil exists because a 30-damage touch that is never consumed is ~37 unanswerable dps
-parked on your skin — the object that branch's own comment forbids. The objection is to a hit you cannot
-answer, not to contact: at 0.9 against your 14, walking off it is always available and always free,
-*outside a Draw*. Inside one it is 20 a window by design, and the answer is the Overdrive that beats the
-cap. ⚠️ **Do not "tidy" the `dmg` back to the shared 30, and do not fold this kind back into the recoil
-branch.** Either alone reintroduces the fault; they only work as a pair.
+**Contact is a rate, not a hit, and that is what makes it legal.** This kind is the only one that **does
+not recoil** on touching you. The objection is to a hit you cannot answer, not to contact: at 0.9 against
+your 14, walking off it is always available and always free, *outside a Draw*. Inside one it is `BOSS_DMG`
+a window by design, and the answer is the Overdrive that beats the cap.
+
+⚠️ **This used to be half of a priced pair and is now unpriced, which is a live imbalance rather than a
+tidy-up.** Contact was 30 for the three older kinds and 20 here, and the split was the price of the
+recoil: they land one hit and break off, so 30 was one readable hit you could have walked away from,
+while an unconsumed 30 on a body that never lets go is ~37 unanswerable dps — the object that branch's
+own comment forbids. On **2026-08-19 the shared number came down to 20** at the author's request, so both
+arms became `BOSS_DMG` and the ternary collapsed. The recoil difference did not go anywhere. At a flat 20
+the Singularity now has the **harshest** contact in the roster in dps terms — 20 per `IFRAME` window,
+continuously, ≈25 dps — against three kinds that take 20 once and let go.
+
+⚠️ **Do not fold this kind back into the recoil branch.** That half of the old instruction is now the
+whole of it, and it matters more than it did: the number that used to compensate for the difference is
+gone, so the recoil branch is the only thing still separating them. If the flat 20 ever needs answering,
+the lever is the recoil, not the damage.
 
 ⚠️ **The amble is a steady state, not an arrival, and conflating them cost a 111px teleport.**
 `stepEnemyForces` ends with `boss.y = Math.max(boss.y, 138)` once `bossTime > 1.6`, keeping the body out

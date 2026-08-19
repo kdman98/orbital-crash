@@ -5238,6 +5238,15 @@ function tutFinish(){
   el('tutDone').classList.remove('hidden');
   markTutSeen();
 }
+// THE ANOMALY'S CONTACT DAMAGE — one number for all four kinds. 20 since 2026-08-19; the three older
+// kinds were 30 and the Singularity was already 20 through `DRAW_DMG`, which this replaces. See the
+// comment at the `dmg:` line below for what the old split was pricing and why that argument survives
+// the number that expressed it.
+//   ⚠️ FLAT ACROSS EPOCHS, unlike a Dot's. `spawnEnemy` scales contact by `aDmg = 1+(act-1)*0.08` and
+// nothing here does — an Anomaly hits for 20 at Epoch I and at Epoch LVIII alike. That is deliberate:
+// its difficulty curve is `hp` and `pace`, not the bite. Do not add `aDmg` here without re-deriving
+// the run-length arithmetic in stepPlayer, which counts Anomaly contact as a fixed cost.
+const BOSS_DMG=20;
 function spawnBoss(forceVariant){
   const col=Math.random()<0.5?'red':'cyan';
   const variant = forceVariant || pickAnomalyVariant();
@@ -5325,13 +5334,21 @@ function spawnBoss(forceVariant){
                  spd: 0.75+0.25*pt,     // MULTIPLIES projectile speed: 0.75 / 0.875 / 1.0
                  pat: VAR_PAT[variant]||1 };  // MULTIPLIES the gap on FIRING timers only — smaller is faster
   const pcad = pace.cad*pace.pat;       // the firing gap; updateBoss derives the same product per frame
-  // ⚠️ CONTACT IS PER-KIND NOW, and 30 is not a shared constant that happens to suit three bodies — it is
-  // priced against RECOIL. The three older kinds land one hit and break off (see the hunt branch in
-  // stepPlayerContact), so 30 is one readable hit you could have walked away from. The Singularity does
-  // NOT recoil, so the same 30 would be 37.5 unanswerable dps parked on your skin — the exact object that
-  // branch's comment forbids. 20 against a body you outrun 15:1 is a rate you choose to pay.
+  // ⚠️ CONTACT IS ONE NUMBER AGAIN, AND IT IS 20 FOR EVERY KIND. 2026-08-19, author's call: the three
+  // older kinds came down 30 -> 20 and the Singularity was already there, so `variant==='singularity' ?
+  // DRAW_DMG : 30` collapsed into two constants agreeing by accident — the exact fault `dc3b242` is named
+  // after, one commit earlier in this file's history. Collapsed rather than left standing: a ternary whose
+  // arms are equal reads as a live distinction and is the thing a later edit moves ONE of.
+  //   ⚠️ WHAT THE OLD SPLIT WAS PRICING IS STILL TRUE AND IS NOW UNPRICED, which is the part worth
+  // carrying forward rather than deleting with the number. The 30 was priced against RECOIL: the three
+  // older kinds land one hit and break off (see the hunt branch in stepPlayerContact), so it was one
+  // readable hit you could have walked away from, while the Singularity does NOT recoil and the same 30
+  // would have been 37.5 unanswerable dps parked on your skin. At a shared 20 the recoil difference has
+  // not gone anywhere — it is simply no longer paid for. The Singularity is now the HARSHEST contact in
+  // the roster in dps terms (20 per IFRAME window, continuously, = 25 dps) against three kinds that take
+  // 20 once and let go. If that ever needs answering, the lever is the recoil, not this number.
   boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0,
-    dmg:(variant==='singularity'?DRAW_DMG:30), pace,
+    dmg:BOSS_DMG, pace,
     x:W/2, y:-60, vx:0, vy:0, dead:false, queued:false, ph:0, hexRot:rand(0,TAU), variant, spiral:null,
     // ⚠️ These are FIRST intervals and they need `pace.cad` as much as the resets in updateBoss do —
     // without it Epoch I's opening shot of every kind still arrives at full speed, which is the one the
@@ -6069,11 +6086,12 @@ const WIND_HOLD=0.6;      // ⚠️ WITHOUT THIS THE WIND DOES ALMOST NOTHING, A
 const WIND_FALL=0.5;      // exponent on the falloff. Linear (1.0) hands a body at 0.9R only a tenth of the
                           // push, which is what made the edge of the wave read as nothing; at 0.5 it gets
                           // a third. The wave has to arrive everywhere it is drawn or the ring is a lie.
-const DRAW_DMG=20;        // contact, per IFRAME window. ⚠️ NOT 20 DPS — `IFRAME` is 0.8, so this is 25
-                          // effective dps delivered in 20-point bites, and the bite is what the player
-                          // reads. A smooth gradient would need a sub-IFRAME tick of its own and would
-                          // cost the "one immunity window for every source" property; that is a real
-                          // trade and it has not been made.
+// (`DRAW_DMG` stood here, the Singularity's own contact number, and it is now `BOSS_DMG` — every kind
+//  takes the same 20, so a constant named for the Draw was naming a value the Draw no longer owns. Its
+//  arithmetic is unchanged and moved with it: ⚠️ 20 IS NOT 20 DPS. `IFRAME` is 0.8, so contact is 25
+//  effective dps delivered in 20-point bites, and the BITE is what the player reads. A smooth gradient
+//  would need a sub-IFRAME tick of its own and would cost the "one immunity window for every source"
+//  property; that is a real trade and it has not been made.)
 // The Sentinel spirals rather than walks, and a spiral has two ways to move much faster than the walk
 // the Hunt is supposed to be. Both are capped here, in px/frame rather than in rates:
 //   HUNT_ORB   the angular rate, now only an UPPER BOUND. A fixed rad/s makes tangential speed scale
