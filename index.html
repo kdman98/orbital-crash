@@ -3617,7 +3617,7 @@ const ETYPE={
   // the heaviest body in the sky would ring exactly like the modal one. 3.2 lands 144.6 at 1.326: still
   // inside, still slower, still legibly the heavy one. Do not raise it to meet the Drifter.
   heavy:  {r:20, hp:3, mass:2.7,  maxsp:3.2, seek:0.15, dmg:18},
-  neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:12},
+  neutral:{r:15, hp:2, mass:99,   maxsp:1.9, seek:0.20, dmg:9},   // -25% by request; see THE NEUTRAL IS A JOKER
   // BOMBER at Drifter parity (8) on purpose. Contact is deliberately NOT where the Bomber is dangerous —
   // strictly weaker than a Drifter (same damage, slower, lower seek, far bigger target at r17). Its
   // threat is the 120px detonation in bomberBlast, which costs you no health at all, only your hoard.
@@ -4316,20 +4316,26 @@ function formCross(){
 //     one, which is the true thing about a body no polarity answers.
 //
 // ⚠️ SIX, AND IT MUST NOT SCALE WITH `act`. Contact CONSUMES a Neutral and IFRAME is 0.8s, so the worst
-// case is bounded by touches: 12 damage each against maxHp 100. Six is already 72 if you walk through
-// every one of them. Growing the count with Epoch would not raise the difficulty, it would raise the
-// CEILING on a single bad stretch, which is a different and worse knob.
+// case is bounded by touches: 9 damage each against maxHp 100. Six is 54 if you walk through every one
+// of them. Growing the count with Epoch would not raise the difficulty, it would raise the CEILING on a
+// single bad stretch, which is a different and worse knob.
 //   ⚠️ This bound USED TO CITE `regen 2.6 after 3.8s`, and that clause was never doing any work: six
 // touches at the IFRAME cadence span 4.8s, so the 3.8s gate cannot open part-way through and regen
 // contributed exactly 0 to this walk even when it existed. Removing it therefore did not move this
-// number — what moved is everything after, since the 72 no longer refunds. And the 12 itself is a base:
-// `6*12*(1+(act-1)*0.08)` first exceeds 100 at Epoch VI (100.8), so from there this arrangement is
+// number — what moved is everything after, since the 54 no longer refunds. And the 9 itself is a base:
+// `6*9*(1+(act-1)*0.08)` first exceeds 100 at Epoch XII (101.5), so from there this arrangement is
 // lethal from full and the count is the only thing standing between it and unavoidable.
-//   ⚠️ THIS LINE HAS NOW GIVEN THREE DIFFERENT ANSWERS AND ONLY THE FIRST WAS EVER WRITTEN BY HAND. At
+//   ⚠️ AT 9 THAT CROSSING HAS LEFT THE MIDDLE OF A RUN AND LANDED AT ITS FAR EDGE, which is the part
+// of this cut that changes what the Drift IS rather than what it costs. The phase clock is 428s across
+// Epochs I-XII, so a deep run now meets the lethal-from-full case at roughly the moment it ends instead
+// of a third of the way in. The bound is still worth stating — Epochs do not stop at XII — but it has
+// stopped being a case most runs reach, and six-at-once is no longer priced as a run-ender.
+//   ⚠️ THIS LINE HAS NOW GIVEN FOUR DIFFERENT ANSWERS AND ONLY THE FIRST WAS EVER WRITTEN BY HAND. At
 // base 15 it read "about Epoch V" and was WRONG — six was 90, crossing at Epoch III (104.4). At 13 it
-// was V (102.96) and the sentence became accidentally true. At 12 it is VI. Nothing about the design
-// moved; a scalar did, three times, and the prose tracked it only because someone recomputed it each
-// time. Re-derive whenever the base moves — a grep-shaped audit sees a wrong NAME, never a wrong NUMBER.
+// was V (102.96) and the sentence became accidentally true. At 12 it was VI (100.8). At 9 it is XII.
+// Nothing about the design moved; a scalar did, four times, and the prose tracked it only because
+// someone recomputed it each time. Re-derive whenever the base moves — a grep-shaped audit sees a wrong
+// NAME, never a wrong NUMBER.
 const NDRIFT_N=6;
 // ⚠️ RADIUS, AND WHY A HEXAGON OF SIX IS NOT A CAGE. A hexagon's side EQUALS its radius, so the gap
 // between neighbours is 260px against the 60px that would be walkable for r15 bodies — this is six bodies
@@ -4621,11 +4627,24 @@ const BOMB_RARITY=0.42;
 // magnetic loop and ring capture both skip it by type, and the hungry flip skips it too ("uncharged is
 // not the other colour — that's the Shockwave's job"), so the ONLY tool that clears one is a flip
 // Shockwave. ⚠️ It does NOT carry "the highest contact damage on the roster" — that line was wrong when
-// it was written (the Brute has always been dmg 22 against the Neutral's 15) and the Planet's 20 makes it
-// wrong twice over. What is true is the thing that matters: it is the only body no polarity makes safe.
-// A body that ignores your main
-// verb and forces your other one is an interruption, and an interruption that arrives every few seconds
-// is just weather.
+// it was written, and after the cut below it is wrong by a wide margin in the other direction. What is
+// true is the thing that matters: it is the only body no polarity makes safe. A body that ignores your
+// main verb and forces your other one is an interruption, and an interruption that arrives every few
+// seconds is just weather.
+//   ⚠️ CONTACT IS 9, AND NO RATIONALE WAS GIVEN FOR IT. Author: "reduce neutral damage by 25%" —
+// 12 x 0.75 = 9, integer because the readout prints integers. That is the whole of the record. Do NOT
+// reconstruct a design argument for it out of the paragraph above: the ordering it produces — Dart 6,
+// Drifter 8, Bomber 8, NEUTRAL 9, Harrier 10, Charger 13, Planet 16, Brute 18 — puts the Neutral below
+// the roster median for the first time in the game's history, and that is a CONSEQUENCE of the number,
+// not a reason for it. The interruption argument above prices this body by the flip it costs you; it has
+// never priced the HP, and it does not justify 9 any more than it justified 15.
+//   ⚠️ THE FIGURES THIS PARAGRAPH USED TO QUOTE WERE TWO PASSES STALE — "the Brute has always been dmg
+// 22 against the Neutral's 15" and "the Planet's 20" are the ORIGINAL table, carried unchanged through
+// both the flat -2 pass and the -20% re-derivation that replaced it (22/15/20 are today 18/9/16). The
+// CONCLUSION survived all of it — the Brute has outranked the Neutral at every base either has ever
+// held — and that is exactly why nobody caught the numbers: a claim that stays true is a claim nobody
+// re-checks. NDRIFT carries the other half of this figure, six of them against a pool of 100, and was
+// re-derived with it.
 //   Measured before the change, with an immortal pilot run to t=400 because Neutrals enter no table
 // until t>=125 and the bot pilot dies around 57s — it never meets one: 71 of 2117 bodies, 3.35%,
 // one every 3.9s. At 0.3 that is ~1%, one every ~13s. Rare enough to be an event, common enough that
