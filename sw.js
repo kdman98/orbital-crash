@@ -25,11 +25,16 @@
 // ⚠️ v5, AND THE BUMP IS THE WHOLE POINT OF THIS EDIT. `./audio/music.mp3` joins SHELL below. Adding a
 // path without moving this constant is exactly the failure recorded above — everything past the document
 // branch is served cache-first, so a client that installed under v4 would never fetch the new entry.
-//   ⚠️ AND IT NEEDS BUMPING AGAIN WHEN THE TRACK ACTUALLY LANDS. The file does not exist yet; `install`
-// maps each URL through `c.add(u).catch(()=>{})`, so the 404 is swallowed per-URL and the rest of the
-// shell still caches — which means a client can install v5 with the music entry MISSING and, being
-// cache-first, never look again. Whoever drops the track in bumps this to v6.
-const CACHE = 'orbital-crash-v5';
+//   ⚠️ v6, AND THE INSTRUCTION THAT USED TO SIT HERE IS RETIRED RATHER THAN CARRIED FORWARD. It read
+// "it needs bumping again when the track actually lands … whoever drops the track in bumps this to v6",
+// and it named the wrong mechanism: `install`'s `c.add(u).catch(()=>{})` swallows the 404 and stores
+// NOTHING, which is harmless on its own, because the fetch branch below falls through to the network on
+// a miss. What actually broke playback was that same fetch branch CACHING the 404 it got back. That is
+// fixed below, so a missing asset now leaves no entry at all and is fetched for real the first time it
+// exists. DROPPING THE TRACK IN NO LONGER NEEDS A BUMP.
+//   This bump to v6 is still required, and only for clients that already hold the poisoned entry —
+// `activate` deleting the v5 cache wholesale is the one thing that evicts it.
+const CACHE = 'orbital-crash-v6';
 
 const SHELL = [
   './',
@@ -77,8 +82,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(req)
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy));
+          if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
           return res;
         })
         .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
@@ -88,10 +92,18 @@ self.addEventListener('fetch', e => {
 
   // EVERYTHING ELSE (icons, manifest): cache first. These change only when the shell version does,
   // and the activate handler already deletes the old version wholesale.
+  // ⚠️ `res.ok` OR NOTHING GOES IN. This used to `put` every response it saw, including errors, and that
+  // is a one-way door: an asset that 404s ONCE gets its error page stored under the real URL, and this
+  // branch is cache-first, so every later request is answered from the cache and never reaches the
+  // network again. Nothing recovers it but a CACHE bump.
+  //   MEASURED, not theorised. On 2026-08-19 `audio/music.mp3` was cached as a 404 `text/html` error
+  // page — 25 entries in `orbital-crash-v5`, that URL among them, status 404, body `<!DOCTYPE HTML>
+  // <title>Error response</title>`. The track was then put on disk and served 200, and the <audio>
+  // element still failed with MEDIA_ELEMENT_ERROR code 4 "Format error", because it was being handed
+  // HTML. The file being present and correct changed nothing.
   e.respondWith(
     caches.match(req).then(hit => hit || fetch(req).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy));
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
       return res;
     }))
   );

@@ -11411,6 +11411,12 @@ let AC=null, master=null, ambGain=null, ambFilter=null, ambReady=false, ambNoteT
 // nothing, and dropping the track in needs no code change — only a `sw.js` CACHE bump.
 const MUSIC_URL='audio/music.mp3';
 let musEl=null, musGain=null, musOk=false;
+// ⚠️ WHY THE TRACK IS NOT PLAYING, KEPT RATHER THAN DISCARDED. `musOk` is a boolean and every failure
+// collapses into the same `false`: no file, a corrupt file, a codec the engine will not take, an
+// autoplay refusal. Those want different fixes and used to be indistinguishable — the play() rejection
+// went into an empty `.catch`, so a blocked track and an absent one both presented as silence with the
+// procedural bed running and nothing anywhere to read. Surfaced on the seam via `audio()`.
+let musWhy='';
 let compOut=null;                      // the compressor, held for the seam — see where it is built
 function audioInit(){
   if(AC){ if(AC.state==='suspended') AC.resume(); return; } // heal a context left suspended (e.g. quit from pause)
@@ -11459,8 +11465,20 @@ function buildAmbient(){
       musGain=AC.createGain(); musGain.gain.value=0.0001; musGain.connect(master);
       AC.createMediaElementSource(musEl).connect(musGain);
       musEl.addEventListener('canplaythrough',()=>{ musOk=true; },{once:true});
-      musEl.addEventListener('error',()=>{ musOk=false; });   // no track yet: the procedural bed stays
-    }catch(e){ musOk=false; }
+      musEl.addEventListener('error',()=>{ musOk=false; musWhy='load'; });  // no track yet: the bed stays
+      // ⚠️ THE ONLY play() THAT HAPPENS INSIDE A GESTURE, AND THAT IS THE WHOLE REASON IT IS HERE.
+      // `updateAmbient` drives the element from the rAF frame, where the gesture is long out of the call
+      // stack — fine in the Capacitor WebView, which opts out of the requirement entirely
+      // (`mediaTypesRequiringUserActionForPlayback = []` in CAPBridgeViewController), but NOT fine in
+      // mobile Safari, where this same file runs as an installed PWA and the first play() must be
+      // user-initiated. Every route into audioInit() is a gesture handler — the Start button through
+      // startRun, the volume slider's `input`, the canvas `pointerdown` — and buildAmbient is called
+      // synchronously from it, so this call inherits the activation and every later one is no longer
+      // the first. Inaudible: musGain is at 0.0001 until updateAmbient raises it, and updateAmbient
+      // pauses the element again on the next frame if the run has not asked for it.
+      musEl.play().then(()=>{ if(!(AC&&AC.state==='running'&&gainNow()>0)) musEl.pause(); })
+                  .catch(e=>{ musWhy=e&&e.name||'play'; });
+    }catch(e){ musOk=false; musWhy='build:'+((e&&e.name)||'?'); }
   }catch(e){}
 }
 function updateAmbient(inten,dt){
@@ -11469,7 +11487,7 @@ function updateAmbient(inten,dt){
   // pause, so the track would drift by exactly the length of every pause and resume somewhere else.
   if(musEl){
     const want = AC && AC.state==='running' && gainNow()>0;
-    if(want && musEl.paused) musEl.play().catch(()=>{});
+    if(want && musEl.paused) musEl.play().catch(e=>{ musWhy=e&&e.name||'play'; });
     else if(!want && !musEl.paused) musEl.pause();
   }
   if(!ambReady || !AC || AC.state!=='running')return; // don't schedule notes while suspended (pause / hidden tab)
@@ -11868,7 +11886,10 @@ window.__orbital=window.__polaris=window.__flux={
   // every voice used to sum straight into the destination and blow past 1.0 in a dense fight.
   audio(dt){ const d=dt||1/60;
     if(AC){ updateAmbient((state==='play')?intensity:0.08, d); updateHeart(d); }
-    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), stormT:+stormT.toFixed(3), gain:gainNow()}; },
+    // `musWhy` rides along because `musOk:false` alone cannot say WHICH failure it is, and the two it
+    // most often means — no file at all, and a refused play() — take opposite fixes.
+    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), stormT:+stormT.toFixed(3), gain:gainNow(),
+            musOk, musWhy, musPaused:musEl?musEl.paused:null, musT:musEl?+musEl.currentTime.toFixed(2):null}; },
   bus(){ return AC?{ctx:AC, master, comp:compOut, panMax:PAN_MAX, stormAt:STORM_AT, hpLow:HP_LOW}:null; },
   sfx,
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
