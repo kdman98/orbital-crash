@@ -12,6 +12,40 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-19
+
+### The link row drops the pill and the hard shadow it was given under the scrim bug `v2` `c5f756d` `v2-ios` `9de953f`
+In landscape (`min-aspect-ratio:3/2`) the links carried a `rgba(5,8,16,.62)` pill on `.refs` and a
+`0 1px 3px #000, 0 0 10px rgba(0,0,0,.95)` double shadow on `.ref`. Both were added while `#menuScrim`
+was painting on top of that row rather than behind it — `da84034` fixed the stacking and deliberately
+left these two standing, because removing them is a look change and not a repair. Landscape now uses
+the same `0 1px 6px rgba(0,0,0,.9)` as portrait; size, colour and the .62 underline are unchanged.
+
+⚠️ **Portrait is the control group, and it is what settles it.** It has never carried either
+compensation, its links sit on the same planet limb, and they read white — so the case for the pill was
+already falsified by a shipping configuration rather than by a constructed one. Toggling both off costs
+no legibility at 844×390, nor at 780×520, the 3/2 boundary where the layout is tallest and the limb
+passes directly behind the row — which is the exact case the retired paragraph was written about.
+
+**The pill was invisible before it was removed.** The landscape scrim sits around .71–.83 behind that
+row and reaches .94 at the bottom edge; .62 of black over that does not register in a 1:1 screenshot at
+either viewport. The 10px cloud at 95% was the half that cost something — it fattened thin Korean
+strokes and blotted out the limb arc wherever a word crossed it.
+
+The clearance an earlier pass bought this row is intact, and was measured rather than assumed, since
+the pill's padding went with it and the links drop 4px:
+
+| viewport | link bottom, before → after | gap under the row |
+|---|---|---|
+| 844×390 | 90.77% → 91.79% | 36px → 32px |
+| 780×520 | 93.08% → 93.85% | 36px → 32px |
+
+Both are clear of the 95.4% this row had been bottoming out at, and the 26px the overlay reserves below
+it does not move — that is `margin-bottom` plus the safe-area padding, neither of which was the pill.
+The same commit corrects the base-rule comment that still said "the two text-only rows have no box to
+make opaque" with a single rule under it; `.doornote` was the other row and went with the practice
+doors (`e9f7d19` on v2, `71eb905` on v2-ios).
+
 ## 2026-08-18
 
 ### The Bestiary stops being reachable by iOS, in the two ways it still was `v2` `51204ca` `v2-ios` `af20d79`
