@@ -161,6 +161,9 @@
   // 떠돌이 for the creature, 표류 for the shape.
   const LANG=(()=>{ const p=new URLSearchParams(location.search).get('lang');
                     return p==='ko' ? 'ko' : 'en'; })();
+  // The Larger Dots setting, arriving the same way and for the same reason. Absent means OFF: a chart
+  // opened without the parameter draws the colliders, which is the game's own untouched geometry.
+  const BLOOM=new URLSearchParams(location.search).get('dots')==='1' ? 3 : 0;
   document.documentElement.lang=LANG;
   const TXT={ en:{
     'page.title':'ORBITAL CRASH · Bestiary',  'page.sub':'Bestiary',
@@ -272,8 +275,16 @@
     {kind:'dot',type:'harrier',col:'red',    r:13},
     {kind:'dot',type:'planet', col:'cyan',   r:23},
     {kind:'dot',type:'gild',   col:'cyan',   r:11},   // a Drifter's body on purpose — see the note by its copy
-  ];
-  // r is the hull AND the collider, same law as every dot row.
+  ].map(d=>({...d, r:d.r+BLOOM}));
+  // ⚠️ THESE ARE COLLIDERS AND `BLOOM` TURNS THEM INTO HULLS, WHICH SINCE 2026-08-19 IS A REAL
+  // DISTINCTION. The literals mirror `ETYPE` in index.html; `BLOOM` above mirrors what that file DRAWS,
+  // and it arrives on the query string because this page shares no code with the game and an iframe
+  // cannot read the opener's localStorage. The chart has to show the body the player is being asked to
+  // recognise mid-fight, so it follows the Larger Dots setting instead of picking a side.
+  //   The line here used to read "r is the hull AND the collider, same law as every dot row"; law 4 has
+  // since split for Dots — never for the Anomaly, whose r37 below is still both, which is why BOSS is
+  // outside this map. If you change a radius in index.html, change the literal here: nothing errors and
+  // nothing renders wrong, the card simply illustrates a species that does not exist.
   const BOSS={kind:'boss',col:'red',r:37};
   // the three Anomaly kinds — each names itself + its counter on its integrity bar in-game
   const ANOMS=[
@@ -426,8 +437,12 @@
       ctx.moveTo(x+Math.cos(na)*r, y+Math.sin(na)*r); ctx.lineTo(x-Math.cos(na)*r, y-Math.sin(na)*r); ctx.stroke();
     } else if(s.type==='bomber'){
       // mirrors index.html: NO STANDOFF RING. Any ring drawn outside a hull reads as "the edge where I
-      // die", which is `e.r + P.r` = 32. A 1.55r ring scaled to the blast would be 26px — understating
-      // the 32px envelope AND bearing no relation to the 120px blast, i.e. lying about both at once.
+      // die", which is `ETYPE.bomber.r + P.r` = 32 — off the COLLIDER 17, never off the hull this card
+      // draws, which is 17 or 20 depending on the Larger Dots setting. See the note by the roster above.
+      // A 1.55r ring would be 26px unbloomed and 31px bloomed — understating the 32px envelope either
+      // way AND bearing no relation to the 120px blast, i.e. lying about both at once. ⚠️ And the
+      // bloomed case is the WORSE of the two, because 31 lands within a pixel of the true envelope: it
+      // would look correct while meaning nothing, which is the most expensive kind of wrong mark.
       // LIME, AND UNDER source-over — the same escape hatch index.html takes, for the same reason: these
       // cards draw under 'lighter', where lime over a coloured hull saturates to cream on red and to pale
       // blue on cyan, i.e. a mark that is not even the same colour on the two polarities. Mirror the game
