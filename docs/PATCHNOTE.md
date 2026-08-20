@@ -14,6 +14,52 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-20
 
+### Killing an Anomaly clears the board `v2` `6fe49df`
+Author: *"let's clear the board (without score) after anomaly kill."*
+
+A white ring travels outward from wherever the Anomaly died and every Dot it reaches dies. **It pays
+nothing** — no score, no Motes, no combo, no streak, no Bomber detonation — the same `dead=true` rather
+than `queueKill` construction `planetBlast` already uses. Verified on a controlled field where the sweep
+was the only kill path: score moved by **exactly `200×act`** and combo by **exactly 0** while 33–72
+bodies were erased, 7 seeds of 7.
+
+⚠️ **Paying zero is the anti-farm argument, not tidiness.** A fight leaves **26–75 bodies** standing, a
+comfortable multiple of the purge reward at `KILL_SCORE` 20 plus Motes. A sweep that paid would make
+stalling a fight while the field fills the highest-value play in the game.
+
+**The ring is the kill boundary, not a drawing near one.** Both run the same ramp over the same `R`, and
+`t` is read before it advances so the edge can trail the hoop but never lead it — measured at exactly
+**36.7px behind**, one frame at 2200px/s, across 7 purges.
+
+⚠️ **The reach is where a body *will* be, and two guesses died first.** `max(W,H)` misses the far corner
+(1280 against a 1509 diagonal). Furthest-body+96 also missed, because `spawnStormSurge` places bodies on
+a circle around the **arena centre**, ~370px outside the rect. Even sweeping to the true furthest body
+left 2 of 32 standing: a Drifter at 1090 receding at 3.4px/frame gained 115px while the hoop was crossing.
+**A margin cannot fix that by being bigger** — the escape scales with the crossing time, which scales with
+`R`. Solving for the meeting (`d*SPD/(SPD−vr)`) clears 100% in 7 of 7.
+
+**And the finding underneath the change: the calm was never calm.** Population after a purge, five fights,
+against the identical run with the sweep neutralised:
+
+| t after purge | 0.5s | 1s | 2s | 3s | 5s | 8s | 12s |
+|---|---|---|---|---|---|---|---|
+| **sweep** | 0–2 | 0–4 | 2–6 | 4–9 | 6–13 | 10–19 | 19–38 |
+| **none** | 32–69 | 33–72 | 29–69 | 31–67 | 31–66 | 29–67 | 30–91 |
+
+The lower row is flat — `enterCalm` only ever stopped *adding*. The breath now lasts about **8 seconds
+under 20 bodies**. Priced in Integrity over the 12s after a purge, 16 paired fights: damage taken falls
+**37.1 → 7.8**, a paired difference of **−23.4 ±4.8 SE, t = −4.87**, negative in 14 of 16.
+
+⚠️ **Quoted against an A/A control, because this rig is not fully deterministic.** The same case run twice
+repeats exactly 11 times in 16 and drifts on the other 5; A/A gives **−2.9 ±3.0, t = −0.99**. The effect
+is ~8× the noise floor and the noise carries no sign. A single arm read naively put the figure anywhere in
+the −23 to −29 band.
+
+**An open tension, left open on purpose:** an emptier stretch is exactly the complaint `enterBuild` was cut
+7.4s for. If the post-purge calm reads as dead air, the lever is the calm clock, not the sweep.
+
+---
+
 ⚠️ **EVERY AUDIO ENTRY BELOW LANDED INSIDE A CSS COMMIT, AND NEITHER MESSAGE MENTIONS SOUND.** `b04329e`
 ("`touch-action:none` on html,body…") carries the drone and storm removal, the anchor, the sawtooth
 partner, the pluck bus sweep, the note pools and the deeper heartbeat — 153 insertions on `index.html`.
