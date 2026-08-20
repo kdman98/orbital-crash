@@ -2703,7 +2703,10 @@ const L={ en:{
   'tut.doneH':'이제 본 게임을 해볼까요?',
   'tut.play':'게임 시작',
   'tut.1.desktop':'마우스를 움직여 보세요',
-  'tut.1.touch':'{Mv}을 드래그해 보세요',
+  // ⚠️ 이 줄만 '화면'을 답니다. tut.4/tut.5는 {Act}에 아래/위가 붙어 있어 가리키는 곳이 이미 분명하지만,
+  // 여기는 방향 하나만 놓여 있고 게임에서 처음 보는 지시문입니다. 영어 쪽은 'the {mv} side'의 side가
+  // 그 일을 이미 하고 있어 손대지 않았습니다. 나머지 줄에 '화면'을 맞춰 넣지 마세요.
+  'tut.1.touch':'화면 {Mv}을 드래그해 보세요',
   'tut.1.ok':'그렇게 움직이시면 돼요!',
   'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
   'tut.2.note':'{n} / 4 수집',
@@ -3151,10 +3154,17 @@ function lowHullPulse(){
   if(f>=HP_LOW) return 0;
   const urg=clamp(1-f/HP_LOW,0,1);
   const per=lerp(1.15,0.52,urg);
-  const ph=(lowHullT%per)/per, gap=0.145/per;
+  const t=lowHullT%per;
   const bump=(x,w)=>Math.exp(-(x*x)/(2*w*w));
-  // the wrapped term is the NEXT lub arriving, or the pulse would flatten to nothing at the seam
-  const env=bump(ph,0.055)+0.72*bump(ph-gap,0.07)+bump(ph-1,0.055);
+  // ⚠️ THE WIDTHS AND THE GAP ARE IN SECONDS, NOT IN PHASE, and the first attempt got this wrong.
+  // Scaled to the period, the two bumps stretch as the rate rises, overlap, and merge into ONE long
+  // swell: measured, that gave a single threshold crossing per beat instead of two, which is exactly
+  // the "warning lamp" reading this shape exists to avoid. In absolute time the lub-dub is the same
+  // shape at every rate and only the repetition changes -- which is what a heart does.
+  //   35ms sigma against a 145ms gap puts them 4.1 sigma apart, so the envelope dips to 0.20 between
+  // them and the two read separately; at 60fps each bump is about four frames wide.
+  //   The wrapped term is the NEXT lub arriving, or the pulse would flatten to nothing at the seam.
+  const env=bump(t,0.035)+0.72*bump(t-0.145,0.035)+bump(t-per,0.035);
   return clamp(env,0,1)*lerp(0.35,1,urg);
 }
 function drawLowHull(){
@@ -12556,10 +12566,15 @@ window.__orbital=window.__polaris=window.__flux={
   title(t){ titleOrbit(t||0);
     const rd=e=>({x:+e.getBoundingClientRect().left.toFixed(1),y:+e.getBoundingClientRect().top.toFixed(1),o:+e.style.opacity});
     return {t:t||0, spin:tSpin.map(p=>rd(p.el)), hit:tHit.map(p=>rd(p.el)), lastImpactCycle:tBoom}; },
-  // Fourth of the same family, and for the same reason — this time for SOUND. The two continuous layers
-  // (the low-HP heartbeat and the pluck bed) are stepped from frameBody like everything else, so in a
-  // hidden tab they never run: a test hears nothing and reports silence, which is the identical false
-  // PASS that render() and hud() exist to prevent.
+  // Fourth of the same family, and for the same reason. The two continuous signals — the pluck bed and
+  // the low-hull pulse — are stepped from frameBody like everything else, so in a hidden tab they never
+  // run: a test hears nothing and reports silence, which is the identical false PASS that render() and
+  // hud() exist to prevent.
+  //   ⚠️ `lowHullT` IS ADVANCED HERE AND NOT ONLY IN frameBody, and that is not test scaffolding — it
+  // is this seam's whole contract. When the heartbeat was audio, `audio(dt)` drove it. Turning it into
+  // a drawn pulse moved it out of reach and immediately produced the false pass above: a hidden pane
+  // froze the phase, the readout sat at a constant 0.053, and it looked like a working gauge until the
+  // rate was checked against urgency. Anything continuous that this seam cannot step is untestable.
   //   `bus()` is the half that matters more. It hands back the live nodes so a test can put an
   // AnalyserNode on the mix and MEASURE it, instead of asserting that a function got called. Peak level
   // is exactly what "it sounds fine to me" cannot report, it depends on whatever speakers the listener
@@ -12567,6 +12582,7 @@ window.__orbital=window.__polaris=window.__flux={
   // every voice used to sum straight into the destination and blow past 1.0 in a dense fight.
   audio(dt){ const d=dt||1/60;
     if(AC) updateAmbient((state==='play')?intensity:0.08, d);
+    lowHullT += d;
     // `musWhy` rides along because `musOk:false` alone cannot say WHICH failure it is, and the two it
     // most often means — no file at all, and a refused play() — take opposite fixes.
     return {ctx:AC&&AC.state, ambNoteT:+ambNoteT.toFixed(3), lowHull:+lowHullPulse().toFixed(3), gain:gainNow(),
