@@ -12522,30 +12522,24 @@ function ambPluck(inten){
   g.gain.linearRampToValueAtTime(v,AC.currentTime+0.005);
   g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dec);
   o.connect(g);
-  // ⚠️ THE SAW IS THE STRIKE, NOT A LAYER, AND ITS OWN SHORT ENVELOPE IS THE WHOLE POINT. It used to
-  // share the triangle's 2.2s decay, so the note held its harmonic balance for its entire length --
-  // and holding brightness IS what separates a blown tone from a struck one. Measured as the share of
-  // energy in 1.5-6kHz, taken 6ms in and again at 500ms:
-  //     sharing the 2.2s decay   -27.4 -> -25.8 dB   the note gets BRIGHTER as it rings
-  //     0.18s of its own          -26.7 -> -38.2 dB   it darkens by 11.6dB, which is a string
-  // Same onset brightness either way, so nothing is lost at the front; what changes is that the tail
-  // is now nearly a pure triangle, which is close to what a real string leaves behind.
-  //   The level rises to compensate for the shorter window: 0.70 at storm against the old 0.35, which
-  // costs 0.7dB of survival through a 300Hz speaker (-16.2 against -15.5) and buys the strike back.
-  //   Calm still lands near zero saw, so soft notes are round and loud ones crack -- which is how a
-  // piano answers velocity, and it comes free from the existing intensity lerp.
-  const sawAmt=lerp(0,0.70,inten)*(anchor?0.5:1);
-  if(sawAmt>0.002){
-    const o2=AC.createOscillator(), g2=AC.createGain();
-    o2.type='sawtooth'; o2.frequency.value=freq;
-    const sdec=0.18;
-    g2.gain.setValueAtTime(0,AC.currentTime);
-    g2.gain.linearRampToValueAtTime(sawAmt,AC.currentTime+0.005);
-    g2.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+sdec);
-    // Straight to the bus, NOT through `g` -- routing it through the note envelope would multiply the
-    // two decays together and give the strike the 2.2s tail this change exists to remove.
-    o2.connect(g2); g2.connect(pluckBus); o2.start(); o2.stop(AC.currentTime+sdec+0.05);
-  }
+  // ⚠️ THE STRIKE IS NOISE, NOT A SAWTOOTH, AND THAT IS THE DIFFERENCE BETWEEN A HAMMER AND A SYNTH.
+  // It was a saw for one day and the author's verdict was *"notes are strange... synthesizer or
+  // something is making the notes bad."* Correct: a sawtooth at the note's own pitch adds HARMONICS OF
+  // THAT NOTE, which is a synth waveform. A piano hammer is not a waveform at all, it is a broadband
+  // knock -- so noise is the physically honest thing and it cannot be heard as a wave.
+  //   This is the third time the same argument has decided a voice in this file: the storm drum was
+  // noise so it would clear every oscillator on TIMBRE regardless of register, and the heartbeat's tick
+  // was noise rather than a brighter waveform so it would stay out of bomb()'s protected band. Noise
+  // separates on timbre. A periodic wave has to compete on pitch.
+  //   Measured at D4, energy above the 6th harmonic, at 6ms and again at 500ms:
+  //     nothing            -25.6 -> -25.7    no attack at all
+  //     sawtooth 0.70      -22.3 -> -25.7    fall 3.3dB, and the 3.3 IS the buzz
+  //     noise 0.9          -20.5 -> -25.7    fall 5.1dB, at the same onset peak
+  //   Brighter attack, bigger fall, and none of it is a harmonic of the note.
+  //   Cut scales with the note so a high string gets a brighter knock, then the bus filter darkens it
+  //   again at calm -- which is the velocity behaviour, free, from the lerp that was already there.
+  const hitAmt=lerp(0,0.9,inten)*(anchor?0.5:1);
+  if(hitAmt>0.002) noise(0.06, v*hitAmt, pluckBus, Math.min(freq*5, 5000));
   g.connect(pluckBus); o.start(); o.stop(AC.currentTime+dec+0.1);
 }
 // ---- PLACEMENT. `dest` is the node a voice lands on, and it defaults to `master` so every existing
