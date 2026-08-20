@@ -2283,10 +2283,17 @@ const store={
   followSens:clamp(num('orbitalcrash_followsens',100),1,100),
   // ON BY DEFAULT, matching the platform it runs on: iOS ships System Haptics enabled, and a feedback
   // channel nobody thinks to go looking for in a settings panel is a feature that does not exist.
-  // ⚠️ `!== '0'`, NOT `=== '1'`. Every other boolean here defaults OFF and reads the truthy form; this
-  // one defaults ON, so it has to test for the stored FALSE. Copying the `==='1'` pattern from the line
-  // above would ship it silently disabled for everyone.
-  haptics:LS.getItem('orbitalcrash_haptics')!=='0',
+  // ⚠️ THREE STATES, AND THE KEY USED TO HOLD A BOOLEAN. Anyone who has already played this build has
+  // `'1'` or `'0'` written under this name, so the read has to migrate rather than parse: an unmatched
+  // string must not fall through to the default, because `'0'` would then come back as ON and silently
+  // re-enable a channel somebody turned off. The three-way test comes first and the boolean forms are
+  // handled explicitly underneath it.
+  //   `null` (never chosen) and `'1'` both mean ON, which is why the fallback is 'on' and only `'0'`
+  // is singled out. That is the same trap as the old `!== '0'` comment on this line: the default here
+  // is the truthy one, so the STORED FALSE is what needs naming.
+  haptics:(()=>{ const v=LS.getItem('orbitalcrash_haptics');
+                 if(v==='on'||v==='reduce'||v==='off') return v;
+                 return v==='0' ? 'off' : 'on'; })(),
   // TOUCH STEERING MODEL, 'abs' or 'stick'.
   //     abs   — thumb TRAVEL sets the star's POSITION. Move 60px, the star moves 120px, then stops.
   //     stick — thumb DEFLECTION sets the star's VELOCITY. Hold it off-origin and the star keeps going.
@@ -2401,7 +2408,7 @@ function save(){
     LS.setItem('orbitalcrash_vol',store.vol);
     LS.setItem('orbitalcrash_touchsens',store.touchSens);
     LS.setItem('orbitalcrash_followsens',store.followSens);
-    LS.setItem('orbitalcrash_haptics',store.haptics?'1':'0');
+    LS.setItem('orbitalcrash_haptics',store.haptics);
     LS.setItem('orbitalcrash_touchmode',store.touchMode);
     LS.setItem('orbitalcrash_plknotes',store.plkNotes.join(','));
     LS.setItem('orbitalcrash_moveright',store.moveRight?'1':'0');
@@ -2557,6 +2564,7 @@ const L={ en:{
   'set.followD':'How fast the star closes on where you point it.',
   'set.followA':'Follow speed',
   'set.haptic':'Haptics',
+  'set.haptic.on':'On', 'set.haptic.reduce':'Reduce', 'set.haptic.off':'Off',
   'set.hapticD':'A short tap for every blow you land or take.',
   'set.sound':'Sound',
   'set.soundD':'The ambient bed and every cue on top of it.',
@@ -2752,6 +2760,7 @@ const L={ en:{
   'set.followD':'별이 가리킨 지점까지 얼마나 빠르게 따라붙는지 정합니다.',
   'set.followA':'따라오는 속도',
   'set.haptic':'진동',
+  'set.haptic.on':'켬', 'set.haptic.reduce':'줄임', 'set.haptic.off':'끔',
   'set.hapticD':'주고받는 타격마다 짧게 울립니다.',
   'set.sound':'소리',
   'set.soundD':'배경음과 그 위에 얹히는 모든 효과음.',
@@ -11775,7 +11784,12 @@ function paintSettings(){
   // ReferenceError at boot — the whole file dies and the game never paints. A `const` does not hoist
   // like the `function` declarations all around it, and the two look identical in a diff.
   el('setHaptic').classList.toggle('hidden', !HAP.ok);
-  sw('swHaptic', store.haptics);
+  // NOT `sw()`: that helper prints on/off, and this row has three states, so — like the steering and
+  // melody rows above — it prints the name of the state it is IN. `.on` marks "not off", which is the
+  // same test those rows make.
+  const bh=el('swHaptic');
+  if(bh){ bh.classList.toggle('on', store.haptics!=='off');
+          bh.textContent=T('set.haptic.'+store.haptics); }
   sw('swSound', !store.mute);
   // ⚠️ NEVER WRITE .value WHILE THE SLIDER IS THE ACTIVE ELEMENT. This repaints on a 400ms poll, and
   // assigning `value` mid-drag snaps the handle back under the finger to whatever the last committed
@@ -11858,8 +11872,16 @@ el('swDots').onclick  =()=>{ store.bigDots=!store.bigDots; save(); paintSettings
 // itself — the sound row can be checked by the blip on `volRange`'s change, and this is the equivalent.
 // `volley` rather than `grind` because the whisper is, by design, near the threshold of noticing, and a
 // confirmation you might miss is not a confirmation.
-el('swHaptic').onclick=()=>{ store.haptics=!store.haptics; save(); paintSettings();
-                             if(store.haptics) haptic('volley'); };
+// Descending, because that is the order somebody arrives at this row in: it is on, it is too much,
+// it is off. Wrapping back to 'on' from 'off' keeps every state reachable in at most two presses.
+const HAP_CYCLE={on:'reduce', reduce:'off', off:'on'};
+el('swHaptic').onclick=()=>{ store.haptics=HAP_CYCLE[store.haptics]||'on'; save(); paintSettings();
+                             // The sample runs AFTER the state is stored, so Reduce demonstrates itself
+                             // at Reduce's weight rather than at full — the setting is the thing being
+                             // previewed, not the cue. `volley` because it survives every level above
+                             // off and because the whisper is, by design, near the threshold of
+                             // noticing: a confirmation you might miss is not a confirmation.
+                             haptic('volley'); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
 // `input`, not `change`: the level has to follow the finger, or you are setting a volume you cannot hear
 // until you let go — which is the one thing a volume control must not ask of you.
@@ -12577,15 +12599,28 @@ const HAP={
   // build has neither; a Capacitor build with an older shell would have the first and not the second.
   ok:!!(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.orbitalHaptic),
   GAP:45,                       // ms. The floor between taps AND the merge window — they are one number.
+  LITE:0.55,                    // Reduce's multiplier on every impact intensity; see `haptic()`
   last:-1e9, lastI:0, tid:0, upS:0, upI:0, sent:0
 };
 // `s` picks the generator (0 light, 1 medium, 2 heavy); `i` goes straight to `impactOccurred(intensity:)`.
 // ⚠️ THE NUMBERS LIVE HERE AND NOT IN SWIFT, deliberately: how the game FEELS is a tuning loop, and
 // `npm run ios:live` reloads this file without an Xcode build. A constant in the shell costs a rebuild
 // per adjustment. The bridge is a transport and owns no taste.
+// OFF / REDUCE / ON, as numbers because the only thing the code ever does with the setting is compare
+// it against a cue's floor. The stored value stays a readable string; this is the resolver.
+const HAP_LV={off:0, reduce:1, on:2};
+// ⚠️ `min` IS THE LEVEL A CUE NEEDS, and the two carrying `min:2` are the two that are nearly texture:
+// `grind` runs up to 2.7/s in a held grind and `flip` is the most frequent thing the player does. They
+// are what makes full haptics feel busy, so they are what Reduce removes — everything else is rare
+// enough that thinning it would only cost information.
+//   ⚠️ THIS IS NOT THE `reduceMotion` RULE BEING BROKEN. That rule ("comfort mode DAMPS rather than
+// KILLS") is scoped, in its own comment, to a cue that is "the only remaining report of a state you can
+// die in" — the low-hull vignette. Nothing dropped here is anybody's only report: a grind still prints
+// `-1` and pops, a flip still recolours the whole ring. Reduce also damps what it keeps, so the rule's
+// spirit is intact where it applies.
 const HAPTIC_FX={
   // ---- what you land on the Anomaly. Boss-only by construction; see the coverage note above. ----
-  grind: {s:0, i:0.35},   // a whisper — it fires up to 2.7 times a second and must never become texture
+  grind: {s:0, i:0.35, min:2},   // a whisper — it fires up to 2.7/s and must never become texture
   volley:{s:0, i:0.65},   // a definite tap: this is the shot you aimed and hoarded for
   bait:  {s:1, i:0.90},   // the baited charge, CHARGE_DMG 10, the hardest erosion in the fight
   // ---- what happens everywhere else, which is most of the run ----
@@ -12607,7 +12642,7 @@ const HAPTIC_FX={
   // hardware. ⚠️ ITS INTENSITY IS PASSED AT THE CALL SITE, NOT READ FROM HERE: it scales with the hold
   // charge exactly as `sfx.flip(hc)`'s pitch does, so a tap-flip and a fully loaded hungry flip are not
   // the same event. The `i` below is the cold floor.
-  flip:  {s:0, i:0.18},
+  flip:  {s:0, i:0.18, min:2},
   // ---- the two events that END something, and the only two that are not impacts ----
   // ⚠️ `s:3`/`s:4` ARE NOT INTENSITIES ON A SCALE — they select UINotificationFeedbackGenerator in the
   // shell, whose patterns (.success is two rising taps, .error a stutter) have NO intensity parameter,
@@ -12629,9 +12664,17 @@ const HAPTIC_FX={
 // again: the caller is one arithmetic slip from sending 1.4, which is not a louder tap but undefined
 // input.
 function haptic(kind, iOverride){
-  if(!HAP.ok||!store.haptics) return;
+  const lv=HAP_LV[store.haptics]||0;
+  if(!HAP.ok||!lv) return;
   const fx=HAPTIC_FX[kind]; if(!fx) return;
-  const i=(iOverride==null)?fx.i:clamp(iOverride,0,1);
+  if((fx.min||1)>lv) return;                       // this cue does not exist at this level
+  let i=(iOverride==null)?fx.i:clamp(iOverride,0,1);
+  // ⚠️ REDUCE THINS *AND* DAMPS, and it damps NOTHING on the terminal pair — `s>=3` selects a
+  // notification generator, whose pattern has no intensity parameter at all, so scaling `i` there
+  // would be arithmetic with no effect pretending to be a setting. Death and the purge arrive at full
+  // strength on every level above off, which is right: they are the two things you must not miss, and
+  // a pattern has no volume knob to turn down.
+  if(lv===1 && fx.s<3) i*=HAP.LITE;
   const now=performance.now(), since=now-HAP.last;
   // ⚠️ THE TWO TERMINAL CUES IGNORE THE WINDOW, AND THIS IS NOT AN EXEMPTION FOR BEING IMPORTANT — the
   // window's whole premise is that two impacts close together are one event, and a notification is not
@@ -13057,7 +13100,7 @@ window.__orbital=window.__polaris=window.__flux={
   breakStreak,
   // The whole haptics surface. `HAP.sent` is the only way to assert a tap happened at all: the
   // Simulator has no Taptic Engine, so on any rig available here firing and not firing feel identical.
-  HAP, HAPTIC_FX, haptic,
+  HAP, HAPTIC_FX, HAP_LV, haptic,
   // ⚠️ STUBS, DELIBERATELY. `.oracle.js` and `.harness/preload.js` both iterate `g.orbs` UNGUARDED with
   // no try/catch — `for (const o of undefined)` THROWS rather than diffing, which would take the whole
   // fingerprint harness down. `FX` reports Overdrive's remaining seconds so the old effect-timer layer
