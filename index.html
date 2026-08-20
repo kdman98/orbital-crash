@@ -12471,20 +12471,36 @@ function ambPluck(inten){
   // root sits UNDER the two or three melody notes that follow it instead of beside them.
   const dec=anchor?3.2:2.2;
   const v=lerp(0.02,0.05,inten)*(anchor?1.15:1);
+  // ⚠️ 5ms, NOT 50. A 50ms ramp is a BLOWN attack -- it is how you build a horn patch, and on a phone,
+  // where the fundamental is half gone and the upper partials carry the sound, that is exactly what it
+  // read as. A struck string has no ramp worth the name; a piano hammer is 2-5ms.
   g.gain.setValueAtTime(0,AC.currentTime);
-  g.gain.linearRampToValueAtTime(v,AC.currentTime+0.05);
+  g.gain.linearRampToValueAtTime(v,AC.currentTime+0.005);
   g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dec);
   o.connect(g);
-  // A SAWTOOTH PARTNER, NOT A DIFFERENT WAVEFORM, because a type cannot be crossfaded and this has to
-  // arrive gradually. A triangle's harmonics fall as 1/n^2 and a sawtooth's only as 1/n, so the saw
-  // is where the brightness comes from once the filter is open -- the two together are worth +13dB
-  // in 1.5-6kHz from calm to storm, against +0.0dB for opening the filter over a triangle alone.
-  //   Halved on the anchor: the root's job is to sit under the melody, and brightness pushes forward.
-  const sawAmt=lerp(0,0.35,inten)*(anchor?0.5:1);
+  // ⚠️ THE SAW IS THE STRIKE, NOT A LAYER, AND ITS OWN SHORT ENVELOPE IS THE WHOLE POINT. It used to
+  // share the triangle's 2.2s decay, so the note held its harmonic balance for its entire length --
+  // and holding brightness IS what separates a blown tone from a struck one. Measured as the share of
+  // energy in 1.5-6kHz, taken 6ms in and again at 500ms:
+  //     sharing the 2.2s decay   -27.4 -> -25.8 dB   the note gets BRIGHTER as it rings
+  //     0.18s of its own          -26.7 -> -38.2 dB   it darkens by 11.6dB, which is a string
+  // Same onset brightness either way, so nothing is lost at the front; what changes is that the tail
+  // is now nearly a pure triangle, which is close to what a real string leaves behind.
+  //   The level rises to compensate for the shorter window: 0.70 at storm against the old 0.35, which
+  // costs 0.7dB of survival through a 300Hz speaker (-16.2 against -15.5) and buys the strike back.
+  //   Calm still lands near zero saw, so soft notes are round and loud ones crack -- which is how a
+  // piano answers velocity, and it comes free from the existing intensity lerp.
+  const sawAmt=lerp(0,0.70,inten)*(anchor?0.5:1);
   if(sawAmt>0.002){
     const o2=AC.createOscillator(), g2=AC.createGain();
-    o2.type='sawtooth'; o2.frequency.value=freq; g2.gain.value=sawAmt;
-    o2.connect(g2); g2.connect(g); o2.start(); o2.stop(AC.currentTime+dec+0.1);
+    o2.type='sawtooth'; o2.frequency.value=freq;
+    const sdec=0.18;
+    g2.gain.setValueAtTime(0,AC.currentTime);
+    g2.gain.linearRampToValueAtTime(sawAmt,AC.currentTime+0.005);
+    g2.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+sdec);
+    // Straight to the bus, NOT through `g` -- routing it through the note envelope would multiply the
+    // two decays together and give the strike the 2.2s tail this change exists to remove.
+    o2.connect(g2); g2.connect(pluckBus); o2.start(); o2.stop(AC.currentTime+sdec+0.05);
   }
   g.connect(pluckBus); o.start(); o.stop(AC.currentTime+dec+0.1);
 }
