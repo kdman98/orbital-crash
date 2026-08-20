@@ -222,6 +222,39 @@ frames: **correlation 1.000** between the pulse and the corner pixel's red chann
 
 ---
 
+### The pluck is struck rather than blown `v2` `b23e5dc`
+Author, on an iPhone: *"sound was kinda trumpet-like... can we go more piano like?"*
+
+A **50 ms attack is a blown attack** — it is how you build a horn patch, and on a phone, where the
+fundamental is half gone and the upper partials carry the sound, that is exactly what it read as. A piano
+hammer is 2–5 ms. Now 5 ms.
+
+⚠️ **But the attack alone measured as nothing, and the saw's envelope was the real fault.** It shared the
+triangle's 2.2 s decay, so the note held its harmonic balance for its whole length — and holding
+brightness is precisely what separates a blown tone from a struck one. A string's upper partials die
+first; that is why a piano darkens as it rings and a trumpet does not. Measured in an
+`OfflineAudioContext`, share of energy in 1.5–6 kHz at 6 ms and again at 500 ms:
+
+| saw envelope | at 6 ms | at 500 ms | fall |
+|---|---|---|---|
+| shares the note's 2.2 s | −31.5 dB | −31.2 dB | **−0.3 dB** — holds, or brightens |
+| **0.18 s of its own** | −35.1 dB | −42.9 dB | **+7.8 dB** — darkens, like a string |
+
+The onset is as bright as before, so nothing is lost at the front; what changes is that the tail is now
+nearly a pure triangle. Level rises 0.35 → 0.70 at storm to pay for the shorter window, costing 0.7 dB of
+survival through a 300 Hz speaker. The velocity behaviour comes free from the existing intensity lerp:
+calm lands near zero saw, so **soft notes are round and loud ones crack**.
+
+⚠️ **The strike routes straight to the bus, not through the note envelope** — feeding it through `g` would
+multiply the two decays and hand the strike back the 2.2 s tail this change exists to remove. Verified on
+the live graph: sawtooth lifetime is a single 0.23 s against the triangle's 2.3 and 3.3, one per note.
+
+⚠️ **Spectral centroid said this change was worth 1 Hz** and would have killed it. Same trap as the
+sawtooth's introduction: a measure weighted by energy mass is dominated by the fundamental no matter what
+the harmonics do. Band share is the instrument; centroid is not.
+
+---
+
 ### No note twice in a row `v2` `7aec70d`
 Author: *"make it no consecutive melody twice when playing."*
 
