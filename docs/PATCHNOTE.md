@@ -119,18 +119,74 @@ the matter it clears on a phone.
 
 ---
 
-⚠️ **EVERY AUDIO ENTRY BELOW LANDED INSIDE A CSS COMMIT, AND NEITHER MESSAGE MENTIONS SOUND.** `b04329e`
-("`touch-action:none` on html,body…") carries the drone and storm removal, the anchor, the sawtooth
-partner, the pluck bus sweep, the note pools and the deeper heartbeat — 153 insertions on `index.html`.
-`809c7ca` ("Set the callout suppression on `*`…") carries the Melody row, its two languages and its
-persistence. Both were taken while this work sat uncommitted in the same file, and both were pushed
-before it was noticed.
+⚠️ **THE SOUND WORK BELOW IS SPREAD OVER SIX COMMITS AND NOT ONE OF THEIR SUBJECTS MENTIONS SOUND.** It
+kept being swept up while it sat uncommitted in `index.html`. `b04329e` ("`touch-action:none` on
+html,body…") carries the drone and storm removal, the anchor, the sawtooth partner, the pluck bus sweep,
+the note pools and the deeper heartbeat — 153 insertions. `809c7ca` ("Set the callout suppression on
+`*`…") carries the Melody row and its two languages. `270177a` ("The first tutorial line names a side…")
+carries the heartbeat's removal and the low-hull vignette that replaced it. `1e2dfb6` ("\"The left side\"
+of what…") carries the whole Melody page. `f2e2c2e` is gesture diagnostics. Only `3a234a9` and `1b5a05b`
+say what they contain. All six were pushed before it was noticed.
   The precedent is already in this file, from the other direction: `2e73c06` swept in *another* session's
 uncommitted whitespace, and the ruling there holds here — **the change is applied and not lost, only
 misattributed, and force-pushing a shared branch to fix a message is the worse trade.** So the history
 stands and this note is the index into it. `git log -- index.html` will not find these changes by their
-subject lines; `git log -S'PLK_POOL'` will.
+subject lines; `git log -S'PLK_POOL'`, `-S'drawLowHull'`, `-S'melToggle'` and `-S'swMelody'` will, and
+each was run rather than assumed.
 
+
+### The heartbeat stops playing and starts showing `v2` `270177a`
+Author: *"remove heartbeat for overall sound, and just visually signal that i'm in low health."*
+
+The audio layer is gone — `updateHeart`, both beeps, both noise ticks. `drawLowHull()` replaces it, and
+every number in it is the one the sound used, so the signal a player already learned is unchanged in
+everything but the channel: the same `HP_LOW` gate shared with `#hpbar.low`, the same urgency curve, the
+same lub-dub at +145 ms and 72%, the same rate ramp. Measured live at three hull levels:
+
+| hull | urgency | peak alpha | want | crossings / 20 s | want | rate |
+|---|---|---|---|---|---|---|
+| 24% | 0.20 | 0.480 | 0.48 | 38 | 39 | 59 bpm |
+| 14% | 0.53 | 0.697 | 0.70 | 49 | 49 | 74 bpm |
+| 1% | 0.97 | 0.983 | 0.98 | 75 | 75 | 112 bpm |
+
+**Rate carrying the gauge is the point.** A fixed blink says "low"; a quickening one says *how* low, which
+is the one thing the hp bar could not say — a 9 px strip pulsing at a constant 0.5 s.
+
+⚠️ **The bump widths had to be in SECONDS, not in phase.** Scaled to the period, the lub and dub stretch
+as the rate rises, overlap, and merge into one long swell — measured, one threshold crossing per beat
+instead of two, i.e. a warning lamp rather than a pulse. In absolute time the shape is identical at every
+rate and only the repetition changes, which is what a heart does. 35 ms sigma against a 145 ms gap is
+4.1 sigma; the envelope dips to 0.20 between them.
+
+⚠️ **Two failures worth keeping, both of which produced a confident wrong reading.** `drawLowHull()` first
+landed *inside* `if(flash>0)`, so it drew only while something else was already flashing — the pulse value
+was right the whole time and nothing was on screen. And moving the pulse out of the audio seam recreated
+the exact false pass that seam's own comment warns about: a hidden pane froze `lowHullT`, the readout sat
+at a constant 0.053, and it looked like a working gauge until the rate was checked against urgency.
+`lowHullT` is now advanced by `audio(dt)` as well as by the frame — the seam's contract, not scaffolding.
+Proof is a canvas pixel readback rather than a screenshot, because this environment discards uncomposited
+frames: **correlation 1.000** between the pulse and the corner pixel's red channel, over a 130-level swing.
+
+---
+
+### The Melody page: pick your own notes, up to seven `v2` `1e2dfb6` `1b5a05b`
+Author: *"user may change the melody as user want, maximum seven."*
+
+The three-way row becomes a page. Twelve semitone toggles, three presets, and an echo line printing what
+the set becomes in all four Epochs — because what is stored is DEGREES, not letters, and the letters move
+with the act. Seven is the ceiling because past it the anchor cannot hold a key: with eight or more of
+twelve, any root is nearly as well supported as any other and the four Epochs stop sounding different.
+The last note cannot be switched off, or `ambPluck` would have nothing to draw from. The old three-way
+key migrates rather than resetting — it shipped, so someone may already have chosen with it.
+
+⚠️ **A consonance warning was measured, then deliberately left out, because roughness does not mean here
+what it means in theory.** Plomp–Levelt over all twelve degrees against the root: the roughest are **E
+(0.2025), F (0.1922) and F♯ (0.1607)** — two of which are in the shipped pentatonic — and the **major 7th
+is the *smoothest* interval available (0.0330)**. At a 146 Hz root, roughness is governed by how close the
+fundamentals sit, not by harmonic function, so an indicator built on it would have flagged the safest and
+most idiomatic notes as the worst. Ears decide; the UI stays out of it.
+
+---
 
 ### A deeper heartbeat `v2` `b04329e`
 Author: *"heartbeat should be a little lower or deeper than this but can hear well."*
