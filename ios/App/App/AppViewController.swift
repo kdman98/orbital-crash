@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 /// The app's root view controller. It exists for one reason now: to carry the DEBUG-only JS probe.
 ///
@@ -22,10 +23,43 @@ class AppViewController: CAPBridgeViewController {
     private var linkStart: CFTimeInterval = 0
     #endif
 
+    /// Owned here so it outlives registration; see the retain-cycle note on the class itself for why it
+    /// is a separate object and not `self`.
+    private let haptics = HapticBridge()
+
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         hardenWebViewGestures()
+        installHapticBridge()
         runDebugProbe()
+    }
+
+    /// Opens the page's one route to the Taptic Engine.
+    ///
+    /// ⚠️ REGISTERED HERE RATHER THAN ON THE CONFIGURATION, and unlike `isTextInteractionEnabled` above
+    /// that is not a compromise. A message handler added to the live `userContentController` is in force
+    /// for every navigation afterwards, and the page has not run a line of script yet at
+    /// `capacitorDidLoad` — the probe below spends up to 15s waiting for `window.__orbital` to appear,
+    /// which is the same fact from the other side. Nothing can have missed it.
+    ///
+    /// ⚠️ THE PAGE MUST TREAT THIS AS OPTIONAL. On the web build there is no `window.webkit` at all, and
+    /// a page that assumed the channel would throw on every kill. See `HAPTIC.ok` in index.html.
+    private func installHapticBridge() {
+        guard let wv = self.webView else {
+            #if DEBUG
+            NSLog("ORBITAL_HAPTIC: webView was nil at capacitorDidLoad — no channel registered")
+            #endif
+            return
+        }
+        let ucc = wv.configuration.userContentController
+        // Belt and braces against a double install: `add` with a name already taken raises an
+        // NSInvalidArgumentException, which is a crash rather than an error, and `capacitorDidLoad` is
+        // not contractually once-per-process.
+        ucc.removeScriptMessageHandler(forName: HapticBridge.channel)
+        ucc.add(haptics, name: HapticBridge.channel)
+        #if DEBUG
+        NSLog("ORBITAL_HAPTIC: channel '%@' registered", HapticBridge.channel)
+        #endif
     }
 
     /// Turns off the WebView's own zoom and text-interaction gestures, and LOGS WHAT THEY WERE FIRST.
@@ -369,4 +403,84 @@ class AppViewController: CAPBridgeViewController {
     }
     #endif
 
+}
+
+// MARK: - Haptics
+
+/// The JS → native tap. One-way, one message per felt event.
+///
+/// WHY THIS IS NATIVE AT ALL. `navigator.vibrate()` does not exist in WebKit — Safari and WKWebView
+/// have never shipped the Vibration API — so the web layer has no way to reach the Taptic Engine on
+/// its own. Everything the page wants to be FELT has to cross here.
+///
+/// ⚠️ WHY NOT `@capacitor/haptics`. Three reasons, and the third is the one that decided it:
+///   · it is a new pod in a project two sessions share, so it lands a Podfile change and a `pod install`
+///     on somebody else's next checkout for a ~30-line feature;
+///   · its API is promise-based over the Capacitor bridge, i.e. a round trip per tap, where this is a
+///     fire-and-forget `postMessage`;
+///   · **its `ImpactStyle.Light` is a fixed preset and cannot express "soft".** `impactOccurred(intensity:)`
+///     takes a 0–1 float, which is the whole brief: a ring grind chip is meant to be a whisper (0.35) and
+///     a volley a definite tap (0.65). Through the plugin those are the same event.
+///
+/// ⚠️ THE PAGE OWNS THE NUMBERS, NOT THIS FILE. Style and intensity both arrive in the message. That is
+/// deliberate: tuning how the game FEELS is a game-design loop, and `npm run ios:live` reloads the page
+/// without an Xcode build — so a number that lives here costs a rebuild per adjustment and a number that
+/// lives in `index.html` costs a reload. This class stays a transport and owns no taste.
+///
+/// ⚠️ SEPARATE OBJECT, NOT THE VIEW CONTROLLER, AND THAT IS NOT TIDINESS. `userContentController.add`
+/// retains its handler STRONGLY, and the controller is reachable from the view controller through
+/// `webView.configuration` — so registering `self` builds a retain cycle that leaks the whole VC and its
+/// WebView. This holds no reference back, so there is no cycle to break.
+final class HapticBridge: NSObject, WKScriptMessageHandler {
+
+    /// `window.webkit.messageHandlers.orbitalHaptic.postMessage({s:0, i:0.35})`
+    static let channel = "orbitalHaptic"
+
+    // Held rather than built per tap: a generator is a handle on the Taptic Engine, and `prepare()`
+    // only buys its latency reduction if the SAME instance is the one that fires next.
+    private let light = UIImpactFeedbackGenerator(style: .light)
+    private let medium = UIImpactFeedbackGenerator(style: .medium)
+    private let heavy = UIImpactFeedbackGenerator(style: .heavy)
+
+    private var taps = 0
+
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == Self.channel else { return }
+
+        // The page sends {s, i}. A malformed message is dropped in silence rather than defaulted: a tap
+        // nobody asked for is worse than a tap that did not arrive, and the page is the only sender.
+        guard let body = message.body as? [String: Any],
+              let style = body["s"] as? Int,
+              let raw = body["i"] as? Double else { return }
+
+        let generator: UIImpactFeedbackGenerator
+        switch style {
+        case 1:  generator = medium
+        case 2:  generator = heavy
+        default: generator = light
+        }
+
+        // Clamped rather than trusted. `impactOccurred(intensity:)` documents 0...1 and the page is one
+        // arithmetic slip away from sending 1.4 — which is not a louder tap, it is undefined input.
+        let intensity = CGFloat(min(max(raw, 0.0), 1.0))
+        generator.impactOccurred(intensity: intensity)
+
+        // ⚠️ RE-PREPARE AFTER, NOT BEFORE. The engine idles down after a short unprepared window, and
+        // this fires in bursts — a grind runs ~2.7 taps a second for the length of an Anomaly fight.
+        // Preparing on the way out means the NEXT tap in the burst is already warm; preparing on the way
+        // in would pay the wake-up cost on the very tap it is trying to make punctual.
+        generator.prepare()
+
+        #if DEBUG
+        taps += 1
+        // ⚠️ THE FIRST LINE IS THE ONLY PROOF AVAILABLE IN THE SIMULATOR, which has no Taptic Engine —
+        // every call there is a silent no-op, so "the bridge works" and "the bridge was never reached"
+        // look identical from the outside. This is the same ambiguity the gesture logging above exists
+        // to kill. After that it goes quiet and only counts, because a log line per tap IS a per-frame
+        // cost and would be measuring the thing it is watching.
+        if taps == 1 || taps % 50 == 0 {
+            NSLog("ORBITAL_HAPTIC: tap #%d style=%d intensity=%.2f", taps, style, Double(intensity))
+        }
+        #endif
+    }
 }

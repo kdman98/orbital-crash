@@ -1826,6 +1826,18 @@
   </div>
 
 
+  <!-- HAPTICS. The row sits beside Sound because they are the same KIND of thing — two output
+       channels, each with an off — and not beside the comfort switches, which change what the game
+       does rather than how it reports. It hides itself when the native bridge is absent; see the
+       `HAP.ok` check by the handler. -->
+  <div class="setrow" id="setHaptic">
+    <div class="st">
+      <div class="sn" data-t="set.haptic">Haptics</div>
+      <div class="sd" data-t="set.hapticD">A short tap when your matter erodes the Anomaly.</div>
+    </div>
+    <button class="sw" id="swHaptic">On</button>
+  </div>
+
   <div class="setrow" style="border-bottom:0;">
     <div class="st">
       <div class="sn"><span data-t="set.sound">Sound</span> <span class="snv" id="volReadout">100%</span></div>
@@ -2269,6 +2281,12 @@ const store={
   //   A stored 60-100 from before is inside the new range and needs no migration.
   touchSens:clamp(num('orbitalcrash_touchsens',100),10,200),
   followSens:clamp(num('orbitalcrash_followsens',100),1,100),
+  // ON BY DEFAULT, matching the platform it runs on: iOS ships System Haptics enabled, and a feedback
+  // channel nobody thinks to go looking for in a settings panel is a feature that does not exist.
+  // ⚠️ `!== '0'`, NOT `=== '1'`. Every other boolean here defaults OFF and reads the truthy form; this
+  // one defaults ON, so it has to test for the stored FALSE. Copying the `==='1'` pattern from the line
+  // above would ship it silently disabled for everyone.
+  haptics:LS.getItem('orbitalcrash_haptics')!=='0',
   // TOUCH STEERING MODEL, 'abs' or 'stick'.
   //     abs   — thumb TRAVEL sets the star's POSITION. Move 60px, the star moves 120px, then stops.
   //     stick — thumb DEFLECTION sets the star's VELOCITY. Hold it off-origin and the star keeps going.
@@ -2383,6 +2401,7 @@ function save(){
     LS.setItem('orbitalcrash_vol',store.vol);
     LS.setItem('orbitalcrash_touchsens',store.touchSens);
     LS.setItem('orbitalcrash_followsens',store.followSens);
+    LS.setItem('orbitalcrash_haptics',store.haptics?'1':'0');
     LS.setItem('orbitalcrash_touchmode',store.touchMode);
     LS.setItem('orbitalcrash_plknotes',store.plkNotes.join(','));
     LS.setItem('orbitalcrash_moveright',store.moveRight?'1':'0');
@@ -2537,6 +2556,8 @@ const L={ en:{
   'set.follow':'Follow speed',
   'set.followD':'How fast the star closes on where you point it.',
   'set.followA':'Follow speed',
+  'set.haptic':'Haptics',
+  'set.hapticD':'A short tap when your matter erodes the Anomaly.',
   'set.sound':'Sound',
   'set.soundD':'The ambient bed and every cue on top of it.',
   'set.soundA':'Sound level',
@@ -2730,6 +2751,8 @@ const L={ en:{
   'set.follow':'따라오는 속도',
   'set.followD':'별이 가리킨 지점까지 얼마나 빠르게 따라붙는지 정합니다.',
   'set.followA':'따라오는 속도',
+  'set.haptic':'진동',
+  'set.hapticD':'별의 물질이 변이체를 깎을 때 짧게 울립니다.',
   'set.sound':'소리',
   'set.soundD':'배경음과 그 위에 얹히는 모든 효과음.',
   'set.soundA':'소리 크기',
@@ -7794,7 +7817,7 @@ function stepAnnihilation(){
               //   Income has no text at all any more; see the note where the kill popup used to be.
               // White also stops the number competing with the polarity read the entire game runs on: a
               // figure in red or cyan near the boss is one more thing on screen wearing a meaning.
-              if(d>0){ damageBoss(B,d); pushText(B.x,B.y-B.r-8,'-'+(Number.isInteger(d)?d:d.toFixed(1)),'#ffffff',0.45,15);
+              if(d>0){ damageBoss(B,d); haptic(X.vdmg?'volley':charging?'bait':'grind'); pushText(B.x,B.y-B.r-8,'-'+(Number.isInteger(d)?d:d.toFixed(1)),'#ffffff',0.45,15);
                 // THE BAIT LANDS, AND YOU KNOW IT. This is the hardest erosion in the fight and it
                 // arrives in the busiest moment the game has, so damage alone cannot carry it — a number
                 // nobody sees is not a reward. It gets its own signature on every channel the game
@@ -11731,6 +11754,15 @@ function paintSettings(){
   sw('swCb', store.cb);
   sw('swMotion', store.reduceMotion);
   sw('swDots', store.bigDots);
+  // HIDDEN RATHER THAN DISABLED when there is no native channel — see `HAP.ok`. A greyed switch
+  // invites "how do I enable this", and in a browser the honest answer is "you cannot, ever". Same
+  // reasoning as the coarse-pointer rule on `#setFollow`.
+  //   ⚠️ HERE AND NOT AT MODULE SCOPE BESIDE THE HANDLER, which is where it was written first and where
+  // it threw: this block evaluates ~680 lines ABOVE `const HAP`, so reading `HAP.ok` there is a TDZ
+  // ReferenceError at boot — the whole file dies and the game never paints. A `const` does not hoist
+  // like the `function` declarations all around it, and the two look identical in a diff.
+  el('setHaptic').classList.toggle('hidden', !HAP.ok);
+  sw('swHaptic', store.haptics);
   sw('swSound', !store.mute);
   // ⚠️ NEVER WRITE .value WHILE THE SLIDER IS THE ACTIVE ELEMENT. This repaints on a 400ms poll, and
   // assigning `value` mid-drag snaps the handle back under the finger to whatever the last committed
@@ -11809,6 +11841,12 @@ el('swMotion').onclick=()=>{ toggleMotion(); paintSettings(); };
 // No render() and no field repaint: this changes a radius the very next frame reads, and Settings opens
 // over a live field from the pause panel — the change is visible behind the panel as soon as it is made.
 el('swDots').onclick  =()=>{ store.bigDots=!store.bigDots; save(); paintSettings(); };
+// ⚠️ IT TAPS WHEN YOU TURN IT ON. A switch for a sense you cannot see has no other way to confirm
+// itself — the sound row can be checked by the blip on `volRange`'s change, and this is the equivalent.
+// `volley` rather than `grind` because the whisper is, by design, near the threshold of noticing, and a
+// confirmation you might miss is not a confirmation.
+el('swHaptic').onclick=()=>{ store.haptics=!store.haptics; save(); paintSettings();
+                             if(store.haptics) haptic('volley'); };
 el('swSound').onclick =()=>{ toggleMute();   paintSettings(); };
 // `input`, not `change`: the level has to follow the finger, or you are setting a volume you cannot hear
 // until you let go — which is the one thing a volume control must not ask of you.
@@ -12465,6 +12503,72 @@ function panAt(x){
 // you are already looking at, so the pan is a HINT about where, not a simulation of it. 0.7 keeps both
 // ears fed at the extremes while still separating the two halves of the field.
 const PAN_MAX=0.7;
+// ============================== HAPTICS ==============================
+// THE ONE CHANNEL THAT IS NOT ALREADY CROWDED, and that is the whole argument for putting the boss's
+// erosion here rather than giving it a fourth sound.
+//   MEASURED ON THIS BUILD: a ring grind chip and a volley hit each play `sfx.kill()` and nothing else
+// — the same pop as every other Dot dying, 2.0-4.8 of which happen every second. `sfx.bosshit()` sits
+// in the table below with ZERO call sites. So the two channels that decide an Anomaly fight are, on the
+// audio bus, indistinguishable from ambient traffic, and on screen they are a white `-1`. That is the
+// findability problem `bomb()` spent forty lines on, and its answer was SEPARATION, not volume: there
+// is no room left in 300-2000Hz, and there is a whole sense nobody is using.
+//
+// RATES, measured headless through the seam at 1280x800 with counters patched onto both damage
+// branches, so the numbers below are events and not estimates:
+//     ring grind, Anomaly hunting you       0.27/s    one per 3.7s
+//     ring grind, parked on the Anomaly     2.66/s    one per 376ms      <- the busiest case there is
+//     volley                                1-2 hits per connecting flip, landing 0-33ms apart
+//     (5 of 8 unaimed flips at 230px connected nothing at all)
+// 376ms is comfortably distinct to a hand. The volley's 0-33ms spread is NOT — two Dots that land 17ms
+// apart are ONE event to a hand and must be ONE tap, which is what the window in `haptic()` is for.
+//
+// ⚠️ iOS ONLY, ON PURPOSE, AND ANDROID IS A DECISION RATHER THAN AN OMISSION. `navigator.vibrate()` is
+// the only thing the web platform offers and WebKit has never shipped it, so it would do nothing on the
+// device this was built for; where it DOES exist it drives an eccentric-mass motor, which cannot do
+// intensity and cannot do 40ms. 2.7 motor pulses a second is a buzz, and the brief was "soft".
+const HAP={
+  // BOTH HALVES ARE CHECKED. `window.webkit` is absent in a browser, and `orbitalHaptic` is absent
+  // unless the shell registered it — see `installHapticBridge()` in AppViewController.swift. The web
+  // build has neither; a Capacitor build with an older shell would have the first and not the second.
+  ok:!!(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.orbitalHaptic),
+  GAP:45,                       // ms. The floor between taps AND the merge window — they are one number.
+  last:-1e9, lastI:0, tid:0, upS:0, upI:0, sent:0
+};
+// `s` picks the generator (0 light, 1 medium, 2 heavy); `i` goes straight to `impactOccurred(intensity:)`.
+// ⚠️ THE NUMBERS LIVE HERE AND NOT IN SWIFT, deliberately: how the game FEELS is a tuning loop, and
+// `npm run ios:live` reloads this file without an Xcode build. A constant in the shell costs a rebuild
+// per adjustment. The bridge is a transport and owns no taste.
+const HAPTIC_FX={
+  grind: {s:0, i:0.35},   // a whisper — it fires up to 2.7 times a second and must never become texture
+  volley:{s:0, i:0.65},   // a definite tap: this is the shot you aimed and hoarded for
+  bait:  {s:1, i:0.90}    // the baited charge, CHARGE_DMG 10, the hardest erosion in the fight
+};
+// ⚠️ FIRES IMMEDIATELY AND SUPPRESSES BEHIND ITSELF, rather than deferring every tap by the merge
+// window. A tap arriving 45ms after its own flash belongs to whatever you saw next; latency is the one
+// thing this cue cannot spend. So the first event of a burst goes out at once and the window shuts.
+//   THE UPGRADE IS WHY THIS IS NOT THREE LINES. A plain suppression window lets a 0.35 grind chip
+// swallow a 0.65 volley landing 10ms later, and the channel then reports the wrong WEIGHT — the same
+// class of fault as a cue reporting a position it does not have. So a suppressed event that is STRONGER
+// than the one just felt is held and fired as the window ends; weaker ones are dropped outright, which
+// is right, because you already felt something bigger.
+function haptic(kind){
+  if(!HAP.ok||!store.haptics) return;
+  const fx=HAPTIC_FX[kind]; if(!fx) return;
+  const now=performance.now(), since=now-HAP.last;
+  if(since>=HAP.GAP){ hapFire(fx.s,fx.i); return; }
+  if(fx.i<=HAP.lastI) return;
+  if(fx.i>HAP.upI){ HAP.upS=fx.s; HAP.upI=fx.i; }
+  if(!HAP.tid) HAP.tid=setTimeout(()=>{ HAP.tid=0; const s=HAP.upS, i=HAP.upI; HAP.upI=0;
+                                        if(i>0) hapFire(s,i); }, Math.max(1,HAP.GAP-since));
+}
+function hapFire(s,i){
+  HAP.last=performance.now(); HAP.lastI=i; HAP.sent++;
+  // ONE FAILURE DISARMS THE CHANNEL FOR THE SESSION. A throw here means the handler was never
+  // registered, which is a condition that does not heal; the alternative is throwing inside collision
+  // resolution once per chip. Same trade as the try/catch around save() — losing the cue beats
+  // crashing mid-run.
+  try{ window.webkit.messageHandlers.orbitalHaptic.postMessage({s:s,i:i}); }catch(e){ HAP.ok=false; }
+}
 function beep(freq,dur,type,vol,slideTo,dest){
   if(!AC)return;
   const o=AC.createOscillator(), g=AC.createGain();
@@ -12863,6 +12967,9 @@ window.__orbital=window.__polaris=window.__flux={
   get combo(){return combo;}, get odOn(){return odOn;}, OD_DRAIN, OD_MIN,
   get timeScale(){return timeScale;}, get lances2(){return lances;}, get lastDmg(){return lastDmg;},
   breakStreak,
+  // The whole haptics surface. `HAP.sent` is the only way to assert a tap happened at all: the
+  // Simulator has no Taptic Engine, so on any rig available here firing and not firing feel identical.
+  HAP, HAPTIC_FX, haptic,
   // ⚠️ STUBS, DELIBERATELY. `.oracle.js` and `.harness/preload.js` both iterate `g.orbs` UNGUARDED with
   // no try/catch — `for (const o of undefined)` THROWS rather than diffing, which would take the whole
   // fingerprint harness down. `FX` reports Overdrive's remaining seconds so the old effect-timer layer
