@@ -12217,7 +12217,7 @@ updateMotionBtn();
 // =====================================================================
 //  AUDIO (procedural, WebAudio)
 // =====================================================================
-let AC=null, master=null, pluckBus=null, ambReady=false, ambNoteT=0, ambSince=99;
+let AC=null, master=null, pluckBus=null, ambReady=false, ambNoteT=0, ambSince=99, lastDeg=-1;
 // ---- COMPOSED MUSIC, IF A TRACK IS PRESENT ----------------------------------------------------
 // ⚠️ AN <audio> ELEMENT AND NOT fetch()+decodeAudioData, AND THE CSP IS WHY. The policy on this page
 // sets `connect-src 'none'`, so fetch and XHR are refused — the textbook way to load a buffer cannot
@@ -12383,13 +12383,39 @@ function ambPluck(inten){
   // which is the point: it grounds the key without becoming the hum the drone was removed for.
   //   The `act !== ambActSeen` force that used to sit here went with the root cycle -- an Epoch change
   // no longer changes the key, so there is nothing for it to announce.
-  const anchor = ambSince>=4;
+  let anchor = ambSince>=4;
+  // ⚠️ THE ANCHOR IS ALWAYS DEGREE 0, SO IT CAN REPEAT A NOTE THE PICKER JUST PLAYED, and the guard
+  // below cannot see it coming -- measured, that leak alone left 5.3% of pairs repeating on the
+  // pentatonic after the picker itself was clean. Deferring the anchor by ONE note costs nothing (it is
+  // periodic, not metrical) and cannot loop: the melody note that takes its place is guarded against
+  // degree 0, so the next call always fires it.
+  //   Not applied when the pool holds one note, where a repeat is the only thing that can happen.
+  if(anchor && lastDeg===0 && scale.length>1) anchor=false;
   if(anchor) ambSince=0; else ambSince++;
   // THE LINE CLIMBS AS THE GAME DOES. 0.4 was a constant; it is now the same number at mid-intensity
   // and a sweep either side of it, which moves the melody's mean pitch 231 -> 312Hz across the range
   // (median 220 -> 294, over 4000 draws). Pitch is the most legible musical dimension there is, so
   // this carries more of the escalation than the filter does.
-  const semi=anchor ? 0 : scale[irand(0,scale.length-1)] + (Math.random()<lerp(0.2,0.6,inten)?12:0);
+  // ⚠️ NO NOTE TWICE IN A ROW. The picker had no memory, so a uniform draw from five notes repeated
+  // itself about one time in five and a repeat is the one thing a random line reads as a MISTAKE --
+  // everything else sounds composed, that sounds broken.
+  //   Guarded on the DEGREE, not the pitch, so the octave jump cannot smuggle a repeat through: D3
+  // followed by D4 is the same note said twice and would land as one. And the guard is skipped when
+  // the pool holds a single note, because there is nothing else to pick and the alternative is a loop
+  // that never terminates.
+  //   The ANCHOR sets `lastDeg` too. It is degree 0 and it is a note you hear, so a melody note that
+  // happened to draw the root straight after it would be exactly the repeat this exists to prevent.
+  let deg = 0;
+  if(!anchor){
+    deg = scale[irand(0,scale.length-1)];
+    if(scale.length > 1 && deg === lastDeg){
+      // one deterministic step to a different degree, rather than re-rolling: a re-roll loop has no
+      // bound, and stepping keeps every other note equally likely.
+      deg = scale[(scale.indexOf(deg) + 1 + irand(0, scale.length-2)) % scale.length];
+    }
+  }
+  lastDeg = deg;
+  const semi = deg + (anchor ? 0 : (Math.random()<lerp(0.2,0.6,inten)?12:0));
   const freq=root*Math.pow(2,semi/12);
   const o=AC.createOscillator(), g=AC.createGain();
   o.type='triangle'; o.frequency.value=freq;
