@@ -441,6 +441,12 @@ final class HapticBridge: NSObject, WKScriptMessageHandler {
     private let light = UIImpactFeedbackGenerator(style: .light)
     private let medium = UIImpactFeedbackGenerator(style: .medium)
     private let heavy = UIImpactFeedbackGenerator(style: .heavy)
+    // ⚠️ A DIFFERENT CLASS OF GENERATOR, AND THAT IS THE POINT. An impact is ONE knock, so every impact
+    // event differs from every other only by weight — which is a scale, not an identity. A notification
+    // is a PATTERN (success is two rising taps, error is a stutter), so the two events that end
+    // something get a shape no amount of intensity can imitate. Reserved for exactly those two: spend
+    // it on a third and it stops meaning "this is over".
+    private let notify = UINotificationFeedbackGenerator()
 
     private var taps = 0
 
@@ -452,6 +458,20 @@ final class HapticBridge: NSObject, WKScriptMessageHandler {
         guard let body = message.body as? [String: Any],
               let style = body["s"] as? Int,
               let raw = body["i"] as? Double else { return }
+
+        // 3 and 4 leave the impact family entirely and ignore `i` — a notification haptic has a fixed
+        // pattern and no intensity parameter. The page knows this; see the note on HAPTIC_FX.
+        if style == 3 || style == 4 {
+            notify.notificationOccurred(style == 3 ? .success : .error)
+            notify.prepare()
+            #if DEBUG
+            taps += 1
+            if taps == 1 || taps % 50 == 0 {
+                NSLog("ORBITAL_HAPTIC: tap #%d notification=%@", taps, style == 3 ? "success" : "error")
+            }
+            #endif
+            return
+        }
 
         let generator: UIImpactFeedbackGenerator
         switch style {

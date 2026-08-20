@@ -1833,7 +1833,7 @@
   <div class="setrow" id="setHaptic">
     <div class="st">
       <div class="sn" data-t="set.haptic">Haptics</div>
-      <div class="sd" data-t="set.hapticD">A short tap when your matter erodes the Anomaly.</div>
+      <div class="sd" data-t="set.hapticD">A short tap for every blow you land or take.</div>
     </div>
     <button class="sw" id="swHaptic">On</button>
   </div>
@@ -2557,7 +2557,7 @@ const L={ en:{
   'set.followD':'How fast the star closes on where you point it.',
   'set.followA':'Follow speed',
   'set.haptic':'Haptics',
-  'set.hapticD':'A short tap when your matter erodes the Anomaly.',
+  'set.hapticD':'A short tap for every blow you land or take.',
   'set.sound':'Sound',
   'set.soundD':'The ambient bed and every cue on top of it.',
   'set.soundA':'Sound level',
@@ -2752,7 +2752,7 @@ const L={ en:{
   'set.followD':'별이 가리킨 지점까지 얼마나 빠르게 따라붙는지 정합니다.',
   'set.followA':'따라오는 속도',
   'set.haptic':'진동',
-  'set.hapticD':'별의 물질이 변이체를 깎을 때 짧게 울립니다.',
+  'set.hapticD':'주고받는 타격마다 짧게 울립니다.',
   'set.sound':'소리',
   'set.soundD':'배경음과 그 위에 얹히는 모든 효과음.',
   'set.soundA':'소리 크기',
@@ -6157,7 +6157,7 @@ function coreHit(dmg,src){
   P.hp-=d; P.iframe=IFRAME; P.hurtT=0;
   if(boss && anomLog.length) anomLog[anomLog.length-1]+=d;   // this fight's tab — mines and missiles land here
   breakStreak(src);
-  sfx.hurt(); hurtText(d);            // same one cue as Dot contact — see IFRAME / hurtText
+  sfx.hurt(); haptic('hurt'); hurtText(d);   // same one cue as Dot contact — see IFRAME / hurtText
   if(P.hp<=0){ P.hp=0; die(); return true; }
   return false;
 }
@@ -7022,6 +7022,7 @@ function killBoss(b){
   // things at the same instant — the Anomaly collapsing inward on itself, and what that collapse threw
   // out. `out` is spent sparingly on purpose (see bomberBlast); this is the event it was being saved for.
   spawnRing(b.x,b.y,'#fff',RW,true,RW/PURGE_WAVE_SPD);
+  haptic('purge');
   const rew=200*act; score+=rew; purgeRew=rew;
   // THE PURGE'S WORDS MOVED TO THE EPOCH CUE — one statement in one place, not the same sentence twice
   // 200px apart. onBossCleared fires it on the very next tick and carries `purgeRew` into it.
@@ -7987,7 +7988,7 @@ function stepPlayerContact(){
         P.hp-=dmg; P.iframe=IFRAME; P.hurtT=0;
         if(boss && anomLog.length) anomLog[anomLog.length-1]+=dmg;  // this fight's tab — the Anomaly's own 30-damage body lands here, and so does every Dot that punishes you while you are busy with it
         breakStreak({t:e.type, c:e.color});   // every real hit severs the streak
-        sfx.hurt();
+        sfx.hurt(); haptic('hurt');
         hurtText(dmg);
         if(P.hp<=0){ P.hp=0; die(); return true; }
       }
@@ -8042,7 +8043,7 @@ function stepRunTimers(dt){
   // deliberately disagree — the bar means "you can ignite", the button means "your finger is on this".
   //   The chime's cadence is right as it stands: burn to zero and it re-announces on the next fill; let
   // go above the floor and it stays quiet, because you never stopped being armed.
-  if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); }
+  if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); haptic('ready'); }
   else if(P.charge<OD_MIN) chargeReady=false;
   // Gilded Bounty: every 12-18s one Dot arrives gilded — annihilate it within 6s for a jackpot
   gildTimer-=dt;
@@ -8280,7 +8281,7 @@ function onKill(e){
   // a number already on screen, which is the exact argument that deleted the bolt glyph from that HUD line.
   //   The shake and the sting stay. They were never the redundant part: they say "that one mattered"
   //   without saying anything, which is what the rest of this game does.
-  if(combo>1 && combo%10===0){ trauma=Math.min(1,trauma+0.14); sfx.milestone(); }
+  if(combo>1 && combo%10===0){ trauma=Math.min(1,trauma+0.14); sfx.milestone(); haptic('streak'); }
   // SCORE IS NOT TEXT ON THE FIELD ANY MORE. A `pushText(e.x,e.y-10,'+'+gain, COL[e.color], .7, 12)`
   // stood here, and it was the same code path, the same 800-weight face, the same `vy:-0.8` rise and the
   // same linear fade as `hurtText` — and on a red Dot the SAME BYTES of colour, #ff3f6c. Author: "체력
@@ -8481,6 +8482,9 @@ function flip(){
   if(++FEAT.epochFlips>=40) grantAchv('flappystar');
   flash=0.05+hc*0.13; flashCol=COL[P.polarity]; // flipping is constant — a full-screen wash every flip was the #1 dizziness source; feedback lives in the ring + core colour now
   sfx.flip(hc);
+  // Rides `hc` exactly as the sound above does: a tap-flip is a nudge, a fully loaded hungry flip is
+  // half again as heavy. One gesture, two very different events, and the hand can tell them apart.
+  haptic('flip', HAPTIC_FX.flip.i + hc*0.35);
   // THE HUNGRY FLIP — the one answer to a closing sky. Hold a pole to LOAD your rings, then reverse:
   // every opposite-charge Dot inside the burst is FLUNG outward, alive, in the same frame. Quick
   // taps just reverse (reposition, colour-swap), so flip-spam can't cheaply sustain you.
@@ -8730,7 +8734,7 @@ function die(){
   spawnRing(P.x,P.y,COL[P.polarity],180);
   trauma=1; flash=0.6; flashCol=COL.red;
   deathRevealT=0.9;
-  sfx.dead();
+  sfx.dead(); haptic('dead');
 }
 function revealDead(){
   el('dead').classList.remove('hidden');
@@ -12551,6 +12555,19 @@ const PAN_MAX=0.7;
 // the only thing the web platform offers and WebKit has never shipped it, so it would do nothing on the
 // device this was built for; where it DOES exist it drives an eccentric-mass motor, which cannot do
 // intensity and cannot do 40ms. 2.7 motor pulses a second is a buzz, and the brief was "soft".
+// ⚠️ COVERAGE IS A DESIGN QUESTION, NOT A CALL-SITE COUNT, and the first version of this got it wrong.
+// It fired ONLY inside the boss-collision branch, so a run with no Anomaly on the field produced no
+// haptic at all — and most of a run has no Anomaly. Author: "does haptic only apply against Boss? if
+// not, haptic is little weak." Correct, and the fix is not "tap on everything": ordinary kills run
+// 2.5-2.9/s and motes ~6.2/s, either of which is a continuous buzz that would bury the 0.35 grind.
+//   The set below is chosen so every tap is an EVENT rather than a texture, and so the whole run is
+// covered whether or not a boss is up. Measured per second, stationary pilot, 60s per Epoch, 1280x800:
+//     kill      2.52 / 2.92 / 2.88      <- EXCLUDED, texture
+//     hurt      0.18 / 0.20 / 0.23      <- in
+//     streak    0.17 / 0.18 / 0.18      <- in (this IS the kill loop, at a tenth the rate)
+//     capFull   0.02 / 0.02 / 0.02      <- in
+// The rule for anything added later: if it fires faster than about 3 times a second it is texture, and
+// texture is what this channel was chosen to avoid.
 const HAP={
   // BOTH HALVES ARE CHECKED. `window.webkit` is absent in a browser, and `orbitalHaptic` is absent
   // unless the shell registered it — see `installHapticBridge()` in AppViewController.swift. The web
@@ -12564,9 +12581,37 @@ const HAP={
 // `npm run ios:live` reloads this file without an Xcode build. A constant in the shell costs a rebuild
 // per adjustment. The bridge is a transport and owns no taste.
 const HAPTIC_FX={
+  // ---- what you land on the Anomaly. Boss-only by construction; see the coverage note above. ----
   grind: {s:0, i:0.35},   // a whisper — it fires up to 2.7 times a second and must never become texture
   volley:{s:0, i:0.65},   // a definite tap: this is the shot you aimed and hoarded for
-  bait:  {s:1, i:0.90}    // the baited charge, CHARGE_DMG 10, the hardest erosion in the fight
+  bait:  {s:1, i:0.90},   // the baited charge, CHARGE_DMG 10, the hardest erosion in the fight
+  // ---- what happens everywhere else, which is most of the run ----
+  // ⚠️ THE HEAVIEST IMPACT IN THE SET, AND IT IS THE ONE THING THAT HAPPENS *TO* YOU. Every other
+  // entry here is something you did. Damage has owned its own colour (COL.red) and its own falling
+  // sawtooth for the whole project; this is the same rule arriving in the new channel.
+  hurt:  {s:2, i:1.00},
+  // EVERY TENTH KILL, NOT EVERY KILL. Kills run 2.5-2.9/s all run long — a tap on each is 1700 of them
+  // in a ten-minute run, which is texture rather than an event, and it would bury the 0.35 grind in a
+  // continuous mush. `combo%10` is already the game's streak beat (`sfx.milestone`), and at 0.17/s it
+  // compresses the kill loop to a rhythm you can actually feel. The same argument bars `mote()` at
+  // ~6.2/s outright.
+  streak:{s:0, i:0.50},
+  // THE CAPACITOR FILLING. 0.02/s — once per ~50s — and it reports a TOOL BECOMING AVAILABLE, which is
+  // the one kind of thing you can miss entirely while looking somewhere else.
+  ready: {s:0, i:0.45},
+  // INPUT CONFIRMATION, and the only entry here that is not an outcome. There is no physical button
+  // under a flip, so the tap is what says the press registered — the oldest use there is for this
+  // hardware. ⚠️ ITS INTENSITY IS PASSED AT THE CALL SITE, NOT READ FROM HERE: it scales with the hold
+  // charge exactly as `sfx.flip(hc)`'s pitch does, so a tap-flip and a fully loaded hungry flip are not
+  // the same event. The `i` below is the cold floor.
+  flip:  {s:0, i:0.18},
+  // ---- the two events that END something, and the only two that are not impacts ----
+  // ⚠️ `s:3`/`s:4` ARE NOT INTENSITIES ON A SCALE — they select UINotificationFeedbackGenerator in the
+  // shell, whose patterns (.success is two rising taps, .error a stutter) have NO intensity parameter,
+  // so `i` here is ignored and kept only so every row has the same shape. An impact can only differ
+  // from another impact by weight; a pattern differs by identity, which is what a full stop needs.
+  purge: {s:3, i:1.00},   // the Anomaly comes apart
+  dead:  {s:4, i:1.00}    // and so do you
 };
 // ⚠️ FIRES IMMEDIATELY AND SUPPRESSES BEHIND ITSELF, rather than deferring every tap by the merge
 // window. A tap arriving 45ms after its own flash belongs to whatever you saw next; latency is the one
@@ -12576,13 +12621,28 @@ const HAPTIC_FX={
 // class of fault as a cue reporting a position it does not have. So a suppressed event that is STRONGER
 // than the one just felt is held and fired as the window ends; weaker ones are dropped outright, which
 // is right, because you already felt something bigger.
-function haptic(kind){
+// `iOverride` is for the one cue whose weight is a variable rather than a constant — the flip, which
+// scales with hold charge. Clamped here rather than trusted, for the same reason the Swift clamps it
+// again: the caller is one arithmetic slip from sending 1.4, which is not a louder tap but undefined
+// input.
+function haptic(kind, iOverride){
   if(!HAP.ok||!store.haptics) return;
   const fx=HAPTIC_FX[kind]; if(!fx) return;
+  const i=(iOverride==null)?fx.i:clamp(iOverride,0,1);
   const now=performance.now(), since=now-HAP.last;
-  if(since>=HAP.GAP){ hapFire(fx.s,fx.i); return; }
-  if(fx.i<=HAP.lastI) return;
-  if(fx.i>HAP.upI){ HAP.upS=fx.s; HAP.upI=fx.i; }
+  // ⚠️ THE TWO TERMINAL CUES IGNORE THE WINDOW, AND THIS IS NOT AN EXEMPTION FOR BEING IMPORTANT — the
+  // window's whole premise is that two impacts close together are one event, and a notification is not
+  // an impact. `dead` was being DROPPED OUTRIGHT before this line existed: `die()` runs in the same
+  // frame as the blow that caused it, so the hurt tap fired at 1.00 first and the death tap failed
+  // `i > HAP.lastI` on a tie. The most important cue in the game, eaten by its own cause.
+  //   ⚠️ AND THE TEST THAT PASSED IS THE LESSON. Calling `killBoss()` directly from a clean window
+  // reported purge working perfectly; the real path always has a grind chip 0ms ahead of it, which
+  // deferred it. A rig that sets up conditions the live path never has will confirm anything.
+  //   Safe to bypass because both fire at most once per run, so there is no burst to protect against.
+  if(fx.s>=3){ hapFire(fx.s,i); return; }
+  if(since>=HAP.GAP){ hapFire(fx.s,i); return; }
+  if(i<=HAP.lastI) return;
+  if(i>HAP.upI){ HAP.upS=fx.s; HAP.upI=i; }
   if(!HAP.tid) HAP.tid=setTimeout(()=>{ HAP.tid=0; const s=HAP.upS, i=HAP.upI; HAP.upI=0;
                                         if(i>0) hapFire(s,i); }, Math.max(1,HAP.GAP-since));
 }
