@@ -55,6 +55,12 @@ repeats exactly 11 times in 16 and drifts on the other 5; A/A gives **−2.9 ±3
 is ~8× the noise floor and the noise carries no sign. A single arm read naively put the figure anywhere in
 the −23 to −29 band.
 
+**Phone arena checked separately**, because the reach argument is entirely geometric: 4 seeds of 4 clear
+100% of a 35–94 body field at 800×1732 world units. ⚠️ The sweep runs **0.54–0.82s** there against
+0.43–0.58s on desktop and so outlasts the purge's slow-motion — deliberate, since this is a *world* speed
+like every other speed in the file, and a CSS-normalised one would travel four times faster relative to
+the matter it clears on a phone.
+
 **An open tension, left open on purpose:** an emptier stretch is exactly the complaint `enterBuild` was cut
 7.4s for. If the post-purge calm reads as dead air, the lever is the calm clock, not the sweep.
 

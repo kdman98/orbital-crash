@@ -3681,11 +3681,18 @@ let lances=[]; // anomaly's outer-screen projectiles: opposite-colour, hurt the 
 // `max(W,H)*0.6` circle around the CENTRE and therefore reaches ~370px past the rect) would have stretched
 // R by 40% and sped the visible sweep up by the same. A speed makes every purge cross the screen at the
 // same rate and lets R be whatever it has to be.
-//   2200 px/s puts a typical far-corner R (1000-1150 on a 1280x800 arena) at 0.45-0.52 SIM seconds, and
-// that is chosen to sit inside the purge's own slow-motion rather than picked for looks: `slowmo(0.35,0.7)`
-// plus the 2.2/s recovery is about 1.0s of real time in which only ~0.45s of sim elapses. The sweep is
-// therefore over just as normal speed returns — the slow window exists so the biggest event in the game
-// can be watched, and until now the only thing in it to watch was the Anomaly's own debris.
+//   2200 px/s puts a typical far-corner R at 0.43-0.58 SIM seconds on an 800-short-axis desktop arena,
+// and that is sized against the purge's own slow-motion rather than picked for looks: `slowmo(0.35,0.7)`
+// plus the 2.2/s recovery is about 1.0s of real time in which only ~0.45s of sim elapses. The slow window
+// exists so the biggest event in the game can be watched, and until now the only thing in it to watch was
+// the Anomaly's own debris.
+//   ⚠️ AND ON A TALL PHONE ARENA THE SWEEP OUTLASTS THAT WINDOW — measured 0.54-0.82s against 0.43-0.58s
+// on desktop, because this is a WORLD speed and a 375x812 phone is 800x1732 in world units, a diagonal
+// half again as long. So the tail of a phone sweep runs at normal speed. That is deliberate and it is the
+// same choice `S` forces on every other speed in the file: a Dot crosses a phone arena in world units too,
+// and a sweep normalised to CSS pixels would travel four times faster RELATIVE TO THE MATTER it is
+// clearing than the same sweep on desktop. The radius is a kill boundary, so it stays in the units the
+// kill is in. Do not "fix" the duration spread by dividing by `S`; the spread is the arena, not a bug.
 let purgeWave=null;
 const PURGE_WAVE_SPD=2200;
 // THE WHOLE HEAL INCOME OF A RUN, in one place. It was a literal inside killBoss while three comments

@@ -2148,9 +2148,18 @@ promises a reach rather than a danger.
 ⚠️ **`PURGE_WAVE_SPD` IS A SPEED AND THE FIRST VERSION WAS A DURATION**, which is the mistake to not
 repeat. A fixed 0.5s meant the sweep's px/s was whatever `R` happened to be that purge, so an Anomaly
 dying in a corner swept the screen visibly faster than one dying centre-field. 2200px/s puts a typical
-`R` (948–1277 on a 1280×800 arena) at **0.43–0.58 sim-seconds**, which is chosen to sit inside the
-purge's own `slowmo(0.35, 0.7)` rather than picked for looks — the slow window exists so the biggest
-event in the game can be watched, and until now the only thing in it to watch was the Anomaly's debris.
+`R` (948–1277 on a 1280×800 arena) at **0.43–0.58 sim-seconds**, sized against the purge's own
+`slowmo(0.35, 0.7)` — the slow window exists so the biggest event in the game can be watched, and until
+now the only thing in it to watch was the Anomaly's debris.
+
+⚠️ **On a tall phone arena the sweep outlasts that window**, measured **0.54–0.82s** against desktop's
+0.43–0.58s: this is a *world* speed, and a 375×812 phone is 800×1732 in world units — a diagonal half
+again as long. The tail of a phone sweep therefore runs at normal speed. That is the same choice `S`
+forces on every other speed in the file; normalising to CSS pixels would make the sweep travel **four
+times faster relative to the matter it is clearing** on a phone than on desktop. The radius is a kill
+boundary, so it stays in the units the kill is in. ⚠️ **Do not "fix" the duration spread by dividing by
+`S`** — the spread is the arena. Verified on the phone arena: 4 seeds of 4 clear **100%** of a 35–94 body
+field, edge still trailing the hoop by exactly 36.7px.
 
 ⚠️ **THE REACH IS WHERE A BODY WILL BE, NOT WHERE IT IS, and two guesses died before that.** `max(W,H)`
 misses the far corner outright (1280 against a 1509 diagonal). Furthest-body-plus-a-margin *also* missed:
