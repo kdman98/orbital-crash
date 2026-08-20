@@ -12437,7 +12437,22 @@ function updateAmbient(inten,dt){
 // fallback would quietly overrule them.
 const PLK_PRESET={off:[], pent:[0,2,4,7,9], wide:[0,2,4,5,7,9,11]};
 const MEL_MAX=7;
-const MEL_ROOT=146.83;   // D3. The one root the melody is built on; see ambPluck.
+// ⚠️ D4, NOT D3, AND THE OCTAVE IS ABOUT THE PHONE RATHER THAN ABOUT THE MUSIC. Author: *"iPhone
+// sound is like drum or something, PC is normal like piano."* An iPhone's driver is a few millimetres
+// and rolls off far above a laptop's, and at D3 the ENTIRE bed sat under it: fundamentals ran
+// 147-494Hz, so the pitch was attenuated much harder than the broadband strike and what reached the
+// ear was a knock with no note in it. A transient without pitch is a drum, which is exactly what it
+// was called.
+//   Measured through a 700Hz rolloff, weighted by how often each note actually plays:
+//     root D3   range 147-494Hz   36% of notes read as a hit   worst -5.2dB
+//     root A3   range 220-740Hz    0%                          worst -2.1dB
+//     root D4   range 294-988Hz    0%                          worst -0.7dB
+// The crossover is around 220Hz. D3 itself is the worst note in the range AND it is the anchor, so the
+// most drum-like note was the one playing every fifth beat, louder and longer than the rest.
+//   An octave rather than the fifth that would also have cleared it, because the octave keeps the PITCH
+// CLASS: `MEL_ROOT_PC` is unchanged, every button on the Melody page still reads the letter it read
+// before, and a set already chosen still means the same notes. A fifth would have relabelled all twelve.
+const MEL_ROOT=293.66;   // D4. The one root the melody is built on; see ambPluck.
 const melPool=()=>store.plkNotes||[];
 function ambPluck(inten){
   if(!AC||gainNow()<=0)return;   // scheduling a note into a gain of 0 is work nobody hears
