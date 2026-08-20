@@ -222,6 +222,47 @@ frames: **correlation 1.000** between the pulse and the corner pixel's red chann
 
 ---
 
+### The bed moves up an octave, and the tempo comes down `v2` `6e4e2b0` `3137a1d`
+Author: *"reduce the tempo of music overall"*, then *"PC sound and iPhone sound is quite different —
+iPhone sound is like drum or something, PC is normal like piano."*
+
+**Tempo: spacing and both tails scaled together by 1.35** — 33 notes/min at calm down to 25. They are one
+number in two places. Slowing the spacing alone was measured at **0.97 voices sounding**, i.e. real gaps
+of silence returning, which is the hole the drone's removal opened. Scaled together the ratio is untouched
+(1.39 measured). The strike is deliberately *not* scaled: a hammer is a hammer at any tempo.
+
+**Octave: an iPhone's speaker starts above where the bed was playing.** Its driver is a few millimetres
+and rolls off far above a laptop's, and at D3 the whole bed sat underneath — fundamentals 147–494 Hz. The
+pitch was attenuated much harder than the broadband strike, so what arrived was a knock with the note
+missing. A transient without pitch is a drum. Measured through a 700 Hz rolloff, weighted by play rate:
+
+| root | range | notes reading as a hit | worst |
+|---|---|---|---|
+| D3 | 147–494 Hz | **36%** | −5.2 dB |
+| A3 | 220–740 Hz | 0% | −2.1 dB |
+| **D4** | **294–988 Hz** | **0%** | **−0.7 dB** |
+
+The crossover is ~220 Hz, and D3 is both the worst pitch in the range *and* the anchor — so the most
+drum-like note was the one playing every fifth beat, louder and longer than the rest.
+
+**An octave rather than the fifth that would also have cleared it**, because an octave keeps the pitch
+class: every button on the Melody page still reads the letter it read before, and a set already chosen
+still means the same notes. A fifth would have relabelled all twelve.
+
+⚠️ **It costs some of the struck character, and no filter recovers it.** Brightness fall over the first
+half second goes 5.3 dB → 3.0 dB, because at 294 Hz the triangle's own harmonics land inside 1.5–6 kHz and
+sustain there. Sweeping the bus cutoff 700→2400 Hz moves the fall by 0.7 dB total — it only darkens
+everything — so it was left alone. 3.0 dB is still a fall; the blown version measured −0.3 dB and got
+*brighter* as it rang.
+
+⚠️ **Two wrong hypotheses were measured out of the way first**, and both were plausible: that the phone
+kills the tail more than the strike (it is a **1.2 dB** difference at 300 Hz — nothing), and that some
+sawtooth decay could satisfy both constraints (**none exists** — the saw is the only thing giving the tail
+phone-audible content, so any saw short enough to read as struck leaves a hit and no note). The `www/`
+bundle was also checked for staleness before any of it, and was current.
+
+---
+
 ### The pluck is struck rather than blown `v2` `b23e5dc`
 Author, on an iPhone: *"sound was kinda trumpet-like... can we go more piano like?"*
 
