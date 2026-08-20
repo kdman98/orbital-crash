@@ -3791,11 +3791,14 @@ let lances=[]; // anomaly's outer-screen projectiles: opposite-colour, hurt the 
 // `max(W,H)*0.6` circle around the CENTRE and therefore reaches ~370px past the rect) would have stretched
 // R by 40% and sped the visible sweep up by the same. A speed makes every purge cross the screen at the
 // same rate and lets R be whatever it has to be.
-//   2200 px/s puts a typical far-corner R at 0.43-0.58 SIM seconds on an 800-short-axis desktop arena,
-// and that is sized against the purge's own slow-motion rather than picked for looks: `slowmo(0.35,0.7)`
-// plus the 2.2/s recovery is about 1.0s of real time in which only ~0.45s of sim elapses. The slow window
-// exists so the biggest event in the game can be watched, and until now the only thing in it to watch was
-// the Anomaly's own debris.
+//   2200 px/s puts a typical far-corner R at 0.43-0.58 SIM seconds on an 800-short-axis desktop arena.
+//   ⚠️ THAT NUMBER WAS SIZED AGAINST A SLOW-MOTION THAT NO LONGER EXISTS, and it is the one figure here
+// with no argument left under it. `slowmo(0.35,0.7)` in killBoss stretched those 0.45 sim-seconds to about
+// 1.0s of REAL time, and 2200 was chosen so the sweep finished as normal speed returned. Author removed
+// the dip; sim seconds are real seconds now, so the same sweep crosses the screen in roughly HALF the
+// wall-clock it was tuned to look right in. It is left at 2200 because that is the number that was
+// measured and shipped, not because the reasoning survives — if the sweep now reads as a blink rather
+// than a shockwave, LOWERING this is the fix, and ~1100 restores the old apparent speed exactly.
 //   ⚠️ AND ON A TALL PHONE ARENA THE SWEEP OUTLASTS THAT WINDOW — measured 0.54-0.82s against 0.43-0.58s
 // on desktop, because this is a WORLD speed and a 375x812 phone is 800x1732 in world units, a diagonal
 // half again as long. So the tail of a phone sweep runs at normal speed. That is deliberate and it is the
@@ -4886,7 +4889,9 @@ function onBossCleared(){
   // reading `act+1`, i.e. a second copy of the advance rule sitting in a different function, going quietly
   // false the day the boundary stops being "one Epoch per Anomaly". It would also LIE IN BOSS RUSH, which
   // purges on a loop with `act` pinned at 2 and never reaches this line at all. One tick of latency (~16ms,
-  // and the sim is at timeScale 0.35 by then) buys a number that cannot be wrong.
+  // and, until the purge's slow-motion was removed, the sim was at timeScale 0.35 by then, making it
+  // ~48ms) buys a number that cannot be wrong. The tick is a full-speed one now; the argument is
+  // unaffected, since one frame of latency was never the point — the point is that `act` has advanced.
   showEpochCue(purgeRew); purgeRew=0;
   enterCalm(false);
 }
@@ -7006,15 +7011,22 @@ function killBoss(b){
     healSignal(Math.round(P.hp-before));
   }
   // PURGE THUNDERCLAP: the game's biggest kill gets its own voice, not a reused collapse.
-  //   ⚠️ NO HITSTOP. `hitstop=0.28` stood here — a 17-frame dead stop, by far the largest in the file and
-  // more than double the 0.06-0.12 the other three writes use. `407b74e` took the freeze-frame off every
-  // damage path on the brief "no frame freeze on contact", and `695779b` chased the last one out of the
-  // streak path; this was the survivor, and it froze the world on the single event the player most wants
-  // to watch resolve. The weight it was carrying is not lost — `slowmo` below already dips the sim to
-  // 0.35 for 0.7s, which is the Moment Engine doing the same job with frames that keep arriving. A dip
-  // reads as gravity; a stop reads as a dropped frame, which is precisely the complaint.
+  //   ⚠️ NO HITSTOP AND NO SLOW-MOTION — THE PURGE NOW BENDS TIME IN NEITHER DIRECTION, and that is a
+  // deliberate end point rather than two independent trims, so read them together before adding either
+  // back. `hitstop=0.28` stood here first: a 17-frame dead stop, by far the largest in the file and more
+  // than double the 0.06-0.12 the other three writes use. `407b74e` took the freeze-frame off every damage
+  // path on the brief "no frame freeze on contact", `695779b` chased the last one out of the streak path,
+  // and `6724ab2` finally took this one — but the argument it was removed under was that the weight was
+  // NOT lost, because `slowmo(0.35,0.7)` below was still doing the same job with frames that keep
+  // arriving. Author has now taken that too, so the argument no longer holds up anything: it was the
+  // justification for dropping the hitstop, and its subject is gone.
+  //   ⚠️ WHAT CARRIES THE WEIGHT NOW is `trauma=1` — the largest shake in the file, no other site reaches
+  // 1 — plus the full-white `flash=0.8`, `sfx.purge()`'s half-second arpeggio, 52 debris particles and
+  // the sweep's own arena-crossing ring. All of it in real time. If the purge starts reading light, the
+  // honest fix is to make one of those bigger, not to reinstate a dip the author has removed twice over.
+  //   ⚠️ AND THE SWEEP LOST ITS CLOCK. `PURGE_WAVE_SPD` was sized to fit inside this dip; see the note
+  // there, which is now the number's only remaining anchor.
   trauma=1; flash=0.8; flashCol='#fff';
-  slowmo(0.35,0.7);
   sfx.purge();
   // `anomLog`'s last entry IS this fight's damage tab — opened at spawnBoss and fed by both damage
   // funnels — so Untouched needs no counter of its own. Reusing it also means it counts the whole

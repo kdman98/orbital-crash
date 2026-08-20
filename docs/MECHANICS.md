@@ -2148,11 +2148,20 @@ promises a reach rather than a danger.
 ⚠️ **`PURGE_WAVE_SPD` IS A SPEED AND THE FIRST VERSION WAS A DURATION**, which is the mistake to not
 repeat. A fixed 0.5s meant the sweep's px/s was whatever `R` happened to be that purge, so an Anomaly
 dying in a corner swept the screen visibly faster than one dying centre-field. 2200px/s puts a typical
-`R` (948–1277 on a 1280×800 arena) at **0.43–0.58 sim-seconds**, sized against the purge's own
-`slowmo(0.35, 0.7)` — the slow window exists so the biggest event in the game can be watched, and until
-now the only thing in it to watch was the Anomaly's debris.
+`R` (948–1277 on a 1280×800 arena) at **0.43–0.58 sim-seconds**.
 
-⚠️ **On a tall phone arena the sweep outlasts that window**, measured **0.54–0.82s** against desktop's
+⚠️ **THAT NUMBER WAS SIZED AGAINST A SLOW-MOTION THAT NO LONGER EXISTS**, and it is now the one figure
+here with no argument under it. `slowmo(0.35, 0.7)` stretched ~0.45 sim-seconds to about 1.0s of *real*
+time, and 2200 was picked so the sweep finished as normal speed returned. The author removed the dip
+(see the Moment Engine table), so sim seconds are real seconds: measured, a 0.60 sim-second sweep is
+**0.60s of wall clock now against ~1.15s before** — by the Moment Engine's own constants, 0.7s held at
+0.35 plus a 0.295s recovery at 2.2/s banks 0.44 sim-seconds in the first ~1.0s, and the remainder runs at
+full speed. So **the same sweep crosses the screen about 1.9× faster than the speed it was tuned at.** It
+is left at 2200 because that is what was measured and shipped, not because the reasoning survives — if it
+now reads as a blink rather than a shockwave, **lowering `PURGE_WAVE_SPD` is the fix, and ~1100 restores
+the old apparent speed exactly.**
+
+⚠️ **On a tall phone arena the sweep runs longer still**, measured **0.54–0.82s** against desktop's
 0.43–0.58s: this is a *world* speed, and a 375×812 phone is 800×1732 in world units — a diagonal half
 again as long. The tail of a phone sweep therefore runs at normal speed. That is the same choice `S`
 forces on every other speed in the file; normalising to CSS pixels would make the sweep travel **four
@@ -2852,10 +2861,20 @@ without one the receipt printed the raw internal type back at the player.
 
   | | trauma | flash | hitstop | slow-mo |
   |---|---|---|---|---|
-  | **Purge** (`killBoss`) | ✓ | ✓ | — | ✓ 0.35 / 0.7s |
+  | **Purge** (`killBoss`) | ✓ | ✓ | — | — |
   | **Baited charge** (`stepAnnihilation`) | ✓ | ✓ | ✓ 0.09 | — |
   | **Planet blast** (`planetBlast`) | ✓ | ✓ | ✓ 0.10 | — |
   | **Bomber blast** (`bomberBlast`) | ✓ | ✓ | ✓ 0.06 | — |
+
+  ⚠️ **THE PURGE NOW BENDS TIME IN NEITHER DIRECTION, and the two removals have to be read together.**
+  Its `hitstop=0.28` — a 17-frame stop, the largest in the file — was dropped in `6724ab2` under the
+  argument that *the weight was not lost, because `slowmo(0.35, 0.7)` was still doing the same job with
+  frames that keep arriving.* The author has since removed the slow-motion too, so **that argument no
+  longer holds up anything: it was the justification for dropping the hitstop, and its subject is gone.**
+  What carries the game's biggest event now is `trauma=1` (the largest shake in the file — no other site
+  reaches 1), the full-white `flash=0.8`, `sfx.purge()`, 52 debris particles and the sweep's own
+  arena-crossing ring, all in real time. If the purge starts reading light, make one of those bigger
+  rather than reinstating a dip the author has now removed twice over.
   | **Shield block** (`coreHit`, body contact) | ✓ | ✓ | — | — |
   | **Anomaly arrival** (`spawnBoss`) | ✓ | ✓ | — | — |
   | **Streak milestone** | ✓ | — | — | — |

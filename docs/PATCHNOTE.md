@@ -14,6 +14,28 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-20
 
+### The purge stops bending time `v2`
+Author: *"remove the slow-motion on purge too."* `slowmo(0.35, 0.7)` is gone from `killBoss`. Verified:
+`timeScale` now reads **1** across the purge frame and after it.
+
+⚠️ **Read this with the hitstop removal, not apart from it.** The purge's `hitstop=0.28` — a 17-frame
+stop, the largest in the file — was dropped in `6724ab2` on the argument that *the weight was not lost,
+because the slow-motion was still doing the same job with frames that keep arriving.* That argument's
+subject is now gone, so it holds up nothing. **The purge bends time in neither direction.** What carries
+it: `trauma=1` (no other site in the file reaches 1), `flash=0.8` full white, `sfx.purge()`, 52 debris
+particles and the sweep's arena-crossing ring — all in real time.
+
+⚠️ **The sweep lost the clock it was tuned against.** `PURGE_WAVE_SPD` 2200px/s was sized so the sweep
+finished as normal speed returned. Sim seconds are wall-clock seconds now: a 0.60 sim-second sweep is
+**0.60s real against ~1.15s before**, i.e. the same sweep crosses the screen **~1.9× faster** than the
+speed it was tuned at. Left at 2200 because that is what was measured and shipped, not because the
+reasoning survives — **if it now reads as a blink, lower `PURGE_WAVE_SPD`; ~1100 restores the old
+apparent speed exactly.**
+
+The sweep itself is unaffected: still 56 → 0 bodies on the seed checked.
+
+---
+
 ### The first tutorial line says which left `v2`
 Author: *"왼쪽을 드래그해 보세요" → "화면 왼쪽을 드래그해 보세요"*, then *"also update the english line to
 match"*. **Both rows** of `tut.1.touch`: `화면 {Mv}을 드래그해 보세요` and `Drag the {mv} side of the
