@@ -12,6 +12,100 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ---
 
+## 2026-08-20
+
+### The plucks escalate, and the heartbeat is finally audible `v2` *(uncommitted)*
+Author: *"the mechanic that applied to melody that intensified the melody each intensity of game,
+would be good to apply to plucks"* and *"heartbeat is still somewhat unsensible."*
+
+**The drone's one good idea was kept after the drone itself went.** What made the old bed feel like it
+escalated was not its pitch, it was its filter opening as `intensity` rose; the plucks only ever got
+faster and louder, which reads as more of the same rather than as more intense. Three things now climb
+together:
+
+| | at calm | at storm |
+|---|---|---|
+| octave-jump chance | 0.20 | 0.60 *(was a flat 0.40)* |
+| sawtooth partner | 0.00 | 0.35 |
+| pluck bus lowpass | 1600 Hz | 3500 Hz |
+
+⚠️ **A filter sweep over a triangle is inaudible, and that is why the saw is there.** A triangle keeps
+about 97% of its energy in the fundamental, so opening a lowpass over one moves the note's energy share
+in 1.5–6 kHz by **+0.0 dB**. A sawtooth's harmonics fall as 1/n against a triangle's 1/n², so the two
+together are worth **+13.2 dB** of that band across the range. Spectral CENTROID reports the same change
+as 35 Hz and is simply the wrong instrument — anything weighted by energy mass is dominated by the
+fundamental no matter what the harmonics do.
+
+**1600 Hz is the calm end because it leaves calm exactly where it already was** (−38.2 dB against the
+unfiltered note's −38.0), so nothing is taken away at rest and the whole climb is added on top. Measured
+live across the phases, the melody's mean pitch runs 193 → 251 → 283 Hz.
+
+**The heartbeat gets a noise tick, and it is noise rather than a brighter waveform on purpose.** A bare
+sine has one partial, so at 52 Hz a small speaker reproduces nothing of it. A triangle would fix that and
+land partials at 156/260/364 Hz, inside the 150–700 Hz band `bomb()`'s comment block spent real
+measurement keeping clear. Noise separates on TIMBRE instead — the same argument the storm drum used to
+make in that block. `noise(0.05, v*0.60, master, 1100)` beside both the lub and the dub takes the layer
+from **−39 dB to −16 dB** through a 300 Hz rolloff, for **+0.15 dB** of flat level, and the tick is 3–5%
+of the energy, so on headphones the thump is still nearly all of what you hear.
+
+⚠️ **That +23 dB was first measured as +13, and the smaller number was the instrument's fault.** A
+130 ms render of the lub alone cannot outrun the highpass's own settling transient, which is broadband
+and inflates the untreated sine by about 12 dB — making the fix look half its size. A known-answer test
+settled it: the same filter attenuates a pure 52 Hz tone by −60.9 dB against −60.7 dB of theory, so the
+filter was never wrong, the WINDOW was.
+
+---
+
+
+### The drone and the storm drum are gone; the plucks carry the bed alone `v2` *(uncommitted)*
+Author: *"i dont feel drone and storm drum doing something harmony to BGM"* — then, after the argument
+for keeping them: *"drum and drone feels like bad ASMR currently."* Both layers removed, and `ambPluck`
+rebuilt to cover what they were doing.
+
+**The complaint was right about the experience and the measurement says why.** Rendering each voice
+through a 4th-order Butterworth highpass at 300Hz — a phone speaker's low-end rolloff — the drone
+survives at −26dB (calm) to −28dB (storm) and the drum at −25dB, against the plucks' −7dB. The two
+loudest layers in the bed were the two that never reached the speaker, so on the target device they
+were texture with no part in it. Raising them would only have spent compressor headroom in a band the
+speaker does not reproduce.
+
+⚠️ **The drone was carrying the harmony, and deleting it without a replacement would have flattened
+the acts.** It was an A+E open fifth, deliberately third-less, and it was the only reason four pluck
+roots read as four chords: act 1 (D) a suspension, act 2 (C) an Am7, act 3 (E) landing a major 7th,
+act 4 (A) home. Strip the pedal and only the note pools remain — **acts 1 and 4 share four notes of
+five, and so do acts 3 and 4**, so three of the four acts collapse into one another.
+
+So the root is now stated by the pluck layer itself. Every fifth note is an ANCHOR: the bare root, a
+longer tail, slightly louder — the same harmonic information delivered as an event instead of as a
+held tone, which is the whole point, because an event cannot become the hum that got the drone cut.
+Forced on an act change as well as on the counter, or a new act would open in the previous key.
+
+**Spacing and decay moved together, and they are one change, not two.** With the drone gone the
+plucks are the entire bed, and at the old spacing it was silent nearly half the time. Measured on the
+audio seam — same rig both sides, both builds paused so `audio()` feeds a fixed intensity of 0.08, 300
+simulated seconds each:
+
+| | before | after |
+|---|---|---|
+| notes per 300s | 117 | 159 |
+| mean gap | 2.55s | 1.89s |
+| note length | 1.4s | 2.3s melody / 3.3s anchor |
+| mean voices sounding | 0.55 | 1.33 |
+| **bed sounding** | **55.0%** | **99.1%** |
+| root anchors | none | 20% of notes |
+
+Tails now outlast the gap between notes, so **the overlap is the pad** — a decaying overlap rises and
+falls and cannot settle into a steady hum. Density roughly doubles, worth about +3.6dB on the layer,
+which is near enough to what the drone contributed that the per-note level is deliberately unchanged.
+
+`STORM_AT`, `stormHit`, `stormT`, `ambGain` and `ambFilter` are all gone; `bus()` drops `stormAt` and
+`audio()` reports `ambNoteT` in place of `stormT`. The gameplay storm phase is untouched — it shares
+the word and nothing else. `bomb()`'s band-protection comment keeps the heartbeat half of its argument
+and loses the storm half, because the argument was never about the storm: it is about which channel a
+low voice may claim, and the heartbeat still claims one.
+
+---
+
 ## 2026-08-19
 
 ### The Charger's arrowhead remembers where it went `v2` `cad5e12`

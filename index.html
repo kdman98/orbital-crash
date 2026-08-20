@@ -108,8 +108,27 @@
        fallback answers, because "Segoe UI" has no Hangul at all and would fall back per-glyph. */
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Arial,
                 "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
-    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;}
-  #game{position:fixed;inset:0;display:block;width:100%;height:100%;cursor:crosshair;}
+    -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none;
+    /* ⚠️ `-webkit-touch-callout` IS IOS-ONLY, AND NO TEST IN A DESKTOP BROWSER CAN CONFIRM IT. Chrome
+       drops the declaration outright, so `getComputedStyle` returns '' and any check written against it
+       reads as a PASS on a page that never set it — which is how this stayed missing. `bestiary.html`
+       has carried it since that iframe was hardened; this document never did, and that asymmetry is the
+       whole bug: the frame nobody complained about was the protected one.
+         It suppresses the long-press action sheet. The `mailto:` link in the menu raises that sheet
+       regardless of `user-select`, because a mail link is a system affordance rather than text. */
+    -webkit-touch-callout:none;}
+  #game{position:fixed;inset:0;display:block;width:100%;height:100%;cursor:crosshair;
+    /* ⚠️ AND THE `touch-action:none` ABOVE DOES NOT REACH HERE, BECAUSE `touch-action` IS NOT INHERITED.
+       Setting it on `html,body` sets it on two elements and nothing else. Measured in the shipping
+       build: #game, #hud, #menu, #settings, .overlay and #bestiary every one computed `auto`, so a
+       double-tap landing on the canvas or on a panel met iOS's default and got the zoom. The rule read
+       like a document-wide switch and was a two-element one. */
+    touch-action:none;}
+  /* `manipulation`, NOT `none`, for everything that scrolls or is tapped: it drops the double-tap zoom
+     and the 300ms delay while KEEPING pan and pinch. `.overlay` carries `overflow-y:auto` and
+     `#recordsBody` and `.chiplog.slide` scroll too — `none` there would trade the magnifier for a panel
+     nobody can scroll, which is the same fix `bestiary.html` made for the same reason. */
+  #hud,#menu,.overlay,#recordsBody,.chiplog.slide,#bestiary,#bestiary iframe{touch-action:manipulation;}
   /* THE SAFE-AREA PROBE — env() with a JS reader. `resize()` needs the four insets as NUMBERS, to pull
      the PLAYFIELD out from under the sensor housing, and env() is a CSS value with no scripting API.
      A zero-size hidden box whose PADDING is the four env() values hands them over through
@@ -10710,7 +10729,7 @@ function frame(now){
 let crashed=false;
 function crashHalt(err){
   if(crashed)return; crashed=true;
-  try{ if(AC) AC.suspend(); }catch(e){}   // kill the drone; a humming frozen game is worse than a quiet one
+  try{ if(AC) AC.suspend(); }catch(e){}   // silence the bed; a game still singing under a crash screen is worse than a quiet one
   const d=document.createElement('div');
   d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,8,20,.94);color:#e8ecff;font:600 14px/1.6 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;text-align:center;padding:24px';
   // The exception message is for us, not for the player: it is unlocalised engine text, it names
@@ -11848,7 +11867,7 @@ updateMotionBtn();
 // =====================================================================
 //  AUDIO (procedural, WebAudio)
 // =====================================================================
-let AC=null, master=null, ambGain=null, ambFilter=null, ambReady=false, ambNoteT=0;
+let AC=null, master=null, pluckBus=null, ambReady=false, ambNoteT=0, ambSince=99, ambActSeen=0;
 // ---- COMPOSED MUSIC, IF A TRACK IS PRESENT ----------------------------------------------------
 // ⚠️ AN <audio> ELEMENT AND NOT fetch()+decodeAudioData, AND THE CSP IS WHY. The policy on this page
 // sets `connect-src 'none'`, so fetch and XHR are refused — the textbook way to load a buffer cannot
@@ -11904,12 +11923,26 @@ document.addEventListener('visibilitychange',()=>{
 });
 function buildAmbient(){
   try{
-    ambGain=AC.createGain(); ambGain.gain.value=0.0001; ambGain.connect(master);
-    ambFilter=AC.createBiquadFilter(); ambFilter.type='lowpass'; ambFilter.frequency.value=400; ambFilter.Q.value=5; ambFilter.connect(ambGain);
-    [55,55.4,82.5,110].forEach((f,i)=>{
-      const o=AC.createOscillator(); o.type=i%2?'triangle':'sine'; o.frequency.value=f;
-      const g=AC.createGain(); g.gain.value=i<2?0.5:0.24; o.connect(g); g.connect(ambFilter); o.start();
-    });
+    // NO DRONE HERE ANY MORE, AND NO STORM DRUM EITHER — both removed 2026-08-20 on the author's
+    // call that as continuous low-register layers they read as room noise rather than as music. The
+    // measurement agrees with the ear: through a 4th-order Butterworth highpass at 300Hz (a phone
+    // speaker's rolloff) the drone survived at -26dB calm to -28dB storm and the drum at -25dB,
+    // against the plucks' -7dB. -29dB gets quoted for the drone and it is the figure for the raw
+    // oscillators; the layer always ran through its own lowpass, which is worth 1-3dB back.
+    //   On the target device they spent headroom on texture nobody could resolve into a part.
+    //   ⚠️ WHAT THEY DID CARRY WAS THE HARMONY, and that had to be replaced, not just deleted. The
+    // drone was an A+E open fifth, and it was the only reason four pluck roots read as four chords:
+    // against it act 1 (D) is a suspension, act 2 (C) is Am7, act 3 (E) lands a major 7th, act 4 (A)
+    // is home. Strip the pedal and the note pools are all that is left — acts 1 and 4 share four of
+    // five notes, acts 3 and 4 likewise — so three of the four acts collapse into one another.
+    // `ambPluck` now states the root itself; see the ANCHOR there.
+    // THE PLUCK BUS, AND IT IS THE DRONE'S ONE GOOD IDEA KEPT AFTER THE DRONE ITSELF WENT. What made
+    // the old bed feel like it escalated was not the drone's pitch, it was its filter opening as
+    // `intensity` rose; the plucks only ever got faster and louder, which reads as more of the same
+    // rather than as more intense. Same sweep, new home. See updateAmbient for the range.
+    pluckBus=AC.createBiquadFilter(); pluckBus.type='lowpass';
+    pluckBus.frequency.value=1600; pluckBus.Q.value=1;   // !! Q IS IN dB HERE -- 1dB of resonance
+    pluckBus.connect(master);
     ambReady=true;
     // The element is created unconditionally; whether it becomes audible depends on the file existing.
     try{
@@ -11945,50 +11978,52 @@ function updateAmbient(inten,dt){
   if(!ambReady || !AC || AC.state!=='running')return; // don't schedule notes while suspended (pause / hidden tab)
   const now=AC.currentTime;
   if(musOk && musGain) musGain.gain.setTargetAtTime(lerp(0.45,0.60,inten)*store.vol, now, 0.6);
-  // The bed is scaled by the level as well as gated by it. It already passes through `master`, so this
-  // is a SECOND application of the same number — deliberate: the ambient is the one voice that is always
-  // on, and it wants to recede faster than the cues as the slider comes down, or a low setting leaves a
-  // drone with the game's transients pushed under it.
   // A composed track REPLACES the bed rather than layering over it — two beds in the same register
-  // fight, and the drone was tuned to sit alone.
-  ambGain.gain.setTargetAtTime((gainNow()<=0||musOk)?0:lerp(0.02,0.06,inten)*store.vol, now, 0.5);
-  ambFilter.frequency.setTargetAtTime(lerp(300,1500,inten), now, 0.7);
+  // fight — so `musOk` silences the plucks instead of mixing under them.
+  //   ⚠️ 2.6 -> 1.9s HERE AND 1.3 -> 2.2s ON THE DECAY ARE ONE CHANGE, NOT TWO. With the drone gone
+  // the plucks are the entire bed, and at the old spacing calm ran 0.48 voices sounding at once: the
+  // bed was silent more than half the time, which is the one thing a bed cannot be. 1.9s against a
+  // 2.2s tail is 1.10, so notes reliably ring into each other and THE OVERLAP IS THE PAD. That is
+  // also why this could not be answered by simply holding a tone again: an overlap of decaying notes
+  // rises and falls, and cannot settle into the steady hum the drone was removed for.
+  //   Note density roughly doubles, which is worth about +3.6dB on this layer — near enough to what
+  // the drone contributed that the per-note level below is deliberately left alone.
+  // 1600Hz LEAVES CALM EXACTLY AS BRIGHT AS IT ALREADY WAS, and that is why it is not lower. Measured
+  // as the share of a note's energy landing in 1.5-6kHz, where the ear is most sensitive: the
+  // unfiltered pluck sits at -38.0dB, and at calm this arc lands on -38.2. So nothing is taken away
+  // at rest and the whole 13dB of the climb is added on top. Spectral CENTROID says the same change
+  // is worth 35Hz and is the wrong instrument -- a triangle keeps ~97% of its energy in the
+  // fundamental, so any measure weighted by energy mass reports almost nothing no matter what the
+  // harmonics do.
+  pluckBus.frequency.setTargetAtTime(lerp(1600,3500,inten), now, 0.7);
   ambNoteT-=dt;
-  if(ambNoteT<=0){ ambNoteT=lerp(2.6,0.6,inten)*rand(0.7,1.4); if(!musOk) ambPluck(inten); }
-  stormT-=dt;
-  if(stormT<=0){ stormT=lerp(1.9,0.62,inten)*rand(0.82,1.2); stormHit(inten); }
+  if(ambNoteT<=0){ ambNoteT=lerp(1.9,0.6,inten)*rand(0.7,1.4); if(!musOk) ambPluck(inten); }
 }
 // ---- THE MOMENT ENGINE'S AUDIO HALF ----
 // The time side has been live for a long time (`timeScale`, `slowmo`, `hitstop`); this is the sound that
-// was meant to sit under it, so a dip lands as WEIGHT rather than as the frame rate faltering. Two
-// always-on layers, and the reason they are layers rather than cues is that a dip is a state, not an
+// was meant to sit under it, so a dip lands as WEIGHT rather than as the frame rate faltering. ONE
+// always-on layer now, and the reason it is a layer rather than a cue is that a dip is a state, not an
 // event — an event already has a cue, and adding a second one to the same instant just doubles it.
+//
+// ⚠️ THE STORM DRUM USED TO SIT HERE AND IT IS GONE (2026-08-20, with the drone). Its half of the
+// argument below is KEPT, because the argument was never really about the storm: it is about which
+// channel a low voice may claim, and the heartbeat still claims one.
 //
 // ⚠️ `bomb()` OWNS THREE VOICES, NOT ONE BAND, AND ONLY THE MIDDLE ONE IDENTIFIES IT: sub weight at
 // 75-150Hz, a TRIANGLE 150-700Hz that leads, and a 1700-2500Hz tick its own comment calls flavour. THE
 // BAND THAT MUST STAY CLEAR IS 150-700Hz, and nothing here goes near it.
 //   Measured, because "the sub-bass" is not a band and reasoning from it gets this wrong: the heartbeat
-// runs 30-52Hz and the storm's sub 32-46Hz, against bomb()'s 75Hz floor — 6.3 semitones clear, ADJACENT
-// rather than overlapping. So for both tonal layers the register rule was never engaged.
-//   Exactly one thing collides: the storm's NOISE body (lowpassed at 150Hz) against bomb()'s sub weight.
-// That one is answered on timbre — noise against a sine — and it is the only place these two need an
-// argument at all. What separates them there is not pitch:
-//   · the storm is NOISE through a 150Hz lowpass — a drum, not a tone, so it clears every oscillator
-//     voice in the game on timbre no matter where its energy sits;
-//   · the heartbeat is a TONE but a PERIODIC one, in pairs, and rhythm is a channel nothing else in the
-//     bank uses. Every other voice in this game is a one-shot.
+// runs 30-52Hz against bomb()'s 75Hz floor — 6.3 semitones clear, ADJACENT rather than overlapping, so
+// the register rule was never engaged for it at all.
+//   What separates the two is not pitch. The heartbeat is a TONE but a PERIODIC one, in pairs, and
+// rhythm is a channel nothing else in the bank uses — every other voice in this game is a one-shot.
 // A transient cue and a pulse can share an octave. Two transients cannot.
-const STORM_AT=0.55;      // below this the layer is silent, not merely quiet — `calm` should be calm
-let stormT=0, heartT=0;
-function stormHit(inten){
-  if(!AC||gainNow()<=0)return;
-  // Scaled from the top of its own range, not from zero, so crossing STORM_AT fades the layer in
-  // instead of dropping a drum on the first frame of the storm phase.
-  const t=clamp((inten-STORM_AT)/(1-STORM_AT),0,1);
-  if(t<=0)return;
-  noise(0.24,0.030+0.055*t,master,150);            // the body — lowpassed to a thud, never a hiss
-  beep(46,0.20,'sine',0.020+0.030*t,32);           // a falling sub under it, felt more than heard
-}
+//   ⚠️ WHICH ALSO MEANS THE HEARTBEAT CANNOT BE FIXED BY BRIGHTENING IT. It is a bare sine, so a
+// small speaker reproduces nothing of it (-39dB through a 300Hz rolloff, the worst in the bank) — but
+// a triangle would put partials at 156/260/364Hz, straight into the protected band above. A short
+// filtered NOISE tick beside the lub and the dub buys +18dB and stays out, because noise separates on
+// timbre rather than on register. Measured, not shipped.
+let heartT=0;
 // THE HEARTBEAT IS NOT A DAMAGE VOICE, and it must not be mistaken for one. It reports a STATE you are
 // already in, so it fires on a clock rather than on an event, and `hurt()` stays the only thing that
 // speaks when the core is actually struck. Same reason it is a pair: lub-dub is a rhythm nobody hears
@@ -12008,30 +12043,94 @@ function updateHeart(dt){
   if(heartT>0)return;
   heartT=lerp(1.15,0.52,urg);
   const v=0.055+0.075*urg;
-  beep(52,0.13,'sine',v,38);                       // lub
-  // The dub is a SECOND beat, not a layer on the first — the gap is the whole reason this reads as a
+  // ⚠️ THE TICK IS THE ONLY REASON THIS IS AUDIBLE ON A PHONE, and it is noise rather than a
+  // brighter waveform on purpose. A bare sine has exactly ONE partial, so at 52Hz a small speaker
+  // reproduces nothing of it -- not attenuated, absent (-27dB through a 300Hz rolloff). A triangle
+  // would fix that and land partials at 156/260/364Hz, inside the 150-700Hz band the block above
+  // spent real measurement keeping clear for bomb(). Noise separates on TIMBRE instead, which is the
+  // same argument the storm drum used to make here.
+  //   Measured on the offline probe: -39dB without the tick, -16dB with it, so +23dB of survival for
+  // +0.15dB of flat level, and the tick is 3-5% of the energy -- on headphones the thump is still very
+  // nearly all of what you hear.
+  //   ⚠️ THAT +23 READ AS +13 UNTIL THE MEASURING MODEL WAS FIXED, AND THE BUG IS WORTH
+  // knowing because it is easy to repeat: `exponentialRampToValueAtTime` runs from the value AT THE
+  // ATTACK'S END over the REMAINING time. A hand-written model that decays from t=0 instead leaves a
+  // 36% amplitude STEP at the attack/decay junction -- and a step is broadband, so it inflates the
+  // UNTREATED sine's high-frequency content by ~15dB and makes the fix look half its size. Rendering
+  // the real envelope through an OfflineAudioContext and the corrected model now agree to 0.4dB.
+  //   ⚠️ WHAT YOU HEAR IS THE TICK, NOT THE SINE, and that is why this could be dropped a
+  // fourth without losing anything. Measured as the centroid of the energy that survives a 300Hz
+  // rolloff: taking the sine 52 -> 42Hz moves the heard pitch 992 -> 991Hz, i.e. nothing at all, while
+  // taking the tick 1100 -> 700Hz moves it 992 -> 686Hz. The sine is the part you FEEL; the tick is
+  // the part you hear, so it owns the apparent pitch.
+  //   Dropping the tick costs survival, and the level buys it straight back for almost nothing:
+  // 700Hz at 0.80 lands on -15.8dB against the old -15.9, for +0.4dB of flat level.
+  beep(42,0.13,'sine',v,31);                       // lub
+  noise(0.05,v*0.80,master,700);
+  // The dub is a SECOND beat, not a layer on the first -- the gap is the whole reason this reads as a
   // pulse rather than as one thick thump. `beep()` schedules from `AC.currentTime` and takes no offset,
   // so the delay has to come from outside it.
   //   ⚠️ Re-checked at fire time, not only at schedule time: 145ms is long enough for the core to die,
   // the run to end or the tab to be muted in between, and a dub landing on the death screen is exactly
   // the corpse-with-a-pulse this function is written to avoid.
-  setTimeout(()=>{ if(AC&&gainNow()>0&&AC.state==='running'&&state==='play'&&P&&P.hp>0)
-    beep(44,0.17,'sine',v*0.72,30); },145);
+  setTimeout(()=>{ if(AC&&gainNow()>0&&AC.state==='running'&&state==='play'&&P&&P.hp>0){
+    beep(35,0.17,'sine',v*0.72,24); noise(0.05,v*0.72*0.80,master,700); } },145);
 }
+// none: the line stops moving and every note is the root, so the bed becomes a pulse. pent: what the
+// game has always played. wide: the full major, which adds the 4th and the leading tone -- the anchor
+// lands on the root often enough to resolve them.
+const PLK_POOL={none:[0], pent:[0,2,4,7,9], wide:[0,2,4,5,7,9,11]};
 function ambPluck(inten){
   if(!AC||gainNow()<=0)return;   // scheduling a note into a gain of 0 is work nobody hears
   const roots=[146.83,130.81,164.81,110];               // one root per act, cycling
   const root=roots[(act-1)%roots.length];
-  const scale=[0,2,4,7,9];                                // major pentatonic
-  const semi=scale[irand(0,scale.length-1)] + (Math.random()<0.4?12:0);
+  // HOW MANY NOTES THE LINE MAY DRAW FROM, and it is a player setting because it is a taste question
+  // rather than a correctness one -- some people want a bed that stays out of the way.
+  //   ⚠️ WIDENING THE POOL DOES NOT ADD A CLASH, WHICH IS NOT THE OBVIOUS ANSWER. Notes now
+  // overlap (2.2s tails against a 1.2-2.4s gap), so pairs really do sound together, and the fear was
+  // that adding the 4th would grate against the major 3rd. Measured with Plomp-Levelt roughness over
+  // every pair the pool can produce: the ROUGHEST pair in the seven-note set is D-E at 0.2025 -- the
+  // same whole tone that is already in the five-note set, at the identical figure. Mean roughness
+  // moves 0.0597 -> 0.0604, about 1%. The pentatonic was never protecting anything here.
+  const scale=PLK_POOL[store.plkScale]||PLK_POOL.pent;
+  // ⚠️ THE ANCHOR IS THE DRONE'S JOB HANDED TO A NOTE THAT DECAYS. A pentatonic run says nothing
+  // about which chord it is in — see buildAmbient for the overlap arithmetic — so once the A+E pedal
+  // was removed the acts needed their root stated some other way. Stating it periodically carries the
+  // same harmonic information as an EVENT rather than as a held tone, which is the whole point: it
+  // grounds the key without ever becoming the continuous low hum that got the drone deleted.
+  //   Forced on an act change rather than only on the counter, or a new root would go unheard for up
+  // to five notes and the act would start in the previous key.
+  const anchor = act!==ambActSeen || ambSince>=4;
+  if(anchor){ ambActSeen=act; ambSince=0; } else ambSince++;
+  // THE LINE CLIMBS AS THE GAME DOES. 0.4 was a constant; it is now the same number at mid-intensity
+  // and a sweep either side of it, which moves the melody's mean pitch 231 -> 312Hz across the range
+  // (median 220 -> 294, over 4000 draws). Pitch is the most legible musical dimension there is, so
+  // this carries more of the escalation than the filter does.
+  const semi=anchor ? 0 : scale[irand(0,scale.length-1)] + (Math.random()<lerp(0.2,0.6,inten)?12:0);
   const freq=root*Math.pow(2,semi/12);
   const o=AC.createOscillator(), g=AC.createGain();
   o.type='triangle'; o.frequency.value=freq;
-  const v=lerp(0.02,0.05,inten);
+  // Both tails are LONGER THAN THE GAP BETWEEN NOTES on purpose -- that overlap is the pad, and
+  // updateAmbient's spacing was set against these two numbers. The anchor rings longer still so the
+  // root sits UNDER the two or three melody notes that follow it instead of beside them.
+  const dec=anchor?3.2:2.2;
+  const v=lerp(0.02,0.05,inten)*(anchor?1.15:1);
   g.gain.setValueAtTime(0,AC.currentTime);
   g.gain.linearRampToValueAtTime(v,AC.currentTime+0.05);
-  g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+1.3);
-  o.connect(g); g.connect(master); o.start(); o.stop(AC.currentTime+1.4);
+  g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+dec);
+  o.connect(g);
+  // A SAWTOOTH PARTNER, NOT A DIFFERENT WAVEFORM, because a type cannot be crossfaded and this has to
+  // arrive gradually. A triangle's harmonics fall as 1/n^2 and a sawtooth's only as 1/n, so the saw
+  // is where the brightness comes from once the filter is open -- the two together are worth +13dB
+  // in 1.5-6kHz from calm to storm, against +0.0dB for opening the filter over a triangle alone.
+  //   Halved on the anchor: the root's job is to sit under the melody, and brightness pushes forward.
+  const sawAmt=lerp(0,0.35,inten)*(anchor?0.5:1);
+  if(sawAmt>0.002){
+    const o2=AC.createOscillator(), g2=AC.createGain();
+    o2.type='sawtooth'; o2.frequency.value=freq; g2.gain.value=sawAmt;
+    o2.connect(g2); g2.connect(g); o2.start(); o2.stop(AC.currentTime+dec+0.1);
+  }
+  g.connect(pluckBus); o.start(); o.stop(AC.currentTime+dec+0.1);
 }
 // ---- PLACEMENT. `dest` is the node a voice lands on, and it defaults to `master` so every existing
 // call is unchanged. The only thing that passes anything else is a panned cue.
@@ -12328,7 +12427,7 @@ window.__orbital=window.__polaris=window.__flux={
     const rd=e=>({x:+e.getBoundingClientRect().left.toFixed(1),y:+e.getBoundingClientRect().top.toFixed(1),o:+e.style.opacity});
     return {t:t||0, spin:tSpin.map(p=>rd(p.el)), hit:tHit.map(p=>rd(p.el)), lastImpactCycle:tBoom}; },
   // Fourth of the same family, and for the same reason — this time for SOUND. The two continuous layers
-  // (the low-HP heartbeat and the storm bed) are stepped from frameBody like everything else, so in a
+  // (the low-HP heartbeat and the pluck bed) are stepped from frameBody like everything else, so in a
   // hidden tab they never run: a test hears nothing and reports silence, which is the identical false
   // PASS that render() and hud() exist to prevent.
   //   `bus()` is the half that matters more. It hands back the live nodes so a test can put an
@@ -12340,9 +12439,9 @@ window.__orbital=window.__polaris=window.__flux={
     if(AC){ updateAmbient((state==='play')?intensity:0.08, d); updateHeart(d); }
     // `musWhy` rides along because `musOk:false` alone cannot say WHICH failure it is, and the two it
     // most often means — no file at all, and a refused play() — take opposite fixes.
-    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), stormT:+stormT.toFixed(3), gain:gainNow(),
+    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), ambNoteT:+ambNoteT.toFixed(3), gain:gainNow(),
             musOk, musWhy, musPaused:musEl?musEl.paused:null, musT:musEl?+musEl.currentTime.toFixed(2):null}; },
-  bus(){ return AC?{ctx:AC, master, comp:compOut, panMax:PAN_MAX, stormAt:STORM_AT, hpLow:HP_LOW}:null; },
+  bus(){ return AC?{ctx:AC, master, comp:compOut, panMax:PAN_MAX, hpLow:HP_LOW}:null; },
   sfx,
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
