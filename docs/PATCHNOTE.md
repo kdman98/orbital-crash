@@ -181,6 +181,39 @@ frames: **correlation 1.000** between the pulse and the corner pixel's red chann
 
 ---
 
+### The melody stops moving between Epochs, and an empty set is a real answer `v2` `db1cae0`
+Author: *"you may be available to disable all notes to turn off melody"*, *"we dont need 으뜸음만 option,
+change it to 음 제거(Disable)"*, *"remove description on inner melody setting"*, *"don't change melody
+between Epochs."*
+
+**One root, not four.** The `[146.83, 130.81, 164.81, 110]` cycle is gone; `MEL_ROOT` is D3 in every
+Epoch. The trade belongs on the record rather than in a later rediscovery: the four Epochs used to be
+four chords over a shared pedal, and they are one key now, so the bed no longer reports which Epoch you
+are in. What it buys is that **the picker stops lying** — select D E F♯ A B and you hear exactly that,
+always. Under the cycle those letters were true only during Epoch I, and the page needed a four-line
+table to say what they became. A control whose labels need a footnote is a worse control than one that is
+literal; the table went with the footnote it existed to carry, and the description with it. Verified by
+entering all four Epochs directly: D E F♯ A B each time.
+
+**An empty pool is legal and means silence.** `melPool()` returns what is stored rather than falling back
+to the pentatonic — that fallback existed to stop `ambPluck` running out of notes and would now quietly
+overrule a player who asked for none, so the guard moved into `ambPluck`. Measured: **0 voices** over 400
+simulated seconds with the set empty, 444 with the pentatonic. The floor in `melToggle` is gone too, so
+stripping the last note by hand does what the preset does. The `으뜸음만` preset is now `음 제거(Disable)`.
+
+⚠️ **The empty set did not survive a reload, and the in-page test could not see it because nothing
+reloaded.** `''.split(',')` is `['']` and `Number('')` is `0`, so the stored empty set parsed back as
+degree 0 — Disable silently became root-only on the next load. Telling `''` from `null` was necessary and
+not sufficient; the empty *string* needed catching before the split.
+
+⚠️ **`openMelody` was deleted by the edit that rewrote the picker**, because the whole one-liner sat on
+the line the replacement used as its end anchor. `node --check` passed — the file is still valid
+JavaScript — and the failure was a **ReferenceError at load** that stopped the rest of the script, leaving
+`swMelody.onclick` null and the page unopenable. The check that caught it: the last wirings in the file
+are bound only if the script ran to its end.
+
+---
+
 ### The Melody page: pick your own notes, up to seven `v2` `1e2dfb6` `1b5a05b`
 Author: *"user may change the melody as user want, maximum seven."*
 
