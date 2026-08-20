@@ -24,7 +24,75 @@ class AppViewController: CAPBridgeViewController {
 
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
+        hardenWebViewGestures()
         runDebugProbe()
+    }
+
+    /// Turns off the WebView's own zoom and text-interaction gestures, and LOGS WHAT THEY WERE FIRST.
+    ///
+    /// WHY THIS IS NATIVE AND NOT CSS. A magnifier was reported that appears "no matter the page or
+    /// screen" and survived two CSS passes plus a rebuild. Content-level causes were ruled out by
+    /// measurement rather than by argument: probed through `--evalJS` in the shipping WebView,
+    /// `-webkit-user-select` already computed `none` on every element including runtime-injected
+    /// `<button>`s, so text selection was never possible and the loupe cannot be a selection loupe.
+    /// What is left is the WebView itself, which is the right shape for a symptom that does not care
+    /// which screen is up: `viewport user-scalable=no` is a REQUEST to the page's viewport, whereas
+    /// `scrollView.maximumZoomScale` is the thing that actually gates pinch and double-tap zoom, and
+    /// nothing here had ever set it.
+    ///
+    /// ⚠️ THE `BEFORE` LOG IS THE POINT, NOT THE ASSIGNMENTS. If this fixes it, the before-line says
+    /// what was wrong; if it does not, the before-line says the WebView was already at 1.0 and clears
+    /// the whole class, which is worth as much. Setting the values without recording them would leave
+    /// a fix that cannot be distinguished from a no-op — the failure this file has been bitten by
+    /// repeatedly. Read with:
+    ///   `xcrun simctl spawn <udid> log show --last 2m --predicate 'eventMessage CONTAINS "ORBITAL_GESTURE"'`
+    private func hardenWebViewGestures() {
+        guard let wv = self.webView else {
+            NSLog("ORBITAL_GESTURE: webView was nil at capacitorDidLoad — nothing hardened")
+            return
+        }
+        let sv = wv.scrollView
+        let pinchWas = sv.pinchGestureRecognizer?.isEnabled ?? false
+        NSLog("ORBITAL_GESTURE_BEFORE: minZoom=%.3f maxZoom=%.3f zoom=%.3f bouncesZoom=%@ pinch=%@ gestures=%d",
+              sv.minimumZoomScale, sv.maximumZoomScale, sv.zoomScale,
+              sv.bouncesZoom ? "YES" : "NO", pinchWas ? "ENABLED" : "disabled",
+              sv.gestureRecognizers?.count ?? -1)
+
+        sv.minimumZoomScale = 1.0
+        sv.maximumZoomScale = 1.0
+        sv.zoomScale = 1.0
+        sv.bouncesZoom = false
+        sv.pinchGestureRecognizer?.isEnabled = false
+        // ⚠️ `isMultipleTouchEnabled = false` STOOD HERE AND WOULD HAVE BROKEN OVERDRIVE. It was written
+        // with the justification that "the game reads at most one steering finger plus the two corner
+        // zones, and every one of those is a separate single touch" — which is false and the same file
+        // says so: `stickId` and `odTouchId` are distinct pointer ids held AT THE SAME TIME, because
+        // holding Overdrive while steering is the whole point of putting them in different zones.
+        // Pinch is already off above and zoom is capped at 1.0, so nothing needed this line anyway; it
+        // was a speculative extra next to a measured fix, which is how a regression rides along with a
+        // repair.
+
+        // iOS 14.5+ only, and it is the switch that governs the selection loupe and the callout at the
+        // native layer rather than per-element. Set here rather than on the configuration before the
+        // WebView is built, because Capacitor owns construction; if this turns out not to take effect
+        // after the fact, it has to move into the bridge's configuration hook.
+        if #available(iOS 14.5, *) {
+            // ⚠️ LOG THE PRIOR VALUE, NOT JUST THE NEW ONE. The first version of this printed only the
+            // result, which cannot distinguish "this was the bug and is now fixed" from "this was
+            // already false and the change is a no-op" — the exact ambiguity the zoom lines above were
+            // written to avoid, reintroduced two lines later.
+            let was = wv.configuration.preferences.isTextInteractionEnabled
+            wv.configuration.preferences.isTextInteractionEnabled = false
+            let now = wv.configuration.preferences.isTextInteractionEnabled
+            NSLog("ORBITAL_GESTURE_TEXT: isTextInteractionEnabled was=%@ now=%@ %@",
+                  was ? "TRUE" : "false", now ? "TRUE" : "false",
+                  now ? "(DID NOT TAKE — must move into the WebView configuration before construction)"
+                      : (was ? "(CHANGED — this was a live gesture and is now off)" : "(no-op)"))
+        }
+        NSLog("ORBITAL_GESTURE_AFTER: maxZoom=%.3f pinch=%@ multiTouch=%@ (multi-touch left ON — Overdrive needs it)",
+              sv.maximumZoomScale,
+              (sv.pinchGestureRecognizer?.isEnabled ?? false) ? "ENABLED" : "disabled",
+              sv.isMultipleTouchEnabled ? "YES" : "NO")
     }
 
     /// Runs a JS expression passed as a launch argument and NSLogs the result.
