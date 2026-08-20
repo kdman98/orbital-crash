@@ -3432,6 +3432,40 @@ the un-inset build — but nothing would correct it on a launch that never rotat
 re-run at `requestAnimationFrame`, at `load`, and at 1000 ms. It is idempotent; a redundant call costs a
 transform assignment.
 
+⚠️ **`-webkit-touch-callout` WAS MISSING AND `user-select` WAS NOT — MEASURED ON THE DEVICE, WHICH
+REVERSED HALF OF WHAT WAS ASSUMED.** The double-tap/long-press magnifier was reported still live after
+`bestiary.html` was hardened. Two fixes went in on reasoning alone, then both were measured in the
+shipping WKWebView via the `--evalJS` seam, in the **pre-fix** build:
+
+    label (.depthlab)      user-select=none   callout=default
+    pill  (#depthPills>button)  user-select=none   callout=default
+    body                   user-select=none   callout=default
+
+- **The callout gap was real.** `-webkit-touch-callout` computed `default`, never `none`. Confirmed by
+  a same-simulator A/B on two bundles differing only in that declaration: the pre-fix build raises
+  iOS's action sheet on the `mailto:` link (*Email / Message / Add to Contacts / Copy Email*), the
+  fixed build raises nothing at identical coordinates. That fix is proven.
+- ⚠️ **The `user-select` half was fixed on a FALSE PREMISE.** The `*{-webkit-user-select:none}` rule
+  was added on the argument that "WebKit's UA stylesheet gives buttons their own value, and a UA
+  declaration beats an inherited one" — with 33 `<button>`s and JS-injected pills cited as the risk.
+  **Inheritance from `html,body` was already reaching every one of them**, including buttons created
+  at runtime. The rule changes nothing. It is harmless and kept as defence, but the reason written
+  beside it was wrong, and the wrongness was invisible until something outside a desktop browser was
+  asked.
+
+**What that measurement rules out is worth more than either fix.** If `user-select` computed `none`
+on every element before the change, then text selection was never possible, so the magnifier **cannot
+be a text-selection loupe** — the mechanism most of the investigation assumed. Chrome agreed (0
+selectable characters across all 13 overlays) and was right for a reason that could not be trusted
+until WebKit said the same thing.
+
+⚠️ **AND THE SIMULATOR CANNOT SETTLE THE REMAINING QUESTION.** The magnifier does not reproduce there
+under injected touches — not on plain text, not on the `.depthlab`, not under long-press-then-drag,
+**and not in the pre-fix build either**. A negative from a rig that never produced the positive is not
+evidence. `simctl`'s synthetic touches do not appear to drive WebKit's text-interaction gesture
+recognisers the way a finger does, so only a real device can answer it. The one thing the simulator
+did answer, it answered cleanly, because there a positive control existed: the callout A/B.
+
 ⚠️ **PADDING DOES NOT INSET AN ABSOLUTELY POSITIONED CHILD, AND THE NAME "PADDING BOX" IS WHY EVERYONE
 GETS THIS BACKWARDS.** An `position:absolute` child resolves against its ancestor's *padding box*, whose
 edges lie **outside** the padding — so padding moves in-flow children only. Adding
