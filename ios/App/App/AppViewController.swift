@@ -48,15 +48,19 @@ class AppViewController: CAPBridgeViewController {
     ///   `xcrun simctl spawn <udid> log show --last 2m --predicate 'eventMessage CONTAINS "ORBITAL_GESTURE"'`
     private func hardenWebViewGestures() {
         guard let wv = self.webView else {
+            #if DEBUG
             NSLog("ORBITAL_GESTURE: webView was nil at capacitorDidLoad — nothing hardened")
+            #endif
             return
         }
         let sv = wv.scrollView
+        #if DEBUG
         let pinchWas = sv.pinchGestureRecognizer?.isEnabled ?? false
         NSLog("ORBITAL_GESTURE_BEFORE: minZoom=%.3f maxZoom=%.3f zoom=%.3f bouncesZoom=%@ pinch=%@ gestures=%d",
               sv.minimumZoomScale, sv.maximumZoomScale, sv.zoomScale,
               sv.bouncesZoom ? "YES" : "NO", pinchWas ? "ENABLED" : "disabled",
               sv.gestureRecognizers?.count ?? -1)
+        #endif
 
         sv.minimumZoomScale = 1.0
         sv.maximumZoomScale = 1.0
@@ -81,18 +85,27 @@ class AppViewController: CAPBridgeViewController {
             // result, which cannot distinguish "this was the bug and is now fixed" from "this was
             // already false and the change is a no-op" — the exact ambiguity the zoom lines above were
             // written to avoid, reintroduced two lines later.
+            #if DEBUG
             let was = wv.configuration.preferences.isTextInteractionEnabled
+            #endif
+            // ⚠️ THE ASSIGNMENT IS OUTSIDE THE GUARD AND MUST STAY THERE. This line is the fix; the
+            // NSLogs around it are diagnostics. Guarding both together would ship a Release build with
+            // the magnifier back and a Debug build that looks correct — the worst possible split.
             wv.configuration.preferences.isTextInteractionEnabled = false
+            #if DEBUG
             let now = wv.configuration.preferences.isTextInteractionEnabled
             NSLog("ORBITAL_GESTURE_TEXT: isTextInteractionEnabled was=%@ now=%@ %@",
                   was ? "TRUE" : "false", now ? "TRUE" : "false",
                   now ? "(DID NOT TAKE — must move into the WebView configuration before construction)"
                       : (was ? "(CHANGED — this was a live gesture and is now off)" : "(no-op)"))
+            #endif
         }
+        #if DEBUG
         NSLog("ORBITAL_GESTURE_AFTER: maxZoom=%.3f pinch=%@ multiTouch=%@ (multi-touch left ON — Overdrive needs it)",
               sv.maximumZoomScale,
               (sv.pinchGestureRecognizer?.isEnabled ?? false) ? "ENABLED" : "disabled",
               sv.isMultipleTouchEnabled ? "YES" : "NO")
+        #endif
     }
 
     /// Runs a JS expression passed as a launch argument and NSLogs the result.
