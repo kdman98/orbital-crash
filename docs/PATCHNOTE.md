@@ -203,6 +203,33 @@ frames: **correlation 1.000** between the pulse and the corner pixel's red chann
 
 ---
 
+### No note twice in a row `v2` `7aec70d`
+Author: *"make it no consecutive melody twice when playing."*
+
+The picker had no memory, so a uniform draw from five notes repeated itself about one time in five — and
+a repeat is the one thing a random line reads as a **mistake**. Everything else it does sounds composed;
+that sounds broken. Guarded on the DEGREE rather than the pitch, so the octave jump cannot smuggle one
+through, and it steps to another degree on a hit rather than re-rolling, since a re-roll loop has no bound.
+
+⚠️ **The picker was only half of it.** With the guard in and the picker clean, the pentatonic still
+repeated on **5.3%** of pairs: the anchor is always degree 0 and fires on its own counter, so it lands on
+a root the picker just played and the guard cannot see it coming. It now defers by one note when
+`lastDeg === 0` — which cannot loop, because the melody note taking its place is itself guarded against
+degree 0. Cost: anchor share 20% → 19%.
+
+Measured over ~660 notes per pool: **0 consecutive repeats** at two, three, five and seven notes. A
+one-note pool is 100% and correctly so.
+
+⚠️ **Staged by filtering the DIFF, not with `git add index.html`** — a peer's Haptics feature landed in
+the file between the status check and the add, 10 of 12 hunks. The stat caught it: 133 insertions for a
+twenty-line guard is not a plausible number. Filtering the diff and applying with `git apply --cached` is
+preferable to the filtered-COPY recipe recorded above, whose own note warns the tree is briefly the
+filtered copy and a concurrent write in that window is clobbered by the restore; applying to the index
+never touches the tree. Fails closed when the filter matches nothing, since that stages HEAD and looks
+like success.
+
+---
+
 ### The melody stops moving between Epochs, and an empty set is a real answer `v2` `db1cae0`
 Author: *"you may be available to disable all notes to turn off melody"*, *"we dont need 으뜸음만 option,
 change it to 음 제거(Disable)"*, *"remove description on inner melody setting"*, *"don't change melody
