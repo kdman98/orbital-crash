@@ -885,6 +885,18 @@
     text-transform:uppercase;background:rgba(255,255,255,.07);color:var(--dim);
     box-shadow:0 0 0 1px rgba(255,255,255,.14) inset;transition:background .12s ease,color .12s ease;}
   .sw.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;box-shadow:none;}
+  /* MELODY PICKER. Twelve semitones in two rows of six, so the octave reads as two halves rather than
+     one long strip you have to count along. */
+  #melGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;max-width:520px;margin:16px auto 0;}
+  .mnote{pointer-events:auto;cursor:pointer;border:none;font-family:inherit;padding:9px 0 7px;border-radius:12px;
+    background:rgba(255,255,255,.06);color:var(--dim);box-shadow:0 0 0 1px rgba(255,255,255,.13) inset;
+    transition:background .12s ease,color .12s ease,opacity .12s ease;display:flex;flex-direction:column;gap:2px;align-items:center;}
+  .mnote b{font-size:15px;font-weight:800;letter-spacing:.04em;line-height:1;}
+  .mnote i{font-style:normal;font-size:9.5px;letter-spacing:.12em;opacity:.72;}
+  .mnote.on{background:linear-gradient(180deg,#aef2ff,var(--cyan));color:#08101e;box-shadow:none;}
+  .mnote.full{opacity:.32;cursor:not-allowed;}
+  #melEcho{max-width:520px;margin:16px auto 0;font-size:12px;line-height:1.9;color:var(--dim);}
+  #melEcho b{color:var(--cyan);font-weight:700;letter-spacing:.06em;}
   /* The live level, sitting with the row's NAME rather than under the slider. A number that floats
      beside the handle has to be chased with your eye while you drag; one anchored to the label does not
      move, and the thing you are reading while dragging is a value, not a position. */
@@ -1655,6 +1667,20 @@
   <div id="skinsBody" style="margin-top:16px;"></div>
 </div>
 
+<!-- MELODY. Its own page rather than a row, because the thing being chosen is a SET and a set needs to
+     be seen whole — twelve switches and the result they produce, at once. A settings row can hold a
+     choice between three named options; it cannot hold "which notes", and naming presets was always
+     going to run out the moment someone wanted a set nobody had named. -->
+<div class="overlay hidden" id="melody" style="z-index:20;background:rgba(4,6,15,.97);">
+  <button class="btn sm ghost" id="melodyClose" data-t="ui.close" style="position:absolute;z-index:2;">✕ Close</button>
+  <div class="final" data-t="mel.kicker" style="letter-spacing:.3em;margin-top:8px;">Melody</div>
+  <div class="sd" data-t="mel.lead" style="max-width:520px;margin:10px auto 0;text-align:center;">Choose the notes the background music may play. Up to seven.</div>
+  <div id="melPresets" class="detents" style="display:flex;gap:8px;justify-content:center;margin:16px auto 0;"></div>
+  <div id="melGrid"></div>
+  <div id="melEcho"></div>
+</div>
+
+
 <!-- SETTINGS. Reachable from the menu AND from the pause panel: comfort and volume are both things you
      discover you want DURING a run, and a settings screen you can only reach by abandoning the run is
      not much of a fallback.
@@ -2255,7 +2281,15 @@ const store={
   // named as the familiar control, so it is the smaller surprise of the two. A stored 'map' from the
   // build in between falls through to 'stick' rather than to a mode that no longer exists.
   touchMode:(LS.getItem('orbitalcrash_touchmode')==='abs')?'abs':'stick',
-  plkScale:(v=>(v==='none'||v==='wide')?v:'pent')(LS.getItem('orbitalcrash_plkscale')),
+  // Migrates the 2026-08-20 three-way key rather than dropping it: that setting shipped, so somebody
+  // may already have chosen with it, and a silent reset to default is the rudest possible upgrade.
+  plkNotes:(()=>{
+    const raw=LS.getItem('orbitalcrash_plknotes');
+    if(raw){ const a=raw.split(',').map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<12);
+             if(a.length) return [...new Set(a)].sort((x,y)=>x-y).slice(0,7); }
+    const old=LS.getItem('orbitalcrash_plkscale');
+    return (old==='none')?[0]:(old==='wide')?[0,2,4,5,7,9,11]:[0,2,4,7,9];
+  })(),
   // WHICH SIDE STEERS. false = move zone on the left (shipped). true = move zone on the right, with the
   // Overdrive and flip quarters mirrored to the left.
   //   ⚠️ IT REWRITES COPY, NOT ONLY GEOMETRY. Three legend rows and three tutorial lines NAME a side in
@@ -2338,7 +2372,7 @@ function save(){
     LS.setItem('orbitalcrash_touchsens',store.touchSens);
     LS.setItem('orbitalcrash_followsens',store.followSens);
     LS.setItem('orbitalcrash_touchmode',store.touchMode);
-    LS.setItem('orbitalcrash_plkscale',store.plkScale);
+    LS.setItem('orbitalcrash_plknotes',store.plkNotes.join(','));
     LS.setItem('orbitalcrash_moveright',store.moveRight?'1':'0');
     LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
@@ -2415,8 +2449,12 @@ const L={ en:{
   'set.sensA':'Movement sensitivity',
   'set.mode':'Steering', 'set.modeD':'Whether your thumb moves the star a distance, or steers it like a stick.',
   'set.mode.abs':'Drag', 'set.mode.stick':'Stick',
-  'set.melody':'Melody', 'set.melodyD':'How many notes the background music draws from.',
-  'set.melody.none':'Off', 'set.melody.pent':'Five', 'set.melody.wide':'Seven',
+  'set.melody':'Melody', 'set.melodyD':'Which notes the background music may play.',
+  'set.melody.n':'{n} notes',
+  'mel.kicker':'Melody', 'mel.lead':'Choose the notes the background music may play. Up to seven.',
+  'mel.preset.none':'Root only', 'mel.preset.pent':'Five', 'mel.preset.wide':'Seven',
+  'mel.echo':'{n} chosen. Each Epoch moves the whole set to a new root:',
+  'mel.act':'EPOCH {n}',
   'set.side':'Steering side', 'set.sideD':'Which half of the screen steers, with Overdrive and flip on the other.',
   'set.side.l':'Left', 'set.side.r':'Right',
   'tc.move':'<b>{Mv} side</b> Steer star',
@@ -2514,7 +2552,10 @@ const L={ en:{
   'tut.doneH':'Shall we play the real game now?',
   'tut.play':'Enter the field',
   'tut.1.desktop':'Move the mouse',
-  'tut.1.touch':'Drag the {mv} side',
+  // ⚠️ 'of the screen' IS NOT PADDING — see the KO row's note. `side` alone leaves "side of WHAT", and the
+  // player has not been told the screen has halves yet; this is the first instruction the game gives.
+  // tut.4/tut.5 say "the bottom/top {act}", which already points somewhere, and must NOT be given this.
+  'tut.1.touch':'Drag the {mv} side of the screen',
   'tut.1.ok':"That's how you move!",
   'tut.2':'Look at your current colour, and get close to the same-coloured dots!',
   'tut.2.note':'{n} / 4 gathered',
@@ -2629,8 +2670,12 @@ const L={ en:{
   'set.sensA':'움직임 민감도',
   'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 조종할지 정합니다.',
   'set.mode.abs':'드래그', 'set.mode.stick':'스틱',
-  'set.melody':'멜로디', 'set.melodyD':'배경음이 쓰는 음의 개수를 정합니다.',
-  'set.melody.none':'없음', 'set.melody.pent':'5음', 'set.melody.wide':'7음',
+  'set.melody':'멜로디', 'set.melodyD':'배경음이 연주할 음을 고릅니다.',
+  'set.melody.n':'{n}음',
+  'mel.kicker':'멜로디', 'mel.lead':'배경음이 연주할 음을 고릅니다. 일곱 개까지.',
+  'mel.preset.none':'으뜸음만', 'mel.preset.pent':'다섯 음', 'mel.preset.wide':'일곱 음',
+  'mel.echo':'{n}개 선택. 단계마다 전체가 다른 으뜸음으로 옮겨집니다:',
+  'mel.act':'{n}단계',
   'set.side':'조종 위치', 'set.sideD':'별을 조종할 화면의 절반을 선택합니다. 오버드라이브와 색 반전은 반대 절반에서 사용 가능합니다.',
   'set.side.l':'왼쪽', 'set.side.r':'오른쪽',
   'tc.move':'<b>{Mv}</b> 별 조종',
@@ -2704,8 +2749,10 @@ const L={ en:{
   'tut.play':'게임 시작',
   'tut.1.desktop':'마우스를 움직여 보세요',
   // ⚠️ 이 줄만 '화면'을 답니다. tut.4/tut.5는 {Act}에 아래/위가 붙어 있어 가리키는 곳이 이미 분명하지만,
-  // 여기는 방향 하나만 놓여 있고 게임에서 처음 보는 지시문입니다. 영어 쪽은 'the {mv} side'의 side가
-  // 그 일을 이미 하고 있어 손대지 않았습니다. 나머지 줄에 '화면'을 맞춰 넣지 마세요.
+  // 여기는 방향 하나만 놓여 있고 게임에서 처음 보는 지시문입니다. 나머지 줄에 '화면'을 맞춰 넣지 마세요.
+  //   ⚠️ 여기 '영어는 side가 그 일을 이미 하고 있어 손대지 않았다'고 적혀 있었는데, 그 판단은 틀렸습니다.
+  // 'the left side'는 '무엇의' 옆인지를 말하지 않습니다 — 별의 왼쪽인지 화면의 왼쪽인지. 영어 줄도
+  // 'of the screen'을 달아 두 언어가 같은 말을 하도록 맞췄습니다.
   'tut.1.touch':'화면 {Mv}을 드래그해 보세요',
   'tut.1.ok':'그렇게 움직이시면 돼요!',
   'tut.2':'지금 내 색을 확인하고, 같은 색 입자에 가까이 가세요!',
@@ -8966,8 +9013,11 @@ function render(){
     // Viewport, not play rect: a hit flash that stopped at the safe area would draw its own letterbox
     // in the one frame the player is least able to read it.
     ctx.globalAlpha=flash*(store.reduceMotion?0.14:0.4); ctx.fillStyle=flashCol; ctx.fillRect(VX0,VY0,VW,VH); ctx.globalAlpha=1;
-    drawLowHull();
   }
+  // AFTER the flash and OUTSIDE its guard — it is a continuous state, not an event, and nesting it in
+  // `if(flash>0)` made it fire only while something else was already flashing. It sits after so a hit
+  // flash reads over the vignette rather than under it: the hit is the newer information.
+  drawLowHull();
   // (No Overdrive screen tint. A cyan full-screen wash lived here for the Collapse window — 25.3% of a
   //  strong run spent under a coloured overlay. Overdrive says itself, in the world: the ring snaps from
   //  114 out to 148px in a fifth of a second, whirls 3.5x faster, the eddy dashes appear on the shell,
@@ -11602,6 +11652,58 @@ function paintSkins(){
 // panel is open (mute); nothing in here can change without a click in here, and rebuilding a row of
 // canvases twice a second to discover that would be pure waste.
 function openSkins(){ paintSkins(); el('skins').classList.remove('hidden'); }
+
+// ---------- MELODY ----------
+// Degrees, not letters, are what is actually stored: the set is relative to whatever root the act is on,
+// so 0 means "the root" and never means D. The BUTTONS show letters anyway, because a degree number is
+// an abstraction and the point of this page is to hear what you picked -- and the echo line under the
+// grid prints all four acts, which is the only honest way to show that the letters move.
+const MEL_DEG=['1','\u266D2','2','\u266D3','3','4','\u266D5','5','\u266D6','6','\u266D7','7'];
+const MEL_NOTE=['C','C\u266F','D','D\u266F','E','F','F\u266F','G','G\u266F','A','A\u266F','B'];
+const MEL_ROOT_PC=[2,0,4,9];                       // D3, C3, E3, A2 -- the four act roots, as pitch classes
+function melToggle(d){
+  const cur=melPool().slice(), at=cur.indexOf(d);
+  // A pool of nothing would leave ambPluck with no note to draw, so the last one cannot be switched off.
+  if(at>=0){ if(cur.length<=1) return; cur.splice(at,1); }
+  else{ if(cur.length>=MEL_MAX) return; cur.push(d); }
+  store.plkNotes=cur.sort((a,b)=>a-b); save(); paintMelody(); paintSettings();
+}
+function melSetPreset(k){ store.plkNotes=PLK_PRESET[k].slice(); save(); paintMelody(); paintSettings(); }
+function paintMelody(){
+  const pool=melPool(), full=pool.length>=MEL_MAX;
+  const pres=el('melPresets');
+  if(!pres.childElementCount){
+    ['none','pent','wide'].forEach(k=>{
+      const b=document.createElement('button'); b.className='btn sm'; b.dataset.preset=k;
+      b.onclick=()=>melSetPreset(k); pres.appendChild(b);
+    });
+  }
+  [...pres.children].forEach(b=>{
+    const p=PLK_PRESET[b.dataset.preset];
+    b.textContent=T('mel.preset.'+b.dataset.preset);
+    b.classList.toggle('on', p.length===pool.length && p.every((v,k)=>v===pool[k]));
+  });
+  const grid=el('melGrid');
+  if(!grid.childElementCount){
+    for(let d=0;d<12;d++){
+      const b=document.createElement('button'); b.className='mnote'; b.dataset.deg=d;
+      b.innerHTML='<b></b><i></i>'; b.onclick=()=>melToggle(d); grid.appendChild(b);
+    }
+  }
+  [...grid.children].forEach(b=>{
+    const d=+b.dataset.deg, on=pool.includes(d);
+    b.querySelector('b').textContent=MEL_NOTE[(MEL_ROOT_PC[0]+d)%12];
+    b.querySelector('i').textContent=MEL_DEG[d];
+    b.classList.toggle('on', on);
+    b.classList.toggle('full', !on && full);       // greyed, not hidden: the ceiling should be visible
+    b.setAttribute('aria-pressed', on?'true':'false');
+  });
+  el('melEcho').innerHTML = T('mel.echo',{n:pool.length}) + '<br>' +
+    MEL_ROOT_PC.map((pc,i)=>T('mel.act',{n:i+1}) + '  <b>' +
+      pool.map(d=>MEL_NOTE[(pc+d)%12]).join(' ') + '</b>').join('<br>');
+}
+function openMelody(){ paintMelody(); el('melody').classList.remove('hidden'); }
+function closeMelody(){ el('melody').classList.add('hidden'); }
 function closeSkins(){ el('skins').classList.add('hidden'); }
 function paintSettings(){
   const sw=(id,on)=>{ const b=el(id); b.classList.toggle('on',on); b.textContent=T(on?'sw.on':'sw.off'); };
@@ -11616,7 +11718,11 @@ function paintSettings(){
   // The two touch models and the two sides. Not `sw()` above: that helper prints on/off, and neither of
   // these rows has an off — both print the name of the state they are IN.
   const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
-  const bl=el('swMelody'); if(bl){ bl.classList.toggle('on', store.plkScale!=='pent'); bl.textContent=T('set.melody.'+store.plkScale); }
+  const bl=el('swMelody');
+  if(bl){ const n=melPool().length;
+    // `.on` marks the row as moved off the shipped five, the same test the steering row makes.
+    bl.classList.toggle('on', !(n===5 && melPool().every((v,k)=>v===PLK_PRESET.pent[k])));
+    bl.textContent=T('set.melody.n',{n}); }
   const bs=el('swSide'); if(bs){ bs.classList.toggle('on', store.moveRight); bs.textContent=T(store.moveRight?'set.side.r':'set.side.l'); }
   const sr=el('sensRange');
   if(sr && document.activeElement!==sr) sr.value=store.touchSens;
@@ -11647,6 +11753,7 @@ function openSettings(){
 }
 function closeSettings(){ el('settings').classList.add('hidden'); clearInterval(setPoll); setPoll=0; }
 el('settingsBtn').onclick=openSettings;
+el('melodyClose').onclick=closeMelody;
 el('pSettingsBtn').onclick=openSettings;      // from the pause panel, without ending the run
 el('settingsClose').onclick=closeSettings;
 el('skinsBtn').onclick=openSkins;
@@ -11663,7 +11770,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('skins').classList.co
 function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
 el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
 el('swMode').onclick  =()=>{ store.touchMode=(store.touchMode==='stick')?'abs':'stick'; save(); paintSettings(); };
-el('swMelody').onclick=()=>{ const o=['none','pent','wide']; store.plkScale=o[(o.indexOf(store.plkScale)+1)%3]; save(); paintSettings(); };
+el('swMelody').onclick=openMelody;
 // ⚠️ `applyLang()` IS NOT OPTIONAL HERE, and it is what separates this row from every other switch. The
 // legend and three tutorial lines NAME the side, and they are painted once by the data-t loops rather
 // than per frame — flip the geometry without re-running them and the game spends the rest of the session
@@ -12219,7 +12326,12 @@ function updateAmbient(inten,dt){
 // none: the line stops moving and every note is the root, so the bed becomes a pulse. pent: what the
 // game has always played. wide: the full major, which adds the 4th and the leading tone -- the anchor
 // lands on the root often enough to resolve them.
-const PLK_POOL={none:[0], pent:[0,2,4,7,9], wide:[0,2,4,5,7,9,11]};
+// The three named sets survive as PRESETS -- a starting point, not the whole vocabulary. `MEL_MAX` is
+// seven because past that the anchor stops being able to hold a key: with eight or more of twelve, any
+// root you land on is nearly as well supported as any other and the four acts stop sounding different.
+const PLK_PRESET={none:[0], pent:[0,2,4,7,9], wide:[0,2,4,5,7,9,11]};
+const MEL_MAX=7;
+const melPool=()=>(store.plkNotes&&store.plkNotes.length)?store.plkNotes:PLK_PRESET.pent;
 function ambPluck(inten){
   if(!AC||gainNow()<=0)return;   // scheduling a note into a gain of 0 is work nobody hears
   const roots=[146.83,130.81,164.81,110];               // one root per act, cycling
@@ -12232,7 +12344,7 @@ function ambPluck(inten){
   // every pair the pool can produce: the ROUGHEST pair in the seven-note set is D-E at 0.2025 -- the
   // same whole tone that is already in the five-note set, at the identical figure. Mean roughness
   // moves 0.0597 -> 0.0604, about 1%. The pentatonic was never protecting anything here.
-  const scale=PLK_POOL[store.plkScale]||PLK_POOL.pent;
+  const scale=melPool();
   // ⚠️ THE ANCHOR IS THE DRONE'S JOB HANDED TO A NOTE THAT DECAYS. A pentatonic run says nothing
   // about which chord it is in — see buildAmbient for the overlap arithmetic — so once the A+E pedal
   // was removed the acts needed their root stated some other way. Stating it periodically carries the

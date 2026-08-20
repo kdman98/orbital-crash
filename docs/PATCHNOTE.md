@@ -15,12 +15,21 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 ## 2026-08-20
 
 ### The first tutorial line says which left `v2`
-Author: *"왼쪽을 드래그해 보세요" → "화면 왼쪽을 드래그해 보세요"*. `tut.1.touch` KO only — the English row
-already reads "Drag the {mv} **side**", so the two languages were not saying the same thing.
+Author: *"왼쪽을 드래그해 보세요" → "화면 왼쪽을 드래그해 보세요"*, then *"also update the english line to
+match"*. **Both rows** of `tut.1.touch`: `화면 {Mv}을 드래그해 보세요` and `Drag the {mv} side of the
+screen`.
 
-⚠️ **Only this row.** tut.4/tut.5 carry `{Act} 아래` / `{Act} 위`, a two-word position that already points
-somewhere; this one is a lone direction and the first instruction the game gives. Do not harmonise 화면
-onto the others. The 을 particle still holds when the row mirrors — 왼쪽 and 오른쪽 both end in ㄱ.
+⚠️ **The first pass changed KO only, on the argument that English's "side" already did that work. That
+was wrong** — *"the left side"* never says the left side of **what**, the star or the screen, and this is
+the first instruction the game gives. Both languages now name the screen.
+
+⚠️ **Only this row.** tut.4/tut.5 carry `{Act} 아래` / *"the bottom {act}"* — a two-word position that
+already points somewhere. Do not harmonise the phrase onto them. The 을 particle still holds when the row
+mirrors: 왼쪽 and 오른쪽 both end in ㄱ.
+
+**Cost, measured:** one line in all four states at 375px (widest 301.7px against a 330px cap). At 320px
+the English wraps to **two** lines where it used to be one — kept, because that is below this bar's own
+median: tut.4 is already 2 lines there, tut.5 is 3 and tut.2.ok is 4.
 
 ---
 
