@@ -99,7 +99,18 @@
        interpolated into rgba(), which is the whole reason the triplet exists. */
     --red2:#ff8aa6; --redRGB:255,63,108;
   }
-  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  /* ⚠️ `-webkit-touch-callout` AND `-webkit-user-select` ARE SET UNIVERSALLY, NOT LEFT TO INHERIT.
+     Both inherit in WebKit, and setting them on `html,body` looks sufficient — but WebKit's UA
+     stylesheet gives its OWN value to buttons, links and form controls, and a UA declaration beats an
+     inherited one. This document has 33 `<button>`s and a `mailto:` link, and the long-press magnifier
+     was reported over `.depthlab`/`#depthPills`, whose pills are injected by JS. `*` removes the
+     question entirely rather than reasoning about which elements WebKit special-cases.
+       ⚠️ AND NOTHING IN A DESKTOP BROWSER CAN CHECK THIS. Chrome does not implement
+     `-webkit-touch-callout`; it drops the declaration, `getComputedStyle` returns '', and a test reads
+     PASS on a page that never set it. That blindness is why it was missing for so long — see the note
+     on `html,body`. Verify on a device or in the Simulator, never here. */
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
   html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
     /* Korean rides the SYSTEM stack and nothing else. A webfont would buy consistent metrics and cost
        the property the whole project rests on — "no build step, no runtime dependencies, no network" is
@@ -1774,6 +1785,17 @@
        would mean the M key has to guess a volume to come back to.
          The readout is not decoration. A slider with no number is a slider you cannot set to the same
        place twice, and this one is read at arm's length on a phone. -->
+  <!-- HOW WIDE THE MELODY DRAWS. `.on` marks the row as moved off its default, the same way the
+       steering row does -- none of the three is "enabled", they are just three choices. -->
+  <div class="setrow" id="setMelody">
+    <div class="st">
+      <div class="sn" data-t="set.melody">Melody</div>
+      <div class="sd" data-t="set.melodyD">How many notes the background music draws from.</div>
+    </div>
+    <button class="sw" id="swMelody">Five</button>
+  </div>
+
+
   <div class="setrow" style="border-bottom:0;">
     <div class="st">
       <div class="sn"><span data-t="set.sound">Sound</span> <span class="snv" id="volReadout">100%</span></div>
@@ -2233,6 +2255,7 @@ const store={
   // named as the familiar control, so it is the smaller surprise of the two. A stored 'map' from the
   // build in between falls through to 'stick' rather than to a mode that no longer exists.
   touchMode:(LS.getItem('orbitalcrash_touchmode')==='abs')?'abs':'stick',
+  plkScale:(v=>(v==='none'||v==='wide')?v:'pent')(LS.getItem('orbitalcrash_plkscale')),
   // WHICH SIDE STEERS. false = move zone on the left (shipped). true = move zone on the right, with the
   // Overdrive and flip quarters mirrored to the left.
   //   ⚠️ IT REWRITES COPY, NOT ONLY GEOMETRY. Three legend rows and three tutorial lines NAME a side in
@@ -2315,6 +2338,7 @@ function save(){
     LS.setItem('orbitalcrash_touchsens',store.touchSens);
     LS.setItem('orbitalcrash_followsens',store.followSens);
     LS.setItem('orbitalcrash_touchmode',store.touchMode);
+    LS.setItem('orbitalcrash_plkscale',store.plkScale);
     LS.setItem('orbitalcrash_moveright',store.moveRight?'1':'0');
     LS.setItem('orbitalcrash_runs',JSON.stringify(store.runs));
     LS.setItem('orbitalcrash_totals',JSON.stringify(store.totals));
@@ -2391,6 +2415,8 @@ const L={ en:{
   'set.sensA':'Movement sensitivity',
   'set.mode':'Steering', 'set.modeD':'Whether your thumb moves the star a distance, or steers it like a stick.',
   'set.mode.abs':'Drag', 'set.mode.stick':'Stick',
+  'set.melody':'Melody', 'set.melodyD':'How many notes the background music draws from.',
+  'set.melody.none':'Off', 'set.melody.pent':'Five', 'set.melody.wide':'Seven',
   'set.side':'Steering side', 'set.sideD':'Which half of the screen steers, with Overdrive and flip on the other.',
   'set.side.l':'Left', 'set.side.r':'Right',
   'tc.move':'<b>{Mv} side</b> Steer star',
@@ -2603,6 +2629,8 @@ const L={ en:{
   'set.sensA':'움직임 민감도',
   'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 조종할지 정합니다.',
   'set.mode.abs':'드래그', 'set.mode.stick':'스틱',
+  'set.melody':'멜로디', 'set.melodyD':'배경음이 쓰는 음의 개수를 정합니다.',
+  'set.melody.none':'없음', 'set.melody.pent':'5음', 'set.melody.wide':'7음',
   'set.side':'조종 위치', 'set.sideD':'별을 조종할 화면의 절반을 선택합니다. 오버드라이브와 색 반전은 반대 절반에서 사용 가능합니다.',
   'set.side.l':'왼쪽', 'set.side.r':'오른쪽',
   'tc.move':'<b>{Mv}</b> 별 조종',
@@ -11401,6 +11429,7 @@ function paintSettings(){
   // The two touch models and the two sides. Not `sw()` above: that helper prints on/off, and neither of
   // these rows has an off — both print the name of the state they are IN.
   const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
+  const bl=el('swMelody'); if(bl){ bl.classList.toggle('on', store.plkScale!=='pent'); bl.textContent=T('set.melody.'+store.plkScale); }
   const bs=el('swSide'); if(bs){ bs.classList.toggle('on', store.moveRight); bs.textContent=T(store.moveRight?'set.side.r':'set.side.l'); }
   const sr=el('sensRange');
   if(sr && document.activeElement!==sr) sr.value=store.touchSens;
@@ -11447,6 +11476,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('skins').classList.co
 function setLang(v){ if(v!==store.lang){ store.lang=v; save(); applyLang(); } }
 el('langSel').onclick =e=>{ const b=e.target.closest('button[data-lang]'); if(b) setLang(b.dataset.lang); };
 el('swMode').onclick  =()=>{ store.touchMode=(store.touchMode==='stick')?'abs':'stick'; save(); paintSettings(); };
+el('swMelody').onclick=()=>{ const o=['none','pent','wide']; store.plkScale=o[(o.indexOf(store.plkScale)+1)%3]; save(); paintSettings(); };
 // ⚠️ `applyLang()` IS NOT OPTIONAL HERE, and it is what separates this row from every other switch. The
 // legend and three tutorial lines NAME the side, and they are painted once by the data-t loops rather
 // than per frame — flip the geometry without re-running them and the game spends the rest of the session

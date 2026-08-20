@@ -14,6 +14,34 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-20
 
+### A deeper heartbeat, and a Melody setting `v2` *(uncommitted)*
+Author: *"heartbeat should be a little lower or deeper than this but can hear well"*, and a request for
+an in-game note-diversity option.
+
+**The tick owns the apparent pitch, so the sine was nearly free to drop.** Measured as the centroid of
+the energy surviving a 300 Hz rolloff: taking the sine 52 → 42 Hz moves the heard pitch **992 → 991 Hz**,
+i.e. nothing at all; taking the tick's lowpass 1100 → 700 Hz moves it **992 → 686 Hz**. The sine is what
+you feel, the tick is what you hear. Lowering the tick costs survival, and its level buys that straight
+back for almost nothing:
+
+| | heard pitch | survives 300 Hz | flat level |
+|---|---|---|---|
+| before | 992 Hz | −15.9 dB | 0.01854 |
+| **now** — 42/35 Hz, tick 700 Hz @ 0.80 | **686 Hz** | **−15.8 dB** | 0.01951 |
+
+**A Melody row in Settings, three note pools.** `none` `[0]` — the line stops moving and the bed becomes
+a pulse; `pent` `[0,2,4,7,9]` — what the game has always played; `wide` `[0,2,4,5,7,9,11]` — the full
+major. Both languages, persisted, `.on` marking the row only when it is off its default.
+
+⚠️ **Widening the pool does not add a clash, which is not the obvious answer.** Notes overlap now, so
+pairs genuinely sound together, and the worry was the 4th grating against the major 3rd. Measured with
+Plomp–Levelt roughness over every pair each pool can produce: the roughest pair in the seven-note set is
+**D–E at 0.2025** — the same whole tone already inside the five-note set, at the identical figure. Mean
+roughness moves 0.0597 → 0.0604, about 1%. The pentatonic was never protecting anything here. Note
+density is unchanged across all three: 262 / 266 / 266 melody notes over ten simulated minutes.
+
+---
+
 ### The plucks escalate, and the heartbeat is finally audible `v2` *(uncommitted)*
 Author: *"the mechanic that applied to melody that intensified the melody each intensity of game,
 would be good to apply to plucks"* and *"heartbeat is still somewhat unsensible."*
@@ -48,11 +76,18 @@ make in that block. `noise(0.05, v*0.60, master, 1100)` beside both the lub and 
 from **−39 dB to −16 dB** through a 300 Hz rolloff, for **+0.15 dB** of flat level, and the tick is 3–5%
 of the energy, so on headphones the thump is still nearly all of what you hear.
 
-⚠️ **That +23 dB was first measured as +13, and the smaller number was the instrument's fault.** A
-130 ms render of the lub alone cannot outrun the highpass's own settling transient, which is broadband
-and inflates the untreated sine by about 12 dB — making the fix look half its size. A known-answer test
-settled it: the same filter attenuates a pure 52 Hz tone by −60.9 dB against −60.7 dB of theory, so the
-filter was never wrong, the WINDOW was.
+⚠️ **That +23 dB was first measured as +13, and the smaller number was a bug in the measuring
+model — not, as first written here, a windowing artefact.** `exponentialRampToValueAtTime` runs from the
+value *at the attack's end* over the *remaining* time. A hand-written model that decays from t=0 instead
+leaves a **36% amplitude step** at the attack/decay junction, and a step is broadband, so it inflated the
+*untreated* sine's high-frequency content by ~15 dB and made the fix look half its size. With the
+envelope corrected, the model and an `OfflineAudioContext` render of the real thing agree to **0.4 dB**
+on both the treated and the untreated case.
+
+The first explanation offered here — that a 130 ms window could not outrun the highpass's own settling
+transient — was wrong, and wrong in the comfortable direction: it exonerated the model. The tell was
+available and unread. The two rigs agreed within 2 dB on the *treated* case and diverged by 12 on the
+*untreated* one, which points at the signal, not at the filter.
 
 ---
 
