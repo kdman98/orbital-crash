@@ -2122,7 +2122,78 @@ Sentinel and the Bastion is now an open question, not a recorded fact.** No-soft
 property of this whole section; treat it as unverified at current numbers until someone re-runs it.
 
 **Purge** — destroying the boss; the word means only this. Pays score scaled by Epoch, an Integrity heal,
-and a Capacitor chunk.
+a Capacitor chunk, and **it sweeps the field clear**.
+
+#### The sweep, and why it pays nothing
+Author: *"let's clear the board (without score) after anomaly kill."* A white ring travels outward from
+wherever the Anomaly died and every Dot it reaches dies — **no score, no Motes, no combo, no streak, no
+Bomber detonation**. `stepPurgeWave` sets `dead=true` directly rather than calling `queueKill`, which is
+the same construction `planetBlast` already uses and for the same reason.
+
+⚠️ **Paying zero is not tidiness, it is the whole anti-farm argument.** A fight leaves **26–75 bodies**
+standing (16 fights, Epoch I–V, repo pilot with both sides' HP pinned) — at `KILL_SCORE` 20 plus the
+Motes each sheds, a comfortable multiple of the `200×act` the purge itself pays. Were the sweep to pay,
+stalling a fight while the field fills would become the highest-value play in the game. Pricing the
+hoard at zero means the only thing the sweep can ever buy you is safety. Verified on a controlled field
+(single colour, Neutrals and Motes removed, so the sweep is the only kill path): score moved by **exactly
+`200×act` and combo by exactly 0** while 33–72 bodies were erased, 7 seeds of 7.
+
+⚠️ **THE RING IS THE KILL BOUNDARY, NOT A DRAWING NEAR ONE.** An outward ring is drawn at `R*(1−life/max)`
+and the sweep kills inside `SPD*t` — the same ramp over the same `R` — so the hoop passing through a Dot
+*is* what killed it. `t` is read **before** it advances, so the kill edge can trail the hoop by a frame
+but can never lead it: measured across 7 purges the edge sat exactly **36.7px behind** the hoop, one
+frame of travel at 2200px/s, and never once ahead. This is law 3 pointed the other way — at a mark that
+promises a reach rather than a danger.
+
+⚠️ **`PURGE_WAVE_SPD` IS A SPEED AND THE FIRST VERSION WAS A DURATION**, which is the mistake to not
+repeat. A fixed 0.5s meant the sweep's px/s was whatever `R` happened to be that purge, so an Anomaly
+dying in a corner swept the screen visibly faster than one dying centre-field. 2200px/s puts a typical
+`R` (948–1277 on a 1280×800 arena) at **0.43–0.58 sim-seconds**, which is chosen to sit inside the
+purge's own `slowmo(0.35, 0.7)` rather than picked for looks — the slow window exists so the biggest
+event in the game can be watched, and until now the only thing in it to watch was the Anomaly's debris.
+
+⚠️ **THE REACH IS WHERE A BODY WILL BE, NOT WHERE IT IS, and two guesses died before that.** `max(W,H)`
+misses the far corner outright (1280 against a 1509 diagonal). Furthest-body-plus-a-margin *also* missed:
+`spawnStormSurge` places bodies on a `max(W,H)*0.6` circle around the **arena centre**, i.e. ~370px
+outside the rect, and a surge from the storm before the fight is still walking in. Even sweeping to the
+true furthest body left 2 of 32 standing at Epoch I — a Drifter at 1090 receding at 3.4px/frame gained
+115px while the hoop was crossing and finished at 1205 against an `R` of 1142. **A margin cannot fix
+that by being bigger**, because the escape scales with the crossing time which scales with `R`. Solve
+for the meeting instead: the edge reaches a body receding at `vr` at `d*SPD/(SPD−vr)`. With that, 7 seeds
+of 7 clear **100%** of the field standing at the purge.
+
+#### What the sweep is actually worth
+**The calm was never calm, and that is the finding this change rests on.** Population over the seconds
+after a purge, five fights, sweep against the identical run with the sweep neutralised:
+
+| t after purge | 0.5s | 1s | 2s | 3s | 5s | 8s | 12s |
+|---|---|---|---|---|---|---|---|
+| **sweep** | 0–2 | 0–4 | 2–6 | 4–9 | 6–13 | 10–19 | 19–38 |
+| **none** | 32–69 | 33–72 | 29–69 | 31–67 | 31–66 | 29–67 | 30–91 |
+
+The lower row is **flat**. `enterCalm` drops `intensityTarget` to 0.12 and the phase is named for a
+breath, but it only ever stopped *adding* — the storm's field stood there through the whole calm and into
+the next build. The breath now lasts about **8 seconds under 20 bodies**.
+
+Priced in Integrity, over the 12s after a purge, 16 paired fights: damage taken falls **37.1 → 7.8**,
+a paired difference of **−23.4 ±4.8 SE, t = −4.87**, negative in 14 of 16. ⚠️ **Against an A/A control,
+because this rig is not fully deterministic** — the same case run twice repeats exactly 11 times in 16
+and drifts on the other 5. A/A gives **−2.9 ±3.0, t = −0.99**, so the effect is ~8× the noise floor and
+the noise carries no sign. Do not quote the A/B without the A/A; a naive read of a single arm would have
+put the figure anywhere in the −23 to −29 band.
+
+⚠️ **This is a second Integrity grant in all but name.** `PURGE_HEAL` gives 30 and the sweep prevents
+~23 more, so a purge is now worth about **53 Integrity out of 100** — read that before tuning
+`PURGE_HEAL` again. Both standing notes about it now describe only the smaller half of what a purge is
+worth: `PURGE_HEAL`'s own comment calls itself *"the tuning knob of record for run length"*, and the
+heal-economy section below rests the whole "is a bad Epoch recoverable" question on the +30.
+
+⚠️ **The open tension: an emptier stretch is exactly the complaint `enterBuild` was cut 7.4s for.** That
+change was made because Epoch I's build was "the emptiest window with the longest clock". Calm runs
+`max(6, 10 − act*0.4)` seconds and the sweep now empties nearly all of it. Nobody has playtested whether
+that reads as a breath or as dead air. **If it reads as dead air the lever is the calm clock, not the
+sweep** — shortening calm keeps the beat the sweep creates and removes the wait; weakening the sweep
+gives back the thing the change was for.
 
 ### What still deletes matter near an Anomaly
 Worth naming, because none of it is the Anomaly's fire and all of it gets blamed on the Anomaly's fire.
@@ -2132,9 +2203,16 @@ is now the *whole* answer.
 ⚠️ **NO ANOMALY EMITS MATTER ANY MORE.** This paragraph used to name the **Sentinel's swarmers** as the
 one boss-emitted eraser — matter rather than shots, so the colour law owned them. That trail is gone,
 replaced by the orbit screen, whose nodes are **missiles**: they pass through every Dot, kill none, and
-are stopped by none (law 11). So every deletion of matter near an Anomaly is now ambient traffic or the
-Anomaly's own body, with nothing in between. If a future kind sheds matter again, this is the paragraph
-that has to be reopened — and the boss-contact gate in `stepAnnihilation` is the code that depends on it.
+are stopped by none (law 11). So every deletion of matter *while the Anomaly is alive* is ambient traffic
+or the Anomaly's own body, with nothing in between. If a future kind sheds matter again, this is the
+paragraph that has to be reopened — and the boss-contact gate in `stepAnnihilation` is the code that
+depends on it.
+
+⚠️ **"While alive" is doing real work in that sentence now, and it did not used to be there.** The purge
+sweep deletes the entire field the instant the Anomaly dies (see **Purge** above), so a reader counting
+where matter goes across a fight has a fourth answer and it is by far the largest. The scoping still
+holds — the sweep is not the Anomaly's fire, it is the Anomaly's death — but the unqualified claim it
+replaces was false the moment the sweep landed.
 
 The Anomaly's **body** is the one exception, and it is not fire: it consumes matter that actually chips
 it, or a flung Dot parked inside its skin would chip every frame. Matter that pays zero — ordinary
@@ -5158,6 +5236,16 @@ point-blank, so the Emitter reading hardest is probably an artifact. Needs one h
 Survival's only heal is the purge (+30, one an Epoch). The item asked whether anything could mend you
 with the arena still full; the answer is that nothing mends you at all now, so the question dissolved
 rather than being answered.
+
+⚠️ **THE ARENA IS NO LONGER STILL FULL, AND EVERY NUMBER BELOW PREDATES THAT.** The purge sweep clears
+the field (see **Purge**), which is worth roughly another **23 Integrity** of damage never taken in the
+12s that follow — so the grant this section prices at 30 is really about 53, and the "arena still full"
+the item was written against is exactly the condition the sweep removes. The census underneath was run
+before the sweep existed and its headline is untouched by it: **16 of 16 died inside Epoch I with
+`phase === 'boss'`**, i.e. every one of them died *before reaching a purge at all*. That is why the bot
+cannot re-run this arm — it never gets to the change. ⚠️ **The human playtest asked for below is now
+strictly more necessary, not less**, and it has a second question attached: whether a bad Epoch is
+recoverable is now partly a question about the sweep, and nothing in this file can answer it.
 
 **The half of it that survived is now the sharpest question in this file: is a bad Epoch still
 recoverable?** It was a footnote when damage refunded itself; it is the whole balance of the game when

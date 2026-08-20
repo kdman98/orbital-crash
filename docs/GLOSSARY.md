@@ -92,6 +92,11 @@ paragraph goes in MECHANICS and this line points at it.
   frames into cache hit / routine repaint / Act transition. (`__orbital.probe`, `PROBE`)
 - **Vacuum** — what a reversal does to opposite-colour Motes lying inert on the field.
 - **Purge** — destroying an Anomaly. The word means only this. (`killBoss`)
+- **Purge sweep** — the white ring that travels outward from a dead Anomaly and clears every Dot it
+  reaches. Pays nothing: no score, no Motes, no combo, no Bomber detonation. The ring is the kill
+  boundary rather than a drawing near one. (`purgeWave`, `PURGE_WAVE_SPD`, `stepPurgeWave`)
+  ⚠️ Not to be confused with `PURGE_R0`, which is the **Fling**'s radius and is named for the word's
+  older meaning — see the renames at the bottom of this file.
 
 ## Matter
 
@@ -412,7 +417,7 @@ work exactly as before; only the ticks for them are gone.
 **Tally** → the Collapse kill bonus, gone with it · **Orb** and **powerup** → there are no pickups ·
 **🛡 Aegis**, **✺ Nova** → removed with the roster; nothing blocks a hit any more · **Pickup pill** →
 there is one text channel now, the achievement toast · **cache** → was the orb an Anomaly dropped on
-purge; a purge now pays score, an Integrity heal and a Capacitor chunk.
+purge; a purge now pays score, an Integrity heal, a Capacitor chunk and a field-clearing sweep.
 
 **Removed with the Codex** (`c7da498`): **Codex** → there is no rules screen; the tutorial teaches by
 playing, the Bestiary holds the species, and Records holds the achievements it used to list. The four

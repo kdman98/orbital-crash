@@ -3673,6 +3673,21 @@ let bossN=0;  // Anomalies faced this run — the first always fires the teachin
 // the fight under way is always the last entry.
 let anomLog=[];
 let lances=[]; // anomaly's outer-screen projectiles: opposite-colour, hurt the core AND the anomaly
+// THE PURGE SWEEPS THE FIELD. `{x,y,R,t}` while a sweep is travelling, null the rest of the time — one
+// slot, because `boss` is one slot and this is armed from its death.
+//   ⚠️ A SPEED, NOT A DURATION, AND THE FIRST VERSION HAD IT THE OTHER WAY. A fixed 0.5s meant the sweep's
+// px/s was set by whatever R happened to be that purge — an Anomaly dying in a corner draws a longer reach
+// than one dying centre-field, and one straggler out at 1545 (a leftover storm surge, which spawns on a
+// `max(W,H)*0.6` circle around the CENTRE and therefore reaches ~370px past the rect) would have stretched
+// R by 40% and sped the visible sweep up by the same. A speed makes every purge cross the screen at the
+// same rate and lets R be whatever it has to be.
+//   2200 px/s puts a typical far-corner R (1000-1150 on a 1280x800 arena) at 0.45-0.52 SIM seconds, and
+// that is chosen to sit inside the purge's own slow-motion rather than picked for looks: `slowmo(0.35,0.7)`
+// plus the 2.2/s recovery is about 1.0s of real time in which only ~0.45s of sim elapses. The sweep is
+// therefore over just as normal speed returns — the slow window exists so the biggest event in the game
+// can be watched, and until now the only thing in it to watch was the Anomaly's own debris.
+let purgeWave=null;
+const PURGE_WAVE_SPD=2200;
 // THE WHOLE HEAL INCOME OF A RUN, in one place. It was a literal inside killBoss while three comments
 // and two doc pages quoted "+30" at it, which is the arrangement that lets a tuning pass move the number
 // and leave the prose behind. It is also the tuning knob of record for run length — see the note at
@@ -6789,6 +6804,40 @@ function killBoss(b){
   for(let i=0;i<52;i++){ const a=rand(0,TAU),s=rand(1,7.5);
     parts.push({x:b.x,y:b.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.5,1.15),max:1.15,color:i%2?'#fff':COL[col],r:rand(2,5),ring:false}); }
   spawnRing(b.x,b.y,'#fff',Math.max(W,H)*0.5);
+  // THE BOARD CLEARS, AND IT PAYS NOTHING. Author: *"let's clear the board (without score) after anomaly
+  // kill"*. The sweep itself is stepPurgeWave; what happens here is arming it and drawing its edge.
+  //   ⚠️ R IS MEASURED, NOT ASSUMED, and both halves of the max() are load-bearing. planetBlast draws
+  // `max(W,H)` and gets away with it because its kill has NO radius test — the hoop there is a claim about
+  // colour, not a boundary. Here the radius decides who lives, so a guess leaves survivors:
+  //     · `max(W,H)`=1280 against a 1280x800 DIAGONAL of 1509 already misses the far corner;
+  //     · far-corner+96 was the second guess, sized off `EDGE_CLEAR` 46 plus the widest hull, and it
+  //       still missed — measured, it left 2 of 32 standing at Epoch I, out at 1245 and 1240 against an
+  //       R of 1149. Ambient matter is not the only thing off-screen: `spawnStormSurge` places bodies on
+  //       a `max(W,H)*0.6` circle around the ARENA CENTRE, i.e. up to ~370px outside the rect, and a
+  //       surge from the storm before the fight is still walking in while the Anomaly dies.
+  // So: sweep to whatever is actually out there. The floor keeps the RING honest on a field that happens
+  // to be empty at the edges — the hoop should still reach the corner it is claiming to clear.
+  //   Everything alive at this instant is therefore inside the sweep, by construction, and anything that
+  // spawns after it is not. That second half is the game resuming, not a miss.
+  //   ⚠️ AND THE REACH IS WHERE A BODY WILL BE, NOT WHERE IT IS — the third guess, and the one the second
+  // died on. Sweeping to `furthest + r` still left 2 of 32 standing at Epoch I: a Drifter out at 1090 was
+  // travelling OUTWARD at 3.4px/frame, and the hoop needs ~30 frames to get out that far, so it gained
+  // 115px while the wave was crossing and finished at 1205 against an R of 1142. A margin cannot fix that
+  // by being bigger — the escape scales with the crossing time, which scales with R. Solve for the meeting
+  // instead: the edge reaches a body receding at `vr` when `SPD*t = d + vr*t`, i.e. at `d*SPD/(SPD-vr)`.
+  // Outward component only, since a body closing on the epicentre is caught early and needs no allowance.
+  let RW=Math.max(Math.hypot(b.x,b.y), Math.hypot(W-b.x,b.y),
+                  Math.hypot(b.x,H-b.y), Math.hypot(W-b.x,H-b.y));
+  for(const o of enemies){ if(o.dead||o.type==='boss') continue;
+    const dx=o.x-b.x, dy=o.y-b.y, d=Math.hypot(dx,dy)||1;
+    const vr=Math.max(0,(o.vx*dx+o.vy*dy)/d)*60;   // px/s: this file's velocities are per FRAME
+    RW=Math.max(RW, (d+o.r)*PURGE_WAVE_SPD/Math.max(1,PURGE_WAVE_SPD-vr)); }
+  RW+=24;
+  purgeWave={x:b.x,y:b.y,R:RW,t:0};
+  // The one OUTWARD ring in this function, and the inward one above stays: they say different true
+  // things at the same instant — the Anomaly collapsing inward on itself, and what that collapse threw
+  // out. `out` is spent sparingly on purpose (see bomberBlast); this is the event it was being saved for.
+  spawnRing(b.x,b.y,'#fff',RW,true,RW/PURGE_WAVE_SPD);
   const rew=200*act; score+=rew; purgeRew=rew;
   // THE PURGE'S WORDS MOVED TO THE EPOCH CUE — one statement in one place, not the same sentence twice
   // 200px apart. onBossCleared fires it on the very next tick and carries `purgeRew` into it.
@@ -6877,6 +6926,10 @@ function step(){
 
   stepAnnihilation();
 
+  // BEFORE CONTACT, SO THE SWEEP PROTECTS AS IT PASSES. A body the wave takes this frame cannot also take
+  // a bite out of you on the same frame — and because the wave starts at the Anomaly, the bodies crowding
+  // the fight you have just won are the first ones it reaches.
+  stepPurgeWave(dt);
   if(stepPlayerContact()) return;   // the core died this frame
 
   // ----- process kill queue (chains) -----
@@ -8142,6 +8195,38 @@ function planetBlast(e){
   if(n>=15) grantAchv('demolition');
   e.dead=true;
 }
+// THE PURGE'S SWEEP — the third member of the planetBlast/bomberBlast family, and the only one that is
+// not a Dot's own death throe. Armed in killBoss, stepped here, and it clears whatever it reaches.
+//   ⚠️ `dead=true`, NEVER `queueKill`: IT PAYS NOTHING, BY CONSTRUCTION. queueKill runs onKill, which is
+// score, combo, the streak milestones, a Mote shed per body and a Bomber's detonation — times the forty
+// to seventy bodies a fight leaves standing. planetBlast already carries this exact line for this exact
+// reason; read the note there as the second half of this one.
+//   ⚠️ AND THAT IS WHAT MAKES THE CLEAR UNFARMABLE, which matters more than the tidiness. A sweep that
+// paid would make stalling a fight while the field fills the highest-value play in the game — the stock
+// is 30-45 bodies at Epoch I and 45-70 by Epoch V (repo pilot, HP pinned both sides, 12 runs), i.e. at
+// KILL_SCORE 20 plus the Motes a comfortable multiple of the 200*act the purge itself pays. Paying zero
+// prices the hoard at zero, so the only thing the sweep can ever buy you is safety.
+function stepPurgeWave(dt){
+  if(!purgeWave) return;
+  const w=purgeWave;
+  // `t` BEFORE the advance, so the kill edge can lag the drawn hoop by a frame but can never LEAD it.
+  // Which way the rounding falls is not cosmetic: a ring that arrives after the death it caused is a ring
+  // that lied about its reach. Measured across three purges, the edge trails the hoop by 34-38px — one
+  // frame of travel at 2200px/s — and never once led it.
+  const rad=Math.min(w.R, PURGE_WAVE_SPD*w.t);
+  for(const o of enemies){
+    if(o.dead||o.queued||o.type==='boss') continue;   // the Anomaly is already dead; a queued body is spoken for
+    const dx=o.x-w.x, dy=o.y-w.y;
+    if(dx*dx+dy*dy > rad*rad) continue;
+    o.dead=true;
+    // White, and the same 4-5 sparks the other two clears use. It is what stops forty simultaneous
+    // deaths from reading as a dropped frame — see the note in bomberBlast about a radius being legible
+    // as ONE event rather than as N coincidences.
+    spawnBurst(o.x,o.y,'#fff',4,2.4);
+  }
+  w.t+=dt;
+  if(w.t>w.R/PURGE_WAVE_SPD+1/60) purgeWave=null;   // one frame of grace so the full-R pass definitely happens
+}
 function bomberBlast(e){
   // OUTWARD to exactly BOMB_R, and it draws the area that was actually affected rather than a decoration.
   // The inward white one stays as the centre "pop", so the pair reads as a detonation with a core rather
@@ -8637,8 +8722,14 @@ function spawnBurst(x,y,color,n,spd,hx,hy){
 // game starts at R and shrinks to a point, which is right for a telegraph (the Bastion's charge-up, the
 // Overdrive ignition drawing IN to the core) and wrong for a blast, which is the one thing that should
 // travel outward. `out` flips it, and it defaults FALSE so all 18 existing call sites are untouched.
-function spawnRing(x,y,color,R,out){
-  parts.push({x,y,vx:0,vy:0,life:.5,max:.5,color,r:6,ring:true,R,out:!!out});
+// `life` IS OPTIONAL AND ALMOST NOBODY PASSES IT — it exists for the purge sweep, which is the one ring
+// in the file whose radius is a KILL BOUNDARY rather than a drawing. An outward ring travels 0 -> R over
+// exactly `life`, so pinning life to a constant pins the ring's SPEED to R, and the purge's R varies with
+// where the Anomaly died and how far the furthest straggler is. Passing `R/speed` instead is what makes
+// every purge sweep the screen at the same rate. See stepPurgeWave.
+function spawnRing(x,y,color,R,out,life){
+  const L=life||.5;
+  parts.push({x,y,vx:0,vy:0,life:L,max:L,color,r:6,ring:true,R,out:!!out});
 }
 // ⚠️ FLOATING TEXT IS SIZED IN WORLD UNITS, SO IT SHRANK WITH THE ARENA — SAME DEFECT AS THE CHARGER
 // TELEGRAPH'S STROKE WIDTHS, ONE LAYER OUT. `ctx.font` is set inside the baked `setTransform(S*DPR,…)`,
@@ -10976,7 +11067,7 @@ function startRun(mode, startAct){
   // naming an Epoch you are no longer in, in a 52px word. `purgeRew` goes with it: a stale reward would
   // otherwise ride into the first purge of the new run and print the old run's number.
   el('epochcue').classList.remove('show'); el('actlab').classList.remove('bump'); purgeRew=0;
-  boss=null;bossFlash=0;lances.length=0;bossN=0;anomLog.length=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
+  boss=null;bossFlash=0;lances.length=0;purgeWave=null;bossN=0;anomLog.length=0;lastVariant=null;intensity=0.14;intensityTarget=0.14;
   P=freshRun();
   // `drawRelT` joins the two lines it sits on for the reason they are here: it is the only piece of Draw
   // state that is NOT on the boss (see DRAW_REL), so it is the only piece a dead Anomaly cannot clear —
@@ -12539,6 +12630,10 @@ window.__orbital=window.__polaris=window.__flux={
   // pair every call with endOverdrive() or the pilot burns every meter it earns down to nothing.
   flip, overdrive, endOverdrive, get P(){return P;}, get enemies(){return enemies;}, get boss(){return boss;}, get lances(){return lances;},
   spawnBoss, fireLanceVolley, get store(){return store;},
+  // The purge sweep, live. A harness cannot otherwise tell a wave kill from an ordinary annihilation on
+  // the same frame — the first rig that tried counted every death in the window and reported bodies
+  // dying 634px OUTSIDE the ring, which was the instrument, not the sweep.
+  get purgeWave(){return purgeWave;},
   // The mine layer, exposed because its geometry is the only part of the Bastion's kit that cannot be
   // read off a screenshot: where a mine LANDS is a two-phase flight solved at launch, and the reach
   // constant was wrong by 35% for months precisely because nothing could measure it from outside.
