@@ -14,6 +14,40 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-20
 
+### The post-purge calm is halved `v2` `029478f`
+Author: *"shorten the calm after purge."* Follows directly from the sweep below — and from the finding
+underneath it, that the calm never emptied anything.
+
+`max(6, 10 − act*0.4)` → **`max(3, 5 − act*0.2)`**: the same curve with both terms and the floor halved,
+so it still flattens at Epoch X exactly where it used to. Epoch I's 5s opener is not a post-purge calm
+and does not move, which is why Epoch I is the only total unchanged.
+
+| Epoch | I | II | III | IV | V | VI | VII | VIII | IX | X | XI |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| calm | 5.0\* | 4.6 | 4.4 | 4.2 | 4.0 | 3.8 | 3.6 | 3.4 | 3.2 | 3.0 | 3.0 |
+| build | 11.0 | 10.4 | 9.8 | 9.2 | 8.6 | 8.0 | 8.0 | 8.0 | 8.0 | 8.0 | 8.0 |
+| storm | 14.7 | 14.4 | 14.1 | 13.8 | 13.5 | 13.2 | 12.9 | 12.6 | 12.3 | 12.0 | 11.7 |
+| **total** | **30.7** | **29.4** | **28.3** | **27.2** | **26.1** | **25.0** | **24.5** | **24.0** | **23.5** | **23.0** | **22.7** |
+
+⚠️ **What the calm was *for* is not what its clock controls.** It never emptied anything — it only stopped
+*adding*, which is why the field sat flat at 30–70 bodies for the whole phase. The sweep delivers the
+emptiness now, so this clock only decides how fast the field **refills**.
+
+⚠️ **Two floors decide the 3, and neither is taste.** The Epoch cue is a **2.6s** animation fired one tick
+into the phase, and `intensity` lerps at **τ = 0.71s** (95% closed at 2.1s) — below that the phase never
+reaches its target and becomes a label rather than a state. Measured at the moment calm ends: **0.12
+through Epoch VII, 0.13 at the floor**, against a target of 0.12.
+
+**The breath survives; only the wait is gone.** The first ~5s after a purge are unchanged — that window
+belongs to the sweep, not the clock — and the curves separate only at 8s (10–19 bodies before, 14–30
+after). Time under 20 bodies falls from ~12s to ~7–8s. Storm and build untouched.
+
+Two claims corrected because this or the sweep falsified them: `enterCalm`'s *"a deep start gets its own
+Epoch's real clock… LONGER, not shorter"* is now backwards, and MECHANICS' *"build floors at Epoch 12"*
+was the pre-cut `max(12, 19−act*0.6)` outliving its own formula (it clamps from Epoch **VI**).
+
+---
+
 ### Killing an Anomaly clears the board `v2` `6fe49df`
 Author: *"let's clear the board (without score) after anomaly kill."*
 
