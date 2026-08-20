@@ -12381,12 +12381,15 @@ function updateAmbient(inten,dt){
   if(musOk && musGain) musGain.gain.setTargetAtTime(lerp(0.45,0.60,inten)*store.vol, now, 0.6);
   // A composed track REPLACES the bed rather than layering over it — two beds in the same register
   // fight — so `musOk` silences the plucks instead of mixing under them.
-  //   ⚠️ 2.6 -> 1.9s HERE AND 1.3 -> 2.2s ON THE DECAY ARE ONE CHANGE, NOT TWO. With the drone gone
-  // the plucks are the entire bed, and at the old spacing calm ran 0.48 voices sounding at once: the
-  // bed was silent more than half the time, which is the one thing a bed cannot be. 1.9s against a
-  // 2.2s tail is 1.10, so notes reliably ring into each other and THE OVERLAP IS THE PAD. That is
-  // also why this could not be answered by simply holding a tone again: an overlap of decaying notes
-  // rises and falls, and cannot settle into the steady hum the drone was removed for.
+  //   ⚠️ THE SPACING AND THE DECAY ARE ONE NUMBER IN TWO PLACES, AND MOVING EITHER ALONE BREAKS IT.
+  // With the drone gone the plucks are the entire bed, and it holds together only because the tails
+  // outlast the gaps: notes ring into each other and THE OVERLAP IS THE PAD. An overlap of decaying
+  // notes rises and falls, which is why it cannot settle into the steady hum the drone was deleted for.
+  //   The author asked for a slower tempo on 2026-08-20, so BOTH were scaled by the same 1.35 -- 1.9 ->
+  // 2.55s here, 2.2 -> 2.95 and 3.2 -> 4.3 on the decays. Scaling one alone was measured: at 35% slower
+  // with the tails left at 2.2s the bed drops to 0.97 voices sounding at once, i.e. back to real gaps of
+  // silence, which is the one thing a bed cannot be. Scaled together the ratio is untouched at 1.31 and
+  // only the rate changes -- calm goes 33 notes/min to 24.
   //   Note density roughly doubles, which is worth about +3.6dB on this layer — near enough to what
   // the drone contributed that the per-note level below is deliberately left alone.
   // 1600Hz LEAVES CALM EXACTLY AS BRIGHT AS IT ALREADY WAS, and that is why it is not lower. Measured
@@ -12398,7 +12401,7 @@ function updateAmbient(inten,dt){
   // harmonics do.
   pluckBus.frequency.setTargetAtTime(lerp(1600,3500,inten), now, 0.7);
   ambNoteT-=dt;
-  if(ambNoteT<=0){ ambNoteT=lerp(1.9,0.6,inten)*rand(0.7,1.4); if(!musOk) ambPluck(inten); }
+  if(ambNoteT<=0){ ambNoteT=lerp(2.55,0.8,inten)*rand(0.7,1.4); if(!musOk) ambPluck(inten); }
 }
 // none: the line stops moving and every note is the root, so the bed becomes a pulse. pent: what the
 // game has always played. wide: the full major, which adds the 4th and the leading tone -- the anchor
@@ -12473,7 +12476,7 @@ function ambPluck(inten){
   // Both tails are LONGER THAN THE GAP BETWEEN NOTES on purpose -- that overlap is the pad, and
   // updateAmbient's spacing was set against these two numbers. The anchor rings longer still so the
   // root sits UNDER the two or three melody notes that follow it instead of beside them.
-  const dec=anchor?3.2:2.2;
+  const dec=anchor?4.3:2.95;
   const v=lerp(0.02,0.05,inten)*(anchor?1.15:1);
   // ⚠️ 5ms, NOT 50. A 50ms ramp is a BLOWN attack -- it is how you build a horn patch, and on a phone,
   // where the fundamental is half gone and the upper partials carry the sound, that is exactly what it
