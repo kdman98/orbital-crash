@@ -133,10 +133,16 @@ vignette to `270177a` and named `f2e2c2e`, which carries none of this work, beca
 grepping each commit for whether a marker was PRESENT. Presence is inherited — every commit after the
 introduction has it. Only the diff says who introduced it: `git log -S'<marker>'` with `tail -1` for an
 addition and `head -1` for a removal, since `-S` matches both directions.
-  The precedent is already in this file, from the other direction: `2e73c06` swept in *another* session's
-uncommitted whitespace, and the ruling there holds here — **the change is applied and not lost, only
-misattributed, and force-pushing a shared branch to fix a message is the worse trade.** So the history
-stands and this note is the index into it. `git log -- index.html` will not find these changes by their
+  **This repo has ruled on it twice already, and both times the same way.** `2e73c06` swept in another
+session's uncommitted whitespace — *"force-pushing a shared branch over two blank lines is the worse
+trade… applied and not lost, only misattributed"* — and `6724ab2` carried someone else's change under a
+body that never mentioned it, documented in `53ceab2`: *"Recorded rather than rewritten. v2 is shared and
+pushed."* Two precedents, one rule, and this is the third instance. So the history stands and this note
+is the index into it.
+  ⚠️ **The two rulings live in DIFFERENT artifacts, which is how a peer came to report the first one
+missing.** `2e73c06`'s is in its PATCH NOTE ENTRY (its commit body does not mention force, push or
+attribution at all); `6724ab2`'s is in the COMMIT BODY of `53ceab2`. Searching one artifact and
+concluding the rule is not there returns a clean, confident, wrong answer. `git log -- index.html` will not find these changes by their
 subject lines; `git log -S'PLK_POOL'`, `-S'drawLowHull'`, `-S'melToggle'` and `-S'swMelody'` will, and
 each was run rather than assumed.
 
