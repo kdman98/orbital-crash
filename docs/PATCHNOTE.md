@@ -119,14 +119,20 @@ the matter it clears on a phone.
 
 ---
 
-⚠️ **THE SOUND WORK BELOW IS SPREAD OVER SIX COMMITS AND NOT ONE OF THEIR SUBJECTS MENTIONS SOUND.** It
+⚠️ **THE SOUND WORK BELOW IS SPREAD OVER FIVE COMMITS AND NOT ONE OF THEIR SUBJECTS MENTIONS SOUND.** It
 kept being swept up while it sat uncommitted in `index.html`. `b04329e` ("`touch-action:none` on
 html,body…") carries the drone and storm removal, the anchor, the sawtooth partner, the pluck bus sweep,
 the note pools and the deeper heartbeat — 153 insertions. `809c7ca` ("Set the callout suppression on
-`*`…") carries the Melody row and its two languages. `270177a` ("The first tutorial line names a side…")
-carries the heartbeat's removal and the low-hull vignette that replaced it. `1e2dfb6` ("\"The left side\"
-of what…") carries the whole Melody page. `f2e2c2e` is gesture diagnostics. Only `3a234a9` and `1b5a05b`
-say what they contain. All six were pushed before it was noticed.
+`*`…") carries the Melody row and its two languages. `029478f` ("Halve the post-purge calm…") carries the
+heartbeat's REMOVAL and the low-hull vignette that replaced it. `270177a` ("The first tutorial line names
+a side…") carries two later fixes to that vignette. `1e2dfb6` ("\"The left side\" of what…") carries the
+whole Melody page — 23 of its 126 insertions. Five commits; only `3a234a9`, `1b5a05b` and `963926a` say
+what they contain. All were pushed before it was noticed.
+  ⚠️ **THIS LIST WAS WRONG IN `963926a` AND THE MISTAKE IS THE INSTRUCTIVE PART.** It credited the
+vignette to `270177a` and named `f2e2c2e`, which carries none of this work, because it was built by
+grepping each commit for whether a marker was PRESENT. Presence is inherited — every commit after the
+introduction has it. Only the diff says who introduced it: `git log -S'<marker>'` with `tail -1` for an
+addition and `head -1` for a removal, since `-S` matches both directions.
   The precedent is already in this file, from the other direction: `2e73c06` swept in *another* session's
 uncommitted whitespace, and the ruling there holds here — **the change is applied and not lost, only
 misattributed, and force-pushing a shared branch to fix a message is the worse trade.** So the history
@@ -135,7 +141,7 @@ subject lines; `git log -S'PLK_POOL'`, `-S'drawLowHull'`, `-S'melToggle'` and `-
 each was run rather than assumed.
 
 
-### The heartbeat stops playing and starts showing `v2` `270177a`
+### The heartbeat stops playing and starts showing `v2` `029478f` `270177a`
 Author: *"remove heartbeat for overall sound, and just visually signal that i'm in low health."*
 
 The audio layer is gone — `updateHeart`, both beeps, both noise ticks. `drawLowHull()` replaces it, and
