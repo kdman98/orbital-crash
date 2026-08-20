@@ -14,9 +14,21 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-20
 
-### A deeper heartbeat, and a Melody setting `v2` *(uncommitted)*
-Author: *"heartbeat should be a little lower or deeper than this but can hear well"*, and a request for
-an in-game note-diversity option.
+⚠️ **EVERY AUDIO ENTRY BELOW LANDED INSIDE A CSS COMMIT, AND NEITHER MESSAGE MENTIONS SOUND.** `b04329e`
+("`touch-action:none` on html,body…") carries the drone and storm removal, the anchor, the sawtooth
+partner, the pluck bus sweep, the note pools and the deeper heartbeat — 153 insertions on `index.html`.
+`809c7ca` ("Set the callout suppression on `*`…") carries the Melody row, its two languages and its
+persistence. Both were taken while this work sat uncommitted in the same file, and both were pushed
+before it was noticed.
+  The precedent is already in this file, from the other direction: `2e73c06` swept in *another* session's
+uncommitted whitespace, and the ruling there holds here — **the change is applied and not lost, only
+misattributed, and force-pushing a shared branch to fix a message is the worse trade.** So the history
+stands and this note is the index into it. `git log -- index.html` will not find these changes by their
+subject lines; `git log -S'PLK_POOL'` will.
+
+
+### A deeper heartbeat `v2` `b04329e`
+Author: *"heartbeat should be a little lower or deeper than this but can hear well."*
 
 **The tick owns the apparent pitch, so the sine was nearly free to drop.** Measured as the centroid of
 the energy surviving a 300 Hz rolloff: taking the sine 52 → 42 Hz moves the heard pitch **992 → 991 Hz**,
@@ -29,9 +41,19 @@ back for almost nothing:
 | before | 992 Hz | −15.9 dB | 0.01854 |
 | **now** — 42/35 Hz, tick 700 Hz @ 0.80 | **686 Hz** | **−15.8 dB** | 0.01951 |
 
-**A Melody row in Settings, three note pools.** `none` `[0]` — the line stops moving and the bed becomes
-a pulse; `pent` `[0,2,4,7,9]` — what the game has always played; `wide` `[0,2,4,5,7,9,11]` — the full
-major. Both languages, persisted, `.on` marking the row only when it is off its default.
+---
+
+### A Melody setting, three note pools `v2` `809c7ca`
+Asked for as *"diverse pluck note option in-game — none / DEFAB (current) / more?"*
+
+`none` `[0]` — the line stops moving and the bed becomes a pulse; `pent` `[0,2,4,7,9]` — what the game
+has always played; `wide` `[0,2,4,5,7,9,11]` — the full major. Both languages, persisted, `.on` marking
+the row only when it is off its default.
+
+⚠️ **`PLK_POOL` shipped one commit ahead of the setting that selects it, and survived only on a
+fallback.** `b04329e` carries `PLK_POOL[store.plkScale]||PLK_POOL.pent` while `store.plkScale` does not
+exist until `809c7ca` — so at that commit the subscript is `undefined`, the `||` catches it, and the bed
+plays the pentatonic exactly as before. Checked rather than assumed, because it is on the public remote.
 
 ⚠️ **Widening the pool does not add a clash, which is not the obvious answer.** Notes overlap now, so
 pairs genuinely sound together, and the worry was the 4th grating against the major 3rd. Measured with
@@ -42,7 +64,7 @@ density is unchanged across all three: 262 / 266 / 266 melody notes over ten sim
 
 ---
 
-### The plucks escalate, and the heartbeat is finally audible `v2` *(uncommitted)*
+### The plucks escalate, and the heartbeat is finally audible `v2` `b04329e`
 Author: *"the mechanic that applied to melody that intensified the melody each intensity of game,
 would be good to apply to plucks"* and *"heartbeat is still somewhat unsensible."*
 
@@ -92,7 +114,7 @@ available and unread. The two rigs agreed within 2 dB on the *treated* case and 
 ---
 
 
-### The drone and the storm drum are gone; the plucks carry the bed alone `v2` *(uncommitted)*
+### The drone and the storm drum are gone; the plucks carry the bed alone `v2` `b04329e`
 Author: *"i dont feel drone and storm drum doing something harmony to BGM"* — then, after the argument
 for keeping them: *"drum and drone feels like bad ASMR currently."* Both layers removed, and `ambPluck`
 rebuilt to cover what they were doing.
