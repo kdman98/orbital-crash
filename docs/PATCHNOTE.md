@@ -14,6 +14,16 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-20
 
+### The first tutorial line says which left `v2`
+Author: *"왼쪽을 드래그해 보세요" → "화면 왼쪽을 드래그해 보세요"*. `tut.1.touch` KO only — the English row
+already reads "Drag the {mv} **side**", so the two languages were not saying the same thing.
+
+⚠️ **Only this row.** tut.4/tut.5 carry `{Act} 아래` / `{Act} 위`, a two-word position that already points
+somewhere; this one is a lone direction and the first instruction the game gives. Do not harmonise 화면
+onto the others. The 을 particle still holds when the row mirrors — 왼쪽 and 오른쪽 both end in ㄱ.
+
+---
+
 ### The post-purge calm is halved `v2` `029478f`
 Author: *"shorten the calm after purge."* Follows directly from the sweep below — and from the finding
 underneath it, that the calm never emptied anything.
