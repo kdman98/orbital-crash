@@ -2141,34 +2141,37 @@ hoard at zero means the only thing the sweep can ever buy you is safety. Verifie
 ⚠️ **THE RING IS THE KILL BOUNDARY, NOT A DRAWING NEAR ONE.** An outward ring is drawn at `R*(1−life/max)`
 and the sweep kills inside `SPD*t` — the same ramp over the same `R` — so the hoop passing through a Dot
 *is* what killed it. `t` is read **before** it advances, so the kill edge can trail the hoop by a frame
-but can never lead it: measured across 7 purges the edge sat exactly **36.7px behind** the hoop, one
-frame of travel at 2200px/s, and never once ahead. This is law 3 pointed the other way — at a mark that
+but can never lead it. The lag is exactly one frame of travel, so it scales with the speed: **36.7px** at
+the 2200px/s originally shipped, **18.3px** at the 1100 shipped now, measured across 12 purges, never once
+ahead. This is law 3 pointed the other way — at a mark that
 promises a reach rather than a danger.
 
 ⚠️ **`PURGE_WAVE_SPD` IS A SPEED AND THE FIRST VERSION WAS A DURATION**, which is the mistake to not
 repeat. A fixed 0.5s meant the sweep's px/s was whatever `R` happened to be that purge, so an Anomaly
-dying in a corner swept the screen visibly faster than one dying centre-field. 2200px/s puts a typical
-`R` (948–1277 on a 1280×800 arena) at **0.43–0.58 sim-seconds**.
+dying in a corner swept the screen visibly faster than one dying centre-field. **1100px/s** puts a typical
+purge at **1.05–1.37 seconds** on a 1280×800 arena (5 seeds, `R` 1128–1477). Sim seconds are wall-clock
+seconds, so that is what you watch.
 
-⚠️ **THAT NUMBER WAS SIZED AGAINST A SLOW-MOTION THAT NO LONGER EXISTS**, and it is now the one figure
-here with no argument under it. `slowmo(0.35, 0.7)` stretched ~0.45 sim-seconds to about 1.0s of *real*
-time, and 2200 was picked so the sweep finished as normal speed returned. The author removed the dip
-(see the Moment Engine table), so sim seconds are real seconds: measured, a 0.60 sim-second sweep is
-**0.60s of wall clock now against ~1.15s before** — by the Moment Engine's own constants, 0.7s held at
-0.35 plus a 0.295s recovery at 2.2/s banks 0.44 sim-seconds in the first ~1.0s, and the remainder runs at
-full speed. So **the same sweep crosses the screen about 1.9× faster than the speed it was tuned at.** It
-is left at 2200 because that is what was measured and shipped, not because the reasoning survives — if it
-now reads as a blink rather than a shockwave, **lowering `PURGE_WAVE_SPD` is the fix, and ~1100 restores
-the old apparent speed exactly.**
+⚠️ **1100 is 2200 halved, and the halving is a restoration — read it with the slow-motion removal or the
+number looks arbitrary.** 2200 was sized so the sweep finished as `slowmo(0.35, 0.7)` handed normal speed
+back, stretching ~0.45 sim-seconds to ~1.0s real. With the dip removed the *same* sweep crossed the screen
+~1.9× faster than the speed it was tuned at; halving put the apparent speed back. Seed 4242: **0.60s →
+1.23s**, against the ~1.15s the dip used to produce. ⚠️ **A future pass that reinstates any slow-motion on
+the purge has to halve this back** — the two numbers are a pair.
 
-⚠️ **On a tall phone arena the sweep runs longer still**, measured **0.54–0.82s** against desktop's
-0.43–0.58s: this is a *world* speed, and a 375×812 phone is 800×1732 in world units — a diagonal half
+⚠️ **Halving the speed more than doubles the duration, so measure it rather than dividing.** `R` is not a
+constant — it is solved from `d*SPD/(SPD−vr)`, so a slower sweep gives a receding body longer to run and
+the reach grows to meet it. Seed 4242's `R` went 1267 → 1325 across the change. Predicting 0.86–1.16s by
+simple doubling was wrong by ~20%.
+
+⚠️ **On a tall phone arena the sweep runs longer still**, measured **1.35–1.85s** against desktop's
+1.05–1.37s: this is a *world* speed, and a 375×812 phone is 800×1732 in world units — a diagonal half
 again as long. The tail of a phone sweep therefore runs at normal speed. That is the same choice `S`
 forces on every other speed in the file; normalising to CSS pixels would make the sweep travel **four
 times faster relative to the matter it is clearing** on a phone than on desktop. The radius is a kill
 boundary, so it stays in the units the kill is in. ⚠️ **Do not "fix" the duration spread by dividing by
 `S`** — the spread is the arena. Verified on the phone arena: 4 seeds of 4 clear **100%** of a 35–94 body
-field, edge still trailing the hoop by exactly 36.7px.
+field (4 seeds re-run at 1100), edge still trailing the hoop by exactly one frame.
 
 ⚠️ **THE REACH IS WHERE A BODY WILL BE, NOT WHERE IT IS, and two guesses died before that.** `max(W,H)`
 misses the far corner outright (1280 against a 1509 diagonal). Furthest-body-plus-a-margin *also* missed:

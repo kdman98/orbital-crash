@@ -14,6 +14,25 @@ Rules that constrain future work — laws, traps, rejected approaches — are **
 
 ## 2026-08-20
 
+### `PURGE_WAVE_SPD` 2200 → 1100 `v2`
+Author: *"lower PURGE_WAVE_SPD to 1100."* Taking the option the entry below left open. **1100 is 2200
+halved, and the halving is a restoration, not a new taste** — 2200 was sized so the sweep finished as
+`slowmo(0.35, 0.7)` handed normal speed back; removing the dip made the same sweep cross the screen ~1.9×
+faster than the speed it was tuned at. Seed 4242: **0.60s → 1.23s**, against the ~1.15s the dip produced.
+⚠️ Reinstating any slow-motion on the purge means halving this back — the two numbers are a pair.
+
+⚠️ **Halving the speed more than doubles the duration, and I predicted it wrong before measuring.** `R` is
+solved from `d*SPD/(SPD−vr)`, so a slower sweep gives a receding body longer to run and the reach grows to
+meet it — seed 4242's `R` went 1267 → 1325. I had written "0.86–1.16s" into the comment by simple
+doubling; measured, it is **1.05–1.37s** on desktop (5 seeds) and **1.35–1.85s** on the phone arena (4
+seeds). Both figures replaced.
+
+Unchanged and re-verified at the new speed: 9 purges of 9 clear **100%** of the standing field (32–77
+bodies), score moves by exactly `200×act` with combo delta 0, and the kill edge still trails the drawn
+hoop — now by **18.3px**, exactly one frame at 1100px/s and half the 36.7px it was, never leading.
+
+---
+
 ### The purge stops bending time `v2`
 Author: *"remove the slow-motion on purge too."* `slowmo(0.35, 0.7)` is gone from `killBoss`. Verified:
 `timeScale` now reads **1** across the purge frame and after it.
