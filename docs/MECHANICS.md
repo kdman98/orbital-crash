@@ -2197,12 +2197,50 @@ put the figure anywhere in the −23 to −29 band.
 worth: `PURGE_HEAL`'s own comment calls itself *"the tuning knob of record for run length"*, and the
 heal-economy section below rests the whole "is a bad Epoch recoverable" question on the +30.
 
-⚠️ **The open tension: an emptier stretch is exactly the complaint `enterBuild` was cut 7.4s for.** That
-change was made because Epoch I's build was "the emptiest window with the longest clock". Calm runs
-`max(6, 10 − act*0.4)` seconds and the sweep now empties nearly all of it. Nobody has playtested whether
-that reads as a breath or as dead air. **If it reads as dead air the lever is the calm clock, not the
-sweep** — shortening calm keeps the beat the sweep creates and removes the wait; weakening the sweep
-gives back the thing the change was for.
+#### The calm was halved, and the sweep is why
+The tension this raised — an emptier stretch is exactly the complaint `enterBuild` was cut 7.4s for — was
+answered by pulling the calm clock rather than by weakening the sweep. `max(6, 10 − act*0.4)` →
+**`max(3, 5 − act*0.2)`**: the same curve with both terms and the floor halved, so it still flattens at
+Epoch X exactly where it used to.
+
+⚠️ **What the calm was FOR is not what its clock controls, and that is the whole argument.** It never
+emptied anything — it only stopped *adding*, which is why the field sat flat at 30–70 bodies through the
+entire phase (table above). The sweep delivers the emptiness now, so the clock is only deciding how fast
+the field **refills**, and 6–9.6s of that is waiting rather than breathing.
+
+⚠️ **Two floors decide the 3, and neither is taste.** Move them before cutting further: the Epoch cue is a
+**2.6s** CSS animation fired one tick into the phase, so anything shorter leaves the Epoch's *name* on
+screen while the build spawns into it; and `intensity` lerps at `dt*1.4`, **τ = 0.71s**, 95% closed at
+**2.1s** — a calm shorter than that never reaches `intensityTarget` and the phase becomes a label rather
+than a state. 3.0 clears the larger by 0.4s, and it was checked rather than assumed: intensity at the
+moment calm ends measures **0.12 through Epoch VII and 0.13 at the floor**, against a target of 0.12.
+
+**The breath survives; only the wait is gone.** Population after a purge, five fights, before and after:
+
+| t after purge | 0.5s | 1s | 2s | 3s | 5s | 8s | 12s | 16s |
+|---|---|---|---|---|---|---|---|---|
+| **calm 6–9.6s** | 0–2 | 0–4 | 2–6 | 4–9 | 6–13 | 10–19 | 19–38 | — |
+| **calm 3–4.6s** | 0–2 | 2–4 | 2–6 | 5–8 | 7–13 | 14–30 | 23–78 | 45–77 |
+
+The first ~5 seconds are unchanged — that window belongs to the sweep, not to the clock — and the curves
+separate only at 8s, where build's spawn rate has taken over. Time under 20 bodies falls from ~12s to
+~7–8s. **Storm and build are deliberately untouched**, for the reason `enterBuild`'s own note gives:
+trimming the parts where something happens answers a different complaint.
+
+Non-boss window per Epoch, measured (calm / build / storm):
+
+| Epoch | I | II | III | IV | V | VI | VII | VIII | IX | X | XI |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| calm | 5.0\* | 4.6 | 4.4 | 4.2 | 4.0 | 3.8 | 3.6 | 3.4 | 3.2 | 3.0 | 3.0 |
+| build | 11.0 | 10.4 | 9.8 | 9.2 | 8.6 | 8.0 | 8.0 | 8.0 | 8.0 | 8.0 | 8.0 |
+| storm | 14.7 | 14.4 | 14.1 | 13.8 | 13.5 | 13.2 | 12.9 | 12.6 | 12.3 | 12.0 | 11.7 |
+| **total** | **30.7** | **29.4** | **28.3** | **27.2** | **26.1** | **25.0** | **24.5** | **24.0** | **23.5** | **23.0** | **22.7** |
+
+\* Epoch I's calm is the 5s opener and is **not** a post-purge calm, so it is untouched — which is why
+Epoch I's total is the only one that did not move.
+
+⚠️ **Still unplayed by a human.** Whether the new pacing reads right is the same open question as before,
+just at a different number; the bot dies at ~44s and never reaches a purge at all.
 
 ### What still deletes matter near an Anomaly
 Worth naming, because none of it is the Anomaly's fire and all of it gets blamed on the Anomaly's fire.
@@ -2241,7 +2279,8 @@ deliberately never scaled** — annihilation is binary.
 the far end.** `pace` pins at 1.0 there (`clamp((act-1)/2,0,1)`) and every roster gate is `act>=2` or
 `act>=3`. After III the game introduces nothing new — Dot damage, Dot speed, Anomaly HP, storm surge size
 and purge score keep climbing, and that is all. Three things also quietly stop: the calm clock floors at
-Epoch 10, build at 12, storm at 17; and the arena cap is `min(330, 40 + elapsed + act*10)`, where
+Epoch 10, build at **6** — ⚠️ *not 12; that figure was the pre-`enterBuild`-cut `max(12, 19−act*0.6)` and
+outlived it, `max(8, 11.6−act*0.6)` clamps from Epoch VI* — storm at 17; and the arena cap is `min(330, 40 + elapsed + act*10)`, where
 `elapsed` alone reaches 330 at ~4:50, so past five minutes the `act` term contributes nothing at all.
 
 **The Meteor Shower is the one Epoch with a mechanic of its own.** At Epoch IV — and VIII, XII, every

@@ -3128,6 +3128,51 @@ function stepWarns(dt){
 const KILL_SCORE=20, MOTE_SCORE=5;
 let score=0;                           // no XP, no levels, no multiplier — survival and annihilations ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
+let lowHullT=0;   // wall-clock phase for the low-hull pulse; see drawLowHull()
+
+// LOW HULL, AND IT IS THE HEARTBEAT REDRAWN RATHER THAN A NEW IDEA. The audio layer was removed on
+// 2026-08-20; every number here is the one it used, so the signal a player learned is unchanged in
+// everything but the channel:
+//   * the same gate -- HP_LOW, shared with `#hpbar.low`, so bar and vignette can never disagree;
+//   * the same gauge -- urgency 0 at the threshold, 1 at death's door, and the RATE rises with it
+//     exactly as `lerp(1.15, 0.52, urg)` did. Rate carrying meaning is the whole point: a fixed blink
+//     says "low", a quickening one says "how low", which is the one thing the hp bar cannot say;
+//   * the same LUB-DUB, dub at +145ms and 72% of the lub. A double beat reads as a pulse; a single
+//     one reads as a warning lamp or a rendering fault, which is the mistake the audio version was
+//     written to avoid and there is no reason to make it now.
+// ⚠️ IT IS A VIGNETTE, NOT A FULL-SCREEN TINT, because this fires while you are steering: the signal
+// has to live in peripheral vision and leave the middle of the field readable. A tint over the
+// playfield would be a second thing to see through at exactly the moment you can least afford one.
+//   `reduceMotion` DAMPS IT RATHER THAN KILLING IT. Comfort mode may not remove the only remaining
+// report of a state you can die in -- it takes the amplitude down and leaves the rhythm.
+function lowHullPulse(){
+  if(state!=='play'||!P||P.hp<=0) return 0;
+  const f=P.hp/P.maxHp;
+  if(f>=HP_LOW) return 0;
+  const urg=clamp(1-f/HP_LOW,0,1);
+  const per=lerp(1.15,0.52,urg);
+  const ph=(lowHullT%per)/per, gap=0.145/per;
+  const bump=(x,w)=>Math.exp(-(x*x)/(2*w*w));
+  // the wrapped term is the NEXT lub arriving, or the pulse would flatten to nothing at the seam
+  const env=bump(ph,0.055)+0.72*bump(ph-gap,0.07)+bump(ph-1,0.055);
+  return clamp(env,0,1)*lerp(0.35,1,urg);
+}
+function drawLowHull(){
+  const p=lowHullPulse();
+  if(p<=0.002) return;
+  const a=p*(store.reduceMotion?0.30:0.62);
+  const cx=VX0+VW/2, cy=VY0+VH/2, r=Math.hypot(VW,VH)/2;
+  const g=ctx.createRadialGradient(cx,cy,r*0.42,cx,cy,r);
+  // ⚠️ `COL.red`, NOT a literal and NOT the CSS variable. Canvas cannot resolve `var(--redRGB)`, and
+  // the colourblind palette rewrites red to orange — `applyPalette` keeps `COL.red` in step, so reading
+  // it here is what makes this signal survive that setting.
+  //   The inner stop is the SAME hue at zero alpha rather than `transparent`: `transparent` is
+  // rgba(0,0,0,0), so interpolating to it drags the ramp through grey and the vignette dirties.
+  const A=Math.round(clamp(a,0,1)*255).toString(16).padStart(2,'0');
+  g.addColorStop(0,COL.red+'00');
+  g.addColorStop(1,COL.red+A);
+  ctx.fillStyle=g; ctx.fillRect(VX0,VY0,VW,VH);
+}
 // THE CAPACITOR GRANT PULSE — the wordless replacement for 'STREAK 50 · +12%' and 'STREAK BURST +8%'.
 // Both printed a number the bar was already about to show; what they really carried was CAUSATION, and
 // a bar that lurches with no cause reads as the game doing something to you rather than paying you.
@@ -4075,11 +4120,36 @@ function beginRun(){
   // is a promise the first thirty seconds break.
   if(runStartAct>1 && isShower(act)) cometT=rand(3,7);
   // `first` is Epoch I's abbreviated 5s teaching calm. A deep start has been taught; it gets its own
-  // Epoch's real clock, which at Epoch V is 8s — LONGER, not shorter.
+  // Epoch's real clock.
+  //   ⚠️ THAT CLOCK USED TO BE LONGER THAN THE 5 AND IS NOW SHORTER — 8s at Epoch V before the calm was
+  // halved, 4s after — so the sentence that stood here ("LONGER, not shorter") is no longer true and the
+  // branch is worth re-justifying rather than re-asserting. It survives because the premise moved rather
+  // than broke: the post-purge calm is short now BECAUSE THE FIELD IS ALREADY EMPTY, and at a run start
+  // it is empty too — there is simply nothing spawned yet. Both arms of this branch now rest on the same
+  // fact, which is a better reason than the one it replaces.
   enterCalm(runStartAct===1);
 }
+// THE CALM IS HALF WHAT IT WAS, BECAUSE THE PURGE SWEEP NOW DOES ITS JOB BETTER THAN IT DID.
+// `max(6,10-act*0.4)` -> `max(3,5-act*0.2)`: the same curve with both terms and the floor halved, so it
+// still flattens at Epoch X exactly where it used to.
+//   ⚠️ WHAT THE CALM WAS FOR IS NOT WHAT ITS CLOCK CONTROLS, and that distinction is the whole argument.
+// It was the low-density breath after an Anomaly — except it never emptied anything, it only stopped
+// ADDING. Measured before the sweep landed, the field sat FLAT at 30-70 bodies for the whole calm and on
+// into the next build; the phase was named for a breath it did not deliver. The sweep delivers it, at 0-4
+// bodies for the first second. So this clock is no longer buying the emptiness — the sweep already did —
+// it is only deciding how fast the field REFILLS, and 6-9.6 seconds of that is waiting, not breathing.
+//   ⚠️ TWO FLOORS DECIDE THE 3, AND NEITHER IS TASTE. Do not cut below it without moving them first:
+//     · the Epoch cue is a 2.6s CSS animation fired one tick into this phase (`#epochcue.show`), so a
+//       shorter calm would still have the Epoch's NAME on screen while the build spawns into it;
+//     · `intensity` lerps at `dt*1.4`, i.e. tau 0.71s — 95% closed at 2.1s. A calm shorter than that
+//       never actually reaches `intensityTarget`, and the phase becomes a label rather than a state.
+//   3.0 clears the larger of the two by 0.4s. Verified rather than assumed: intensity at the moment calm
+// ends is 0.12-0.13 at every Epoch, i.e. the phase still arrives where it is aimed.
+//   ⚠️ STORM AND BUILD ARE DELIBERATELY UNTOUCHED, for the reason enterBuild's note gives below: the
+// complaint is about the empty stretch, and trimming the parts where something happens answers a
+// different complaint. This is the same edit that note describes, pointed at the one phase it left alone.
 function enterCalm(first){
-  wavePhase='calm'; phaseT=first?5:Math.max(6,10-act*0.4); intensityTarget=0.12;
+  wavePhase='calm'; phaseT=first?5:Math.max(3,5-act*0.2); intensityTarget=0.12;
 }
 // ⚠️ BUILD LOST 7.4s AT EVERY EPOCH — the intercept moved, the SLOPE DID NOT. It was
 // `max(12, 19-act*0.6)`; it is now `max(8, 11.6-act*0.6)`, i.e. the same -0.6/epoch ramp shifted down
@@ -4108,6 +4178,12 @@ function enterCalm(first){
 // Shifting an intercept under a clamp does not shift the clamped tail — the floors decide the far
 // end, not the slope. Deep runs therefore keep most of their pacing; the change is front-loaded,
 // which is where the complaint was. If the tail ever wants the same treatment, the 8 is the lever.
+//   ⚠️ THE "after" ROW IS A DATED RECORD AND IS NO LONGER THE CURRENT WINDOW. Halving the calm above
+// takes it down again — 30.7 / 29.4 / 28.3 / 27.2 / 26.1 / 25.0 / 24.5 / 24.0 / 23.5 / 23.0 / 22.7 for
+// Epochs I-XI, i.e. a further -4.6 falling to -3.0 as the calm's own floor bites. Epoch I is untouched at
+// 30.7 because its calm is the 5s opener, which is not a post-purge calm at all. The table above is kept
+// as-is on purpose: it is the evidence for THAT change, and rewriting its numbers would erase the
+// measurement it was making.
 function enterBuild(){ wavePhase='build'; phaseT=Math.max(8,11.6-act*0.6); intensityTarget=0.55; }
 let stormCol=null, stormShiftT=0; // mid-storm colour flip: the Flip must answer twice per storm
 function enterStorm(){
@@ -8880,6 +8956,7 @@ function render(){
     // Viewport, not play rect: a hit flash that stopped at the safe area would draw its own letterbox
     // in the one frame the player is least able to read it.
     ctx.globalAlpha=flash*(store.reduceMotion?0.14:0.4); ctx.fillStyle=flashCol; ctx.fillRect(VX0,VY0,VW,VH); ctx.globalAlpha=1;
+    drawLowHull();
   }
   // (No Overdrive screen tint. A cyan full-screen wash lived here for the Collapse window — 25.3% of a
   //  strong run spent under a coloured overlay. Overdrive says itself, in the world: the ring snaps from
@@ -10750,10 +10827,12 @@ function frameBody(now){
   }
   if(state==='play'||state==='ready') updateHUD();
   if(AC) updateAmbient((state==='play')?intensity:0.08, dt);
-  // ⚠️ REAL SECONDS, NOT SIM SECONDS. This sits outside the fixed-step accumulator on purpose: the
-  // heartbeat is a wall-clock pulse, and driving it off scaled time would make it slow down inside every
-  // slowmo dip — i.e. the Moment Engine would mute the one layer built to give its dips weight.
-  if(AC) updateHeart(dt);
+  // ⚠️ REAL SECONDS, NOT SIM SECONDS, and that is why it is here rather than inside the fixed-step
+  // accumulator: the low-hull pulse is a wall-clock rhythm, and driving it off scaled time would make it
+  // slow down inside every slowmo dip -- i.e. the Moment Engine would mute the one signal built to give
+  // its dips weight. It was an audio layer until 2026-08-20; the timing argument did not change when it
+  // became a drawn one.
+  lowHullT += dt;
 }
 // One uncaught throw anywhere in the frame path would break the rAF chain permanently: frozen canvas,
 // ambient still humming, no message. A bad frame is DROPPED and the loop survives; only a persistent
@@ -12127,83 +12206,6 @@ function updateAmbient(inten,dt){
   ambNoteT-=dt;
   if(ambNoteT<=0){ ambNoteT=lerp(1.9,0.6,inten)*rand(0.7,1.4); if(!musOk) ambPluck(inten); }
 }
-// ---- THE MOMENT ENGINE'S AUDIO HALF ----
-// The time side has been live for a long time (`timeScale`, `slowmo`, `hitstop`); this is the sound that
-// was meant to sit under it, so a dip lands as WEIGHT rather than as the frame rate faltering. ONE
-// always-on layer now, and the reason it is a layer rather than a cue is that a dip is a state, not an
-// event — an event already has a cue, and adding a second one to the same instant just doubles it.
-//
-// ⚠️ THE STORM DRUM USED TO SIT HERE AND IT IS GONE (2026-08-20, with the drone). Its half of the
-// argument below is KEPT, because the argument was never really about the storm: it is about which
-// channel a low voice may claim, and the heartbeat still claims one.
-//
-// ⚠️ `bomb()` OWNS THREE VOICES, NOT ONE BAND, AND ONLY THE MIDDLE ONE IDENTIFIES IT: sub weight at
-// 75-150Hz, a TRIANGLE 150-700Hz that leads, and a 1700-2500Hz tick its own comment calls flavour. THE
-// BAND THAT MUST STAY CLEAR IS 150-700Hz, and nothing here goes near it.
-//   Measured, because "the sub-bass" is not a band and reasoning from it gets this wrong: the heartbeat
-// runs 30-52Hz against bomb()'s 75Hz floor — 6.3 semitones clear, ADJACENT rather than overlapping, so
-// the register rule was never engaged for it at all.
-//   What separates the two is not pitch. The heartbeat is a TONE but a PERIODIC one, in pairs, and
-// rhythm is a channel nothing else in the bank uses — every other voice in this game is a one-shot.
-// A transient cue and a pulse can share an octave. Two transients cannot.
-//   ⚠️ WHICH ALSO MEANS THE HEARTBEAT CANNOT BE FIXED BY BRIGHTENING IT. It is a bare sine, so a
-// small speaker reproduces nothing of it (-39dB through a 300Hz rolloff, the worst in the bank) — but
-// a triangle would put partials at 156/260/364Hz, straight into the protected band above. A short
-// filtered NOISE tick beside the lub and the dub buys +18dB and stays out, because noise separates on
-// timbre rather than on register. Measured, not shipped.
-let heartT=0;
-// THE HEARTBEAT IS NOT A DAMAGE VOICE, and it must not be mistaken for one. It reports a STATE you are
-// already in, so it fires on a clock rather than on an event, and `hurt()` stays the only thing that
-// speaks when the core is actually struck. Same reason it is a pair: lub-dub is a rhythm nobody hears
-// as a hit, and one thump on a timer would read as a metronome or as a glitch.
-//   Rate rises as the core falls — the one thing here that is genuinely a gauge — and it is deliberately
-// the only place in the sound bank where tempo carries meaning.
-function updateHeart(dt){
-  if(!AC||gainNow()<=0||AC.state!=='running'){ heartT=0; return; }
-  // ⚠️ Gated on being ALIVE AND PLAYING, not merely on the number. `P.hp` keeps its last value through
-  // the death screen and the pause panel, so testing HP alone leaves a corpse with a pulse — audible
-  // under the receipt, for as long as the panel is open.
-  if(state!=='play'||!P||P.hp<=0){ heartT=0; return; }
-  const f=P.hp/P.maxHp;
-  if(f>=HP_LOW){ heartT=0; return; }               // shares the bar's threshold — see HP_LOW
-  const urg=clamp(1-f/HP_LOW,0,1);                 // 0 at the threshold, 1 at death's door
-  heartT-=dt;
-  if(heartT>0)return;
-  heartT=lerp(1.15,0.52,urg);
-  const v=0.055+0.075*urg;
-  // ⚠️ THE TICK IS THE ONLY REASON THIS IS AUDIBLE ON A PHONE, and it is noise rather than a
-  // brighter waveform on purpose. A bare sine has exactly ONE partial, so at 52Hz a small speaker
-  // reproduces nothing of it -- not attenuated, absent (-27dB through a 300Hz rolloff). A triangle
-  // would fix that and land partials at 156/260/364Hz, inside the 150-700Hz band the block above
-  // spent real measurement keeping clear for bomb(). Noise separates on TIMBRE instead, which is the
-  // same argument the storm drum used to make here.
-  //   Measured on the offline probe: -39dB without the tick, -16dB with it, so +23dB of survival for
-  // +0.15dB of flat level, and the tick is 3-5% of the energy -- on headphones the thump is still very
-  // nearly all of what you hear.
-  //   ⚠️ THAT +23 READ AS +13 UNTIL THE MEASURING MODEL WAS FIXED, AND THE BUG IS WORTH
-  // knowing because it is easy to repeat: `exponentialRampToValueAtTime` runs from the value AT THE
-  // ATTACK'S END over the REMAINING time. A hand-written model that decays from t=0 instead leaves a
-  // 36% amplitude STEP at the attack/decay junction -- and a step is broadband, so it inflates the
-  // UNTREATED sine's high-frequency content by ~15dB and makes the fix look half its size. Rendering
-  // the real envelope through an OfflineAudioContext and the corrected model now agree to 0.4dB.
-  //   ⚠️ WHAT YOU HEAR IS THE TICK, NOT THE SINE, and that is why this could be dropped a
-  // fourth without losing anything. Measured as the centroid of the energy that survives a 300Hz
-  // rolloff: taking the sine 52 -> 42Hz moves the heard pitch 992 -> 991Hz, i.e. nothing at all, while
-  // taking the tick 1100 -> 700Hz moves it 992 -> 686Hz. The sine is the part you FEEL; the tick is
-  // the part you hear, so it owns the apparent pitch.
-  //   Dropping the tick costs survival, and the level buys it straight back for almost nothing:
-  // 700Hz at 0.80 lands on -15.8dB against the old -15.9, for +0.4dB of flat level.
-  beep(42,0.13,'sine',v,31);                       // lub
-  noise(0.05,v*0.80,master,700);
-  // The dub is a SECOND beat, not a layer on the first -- the gap is the whole reason this reads as a
-  // pulse rather than as one thick thump. `beep()` schedules from `AC.currentTime` and takes no offset,
-  // so the delay has to come from outside it.
-  //   ⚠️ Re-checked at fire time, not only at schedule time: 145ms is long enough for the core to die,
-  // the run to end or the tab to be muted in between, and a dub landing on the death screen is exactly
-  // the corpse-with-a-pulse this function is written to avoid.
-  setTimeout(()=>{ if(AC&&gainNow()>0&&AC.state==='running'&&state==='play'&&P&&P.hp>0){
-    beep(35,0.17,'sine',v*0.72,24); noise(0.05,v*0.72*0.80,master,700); } },145);
-}
 // none: the line stops moving and every note is the root, so the bed becomes a pulse. pent: what the
 // game has always played. wide: the full major, which adds the 4th and the leading tone -- the anchor
 // lands on the root often enough to resolve them.
@@ -12564,10 +12566,10 @@ window.__orbital=window.__polaris=window.__flux={
   // happens to own, and THIS MIX HAS CLIPPED BEFORE — the compressor in audioInit() is there because
   // every voice used to sum straight into the destination and blow past 1.0 in a dense fight.
   audio(dt){ const d=dt||1/60;
-    if(AC){ updateAmbient((state==='play')?intensity:0.08, d); updateHeart(d); }
+    if(AC) updateAmbient((state==='play')?intensity:0.08, d);
     // `musWhy` rides along because `musOk:false` alone cannot say WHICH failure it is, and the two it
     // most often means — no file at all, and a refused play() — take opposite fixes.
-    return {ctx:AC&&AC.state, heartT:+heartT.toFixed(3), ambNoteT:+ambNoteT.toFixed(3), gain:gainNow(),
+    return {ctx:AC&&AC.state, ambNoteT:+ambNoteT.toFixed(3), lowHull:+lowHullPulse().toFixed(3), gain:gainNow(),
             musOk, musWhy, musPaused:musEl?musEl.paused:null, musT:musEl?+musEl.currentTime.toFixed(2):null}; },
   bus(){ return AC?{ctx:AC, master, comp:compOut, panMax:PAN_MAX, hpLow:HP_LOW}:null; },
   sfx,
