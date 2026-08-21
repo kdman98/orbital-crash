@@ -79,5 +79,13 @@
 	     ticks per frame rather than per dt will be twice as fast here and correct at 60. -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- EXPORT COMPLIANCE. Absent this key, App Store Connect halts EVERY upload to ask the encryption
+	     question by hand, and the answer never changes. False is correct because this app makes no network
+	     requests at all: the CSP in index.html sets `connect-src 'none'`, and all five fetch/XHR/WebSocket
+	     tokens in that file sit inside comments. No traffic means no TLS, so there is nothing to declare.
+	     Should a later build ever talk to a server, this stays false only while the traffic is ordinary
+	     HTTPS — anything hand-rolled flips it true and drags in the export paperwork. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
