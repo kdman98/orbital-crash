@@ -2368,7 +2368,28 @@ const list=k=>{ try{ const v=JSON.parse(LS.getItem(k)); return Array.isArray(v)?
 // gone after one run on the new economy, and noted because the alternative is bumping the key and
 // erasing every record to fix an off-by-a-quarter.
 const START_ACT_CAP=5;
-const START_ACT_REQ=[0,0,10000,22500,35000,47500];  // index IS the act; [1] is 0, the free cold start
+//   ⚠️ RAISED A SECOND TIME, FOR `MOTE_DEPTH` (`046cbfd`), AND THIS ONE IS NOT A FLAT MULTIPLIER.
+// A Mote now pays `MOTE_SCORE*(1+(act-1)*MOTE_DEPTH)`, so the income rise GROWS WITH DEPTH: measured
+// +8.4% on a run to Epoch V and +18.0% to Epoch XIII, within-run counterfactual against the same run's
+// pickup log. A single factor across the array would therefore over-correct the shallow end, where
+// almost none of the rise lands. Graded instead — gate 2 moves 2.5%, gate 5 moves 8.4%.
+//   ⚠️ THESE FOUR NUMBERS ARE MODELLED, NOT MEASURED, AND ONLY THE LAST ONE IS ANCHORED. Two published
+// points plus a pin at zero (Epoch I cannot inflate: `m(1)=1`) fit `infl(A)=k(A-1)/(1+c(A-1))` with
+// k=2.625, c=0.0625, reproducing both measurements exactly and giving 2.47/4.67/6.63/8.40% for gates
+// 2-5. The saturating form is not cosmetic: a straight line through the same points predicts +25.2% at
+// Epoch XIII against the measured 18.0%, because the Mote's SHARE of income falls with depth (18.7% at
+// Epoch I to 10.3% at XIII) while a linear model holds it constant.
+//   ⚠️ WHAT WOULD FALSIFY IT, since nobody can re-measure this today — the session holding the rig and
+// the pickup log ended. (1) "Gate a corresponds to a run ending at Epoch a" is how the ladder was BUILT,
+// from the 39,105-at-Epoch-V tape; it is not something anyone has observed. If real runs cross 22,500 at
+// Epoch IV rather than III, the whole mapping shifts and gates 3-4 are too low. (2) The fit is two points
+// and a pin. A third measurement anywhere in II-IV is worth more than any refinement of this arithmetic.
+//   ⚠️ AND THE GATES NOW CARRY THREE STACKED CORRECTIONS ON ONE HUMAN TAPE. x1.25 for combo, this grade
+// for Mote depth, both derived from BOT runs on a rig whose own arms differ 8.3% batch to batch. The
+// recommendation on record was to stop correcting and re-cut the anchor; the author's call was to track
+// the change, which is defensible — the drift is real and shipped. But the next person to reach for a
+// fourth multiplier should re-read this paragraph first: ONE HUMAN RUN TO EPOCH V retires all of it.
+const START_ACT_REQ=[0,0,10250,23500,37250,51500];  // index IS the act; [1] is 0, the free cold start
 const startActFor=best=>{ let n=1; for(let a=2;a<=START_ACT_CAP;a++) if(best>=START_ACT_REQ[a]) n=a; return n; };
 const store={
   // ⚠️ KEY BUMPED to _best2. Deleting the Collapse tally removed ~71% of a run's score, so every score

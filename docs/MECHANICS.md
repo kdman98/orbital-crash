@@ -2596,7 +2596,7 @@ that kills faster. Whether that trade pays is a bet on your own skill, which is 
 progression this game is willing to sell. **Anything proposed here later gets held against that one line**
 — and the POLARIS fork stripped an XP/level/keystone/shop economy precisely because it failed it.
 
-**Thresholds: 10,000 · 22,500 · 35,000 · 47,500**, anchored on the one human reference tape (Epoch V at
+**Thresholds: 10,250 · 23,500 · 37,250 · 51,500**, anchored on the one human reference tape (Epoch V at
 39,105) and **not** on the bot, which reaches the same depth at 475s with ~69,000 — 1.75× the time for
 1.76× the score, and would have set every gate about twice too high. Retune after a playtest.
 
@@ -2604,6 +2604,15 @@ progression this game is willing to sell. **Anything proposed here later gets he
 gates were 8,000 · 18,000 · 28,000 · 38,000, set against the economy before `c7fc807` made combo pay
 score; the same parked protocol reads 94.3 pts/s before that commit and 117.2 after. Multiplying by 1.25
 asks for the same *play* the 39,105 tape asked for, in the currency the game now pays in.
+⚠️ **A SECOND raise, for `MOTE_DEPTH` (`046cbfd`), and it is graded rather than flat.** A Mote now pays
+`MOTE_SCORE*(1+(act-1)*MOTE_DEPTH)`, so the income rise grows with depth — +8.4% to Epoch V, +18.0% to
+Epoch XIII. A flat factor would over-correct the shallow end, so gate 2 moves 2.5% and gate 5 moves 8.4%.
+⚠️ **Those four are MODELLED, not measured — only gate 5 is anchored.** Two published points plus a pin at
+zero fit `infl(A)=k(A-1)/(1+c(A-1))`, k=2.625, c=0.0625. The saturating form matters: a straight line
+predicts +25.2% at Epoch XIII against the measured 18.0%, because the Mote's share of income falls with
+depth (18.7% → 10.3%) while a linear model holds it constant. **"Gate a ≈ a run ending at Epoch a" is how
+the ladder was built, not something observed** — if runs cross 22,500 at Epoch IV rather than III, gates
+3-4 are too low. A third measurement anywhere in II–IV beats any refinement of this arithmetic.
 ⚠️ **The ratio is the bot's and the anchor is the human's, which is the joint to re-cut first.** The bot
 is hit constantly and every hit severs the chain, so it sits at the bottom of `min(1,combo/40)` and sees
 the smallest lift the formula gives; a human holding a chain gains more than 24%. So 1.25 *under*-restores
