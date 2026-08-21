@@ -6935,6 +6935,22 @@ function bossMove(b,dt){
   if(b.lunging>0){                                             // a committed dash always wins
     b.x+=(b.tx-b.x)*Math.min(1,dt*7); b.y+=(b.ty-b.y)*Math.min(1,dt*7); b.vx=b.vy=0; return;
   }
+  // ⚠️ AND IT PLANTS ITSELF FOR THE WIND-UP, which is what makes the lane a promise rather than a
+  // suggestion. `aimLunge` locks `tx/ty`, and drawBoss strokes the telegraph from `b.x,b.y` TO them —
+  // so a boss that keeps swaying pivots the lane about itself for the whole 1.3s, and the dash then
+  // runs down a different line than the one you were shown.
+  //   Author: *"emitter dash shouldn't change its direction after warning."* Measured before this
+  // branch existed, 40 lunges at Epoch V: the TARGET never moved — 0px, every time, so the lock was
+  // always honest and the comment on LUNGE_TEL was true — but the boss moved a mean 69.2px (max 204.7)
+  // and swept the drawn lane a mean 8.1° (max 32.7°). Leaving the lane when the warning appeared could
+  // put you back inside it by launch through no input of your own, which is the one thing a telegraph
+  // must never do.
+  //   ⚠️ THE BIG SWEEPS WERE NOT SWAY. `updateBoss` starts a hunt on `huntT<=0 && lunging<=0 && ...`,
+  // which does NOT test `telegraph`, so a hunt could begin mid-wind-up and drive the boss at HUNT_SPD
+  // across the arena. That is where the 205px tail came from. This branch stops the MOVEMENT; the hunt
+  // clock still runs underneath, so if a hunt is ever seen to resume oddly after a dash, that gate is
+  // the place, not here.
+  if(b.telegraph>0){ b.vx=b.vy=0; return; }
   if(b.huntBreak>0){                                           // it just landed its hit — recoiling
     b.huntBreak-=dt;
     const dx=b.x-P.x, dy=b.y-P.y, d=Math.hypot(dx,dy)||1;
