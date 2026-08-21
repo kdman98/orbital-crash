@@ -9090,12 +9090,19 @@ const txtLift=()=>Math.min(TXT_LIFT,1/S);
 // which pins innerWidth/Height at 1280x800 -- fingerprints the pre-change image in every run.
 //   `Math.min(W,H)/REF_SHORT` IS THE GROWTH FACTOR ARITHMETICALLY, not an approximation of one: below
 // the reference S is m/800, so min(W,H) is m/S = 800 exactly. Neither arm can return less than 1.
-//   Rendered CSS px for an authored 4, at cap 1.8:  375pt phone 1.9 -> 3.4  ·  800 4.0 (untouched)
-// ·  1080 5.4  ·  1440 7.2  ·  2160 7.2. The cap bites at exactly two places, a phone and 4K at 100%
-// scaling, the second being rare (4K normally runs at 200%, i.e. a 1080 logical short axis).
+//   Rendered CSS px at GAUGE_W 5, cap 1.8, as unlifted -> lifted:  375pt phone 2.3 -> 4.2  ·  800 5.0
+// -> 5.0 (untouched, by construction)  ·  1080 5.0 -> 6.8  ·  1440 5.0 -> 9.0  ·  2160 5.0 -> 9.0. The
+// cap bites at exactly two places, a phone and 4K at 100% scaling, the second being rare (4K normally
+// runs at 200%, i.e. a 1080 logical short axis).
 //   ⚠️ WIDTH ONLY, WHEREVER THIS IS USED, and `gauge` is in the name to stop it becoming general. Same
 // law the `/S` strokes state at drawEnemies: a size that carries a fact stays in world units, and only
 // a size that means nothing may be lifted to be legible. Never put this on a radius or a position.
+// THE GAUGE'S AUTHORED WEIGHT, in design units, before the lift. It was a bare `4` inside drawBoss and
+// is named here because it is a FEEL number the author tunes by eye, and a feel number buried as a
+// literal 900 lines from the factor that scales it is one nobody can find. Raised 4 -> 5 on the author's
+// call after seeing it in play (*"a little thicker line?"*); the ranking and every proportion below are
+// unchanged, the whole curve just moves up 25%.
+const GAUGE_W=5;
 const GAUGE_LIFT=1.8;
 const gaugeLift=()=>Math.min(GAUGE_LIFT, Math.max(1/S, Math.min(W,H)/REF_SHORT));
 function pushText(x,y,txt,color,life,size){
@@ -9903,7 +9910,7 @@ function drawBoss(){
   // hit would be announcing that the lethal envelope had widened, which is a lie told at the exact
   // moment the player is closest to it.
   const hurt=clamp(b.hurtT/HURT_HOLD,0,1);
-  const IW=4*gaugeLift()*(1+0.5*hurt);
+  const IW=GAUGE_W*gaugeLift()*(1+0.5*hurt);
   ctx.save(); ctx.globalCompositeOperation='source-over';
   ctx.strokeStyle='rgba(255,255,255,0.26)'; ctx.lineWidth=IW;
   ctx.beginPath(); ctx.arc(b.x,b.y,IR,0,TAU); ctx.stroke();
