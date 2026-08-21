@@ -5128,17 +5128,23 @@ const HARRIER_RARITY=0.4;
 // `[['drift',100]]`. The "Drifters only" opening was already fiction before this change.
 //   ⚠️ ONE CONSTANT, TWO KINDS OF SITE, AND THEREFORE TWO DIFFERENT CUTS. Multiplying a weight inside a
 // bag `wchoice` normalises is not the same operation as multiplying a bare probability: the table's other
-// species absorb what the Dart gives up, so 0.35 on the weight is an effective ~0.42 on the count, while
-// 0.35 on a coin flip is exactly 0.35. That is inherent to the two shapes, not a bug. Two constants would
+// species absorb what the Dart gives up, so 0.30 on the weight is an effective ~0.37 on the count, while
+// 0.30 on a coin flip is exactly 0.30. That is inherent to the two shapes, not a bug. Two constants would
 // have matched exactly and drifted apart the first time either moved.
-// MEASURED — cold start, 1280x800, immortal pilot, `killBoss()` on sight, one 600s run of ~14,800
+// MEASURED — cold start, 1280x800, immortal pilot, `killBoss()` on sight, one 600s run of ~14,700
 // arrivals per arm, each arm asserting its OWN build in the LOADED DOM (both were served side by side,
 // the baseline from a `.tmp-` copy, because this file has served a stale build to a measurement before):
-//   Dart share of ALL arrivals   22.1% -> 8.8%
-//     t<45  34.9 -> 13.4  ·  t<80  30.4 -> 11.8  ·  t<125  26.1 -> 12.6  ·  t>=125  21.9 -> 8.5
-//   Rank in the roster           2nd of 8 -> 5th of 8. The mix after is Brute 25.8, Drifter 24.1,
-//     Charger 22.2, Bomber 8.9, DART 8.8, Harrier 3.7, Neutral 3.2, Planet 3.2.
-//   On screen, sampled 1/s over 180s   Darts 7.7 -> 2.8, peak 27 -> 12; Drifters 17.5 -> 22.6.
+//   Dart share of ALL arrivals   22.1% -> 7.2%
+//     t<45  34.9 -> 12.7  ·  t<80  30.4 -> 8.8  ·  t<125  26.1 -> 9.8  ·  t>=125  21.9 -> 7.0
+//   Rank in the roster           2nd of 8 -> 5th of 8. The mix after is Brute 26.9, Drifter 23.7,
+//     Charger 22.7, Bomber 8.9, DART 7.2, Harrier 4.2, Neutral 3.1, Planet 3.1 — so it now sits
+//     clearly BELOW the Bomber, where at 0.35 the two were level.
+//   On screen, sampled 1/s over 180s   Darts 7.7 -> 2.4, peak 27 -> 10; Drifters 17.5 -> 21.2.
+//   ⚠️ 0.35 SHIPPED FIRST, IN `b84b388`, AND THE FIGURES ABOVE REPLACE ITS FIGURES RATHER THAN JOINING
+// THEM. Author, on playing it: *"reduce a little more. 0.3?"* At 0.35 the same protocol read 8.8% overall
+// and 2.8 on screen; 0.30 is a further -18% on the count. Worth knowing the SHAPE of the two steps before
+// turning this again — stock -> 0.35 was the move (on screen 7.7 -> 2.8, -64%) and 0.35 -> 0.30 is a trim
+// (2.8 -> 2.4). The knob is not linear in felt difficulty and the big change is already spent.
 //   ⚠️ TOTAL BODIES ON SCREEN 34.7 -> 36.6, i.e. UNCHANGED, and that is the line to carry out of here.
 // Same as BOMB_RARITY: `count` is fixed per tick and `cap` sets density, so this moves the MIX and never
 // the COUNT. The swarm did not thin. It got slower and heavier — the Dart is `dmg:6`, the LOWEST contact
@@ -5150,7 +5156,7 @@ const HARRIER_RARITY=0.4;
 // six runs mean 49,517 and its last six 53,607 — +8.3% WITHIN ONE ARM, wider than any gap between the
 // arms. Six runs cannot resolve anything under ~15% here. Do not quote a spawn-mix score delta off fewer
 // than a dozen runs a side. (Score at a fixed t=200s, which every arm reached at Epoch VIII.)
-const DART_RARITY=0.35;
+const DART_RARITY=0.30;
 function doSpawns(dt){
   const cap=Math.min(330, 40 + elapsed*1.0 + act*10);         // later Acts hold a denser arena
   const interval=Math.max(0.16, lerp(1.7,0.30,intensity) - act*0.012);
