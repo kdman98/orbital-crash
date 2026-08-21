@@ -3386,6 +3386,46 @@ function stepWarns(dt){
 // median so a median run scores about what it used to. A kill is the unit; a Mote is a quarter of one, and
 // a kill sheds 1-2 of them, so hoovering your debris is worth ~35% on top of the kill that made it.
 const KILL_SCORE=20, MOTE_SCORE=5;
+// THE MOTE NOW CARRIES AN EPOCH TERM AND THE KILL DELIBERATELY DOES NOT.
+// Author: *"and Mote score doesnt increase by Epoch, i think?"* ... *"yes, make mote score scale by
+// epoch."* They were right, and the defect is worse than a missing multiplier — it is an EROSION.
+//   MEASURED before changing anything, immortal parked pilot, `killBoss()` on sight, mote income
+// reconstructed exactly by capturing `combo` AT each pickup rather than assuming the multiplier had
+// saturated (it had not — mean combo ran 10-30, so the curve sits near 1.4x, not 2x):
+//     Epoch         I     III    V      VII    IX     XI     XIII
+//     mote income   532   1019   934    888    929    1049   1147    <- FLAT
+//     total income  2852  5334   8594   6147   11705  11044  11084   <- ~4x
+//     mote share    18.7% 19.1%  10.9%  14.4%  7.9%   9.5%   10.3%   <- HALVED
+// Mote income is pinned because `moteCap` is 40 and pickups run at ~5-6/s from Epoch III onward at
+// EVERY depth, while everything else grows with `cap = min(330, 40+elapsed+act*10)`. The loot does not
+// get worse; the game gets bigger around it, and the Mote quietly stops being worth crossing the arena
+// for. That erosion is what this fixes — not the absence of an `act` somewhere.
+//   ⚠️ IT IS NOT `MOTE_SCORE*act`, AND THE REASON IS FREQUENCY RATHER THAN TASTE. The two Epoch-scaled
+// payouts this file already has are EVENTS: a purge is `200*act` once per Epoch, a Bounty `250*act`
+// once per 12-18s. A Mote fires five to six times a SECOND. The same multiplier on a stream is not the
+// same change as on an event — projected against the very rows above, `*act` takes the Mote from 18.7%
+// of income to 60.0% by Epoch XIII. That does not make depth pay; it makes hoovering the game and
+// leaves "a kill is the unit" false three lines up.
+//   0.25/Epoch is the middle that preserves the ordering: a Mote reaches 20 at Epoch XIII — exactly a
+// kill's BASE — and passes it only past a depth no recorded run has reached. If it wants to be stronger
+// this constant is the whole lever, and the number to hold in mind is `3/(act-1)`: the coefficient at
+// which a Mote EQUALS a kill at that Epoch.
+//   MEASURED AFTER, same rig: the erosion is GONE rather than merely slowed. Mote share by Epoch is now
+//     21.1 · 23.1 · 31.0 · 20.2 · 32.4 · 22.0 · 25.8 · 22.8 · 26.2 · 25.5 · 27.3 · 25.9 · 26.7 %
+// for I-XIII — flat, where it fell 18.7 -> 10.3 before. Overall 11.3% -> 25.5%, per pickup 6.3 -> 28.9.
+//   ⚠️ THE +8.4% / +18.0% ABOVE ARE A WITHIN-RUN COUNTERFACTUAL, NOT A CROSS-RUN DIFF, and the choice
+// matters more than the numbers. Applying the multiplier to the SAME run's pickup log carries no
+// run-to-run noise; a fresh run against a fresh baseline does. The fresh run read +23.1% and the paired
+// estimate +18.0% — that gap is spread, not signal, since this rig's own arms differ 8.3% batch to
+// batch (see `b84b388`). Quote the paired figure; a single cross-run pair cannot resolve either.
+//   ⚠️ THIS MOVES `store.best`, AND `START_ACT_REQ` IS THE ONLY THING THAT READS IT. Unlike
+// `DART_RARITY`, which was measured score-neutral (-1.0%, 95% CI -6.0%..+4.0%, see `b84b388`), this is
+// a deliberate income rise: +8.4% on a run to Epoch V and +18.0% to Epoch XIII. The deep-start gates
+// were re-anchored x1.25 in `a9a6545` on a combo-drift argument; this is a SECOND and independent
+// drift stacked on that one, and nothing downstream will catch it.
+//   Boss Rush pins `act=2`, so a Mote is worth 6 there for the whole mode. The purge and the Bounty are
+// pinned by that same line, so this is consistent with them rather than an oversight.
+const MOTE_DEPTH=0.25;
 let score=0;                           // no XP, no levels, no multiplier — survival and annihilations ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 let lowHullT=0;   // wall-clock phase for the low-hull pulse; see drawLowHull()
@@ -7204,10 +7244,17 @@ function stepMotes(dt){
       motes.splice(i,1);
       moteN++; moteT=0.8;
       if(!odOn) P.charge=Math.min(1,P.charge+0.005*P.chargeGain);
-      // Motes ride the same curve as kills, deliberately: they are the receipt for an annihilation you
-      // already earned, so paying them at a flat rate while kills scale would make the loot the part of
-      // the loop that stops mattering as you play better.
-      score+=Math.round(MOTE_SCORE*(1+Math.min(1,combo/40)));
+      // Motes ride the same COMBO curve as kills, deliberately: they are the receipt for an annihilation
+      // you already earned, so paying them at a flat rate while kills scale would make the loot the part
+      // of the loop that stops mattering as you play better.
+      //   ⚠️ AND THAT ARGUMENT WAS ONLY EVER APPLIED TO ONE AXIS. It is written about COMBO, and it is
+      // exactly as true of DEPTH, where nobody applied it — measured, the Mote's share of income halves
+      // between Epoch I and XIII. `MOTE_DEPTH` is this same sentence turned on the other axis; the
+      // reasoning for the fix was already sitting here, aimed one way.
+      //   ⚠️ SO THE TWO NO LONGER RIDE THE SAME CURVE, and the word above is now load-bearing. The Mote
+      // carries an Epoch term; the kill does not. That asymmetry is chosen — see MOTE_DEPTH for why the
+      // kill was left flat — so do not "restore symmetry" by adding `act` to KILL_SCORE without reading it.
+      score+=Math.round(MOTE_SCORE*(1+(act-1)*MOTE_DEPTH)*(1+Math.min(1,combo/40)));
       // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
       // several times a second, on top of the Core, on the exact pixels the flip read happens on.
       //   BUT THAT RULED OUT TEXT, NOT A MARK, and for a long time this was the only event in the game
