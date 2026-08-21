@@ -9284,6 +9284,20 @@ function revealDead(){
 //   ⚠️ IT TOUCHES NO NETWORK, and must not start. `connect-src 'none'` is the policy on both pages and
 // the card is the obvious place to break it — a hosted image, a share endpoint, a shortener. Everything
 // here is a canvas, a data URL and a blob, so the policy stays closed and the iOS shell needs nothing.
+// THE BUILD STAMP. A card is a claim about a score, and a score is only comparable to another score
+// set under the same balance. This file moved the Mote's income, the achievement gates and the entry
+// speed inside one week, so two cards a month apart are two different games and the number on them is
+// not one scale. The stamp is what makes a card from somebody else's phone answerable.
+//   ⚠️ HAND-SET, AND IT LIES THE MOMENT IT IS FORGOTTEN. Nothing can derive it: the web build serves
+// this file byte-for-byte from the repository root, `npm run build` only copies, and a commit cannot
+// contain its own hash. `sw.js`'s CACHE constant is the same shape with the same failure recorded at
+// length above it -- it went unbumped across two commits that REPLACED the key art, and every client
+// kept serving the superseded copy with no error and no way to notice. Bump this for anything a player
+// could feel, at the same moment the patch note gets written.
+//   Day granularity, matching docs/PATCHNOTE.md's own headings and the one tag in this repository
+// (`port-base-2026-08-19`). Two builds in one day share a stamp -- that is the unit the notes are
+// already written in, not an oversight to fix with a counter nobody would maintain.
+const BUILD='2026.08.21';
 const CARD_W=1080, CARD_H=1350;
 const CARD_FONT='-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Arial,sans-serif';
 function cardText(g,s,x,y,size,weight,col,align,track){
@@ -9336,6 +9350,12 @@ function buildRunCard(){
   g.fillStyle='rgba(0,0,0,.18)'; g.fillRect(0,0,CARD_W,CARD_H);
 
   cardText(g,'ORBITAL CRASH',CARD_W/2,132,34,'800','rgba(215,232,255,.55)','center',9);
+  // UNDER THE WORDMARK, NOT UNDER THE STAR. The star closes the card as a signature and the note down
+  // there says it takes no caption; a masthead, on the other hand, is exactly where a colophon belongs.
+  // Half the wordmark's alpha so it is provenance for the number rather than part of the boast, and
+  // English like the wordmark it hangs off -- it is the one line on this card that names the artifact
+  // instead of the run, so it does not follow the UI language any more than `ORBITAL CRASH` does.
+  cardText(g,'BUILD '+BUILD,CARD_W/2,176,20,'700','rgba(215,232,255,.30)','center',5);
   cardText(g,T('dead.kicker').toUpperCase(),CARD_W/2,286,30,'800','rgba(255,120,150,.85)','center',7);
   cardText(g,score.toLocaleString(),CARD_W/2,430,150,'900','#ffffff');
   if(lastRunBest) cardText(g,T('dead.best').toUpperCase(),CARD_W/2,494,30,'900',COL.gold,'center',5);
@@ -13604,7 +13624,7 @@ window.__orbital=window.__polaris=window.__flux={
   paintSkins, openSkins, closeSkins, skinSwatch,
   // THE RUN CARD. `buildRunCard` returns the canvas, so a test can assert its pixels without opening a
   // share sheet — the export path is the only part that needs a human and a device.
-  buildRunCard, shareRunCard, CARD_W, CARD_H,
+  buildRunCard, shareRunCard, CARD_W, CARD_H, BUILD,
   // Draw one frame on demand. The harness runs in a HIDDEN tab, where the browser never fires
   // requestAnimationFrame — so without this the canvas stays blank forever and no visual change can be
   // verified at all (every pixel sample this session read pure black until it was added).
