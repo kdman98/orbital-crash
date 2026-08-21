@@ -292,9 +292,29 @@
     animation:chgpulse 1.4s ease-in-out infinite;}
   @keyframes chgpulse{0%,100%{box-shadow:0 0 0 1px rgba(155,107,255,.35) inset,0 0 10px rgba(155,107,255,.25)}
     50%{box-shadow:0 0 0 1px rgba(155,107,255,.55) inset,0 0 20px rgba(155,107,255,.5)}}
-  /* `.full` now means SPENDABLE (past the arming floor), not "at 1.0" — a partial meter is a real spend. */
-  #chgbar.full{box-shadow:0 0 0 1px rgba(155,107,255,.6) inset,0 0 22px rgba(155,107,255,.5);animation:none;}
-  #chgbar.full > i{background:linear-gradient(90deg,#fff,var(--cyan),var(--violet));animation:shine 1s linear infinite;}
+  /* `.full` now means SPENDABLE (past the arming floor), not "at 1.0" — a partial meter is a real spend.
+     GOLD, AND IT INHERITED THE COLOUR RATHER THAN PICKING IT. `#collapseBtn` was gold armed and
+     gold-into-orange burning, and it is deleted (see the tombstone in #bottom), so this bar is now the
+     only thing in the HUD answering "can I ignite". Taking the button's own two-state vocabulary makes
+     that a handover instead of a new cue to learn — and gold has been Overdrive's colour since it was
+     an orb.
+       ⚠️ VIOLET WAS THE OTHER CANDIDATE AND IT IS THE ONE HUE THIS BAR CANNOT WEAR. `#chgbar > i` is
+     already `--violet -> --cyan`, so "spendable" would have been the same colour the bar shows while it
+     is NOT spendable, separated only by saturation. `.charging` compounds it: the trickle state pulses a
+     violet box-shadow, so violet is doubly spoken for on this element.
+       ⚠️ HUE IS NOT CARRYING THIS ALONE, and must not be made to. `applyPalette` maps gold to '#9b6bff'
+     in colourblind mode, which is exactly `--violet` — i.e. the collision above lands anyway, on the
+     players least able to absorb it. `shine` is what makes that survivable: a brightness pulse belongs
+     to this state and to no other on this bar (`.charging` pulses its SHADOW, `.burning` and the bare
+     bar do not animate at all), so availability still reads off motion when the hue folds. Do not drop
+     the animation to "simplify" the rule.
+       ⚠️ THE GLOW IS WHITE, NOT GOLD, AND THAT IS NOT A TASTE CALL. There is no `--goldRGB` — `--redRGB`
+     exists precisely because a hex cannot follow `applyPalette` into an rgba() — so a gold literal here
+     would stay gold in colourblind mode while the fill it surrounds went violet, and the glow would be
+     the one part of the cue reporting the wrong palette. White is palette-proof, and it is the same
+     argument `.bar > i::after` already makes for the grant pulse. */
+  #chgbar.full{box-shadow:0 0 0 1px rgba(255,255,255,.45) inset,0 0 22px rgba(255,255,255,.34);animation:none;}
+  #chgbar.full > i{background:linear-gradient(90deg,var(--gold),#fff,var(--gold));animation:shine 1s linear infinite;}
   @keyframes shine{0%{filter:brightness(1)}50%{filter:brightness(1.5)}100%{filter:brightness(1)}}
   /* BURNING. The bar is the Overdrive timer — it is the only thing in the game that runs backwards, so it
      goes gold to say the drain is deliberate rather than something being taken from you. */
@@ -331,26 +351,41 @@
     background:#fff;opacity:var(--grantop,0);mix-blend-mode:screen;}
   .barlabel{position:absolute;left:0;right:0;top:-15px;text-align:center;font-size:9px;letter-spacing:.24em;
     text-transform:uppercase;color:var(--dim);}
-  /* The Overdrive button. Gold, because that is the colour the effect has always been — the button used
-     to be cyan while the effect it fired was gold, which is a small lie the rebuild gets to stop telling.
-     It pulses while ARMED and holds steady while BURNING: a thing you could start versus a thing that is
-     already running should not animate the same way. */
-  #collapseBtn{pointer-events:auto;margin-top:2px;cursor:pointer;border:none;border-radius:100px;
-    padding:9px 26px;font-size:13px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:#0a0f1e;
-    background:linear-gradient(180deg,#fff,var(--gold));box-shadow:0 6px 24px rgba(255,207,77,.5);
-    display:none;animation:cbp .8s ease-in-out infinite;}
-  @keyframes cbp{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-  #collapseBtn.show{display:block;}
-  #collapseBtn.on{animation:none;background:linear-gradient(180deg,var(--gold),#ff9d2e);
-    box-shadow:0 0 0 2px rgba(255,255,255,.5) inset,0 6px 28px rgba(255,157,46,.65);}
-  /* COOLING: still there, plainly not ready. The idle pulse is what says "press me", so killing the
-     animation is most of the message; the desaturate and the dim carry the rest. Not `display:none` —
-     see updateHUD for why a thumb target must not vanish on release. */
-  #collapseBtn.cooling{animation:none;filter:grayscale(.7);opacity:.38;box-shadow:none;cursor:default;}
+  /* ⚠️ THE `#collapseBtn` RULES ARE DELETED WITH THE ELEMENT. `@keyframes cbp` IS NOT, AND THE FIRST
+     PASS OF THIS EDIT TOOK IT — on the reasoning, written into this very comment, that the button was
+     its only user. `.newbest` on the death screen is the other one, ~700 lines below, and CSS answers a
+     missing keyframe name by silently dropping the animation: no error, no failed selector, just a line
+     that stops pulsing on a screen you have to lose a run to reach. The definition now lives beside
+     `.newbest` instead, so it can never again read as part of a block about something deleted.
+       One idea in the deleted rules outlives the button and is worth keeping in reach, because it is the
+     thing a future touch control would get wrong first: the button had a THREE-state look, and the third
+     was `.cooling` — dimmed and desaturated IN PLACE rather than hidden, because a target that vanishes
+     the instant you release it is a target you stop trusting. The gauge inherits the same problem in a
+     milder form and answers it the same way: during a cooldown `#chgbar` simply drops `.full` and falls
+     back to the violet base, so it goes quiet rather than disappearing. */
 
   /* in-game shortcut legend */
   #controls{position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;gap:7px;opacity:.72;
     transition:opacity .2s;}
+  /* ⚠️ THE BARS AND THIS LEGEND SHARE THE BOTTOM OF THE SCREEN, AND BELOW 917px THEY OVERLAP.
+     Measured at 800x820: `#controls` runs x 16-248.6 / y 707-804, the bars run x 190-610 / y 758-800
+     (top edge counted from `.barlabel`, which sits at `top:-15px` OUTSIDE its bar) — 58.6px of horizontal
+     overlap and 42px of vertical, i.e. the Capacitor gauge painted straight through the word MUTE.
+       The threshold is arithmetic, not a guess: the bar is `min(58vw,420px)` centred, so its left edge is
+     `(vw-420)/2` once the cap binds, and that passes 248.6 at exactly `2*248.6+420 = 917`.
+       THIS PREDATES THE OVERDRIVE BUTTON'S REMOVAL — `#bottom`, `.bar`, `.barlabel` and `#controls` are
+     byte-identical across that change, and with the button `display:none` (its state below the arming
+     floor, i.e. most of a run) the bars already sat here. What the removal changed is DURATION: the
+     collision used to blink out whenever the meter armed and the button pushed the bars 44.5px up, and
+     now it is permanent. An intermittent overlap reads as a glitch; a constant one reads as the design.
+       `#touchCtl` already solved this for the other legend and its rule says so in as many words —
+     "bottom:56px, NOT 16px like #controls ... at 16px it printed straight across Core Integrity and
+     Capacitor". This is that same fix arriving on the element the note was named after.
+       Scoped to the width where it actually happens: above 920 the legend is nowhere near the bars and
+     moving it would be a change with no defect behind it. (920 rather than 917 — the 917 is measured off
+     the ENGLISH rows, and Korean's tightened tracking makes them narrower, so the exact figure is
+     per-language and the query wants the roomier side of it.) */
+  @media (max-width:920px){ #controls{bottom:72px;} }
   #controls:hover{opacity:1;}
   #controls .cr{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.08em;
     text-transform:uppercase;color:var(--dim);}
@@ -358,7 +393,6 @@
     color:var(--ink);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
     border-bottom-width:2px;border-radius:5px;padding:3px 6px;min-width:16px;text-align:center;}
   #controls .cr kbd + kbd{margin-left:-3px;}
-  #cbKey{display:inline-block;margin-left:8px;font-size:10px;font-weight:800;letter-spacing:.1em;opacity:.65;}
   #muteBtn,#pauseBtn,#motionBtn{position:absolute;right:16px;pointer-events:auto;cursor:pointer;width:34px;height:34px;border-radius:50%;
     border:1px solid rgba(255,255,255,.12);background:rgba(12,18,36,.6);color:var(--dim);font-size:14px;display:flex;
     align-items:center;justify-content:center;z-index:2;}
@@ -382,13 +416,12 @@
     #setSens,#setMode,#setSide{display:flex;}
     #muteBtn,#motionBtn{display:none;}
     #pauseBtn{top:16px;bottom:auto;}
-    /* ⚠️ FOUND ON THE DEVICE, NOT IN THE BROWSER: the Overdrive button rendered "오버드라이브 SHIFT 유지"
-       on a phone — a keyboard hint on a machine with no keyboard, sitting on the one control a touch
-       player actually presses. It is the same lie #controls was hidden for, one element further in, and
-       it survived that sweep because it lives INSIDE a button rather than in a legend.
-         Hidden rather than reworded: #touchCtl already says "오른쪽 위 · 유지: 오버드라이브", so a second
-       copy on the button would be the only place in the HUD that names the same zone twice. */
-    #cbKey{display:none;}
+    /* (`#cbKey{display:none}` stood here — the Overdrive button's keyboard hint, which rendered
+       "오버드라이브 SHIFT 유지" on a phone until this rule hid it. Both the button and the hint are gone.
+       The FINDING is what to keep: it was found on the device and not in the browser, because it lived
+       INSIDE a button rather than in a legend, and the sweep that hid #controls for advertising a
+       keyboard therefore walked straight past it. Anything added to this HUD that embeds its own key
+       hint needs checking against this query by hand.) */
   }
 
   /* ---- ONE persistent feedback channel. The world announces itself by DOING it — with one exception,
@@ -1055,6 +1088,9 @@
   .deadstats .ds{display:flex;flex-direction:column;gap:5px;}
   .deadstats .ds .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);}
   .deadstats .ds .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
+  /* `cbp` was the Overdrive button's arm-pulse and outlived it; see the tombstone where those rules were.
+     It is a bare scale throb, so the name is the only thing tying it to a button — do not read one into it. */
+  @keyframes cbp{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
   .newbest{color:var(--gold);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:14px;margin-top:6px;
     animation:cbp 1s ease-in-out infinite;}
   .hint{margin-top:20px;color:var(--dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase;line-height:1.9;}
@@ -1459,7 +1495,6 @@
   html[lang="ko"] #actlab{letter-spacing:.1em;}
   html[lang="ko"] .barlabel{letter-spacing:.08em;}
   html[lang="ko"] #combo{letter-spacing:.04em;}
-  html[lang="ko"] #collapseBtn{letter-spacing:.08em;}
   html[lang="ko"] .final{letter-spacing:.12em !important;}
   html[lang="ko"] .stat .k,
   html[lang="ko"] .deadstats .ds .k,
@@ -1525,7 +1560,18 @@
   <div id="bottom">
     <div class="bar" id="hpbar"><div class="barlabel" data-t="hud.hp">Core Integrity</div><i></i></div>
     <div class="bar" id="chgbar"><div class="barlabel" data-t="hud.chg">Capacitor</div><i></i></div>
-    <button id="collapseBtn"><span data-t="hud.od">Overdrive</span> <span id="cbKey" data-t="hud.odKey">Hold Shift</span></button>
+    <!-- ⚠️ `#collapseBtn` STOOD HERE AND IS DELETED — a third Overdrive control, on a verb that already
+         had one per input class. Desktop holds Shift or the right button (`#controls` still says so);
+         touch holds the top quarter on the non-steering side (`zoneOf`, and `#touchCtl` still says so).
+         The button was the ONLY one of the three that moved the HUD: `display:none` -> `block` at the
+         arming floor put it in the flex column, and since `#bottom` is bottom-anchored both bars jumped
+         44.5 CSS px UP the instant the Capacitor crossed 0.25 and dropped back when it fell below —
+         measured at 1280x800, hpbar top 753 -> 708.5. Every fill and every spend moved the two readouts
+         a player is trying to read, at exactly the moment they matter. Deleting it pins them.
+           ⚠️ DO NOT RESTORE IT FROM THE COMMENT AT :11229 THAT SAID IT "is the only Overdrive control a
+         thumb has". That was true when written and the three-zone touch partition falsified it; the
+         sentence stayed readable as a reason long after it stopped being one. Availability moved to
+         `#chgbar.full`, which is gold now for exactly this reason — see that rule. -->
   </div>
   <div id="controls">
     <div class="cr" data-th="ctl.steer"><kbd>Mouse</kbd> Steer star</div>
@@ -2603,7 +2649,10 @@ const L={ en:{
   // ---- HUD ----
   'hud.score':'Score',  'hud.best':'Best',  'hud.time':'Time',
   'hud.hp':'Core Integrity',  'hud.chg':'Capacitor',
-  'hud.od':'Overdrive',  'hud.odKey':'Hold Shift',
+  // ('hud.od' / 'hud.odKey' stood here — the Overdrive button's face and its key hint. The button is
+  //  deleted; the word survives in 'ctl.od', 'tc.od', 'log.od' and the tutorial's 'tut.5.*', so nothing
+  //  was left without a home. Deleted rather than tombstoned in place BECAUSE the pair had to go from
+  //  both tables at once: an EN-only removal leaves a KO key no lookup reaches, which is invisible.)
   'hud.anomaly':'Anomaly',
   // ⚠️ SHORT BECAUSE IT SHARES A ROW, and the row is why "no-hit" left. This read `{n} no-hit streak`
   // — 16 characters against Korean's 5 — and `#combo` is right-aligned on the same line as the centred
@@ -2861,7 +2910,7 @@ const L={ en:{
   // ---- HUD ----
   'hud.score':'점수',  'hud.best':'최고',  'hud.time':'시간',
   'hud.hp':'코어 상태',  'hud.chg':'축전기',
-  'hud.od':'오버드라이브',  'hud.odKey':'Shift 유지',
+  // ('hud.od' / 'hud.odKey' — deleted here in step with the EN table above; see the note there.)
   'hud.anomaly':'변이체',
   // 숫자와 단위 사이의 한 칸: `23콤보`는 붙여 읽히고 `23 콤보`는 세어 읽힌다. HUD에서 이건 세는 수다.
   'hud.streak':'{n} 콤보',
@@ -8407,10 +8456,15 @@ function stepRunTimers(dt){
   // about once a run — the reset below only clears BELOW the floor, which under Collapse was every spend
   // and under a bankable drain is almost none. The HUD already carries availability, and unlike the text
   // it keeps carrying it: `#chgbar` gains `.full` on exactly this test (`armed` in updateHUD), so the bar
-  // is the availability channel. ⚠️ `#collapseBtn` is NOT — it shows on `armed||odOn`, and now that the
-  // verb is HELD the reason is no longer that you must be able to press it to bank: it is that a control
-  // must not vanish out from under the finger currently holding it. Below the floor mid-ride the two
-  // deliberately disagree — the bar means "you can ignite", the button means "your finger is on this".
+  // is the availability channel — and with `#collapseBtn` deleted, the ONLY one. That is a stronger claim
+  // than this paragraph used to make and it is the sentence a reader will lean on, so: nothing else on
+  // screen reports whether Overdrive can be ignited, and `.full`'s gold is the whole of the report.
+  //   ⚠️ FIVE LINES ARGUING THE BAR AGAINST `#collapseBtn` STOOD HERE, and the DISTINCTION they drew is
+  // why they are tombstoned rather than cut. The button showed on `armed||odOn` while the bar goes gold
+  // on `armed` alone, so below the floor mid-ride the two deliberately disagreed: `armed` is a question
+  // about the METER, `odOn` is a question about a FINGER. Any Overdrive control ever put back on screen
+  // has to answer the second one — a target must not vanish out from under the hand holding it — and
+  // that is not something the availability test can be stretched to cover.
   //   The chime's cadence is right as it stands: burn to zero and it re-announces on the next fill; let
   // go above the floor and it stays quiet, because you never stopped being armed.
   if(P.charge>=OD_MIN && !chargeReady && !odOn){ chargeReady=true; sfx.capFull(); haptic('ready'); }
@@ -9383,9 +9437,10 @@ function pushText(x,y,txt,color,life,size){
 // was measured as near-useless in play: 14px for 1.3s over the busiest part of the field, and it announced
 // itself about once a run because its flag only reset BELOW the arming floor — every Collapse spend
 // crossed that line, almost no bankable Overdrive does. `#chgbar.full` says it instead and keeps saying
-// it — same test, in updateHUD, held for as long as the state holds. (The button next to it answers a
-// different question; see the note at the chime.) A cue that persists beats a cue that blinks, for a
-// state that persists.
+// it — same test, in updateHUD, held for as long as the state holds, and in GOLD since the button that
+// used to sit next to it was deleted and the bar took over its colour along with its job. (That button
+// answered a different question, which is the one thing worth carrying forward; see the note at the
+// chime.) A cue that persists beats a cue that blinks, for a state that persists.
 function showAchvToast(txt){
   const a=el('achv'); if(!a)return;
   a.textContent=txt;
@@ -11324,12 +11379,14 @@ function updateHUD(){
   // Same curve, same ceiling, on the bar the purge heal moved. Squaring and 0.55 are not re-derived here
   // on purpose: two grants that whiten differently would read as two different KINDS of event.
   el('hpbar').style.setProperty('--grantop', healPulse>0 ? (healPulse*healPulse*0.55).toFixed(3) : '0');
-  // ⚠️ THE BUTTON STAYS PUT WHILE COOLING. Dropping `.show` for the second would be honest and is wrong
-  // on touch: it is the only Overdrive control a thumb has, and a target that vanishes the instant you
-  // release it is a target you stop trusting. It dims in place instead — unavailable, still there.
-  el('collapseBtn').classList.toggle('show',armed||odOn);
-  el('collapseBtn').classList.toggle('on',odOn);
-  el('collapseBtn').classList.toggle('cooling',cooling);
+  // (Three `#collapseBtn` toggles stood here — `show` on `armed||odOn`, `on`, `cooling` — under a note
+  //  saying the button "is the only Overdrive control a thumb has". It was not, by the time that mattered:
+  //  `zoneOf` gives touch the whole top quarter of the non-steering side, and the note simply outlived
+  //  the partition that falsified it while still reading as a reason to keep the element. The button is
+  //  deleted. Everything above this line is unchanged, and `armed`/`cooling` now have exactly one
+  //  consumer each — the two `#chgbar` toggles.
+  //    ⚠️ NOTHING REPLACED `show`. There is no fourth bar state for "a control is being held": `.burning`
+  //  already reports the ride, off `odOn`, which is the same fact the button was reporting about itself.)
   // act label + biome tint
   const info=actInfo();
   const al=el('actlab');
@@ -11345,12 +11402,23 @@ function updateHUD(){
   // clipping since e21eda6. Deleted with the element. `ANOM[].tip`/`tip3` and the `hud.boss*` keys
   // survive as tombstones; see ANOM for why they were kept rather than swept.)
   // THE TOUCH LEGEND IS A REMINDER, NOT A HUD ELEMENT, and the difference is 53px of a 812px phone.
-  // Left permanently on it sat straight through the Core Integrity and Capacitor bars — the keyboard
-  // legend it replaces never collided with them because it was hidden on exactly the devices where
-  // #bottom is that low. Raising it clear of the bars costs the lower-left corner of the playfield for
-  // the whole run, to say three things a player needs once. So it opens every run and leaves after
-  // TOUCH_CTL_S, which is also what makes it survivable that it overlaps nothing important: by the time
-  // the field is busy enough to care, it is gone.
+  // Left permanently on it sat straight through the Core Integrity and Capacitor bars. Raising it clear
+  // of them costs the lower-left corner of the playfield for the whole run, to say three things a player
+  // needs once. So it opens every run and leaves after TOUCH_CTL_S: by the time the field is busy enough
+  // to care, it is gone.
+  //   ⚠️ ONE CLAUSE OF THIS WAS WRONG AND IS DELETED — that the keyboard legend "never collided with
+  // them because it was hidden on exactly the devices where #bottom is that low". `#bottom` is
+  // `bottom:20px` on EVERY device; nothing about it is phone-specific. `#controls` collided too, just
+  // not at the width whoever wrote this was sitting at: the bar is `min(58vw,420px)` centred, so its
+  // left edge passes the legend's right edge at `2*248.6+420 = 917px`, and below that the Capacitor
+  // gauge printed through the word MUTE. Measured, then fixed with the `max-width:920px` query beside
+  // `#controls`. The sentence was a plausible mechanism attached to a true observation (this legend
+  // does need to go away), which is exactly the shape nothing ever checks.
+  //   AND THE SURVIVING ARGUMENT IS SLIGHTLY OVERSTATED, so take it as written rather than as "clears
+  // everything": at 375x812 this legend ends at y756 and the bars start at y765 — but their `.barlabel`
+  // sits at `top:-15px` OUTSIDE the bar, at y750, so CORE INTEGRITY is under the last legend row for the
+  // first six seconds. Left alone: six seconds, one label, and moving it trades a corner of the
+  // playfield for the whole run. Named so the next measurement of this element starts from the labels.
   el('touchCtl').classList.toggle('gone', !(elapsed<=TOUCH_CTL_S));
 }
 const TOUCH_CTL_S=6;
@@ -11801,14 +11869,13 @@ el('deadMenuBtn').onclick=()=>{ toMenu(); };
 // Bound directly rather than through a wrapper: navigator.share must be reached inside the task that
 // handled the click, and every hop between the two is a chance to lose the gesture.
 el('shareBtn').onclick=shareRunCard;
-// The touch control is HELD like every other Overdrive input, so it is pointerdown/up rather than click —
-// a click only exists after the release, which is the moment the ride would have to end.
-// `pointerleave` covers a finger that slides off the button before lifting.
-(()=>{ const cb=el('collapseBtn');
-  cb.addEventListener('pointerdown',e=>{ e.preventDefault(); overdrive(); });
-  cb.addEventListener('pointerup',  e=>{ e.preventDefault(); endOverdrive(); });
-  cb.addEventListener('pointerleave',()=>endOverdrive());
-})();
+// (`#collapseBtn`'s three listeners stood here — pointerdown/up/leave rather than click, because the
+//  verb is HELD and a click only exists after the release, which is the moment the ride would have to
+//  end. The button is deleted. The RULE is not: every surviving Overdrive input is a press/release pair
+//  and none of them is a click — Shift keydown/keyup, right-button pointerdown plus a WINDOW pointerup,
+//  and the `od` touch zone tracked by `odTouchId`. `pointerleave` has no successor and needs none: the
+//  zone is a screen quarter a finger cannot slide out of without lifting, and `pointercancel` on window
+//  covers the rest.)
 el('pauseBtn').onclick=togglePause;
 el('resumeBtn').onclick=resumeGame;
 el('quitBtn').onclick=()=>{ el('pause').classList.add('hidden'); if(AC&&AC.state==='suspended')AC.resume(); toMenu(); };
