@@ -6479,12 +6479,32 @@ function fireSpear(b){                                         // EMITTER (Epoch
   // THREE spears, not one. The dash is heavily telegraphed (LUNGE_TEL) and drives straight past you, so
   // its punctuation has to cover the angles you might leave BY rather than the single point you are
   // standing ON — the same logic as the hex burst, where one arm leads you and the rest close the exits.
-  // Each spear carries its own angular offset (`aoff`) through the re-aim in stepLances, or all three
-  // would converge on the identical player-facing angle during their charge and land as one.
+  // ⚠️ EACH SPEAR LOCKS A POINT, NOT AN ANGLE — the same thing `aimLunge` stores for the dash and the
+  // Charger stores in `e.tgx/e.tgy`, and for the identical reason, which the Charger's block states with
+  // its own measurement: "a locked DIRECTION is not enough ... fired along the old ray from a new origin
+  // it runs PARALLEL to the lane and slides past". The muzzle rides the Anomaly through its dash and
+  // withdrawal, so between the line appearing and the spear leaving it travels a mean 394px.
+  //   `aoff` USED TO LIVE HERE and is gone with the re-aim it existed for: it was re-applied every frame
+  // so the three would not converge on one player-facing angle mid-charge. The fan is now baked into the
+  // three locked points at fire time, so nothing has to hold it open.
+  //   ⚠️ I SHIPPED THE LOCKED-ANGLE VERSION FIRST AND IT COULD NOT HIT ANYTHING. Measured against a
+  // stationary pilot, closest approach over 60 spears: median 110.1px against a 23px contact radius, 0
+  // of 60 within it, nearest miss 47.7px. The Charger's block had already stated the reason in advance
+  // and with its own number — a locked direction fired from a moved origin "runs PARALLEL to the lane
+  // and slides past" — and the only thing that made me look was that same block contradicting the new
+  // comment I had just written. Locking the POINT restores it: median 29.0px, i.e. back beside the
+  // original re-aim's 25.4px, where the broken version sat 4x further out.
+  //   ⚠️ THE HIT-RATE COLUMN OF THAT COMPARISON IS NOT TRUSTWORTHY AND THE MEDIAN IS. A synthetic
+  // "stationary" pilot is pinned between ticks, but `stepPlayer` moves the Star INSIDE the tick before
+  // `fireSpear` reads it, so the locked point is the moved position while the rig measures against the
+  // pinned one — a bias that inflates every miss distance. It hits all three arms equally, which is why
+  // the median comparison survives it and 31.7% -> 0% -> 16.7% does not. Do not quote those percentages.
   const a0=leadAngle(b, MSL.spear.sp, 0.25);
+  const d0=Math.hypot(P.x-b.x, P.y-b.y)||1;      // the range the lead was solved at — the lock is at that reach
   for(let i=0;i<SPEAR_N;i++){
     const off=(i-(SPEAR_N-1)/2)*SPEAR_SPREAD;
-    fireMissile(b, a0+off, 'spear').aoff=off;
+    const L=fireMissile(b, a0+off, 'spear');
+    L.tgx=b.x+Math.cos(a0+off)*d0; L.tgy=b.y+Math.sin(a0+off)*d0;
   }
   bossFlash=0.3;
 }
@@ -7334,6 +7354,10 @@ function stepLances(dt){
       // in a way a rotation is not, but if a spear is ever seen sweeping ACROSS a Star that did not move,
       // this is why, and freezing the origin too is the next lever rather than touching `L.a` again.
       if(boss && !boss.dead){
+        // Re-solve the ANGLE from the live muzzle to the LOCKED POINT. This is not a re-aim: `tgx/tgy`
+        // never move, so the line keeps pointing at the same place in the world however far the Anomaly
+        // travels, and leaving that place is the dodge.
+        if(L.tgx!==undefined) L.a=Math.atan2(L.tgy-boss.y, L.tgx-boss.x);
         L.x=boss.x+Math.cos(L.a)*(boss.r+14); L.y=boss.y+Math.sin(L.a)*(boss.r+14);
       }
       if(L.tel<=0){ L.vx=Math.cos(L.a)*L.sp; L.vy=Math.sin(L.a)*L.sp; sfx.lance(); }
