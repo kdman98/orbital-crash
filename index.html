@@ -8954,6 +8954,27 @@ function spawnRing(x,y,color,R,out,life){
 //   Phone result: 10.3-20.6 CSS px, against 6.9-13.8 before.
 const TXT_LIFT=1.5;
 const txtLift=()=>Math.min(TXT_LIFT,1/S);
+// ⚠️ AND THE SAME DEFECT EXISTS WITH THE SIGN FLIPPED, WHICH NOTHING ABOVE CAN REACH. `1/S` is exactly
+// 1 whenever S is clamped, so txtLift, the three `/S` telegraph strokes in drawEnemies and every other
+// legibility correction in this file are no-ops on EVERY display at or above the reference. The
+// vocabulary only reaches downward. Above an 800px short axis the arena stops growing in design units,
+// so a mark holds its CSS-pixel size while the screen keeps going: the Anomaly's integrity ring is 12.7%
+// of an iPad's width and 2.7% of a 4K panel's, having done nothing differently on either.
+//   SO THIS ONE LIFTS IN BOTH DIRECTIONS, off the same reference, and the two halves cannot overlap:
+// below 800 `1/S` is 800/m while `min(W,H)/REF_SHORT` is exactly 1, and above 800 they swap. `max`
+// picks whichever applies, so the factor is a V with its floor of 1.0 AT the reference. That is what
+// keeps desktop-at-800 untouched BY CONSTRUCTION rather than by hope, and it is why `.oracle.js` --
+// which pins innerWidth/Height at 1280x800 -- fingerprints the pre-change image in every run.
+//   `Math.min(W,H)/REF_SHORT` IS THE GROWTH FACTOR ARITHMETICALLY, not an approximation of one: below
+// the reference S is m/800, so min(W,H) is m/S = 800 exactly. Neither arm can return less than 1.
+//   Rendered CSS px for an authored 4, at cap 1.8:  375pt phone 1.9 -> 3.4  ·  800 4.0 (untouched)
+// ·  1080 5.4  ·  1440 7.2  ·  2160 7.2. The cap bites at exactly two places, a phone and 4K at 100%
+// scaling, the second being rare (4K normally runs at 200%, i.e. a 1080 logical short axis).
+//   ⚠️ WIDTH ONLY, WHEREVER THIS IS USED, and `gauge` is in the name to stop it becoming general. Same
+// law the `/S` strokes state at drawEnemies: a size that carries a fact stays in world units, and only
+// a size that means nothing may be lifted to be legible. Never put this on a radius or a position.
+const GAUGE_LIFT=1.8;
+const gaugeLift=()=>Math.min(GAUGE_LIFT, Math.max(1/S, Math.min(W,H)/REF_SHORT));
 function pushText(x,y,txt,color,life,size){
   // occupancy nudge: if a live text already sits near this spot, step up so labels stack legibly
   // instead of overprinting into an unreadable smear (many call sites anchor to the Core at P.x)
@@ -9730,11 +9751,36 @@ function drawBoss(){
   // outside a hull reads as "the edge where I die" whether or not it is one, so this one is made true:
   // the bar telling you how much fight is left is the same stroke as the perimeter you must not cross.
   // Cf. `RET=e.r+P.r` in the retire draw, and the reticle below.
+  //   ⚠️ AND IT IS THE PRIMARY GAUGE NOW, WHICH IS A LOAD IT WAS NOT DRAWN TO CARRY. `#bossbar` sits at
+  // top:104px while your core sits at H/2 — 302 CSS px apart on a phone but 616 at 1440p, roughly 2.7°
+  // against 13.5° of arc at normal viewing distances. On a phone the bar shares a glance with the ship
+  // you are steering; on a large monitor it costs a saccade, in the one fight where looking away is what
+  // kills you. This ring is the only reading of the Anomaly's health that is already where the eye is.
+  //   THREE THINGS WERE WRONG WITH IT AND ONLY ONE WAS SIZE.
+  //   1. `lineWidth` IS A WORLD UNIT, so the gauge was 1.9 CSS px on a 375pt phone and never exceeded
+  // 4.0 on any desktop however large. `gaugeLift()` corrects both ends off the 800 reference; see its
+  // block for why the factor is a V rather than a ramp. WIDTH ONLY — `IR` is `b.r+P.r`, the true contact
+  // envelope, and the paragraph above is the standing reason it may not be touched.
+  //   2. ⚠️ IT WAS DRAWN ADDITIVELY, SO ITS EMPTY HALF DID NOT EXIST. render() sets `lighter` before
+  // drawBoss and the body's own save/restore hands it straight back, so the 0.18 track resolved to about
+  // RGB(46,46,46) over space and to nothing at all over the boss's halo. A gauge with no visible track
+  // has no reference circle: 95% and 100% are the same picture, and "how much is left" degrades to
+  // "the arc does not close" — which is why this read as ornament rather than as a number. `source-over`
+  // for the same reason `bossBody` takes it fifty lines up, and the track raised to carry over the halo.
+  // The filled arc is unchanged: white under `lighter` already saturated to white.
+  //   3. It competes with the eddy dashes, the Field ring, lunge reticles, the Bastion charge ring and
+  // the Wind front. Weight is the only channel available to separate it — NOT hue. Hue is polarity
+  // everywhere in this game (see the Wind's colour law above), so a ring that reddened as the Anomaly
+  // weakened would be stating that the Anomaly is red-poled. It stays white, which is also the one
+  // choice that survives `applyPalette` untouched.
   const frac=clamp(b.hp/b.maxHp,0,1), IR=b.r+(P?P.r:15);
-  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=4;
+  const IW=4*gaugeLift();
+  ctx.save(); ctx.globalCompositeOperation='source-over';
+  ctx.strokeStyle='rgba(255,255,255,0.26)'; ctx.lineWidth=IW;
   ctx.beginPath(); ctx.arc(b.x,b.y,IR,0,TAU); ctx.stroke();
-  ctx.strokeStyle='#fff'; ctx.lineWidth=4;
+  ctx.strokeStyle='#fff'; ctx.lineWidth=IW;
   ctx.beginPath(); ctx.arc(b.x,b.y,IR,-Math.PI/2,-Math.PI/2+frac*TAU); ctx.stroke();
+  ctx.restore();
 }
 function drawField(){
   if(!P)return;
@@ -13002,6 +13048,15 @@ window.__orbital=window.__polaris=window.__flux={
             musOk, musWhy, musPaused:musEl?musEl.paused:null, musT:musEl?+musEl.currentTime.toFixed(2):null}; },
   bus(){ return AC?{ctx:AC, master, comp:compOut, panMax:PAN_MAX, hpLow:HP_LOW}:null; },
   sfx,
+  // THE GAUGE LIFT, EXPOSED BECAUSE THE ALTERNATIVE IS INFERRING IT FROM PIXELS. It is a pure function
+  // of the viewport, so a harness can assert the factor a display SHOULD get and then check that the
+  // ring actually rendered at it — two independent readings rather than one measurement agreeing with
+  // itself. The property worth pinning is that it is exactly 1 at a 800px short axis, which is the
+  // viewport `.oracle.js` sets: every fingerprint run therefore draws the pre-change image.
+  //   ⚠️ SHORTHAND IN AN OBJECT LITERAL EVALUATES AT CONSTRUCTION, so this is a ReferenceError at boot
+  // if `gaugeLift` is ever moved below this seam — the same trap the `TILT,` note below documents, and
+  // one `node --check` does not catch. It is declared beside `txtLift`, ~4000 lines up.
+  gaugeLift,
   diag(){ const cc={}; for(const e of enemies) cc[e.color]=(cc[e.color]||0)+1;
     return {state, t:+elapsed.toFixed(2), enemies:enemies.length, colors:cc, score, hp:P&&+P.hp.toFixed(1), maxHp:P&&P.maxHp, combo, charge:P&&+P.charge.toFixed(3), polarity:P&&P.polarity,
       act, phase:wavePhase, intensity:+intensity.toFixed(2), boss:boss?{hp:+boss.hp.toFixed(1),max:boss.maxHp,color:boss.color}:null, lances:lances.length,
