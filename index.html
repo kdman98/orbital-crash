@@ -273,12 +273,12 @@
   #center{position:absolute;left:0;right:0;top:14px;text-align:center;}
   #actlab{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);font-weight:800;margin-bottom:6px;opacity:.85;transition:color .8s;}
   #time{font-size:13px;letter-spacing:.16em;color:var(--dim);margin-top:4px;font-variant-numeric:tabular-nums;}
-  #bossbar{position:absolute;left:50%;top:104px;transform:translateX(-50%);width:min(64vw,460px);height:11px;
-    border-radius:8px;background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 0 22px rgba(var(--redRGB),.35);overflow:hidden;}
-  #bossbar > i{position:absolute;inset:0;transform-origin:left;transform:scaleX(1);border-radius:8px;
-    background:linear-gradient(90deg,#fff,var(--red));transition:transform .12s linear;}
-  #bossbar .bl{position:absolute;left:0;right:0;top:-15px;text-align:center;font-size:10px;letter-spacing:.28em;
-    text-transform:uppercase;color:#fff;font-weight:800;text-shadow:0 0 10px rgba(var(--redRGB),.6);}
+  /* ⚠️ THE `#bossbar` RULES ARE DELETED WITH THE ELEMENT — see the note at its markup. One thing here
+     outlives them and is the reason this comment is not just a tombstone: `#hpbar` and `#chgbar` in the
+     `.bar` rule below carry the SAME `overflow:hidden` over a label positioned above the box, so if a
+     label is ever added to either, it will be clipped exactly the way this one was and will look like a
+     missing string rather than a clipped one. Measured on a 375pt phone: labels at 750-761 and 768-779
+     against boxes at 765-774 and 783-792 — entirely above, in both cases. */
 
   #bottom{position:absolute;left:0;right:0;bottom:20px;display:flex;flex-direction:column;align-items:center;gap:9px;}
   .bar{position:relative;width:min(58vw,420px);height:9px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden;
@@ -1479,7 +1479,17 @@
   <div class="stat" id="best"><div class="k" data-t="hud.best">Best</div><div class="v">0</div></div>
   <div id="combo"></div>
   <div id="center"><div id="actlab">EPOCH I · DRIFT</div><div id="time">0:00</div></div>
-  <div id="bossbar" class="hidden"><span class="bl" data-t="hud.anomaly">Anomaly</span><i></i></div>
+  <!-- ⚠️ `#bossbar` STOOD HERE AND IS DELETED — the Anomaly's integrity is read off the ring on its
+       own hull now (see drawBoss). It is worth saying what was lost, because the honest answer is
+       nothing: `overflow:hidden` on the bar clipped `.bl` at `top:-15px` since the first snapshot
+       e21eda6, so the name, the variant tip and all three warning lines NEVER PAINTED, in any commit,
+       on any device. What remained was an unlabelled strip at top:104px duplicating a number the ring
+       already carries — 616 CSS px from the core at 1440p, roughly 13 degrees of arc, which is a
+       saccade away in the one fight where looking away is what kills you.
+         The two mechanics whose warning lines died with it both keep a WORKING visual telegraph in
+       drawBoss: the Lunger its aim-line and collapsing reticle, the Singularity its danger badge. The
+       text was redundant with a mark that renders; the mark is what players have actually been reading
+       for the whole life of the file. -->
 
   <div id="bottom">
     <div class="bar" id="hpbar"><div class="barlabel" data-t="hud.hp">Core Integrity</div><i></i></div>
@@ -5355,8 +5365,16 @@ const bossOpp=c=>c==='red'?'cyan':'red';   // the colour that erodes an Anomaly 
 // this one asks WHETHER YOU CAN STILL GET THERE and is answered by the meter. A fifth has to clear the
 // same bar, and the bar is not "how many" — it is whether the new verb is reducible to an existing one.
 //
-// ⚠️ THESE `tip` STRINGS RENDER ON THE BOSS'S INTEGRITY BAR (see the bossbar draw), so they are the most
-// -read text in the fight and they must describe something the code can actually produce. Twice they
+// ⚠️ THESE `tip` STRINGS NOW RENDER NOWHERE, AND THIS PARAGRAPH USED TO CALL THEM "the most-read text
+// in the fight". They were never read at all: their only consumer was `#bossbar`'s label, which
+// `overflow:hidden` clipped from the first snapshot onward, and the bar itself is deleted. TOMBSTONED
+// RATHER THAN SWEPT, on purpose — the strings are translated into both languages, and the moment anyone
+// re-homes a warning onto the hull they are what stops that being a translation round-trip. The rule
+// below still binds whoever does that.
+//   ⚠️ AND THE "most-read text" CLAIM IS ITSELF THE LESSON. It was written about a label that had never
+// painted, went unchallenged through every later edit to this block, and reads as a measurement. Nothing
+// in a comment can fail; a claim about what a player sees has to be checked against a rendered frame.
+//   They must describe something the code can actually produce. Twice they
 // have gone stale against a mechanic change and told players to do the impossible. Erosion is the
 // Volley, the ring grind and the baited charge — THREE, since Collapse's flat chip went with the
 // Collapse. A tip may name a movement answer or the Volley, NEVER a bait: every missile launches from
@@ -5738,6 +5756,10 @@ function spawnBoss(forceVariant){
   boss={ type:'boss', color:col, r:37, hp, maxHp:hp, mass:999, maxsp:1.2, seek:0,
     dmg:BOSS_DMG, pace,
     x:W/2, y:-60, vx:0, vy:0, dead:false, queued:false, ph:0, hexRot:rand(0,TAU), variant, spiral:null,
+    // The chip's trailing value and its hold timer. `hpGhost` lags `hp` downward only and is never
+    // read by anything but the draw, so it cannot reach the sim: the oracle fingerprints x/y/hp/
+    // telegraph/hunt and none of this is in it.
+    hpGhost:hp, hurtT:0,
     // ⚠️ These are FIRST intervals and they need `pace.cad` as much as the resets in updateBoss do —
     // without it Epoch I's opening shot of every kind still arrives at full speed, which is the one the
     // slowdown most exists for. The same applies to `pat`: a kind whose tempo was raised must open on
@@ -6888,6 +6910,9 @@ function updateBoss(dt){
     }
   }
   if(bossFlash>0)bossFlash-=dt;
+  // The chip: hold, then retract. Draw-only state — consumes no entropy, touches nothing the sim reads.
+  if(b.hurtT>0) b.hurtT-=dt;
+  else if(b.hpGhost>b.hp) b.hpGhost=Math.max(b.hp, b.hpGhost - dt*b.maxHp*HURT_FALL);
 }
 function stepLances(dt){
   for(let i=lances.length-1;i>=0;i--){
@@ -7048,9 +7073,35 @@ function stepMotes(dt){
   }
   if(moteT>0){ moteT-=dt; if(moteT<=0) moteN=0; }
 }
+// THE CHIP — the cue that says HP MOVED, and it exists because nothing in this file said it.
+// ⚠️ `bossFlash` LOOKS LIKE THE DAMAGE CUE AND IS NOT. It has twelve writers and ELEVEN of them are the
+// Anomaly attacking you — the volley, the spiral, the nova, the lunge, the mine square. Only this
+// function is damage. So the "I hurt it" flash and the "it is firing at me" flash are one flash, and
+// the halo brightens either way.
+//   That is worse than an ambiguous cue: it is a FALSE SIGNAL VALIDATED BY CORRELATION. The Anomaly
+// tends to be attacking around the time you are hurting it, so the flash does land near damage often
+// enough to look like it means damage. Every playtest confirmed it. Nothing could ever fail. It has
+// read as working feedback for the entire history of the file.
+//   `bossFlash` is deliberately LEFT ALONE here rather than untangled — taking the halo flash off
+// damage would remove a cue in the same breath as adding one, and the author asked for more signal,
+// not different signal. The chip below is the one that carries the meaning; if the halo is ever made
+// attack-only, the assertion to write is that the cue fires on THIS function and on nothing else —
+// count the writers, not the flashes.
+// The numbers this is sized against: maxHp is `20+act*5`, so 25 at Epoch I. RING_GRIND_DMG 1 is 4% of
+// the gauge (14 degrees of arc), a connecting Volley Dot at 3 is 12% (43 degrees), and CHARGE_DMG 10
+// is 40% — 144 degrees in a single hit. Erosion arrives in big discrete chunks, which is exactly what
+// a receding chip shows well and what a brightness blink shows badly.
+const HURT_HOLD=0.35;   // every hit stays fully visible this long, however small — see below
+const HURT_FALL=1.6;    // then the chip retracts, in bar-fractions per second
 function damageBoss(b,amt){
   if(b.dead)return;
   b.hp-=amt; bossFlash=Math.max(bossFlash,0.22);
+  // ⚠️ THE HOLD IS WHAT MAKES A 1-DAMAGE GRIND READABLE, and a pure rate cannot do it. Retracting at
+  // `maxHp*HURT_FALL` alone clears a 1-damage chip in 0.025s — under two frames, i.e. invisible for
+  // the most common erosion in the game — while a 10-damage charge lingers. A flat hold first makes
+  // every hit visible for the same minimum, and the rate then makes the BIG ones linger longer, which
+  // is the ranking you want: 1 dmg lasts 0.37s, 3 lasts 0.42s, 10 lasts 0.60s.
+  b.hurtT=HURT_HOLD;
   if(b.hp<=0) killBoss(b);
 }
 function killBoss(b){
@@ -9816,11 +9867,12 @@ function drawBoss(){
   // outside a hull reads as "the edge where I die" whether or not it is one, so this one is made true:
   // the bar telling you how much fight is left is the same stroke as the perimeter you must not cross.
   // Cf. `RET=e.r+P.r` in the retire draw, and the reticle below.
-  //   ⚠️ AND IT IS THE PRIMARY GAUGE NOW, WHICH IS A LOAD IT WAS NOT DRAWN TO CARRY. `#bossbar` sits at
-  // top:104px while your core sits at H/2 — 302 CSS px apart on a phone but 616 at 1440p, roughly 2.7°
-  // against 13.5° of arc at normal viewing distances. On a phone the bar shares a glance with the ship
-  // you are steering; on a large monitor it costs a saccade, in the one fight where looking away is what
-  // kills you. This ring is the only reading of the Anomaly's health that is already where the eye is.
+  //   ⚠️ AND IT IS THE ONLY GAUGE NOW, WHICH IS A LOAD IT WAS NOT DRAWN TO CARRY. `#bossbar` is deleted.
+  // It sat at top:104px while your core sits at H/2 — 302 CSS px apart on a phone but 616 at 1440p,
+  // roughly 2.7° against 13.5° of arc at normal viewing distances. On a phone that shared a glance with
+  // the ship you are steering; on a large monitor it cost a saccade, in the one fight where looking away
+  // is what kills you. So the reading moved to the mark that is already where the eye is, rather than
+  // the bar being made bigger in a place nobody looks.
   //   THREE THINGS WERE WRONG WITH IT AND ONLY ONE WAS SIZE.
   //   1. `lineWidth` IS A WORLD UNIT, so the gauge was 1.9 CSS px on a 375pt phone and never exceeded
   // 4.0 on any desktop however large. `gaugeLift()` corrects both ends off the 800 reference; see its
@@ -9839,10 +9891,24 @@ function drawBoss(){
   // weakened would be stating that the Anomaly is red-poled. It stays white, which is also the one
   // choice that survives `applyPalette` untouched.
   const frac=clamp(b.hp/b.maxHp,0,1), IR=b.r+(P?P.r:15);
-  const IW=4*gaugeLift();
+  // THE FLINCH IS ON THE WIDTH, WHICH IS THE ONLY CHANNEL THAT IS FREE. Same law as the lift itself:
+  // `IR` carries a fact and may not move, stroke width carries none. A ring that grew its RADIUS on a
+  // hit would be announcing that the lethal envelope had widened, which is a lie told at the exact
+  // moment the player is closest to it.
+  const hurt=clamp(b.hurtT/HURT_HOLD,0,1);
+  const IW=4*gaugeLift()*(1+0.5*hurt);
   ctx.save(); ctx.globalCompositeOperation='source-over';
   ctx.strokeStyle='rgba(255,255,255,0.26)'; ctx.lineWidth=IW;
   ctx.beginPath(); ctx.arc(b.x,b.y,IR,0,TAU); ctx.stroke();
+  // THE CHIP — the arc between where the gauge IS and where it WAS, so the hit shows its SIZE and not
+  // merely its occurrence. It sits clockwise of the fill because the fill sweeps clockwise from twelve
+  // o'clock, so the chip is always the segment that just left. Bright at the instant of the hit and
+  // settling to a dimmer receding band: the blink says "now" and the length says "how much".
+  const gf=clamp(b.hpGhost/b.maxHp,0,1);
+  if(gf>frac+0.002){
+    ctx.strokeStyle=hexA('#ffffff',0.45+0.5*hurt); ctx.lineWidth=IW;
+    ctx.beginPath(); ctx.arc(b.x,b.y,IR,-Math.PI/2+frac*TAU,-Math.PI/2+gf*TAU); ctx.stroke();
+  }
   ctx.strokeStyle='#fff'; ctx.lineWidth=IW;
   ctx.beginPath(); ctx.arc(b.x,b.y,IR,-Math.PI/2,-Math.PI/2+frac*TAU); ctx.stroke();
   ctx.restore();
@@ -10985,26 +11051,10 @@ function updateHUD(){
     // toUpperCase() is a no-op on Hangul, which is the point: the CSS already declares the caps look
     // for Latin, and the Korean name simply is what it is.
     al.textContent=T('hud.epoch',{r:roman(act), n:act, name:nm.toUpperCase()}); al.style.color=info.tint; }
-  // boss integrity bar
-  const bb=el('bossbar');
-  if(boss){ bb.classList.remove('hidden'); bb.querySelector('i').style.transform=`scaleX(${clamp(boss.hp/boss.maxHp,0,1)})`;
-    const ak=ANOM[boss.variant]||ANOM.emitter;
-    const tip=(ak.tip3 && act>=2) ? ak.tip3 : ak.tip;   // the Emitter's tip grows with it, on the epoch the dash arrives
-    // The hunt outranks the standing tip, and is the only thing that may displace it: it is the one
-    // time the Anomaly is actively walking onto your core, it is over in a few seconds, and the answer
-    // is a movement answer — which is exactly what this line is allowed to name.
-    // ⚠️ THE SINGULARITY MUST BE TESTED BEFORE `hunt`, NOT AFTER, because its Draw RUNS THROUGH `b.hunt`
-    // — that is how bossMove closes at HUNT_SPD — so the generic branch below matches during a Draw and
-    // was telling the player to dodge a thing that cannot be dodged. Order is the whole fix here.
-    //   The wind-up gets its own line rather than sharing one: it is the only window in which the answer
-    // is still available, and a line that appears only once the cap is already on is a report, not a
-    // warning. Both name a MOVEMENT answer, which is this line's standing rule.
-    const drawing = boss.variant==='singularity' && (boss.drawT>0 || boss.drawTel>0);
-    const key = drawing ? (boss.drawT>0 ? 'hud.bossDraw' : 'hud.bossDrawTel')
-                        : (boss.hunt>0 ? 'hud.bossHunt' : tip);
-    bb.querySelector('.bl').textContent = T(key);
-    bb.querySelector('.bl').style.color = (drawing || boss.hunt>0) ? COL.red : ''; }
-  else bb.classList.add('hidden');
+  // (The boss integrity bar's HUD block stood here — nineteen lines picking a tip, testing the
+  // Singularity before the hunt, and writing both into a label that `overflow:hidden` had been
+  // clipping since e21eda6. Deleted with the element. `ANOM[].tip`/`tip3` and the `hud.boss*` keys
+  // survive as tombstones; see ANOM for why they were kept rather than swept.)
   // THE TOUCH LEGEND IS A REMINDER, NOT A HUD ELEMENT, and the difference is 53px of a 812px phone.
   // Left permanently on it sat straight through the Core Integrity and Capacitor bars — the keyboard
   // legend it replaces never collided with them because it was hidden on exactly the devices where
@@ -11410,7 +11460,6 @@ function startRun(mode, startAct){
   el('menu').classList.add('hidden'); menuChrome(false);
   el('dead').classList.add('hidden');
   el('pause').classList.add('hidden');
-  el('bossbar').classList.add('hidden');
   el('bestiary').classList.add('hidden'); el('records').classList.add('hidden'); // a run must never start hidden under an info overlay
   for(const k in keys) keys[k]=false;   // stale held-key state must not steer the new run
   state='play'; lastT=performance.now(); acc=0;
