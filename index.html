@@ -4321,7 +4321,10 @@ function enterStorm(){
 function spawnStormSurge(col,n){
   const cx=W/2,cy=H/2, R=Math.max(W,H)*0.6;
   for(let i=0;i<n && enemies.length<300;i++){ const a=rand(0,TAU);
-    spawnEnemy(Math.random()<0.5?'drift':'fast', col, cx+Math.cos(a)*R, cy+Math.sin(a)*R); }
+    // 0.5*DART_RARITY, NOT 0.5 — this is the second-largest Dart source in the game (25.5% of them,
+    // measured over 600s) and the ONLY one below t=20, so a table-only nerf leaves the species arriving
+    // here at full rate in bursts of `n`. See the DART_RARITY block above doSpawns.
+    spawnEnemy(Math.random()<0.5*DART_RARITY?'fast':'drift', col, cx+Math.cos(a)*R, cy+Math.sin(a)*R); }
 }
 // =====================================================================
 //  PATTERNS — waves that look DESIGNED, not weathered
@@ -5096,6 +5099,47 @@ const PLANET_FUSE=7.0, PLANET_COOL=2.0;
 // version of the same event, it is a permanently busier ring. Same multiplicative form as the three rarity
 // knobs above, so the act climb written into the table survives being made rare.
 const HARRIER_RARITY=0.4;
+// THE DART IS RARE NOW, AND THIS IS THE ONLY RARITY KNOB HERE THAT REACHES OUTSIDE THE TABLE.
+// Author: *"introduce dart in Epoch 6 or more. this is quite difficult"* ... *"then just spawn it much
+// less."* The Epoch gate was measured first and abandoned, and the reason is worth keeping:
+// `START_ACT_CAP` is 5, so no run can BEGIN at Epoch VI, and none of the four tapes in `tapes/` ever
+// reached it — the deepest, 271s and PAUSED rather than dead, ends at Epoch V. Driven with `killBoss()`
+// on sight, i.e. zero seconds of Anomaly fighting, Epoch VI arrives at 141.9s; that is the FLOOR, not the
+// expectation. An `act>=6` gate is a deletion wearing a gate's clothes, so the knob is a rate instead.
+//   ⚠️ THE FILE'S OWN TUTORIAL ALREADY RANKED THIS BODY LAST, which is the strongest argument for the
+// change and it was already sitting in the file. `TUT_ROSTER` is "the roster's own difficulty order" and
+// the Dart is 8th of 8 — the last Dot a new player is shown. In the live game it was the SECOND species
+// anyone met, entering at t=20, ten seconds before Epoch I ends.
+//   ⚠️ IT MUST REACH `spawnStormSurge` OR IT DOES NOT MEAN WHAT IT SAYS. Measured over 600s: 74.5% of all
+// Darts came from this table and 25.5% from the surge, whose pick was a bare 50/50. Nerf the table alone
+// and the surge becomes ~45% of the species. The surge is also the ONLY Dart source below t=20 —
+// `enterStorm` fires `9+act*2` bodies and at Epoch I that lands at t≈16s, inside a band whose table reads
+// `[['drift',100]]`. The "Drifters only" opening was already fiction before this change.
+//   ⚠️ ONE CONSTANT, TWO KINDS OF SITE, AND THEREFORE TWO DIFFERENT CUTS. Multiplying a weight inside a
+// bag `wchoice` normalises is not the same operation as multiplying a bare probability: the table's other
+// species absorb what the Dart gives up, so 0.35 on the weight is an effective ~0.42 on the count, while
+// 0.35 on a coin flip is exactly 0.35. That is inherent to the two shapes, not a bug. Two constants would
+// have matched exactly and drifted apart the first time either moved.
+// MEASURED — cold start, 1280x800, immortal pilot, `killBoss()` on sight, one 600s run of ~14,800
+// arrivals per arm, each arm asserting its OWN build in the LOADED DOM (both were served side by side,
+// the baseline from a `.tmp-` copy, because this file has served a stale build to a measurement before):
+//   Dart share of ALL arrivals   22.1% -> 8.8%
+//     t<45  34.9 -> 13.4  ·  t<80  30.4 -> 11.8  ·  t<125  26.1 -> 12.6  ·  t>=125  21.9 -> 8.5
+//   Rank in the roster           2nd of 8 -> 5th of 8. The mix after is Brute 25.8, Drifter 24.1,
+//     Charger 22.2, Bomber 8.9, DART 8.8, Harrier 3.7, Neutral 3.2, Planet 3.2.
+//   On screen, sampled 1/s over 180s   Darts 7.7 -> 2.8, peak 27 -> 12; Drifters 17.5 -> 22.6.
+//   ⚠️ TOTAL BODIES ON SCREEN 34.7 -> 36.6, i.e. UNCHANGED, and that is the line to carry out of here.
+// Same as BOMB_RARITY: `count` is fixed per tick and `cap` sets density, so this moves the MIX and never
+// the COUNT. The swarm did not thin. It got slower and heavier — the Dart is `dmg:6`, the LOWEST contact
+// damage on the roster, so everything absorbing its share hits harder: mean damage per body +10 to +16.5%
+// across the bands, mean `maxsp` -19 to -24%, mean radius up. If this reads as "still hard, differently",
+// that is why, and this number is the lever.
+//   ⚠️ SCORE INCOME IS UNMOVED, AND I NEARLY SHIPPED THE OPPOSITE. n=6 per arm read +5.5% and looked
+// real; at n=12 it is -1.0%, t=-0.40, 95% CI -6.0%..+4.0%. The A/A is why: the BASELINE arm's own first
+// six runs mean 49,517 and its last six 53,607 — +8.3% WITHIN ONE ARM, wider than any gap between the
+// arms. Six runs cannot resolve anything under ~15% here. Do not quote a spawn-mix score delta off fewer
+// than a dozen runs a side. (Score at a fixed t=200s, which every arm reached at Epoch VIII.)
+const DART_RARITY=0.35;
 function doSpawns(dt){
   const cap=Math.min(330, 40 + elapsed*1.0 + act*10);         // later Acts hold a denser arena
   const interval=Math.max(0.16, lerp(1.7,0.30,intensity) - act*0.012);
@@ -5105,13 +5149,13 @@ function doSpawns(dt){
     const count=1 + Math.floor(intensity*2.4) + Math.floor(act/2);
     const t=introT(); let table;   // a deep start skips the drift-only intro — introT() is what does it
     if(t<20) table=[['drift',100]];
-    else if(t<45) table=[['drift',64],['fast',36]];
+    else if(t<45) table=[['drift',64],['fast',36*DART_RARITY]];
     // ⚠️ THE WEIGHTS BELOW ARE RELATIVE AND `wchoice` NORMALISES, so pulling `orbiter` and `split` out
     // did NOT thin the swarm — the remaining species absorb their share in proportion, and `count` and
     // `cap` are what set density. What it DID cost is one of the climbing species named below, and the
     // Planet takes that slot rather than leaving the late mix one verb short.
-    else if(t<80) table=[['drift',42],['fast',26],['heavy',16],['charger',6]];
-    else if(t<125) table=[['drift',32],['fast',22],['heavy',15],['charger',10],['bomber',9*BOMB_RARITY]];
+    else if(t<80) table=[['drift',42],['fast',26*DART_RARITY],['heavy',16],['charger',6]];
+    else if(t<125) table=[['drift',32],['fast',22*DART_RARITY],['heavy',15],['charger',10],['bomber',9*BOMB_RARITY]];
     else {
       // past the intro ramp the MIX scales with ACT, not just time: Drifters thin out and the
       // positioning-demanding species (Chargers, Bombers, Neutrals, and now the Planet) climb.
@@ -5122,7 +5166,7 @@ function doSpawns(dt){
       // `t<45` table. Anything added at t>=45 is INVISIBLE to the fingerprint suite, which means the
       // suite keeps proving what it was proving. Add a species to an early band and every fingerprint
       // moves, and you lose the one instrument that could have told you whether you broke something else.
-      table=[['drift',Math.max(8,30-a*3)],['fast',20],['heavy',12+a],
+      table=[['drift',Math.max(8,30-a*3)],['fast',20*DART_RARITY],['heavy',12+a],
              ['charger',8+a],['bomber',(7+a)*BOMB_RARITY],
              ['neutral',(3+Math.floor(a/2))*NEUTRAL_RARITY],
              ['planet',(2+Math.floor(a/2))*PLANET_RARITY],
@@ -8076,7 +8120,11 @@ function stepRunTimers(dt){
   if(gildTimer<=0){
     gildTimer=rand(12,18);
     if(enemies.length<290){
-      spawnAtEdge(Math.random()<0.5?'drift':'fast', Math.random()<0.5?'red':'cyan');
+      // 0.5*DART_RARITY on the SPECIES pick only; the colour below stays a fair coin. This site is ~0.6%
+      // of all Darts, so it is here for ORDER rather than volume — `gildTimer` starts at 14, so the first
+      // bounty of every run fires at t=14.0s and used to be a coin flip to hand you the hardest Dot in the
+      // game, gilded, six seconds to cash it, before the table had shown you an ordinary one.
+      spawnAtEdge(Math.random()<0.5*DART_RARITY?'fast':'drift', Math.random()<0.5?'red':'cyan');
       const g=enemies[enemies.length-1];
       if(g){ g.gild=6; sfx.buy(); }
     }
@@ -10170,10 +10218,22 @@ function drawEnemies(){
       ctx.fillStyle=hexA('#ffffff',0.5+0.5*f);
       ctx.beginPath(); ctx.arc(e.x,e.y,RD*(0.14+0.22*f),0,TAU); ctx.fill();
     } else if(e.type==='fast'){
-      // THE DART GETS A WAKE. It and the Drifter are the two most common Dots in the sky (8.1 and 20.1
-      // per sample, sharing the screen in 77% of them) and radius alone — 8 against 11 — cannot separate
-      // them. Aspect ratio is the one silhouette cue that still resolves at ~3.9 CSS px on a phone, where
-      // a 3px internal mark cannot. It also encodes the actual difference: this is the
+      // THE DART GETS A WAKE. The Drifter is the modal Dot and this is the one that can be mistaken for
+      // it — radius alone, 8 against 11, cannot separate them. Aspect ratio is the one silhouette cue
+      // that still resolves at ~3.9 CSS px on a phone, where a 3px internal mark cannot.
+      //   ⚠️ THIS PARAGRAPH'S OPENING PREMISE IS DEAD, KILLED BY `DART_RARITY`. It read "It and the
+      // Drifter are the two most common Dots in the sky (8.1 and 20.1 per sample, sharing the screen in
+      // 77% of them)". That was still LIVE when it was re-checked — 7.7 / 17.5 / 84% on a 180s window,
+      // within scatter of the original — and it went false the same afternoon: the Dart is now 2.8 per
+      // sample against the Drifter's 22.6, 5th of 8 by arrival share rather than 2nd, and the two share
+      // the screen in 71% of samples.
+      //   ⚠️ THE CONCLUSION SURVIVES THE PREMISE, AND IT GETS STRONGER RATHER THAN WEAKER — which is
+      // exactly the shape that lets a dead premise sit unnoticed for months. The old argument was "both
+      // are everywhere, so they must be separable". The argument now is that you meet this one RARELY, so
+      // you have less practice separating it, and it is still the fastest thing on the field when you do.
+      // A mark that paid for itself on a common body pays for itself on a rare one. Do not read the
+      // rarity as a reason to drop the wake.
+      // It also encodes the actual difference: this is the
       // fastest ordinary Dot in the game (maxsp 6.4 against a Drifter's 3.4), so the thing that marks it
       // is its own speed. Drawn backward along the path already travelled, which is the one exemption to
       // "nothing outside the hull" the file already relies on for the Charger's dash streak — a trail
