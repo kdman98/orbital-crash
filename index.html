@@ -6278,11 +6278,15 @@ const MSL={
   //     that pilot ate                27.3%  ->  22.2%
   // The absolute hit rate means nothing — it is one sinusoid, not a player. Only the delta is readable.
   //   ⚠️ THE EXTRA 0.75s IS SEPARATION, NOT WARNING, and the difference is where to go next if this
-  // is still too hard. A charging spear RE-AIMS AT YOU EVERY FRAME until it launches, so a longer line
-  // hands you no time to dodge — it locks onto wherever you stand at launch either way. What it buys is
-  // distance: the Anomaly is 115px further into its withdrawal (mean) when they leave. So the next lever
-  // is the re-aim and NOT this number: lock `L.a` early and the spear finally gets a telegraph you can
-  // answer during, which is the rule LUNGE_TEL already states one stage up for the lane itself.
+  // is still too hard. A charging spear USED TO RE-AIM AT YOU EVERY FRAME until it launched, so a longer
+  // line handed you no time to dodge — it locked onto wherever you stood at launch either way. What this
+  // number buys is distance: the Anomaly is 115px further into its withdrawal (mean) when they leave.
+  //   ⚠️ THE RE-AIM IS GONE AND THIS PARAGRAPH'S "NEXT LEVER" HAS BEEN TAKEN. It read "the next lever is
+  // the re-aim and NOT this number: lock `L.a` early and the spear finally gets a telegraph you can
+  // answer during". That is done — see the `L.tel>0` branch in stepLances, where `L.a` is now written
+  // once by fireSpear and never again. Measured sweep before the lock: mean 99.6°, max 169.6°. So this
+  // 1.3s is now genuinely warning as well as separation, and the sentence above no longer describes an
+  // outstanding problem — do not read it as one and re-derive the fix.
   spear: {sp:9.2, r:8,  life:4.0, tel:1.3},   // tel is the aim line — read the block above before moving it
   // ⚠️ THE SCREEN'S NODE IS THE SECOND ENTRY IN THIS TABLE WHOSE `life` IS NOT REACH, and for a different
   // reason than the mine's fuse: a node spends `SCR_UP+SCR_HOLD` = 3.65s riding a circle at ZERO net
@@ -7314,11 +7318,22 @@ function stepLances(dt){
     // ---- per-kind flight ----
     if(L.tel>0){                                   // SPEAR: it has not launched yet — it is drawing its line
       L.tel-=dt;
-      // stay glued to the Anomaly's muzzle while charging, and keep re-aiming. Left at its spawn point
-      // the line visibly detaches as the boss drifts off, and an aim line that is not attached to the
-      // thing aiming reads as scenery rather than as a threat with an owner.
+      // ⚠️ THE AIM IS LOCKED AT FIRE TIME. IT USED TO RE-AIM EVERY FRAME AND THAT MADE THE LINE A LIE.
+      // Author: *"don't move spear aim after notified."* `L.a` is set once, by `leadAngle` in fireSpear,
+      // and never again — so the line you are shown for `MSL.spear.tel` (1.3s) is the line the spear
+      // actually takes. Measured before, 60 spears at Epoch V against a pilot on a wide sinusoid: the aim
+      // swept a mean 99.6° and up to 169.6° during the wind-up, i.e. it simply followed you and fired
+      // wherever you had got to. That is the same defect as the dash lane one stage up, and the block
+      // above `MSL.spear` had already named both the cause and this fix.
+      //   IT STAYS GLUED TO THE MUZZLE, which is deliberate and is NOT the same thing as re-aiming. Left
+      // at its spawn point the line detaches as the boss withdraws, and an aim line not attached to the
+      // thing aiming reads as scenery rather than as a threat with an owner. So the ORIGIN tracks and the
+      // DIRECTION does not: the line translates, it never rotates.
+      //   ⚠️ AND THE TRANSLATION IS NOT SMALL — the muzzle moved a mean 337px (max 594) across the same
+      // 60 spears, because this window overlaps the dash and the withdrawal. A parallel slide is readable
+      // in a way a rotation is not, but if a spear is ever seen sweeping ACROSS a Star that did not move,
+      // this is why, and freezing the origin too is the next lever rather than touching `L.a` again.
       if(boss && !boss.dead){
-        L.a=Math.atan2(P.y-boss.y, P.x-boss.x)+(L.aoff||0);   // aoff keeps a fanned volley fanned
         L.x=boss.x+Math.cos(L.a)*(boss.r+14); L.y=boss.y+Math.sin(L.a)*(boss.r+14);
       }
       if(L.tel<=0){ L.vx=Math.cos(L.a)*L.sp; L.vy=Math.sin(L.a)*L.sp; sfx.lance(); }
