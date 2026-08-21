@@ -2414,6 +2414,19 @@ const list=k=>{ try{ const v=JSON.parse(LS.getItem(k)); return Array.isArray(v)?
 // gone after one run on the new economy, and noted because the alternative is bumping the key and
 // erasing every record to fix an off-by-a-quarter.
 const START_ACT_CAP=5;
+//   ⚠️ SET BY HAND, AND EVERY DERIVATION BELOW IS SUPERSEDED — READ IT AS HISTORY, NOT AS THE REASON.
+// Author: *"just set gates at 20000 / 40000 / 60000 / 80000"*. A flat 20k rung, no grading, no anchor,
+// no multiplier. That retires the whole stack at once: the x1.25 combo restoration, the graded Mote
+// correction, the 1.6x rescale, and the curve fit underneath them. They are left in place so the next
+// person to reach for a formula can see that one was tried for a full day and replaced by four round
+// numbers — but nothing below this line is load-bearing any more.
+//   ⚠️ AND ONE PARAGRAPH BELOW IS NOT MERELY SUPERSEDED, IT WAS WRONG. The block beginning "THE
+// PER-KILL MODEL ... FINALLY HAS AN INDEPENDENT CHECK" was written when the author reported a run
+// reaching Epoch V for 16,000 against the tape's 39,105, and I read that as falsifying the tape. It
+// was a FAST-FORWARD run — a deep start AT Epoch V, not a run that travelled there from Epoch I — so
+// it shares no duration, no Epoch mix and no Mote income with the 271s tape, and says nothing about
+// it. The 0.99 "validation" in that same paragraph is worthless for a separate reason: the model was
+// agreeing with the only figure it had ever been aimed at, which is not an independent check.
 //   ⚠️ RAISED A SECOND TIME, FOR THE MOTE DEPTH TERM, AND THIS ONE IS NOT A FLAT MULTIPLIER.
 // A Mote pays `MOTE_SCORE + (act-1)*MOTE_STEP`, so the income rise GROWS WITH DEPTH. A single factor
 // across the array would over-correct the shallow end, where almost none of the rise lands. Graded
@@ -2447,7 +2460,7 @@ const START_ACT_CAP=5;
 // recommendation on record was to stop correcting and re-cut the anchor; the author's call was to track
 // the change, which is defensible — the drift is real and shipped. But the next person to reach for a
 // fourth multiplier should re-read this paragraph first: ONE HUMAN RUN TO EPOCH V retires all of it.
-const START_ACT_REQ=[0,0,10500,24250,38750,54000];  // index IS the act; [1] is 0, the free cold start
+const START_ACT_REQ=[0,0,20000,40000,60000,80000];  // index IS the act; [1] is 0, the free cold start
 const startActFor=best=>{ let n=1; for(let a=2;a<=START_ACT_CAP;a++) if(best>=START_ACT_REQ[a]) n=a; return n; };
 const store={
   // ⚠️ KEY BUMPED to _best2. Deleting the Collapse tally removed ~71% of a run's score, so every score
@@ -3467,7 +3480,7 @@ function stepWarns(dt){
 //   These three are the whole income table now, priced at the old expressions evaluated at the measured
 // median so a median run scores about what it used to. A kill is the unit; a Mote is a quarter of one, and
 // a kill sheds 1-2 of them, so hoovering your debris is worth ~35% on top of the kill that made it.
-const KILL_SCORE=20, MOTE_SCORE=5;
+const KILL_SCORE=20, MOTE_SCORE=20;
 // THE MOTE NOW CARRIES AN EPOCH TERM AND THE KILL DELIBERATELY DOES NOT.
 // Author: *"and Mote score doesnt increase by Epoch, i think?"* ... *"yes, make mote score scale by
 // epoch."* They were right, and the defect is worse than a missing multiplier — it is an EROSION.
@@ -3509,8 +3522,15 @@ const KILL_SCORE=20, MOTE_SCORE=5;
 // pinned by that same line, so this is consistent with them rather than an oversight.
 // ⚠️ ADDITIVE, AND RENAMED OFF `MOTE_DEPTH` WHICH NAMED A FRACTION. Author: *"change it to
 // 5 + (act - 1) x 2"*, then *"i want Mote be more important than now — mote collecting must be
-// important for chasing score."* A Mote pays `MOTE_SCORE + (act-1)*MOTE_STEP`: 5 at Epoch I, 7 at II,
-// 9 at III, 13 at V, 29 at XIII. The multiplicative form gave 6.25 / 7.5 / 10 / 20 at those depths.
+// important for chasing score."*, then *"just increase mote score by twice"*, then *"twice Mote x2
+// into x4"* — `MOTE_SCORE` 5 -> 20, in two steps, the second doubling the first. A Mote pays
+// `MOTE_SCORE + (act-1)*MOTE_STEP`: 20 at Epoch I, 22 at II, 24 at III, 28 at V, 44 at XIII, against
+// 5 / 6.25 / 7.5 / 10 / 20 under the multiplicative form this replaced.
+//   ⚠️ THE BASE IS NOW THE WHOLE STORY AND `MOTE_STEP` IS TRIM. At Epoch I a Mote pays 20 — the same
+// as a kill — and the step adds 2 an Epoch on top. Collecting is no longer the tail of the loop, it IS
+// the loop, from the first Epoch rather than from the ninth. That is what was asked for in as many
+// words. It is recorded because the 1:1 Mote-to-kill ratio at Epoch I is what every future tuning pass
+// will argue with, and because nothing measured it — the direction was chosen, not derived.
 //   A STEP, NOT A RATE, so the payout is a whole number before the combo curve touches it. The old form
 // leaned on `Math.round` to land on one — 6.25 at Epoch II rounding to 6 — and a value you have to round
 // to read is a value nobody can check against the screen.
