@@ -2368,17 +2368,29 @@ const list=k=>{ try{ const v=JSON.parse(LS.getItem(k)); return Array.isArray(v)?
 // gone after one run on the new economy, and noted because the alternative is bumping the key and
 // erasing every record to fix an off-by-a-quarter.
 const START_ACT_CAP=5;
-//   ⚠️ RAISED A SECOND TIME, FOR `MOTE_DEPTH` (`046cbfd`), AND THIS ONE IS NOT A FLAT MULTIPLIER.
-// A Mote now pays `MOTE_SCORE*(1+(act-1)*MOTE_DEPTH)`, so the income rise GROWS WITH DEPTH: measured
-// +8.4% on a run to Epoch V and +18.0% to Epoch XIII, within-run counterfactual against the same run's
-// pickup log. A single factor across the array would therefore over-correct the shallow end, where
-// almost none of the rise lands. Graded instead — gate 2 moves 2.5%, gate 5 moves 8.4%.
+//   ⚠️ RAISED A SECOND TIME, FOR THE MOTE DEPTH TERM, AND THIS ONE IS NOT A FLAT MULTIPLIER.
+// A Mote pays `MOTE_SCORE + (act-1)*MOTE_STEP`, so the income rise GROWS WITH DEPTH. A single factor
+// across the array would over-correct the shallow end, where almost none of the rise lands. Graded
+// instead — gate 2 moves 4.0%, gate 5 moves 13.4%.
+//   ⚠️ THE MEASUREMENTS ARE OF THE `MOTE_DEPTH=0.25` FORM THAT SHIPPED IN `046cbfd`, RESCALED BY 1.6.
+// That form was measured at +8.4% to Epoch V and +18.0% to Epoch XIII, within-run counterfactual against
+// the same run's pickup log. The author then replaced it with a `+2` step, whose excess over the flat 5
+// is `2(act-1)` against `1.25(act-1)` — exactly 1.6x at EVERY depth, so score inflation scales by 1.6
+// uniformly and the fit rescales rather than needing a fifth measurement. The rescale is arithmetic;
+// everything under it is still the estimate described next.
 //   ⚠️ THESE FOUR NUMBERS ARE MODELLED, NOT MEASURED, AND ONLY THE LAST ONE IS ANCHORED. Two published
-// points plus a pin at zero (Epoch I cannot inflate: `m(1)=1`) fit `infl(A)=k(A-1)/(1+c(A-1))` with
-// k=2.625, c=0.0625, reproducing both measurements exactly and giving 2.47/4.67/6.63/8.40% for gates
-// 2-5. The saturating form is not cosmetic: a straight line through the same points predicts +25.2% at
-// Epoch XIII against the measured 18.0%, because the Mote's SHARE of income falls with depth (18.7% at
-// Epoch I to 10.3% at XIII) while a linear model holds it constant.
+// points plus a pin at zero (Epoch I cannot inflate: the step is `(act-1)`) fit
+// `infl(A)=k(A-1)/(1+c(A-1))` with k=4.2, c=0.0625 after the rescale, giving 3.95/7.47/10.61/13.44% for
+// gates 2-5. The saturating form is not cosmetic: a straight line through the same points predicts
+// +40.3% at Epoch XIII against the rescaled 28.8%, because the Mote's SHARE of income falls with depth
+// (18.7% at Epoch I to 10.3% at XIII) while a linear model holds it constant.
+//   ⚠️ AND THE PER-KILL MODEL BEHIND ALL OF THIS FINALLY HAS AN INDEPENDENT CHECK, WHICH IT LACKED ALL
+// DAY. Kill 20 flat plus 6.2/5.6 Motes per kill at that Epoch's value, run against the ONE human tape:
+// 271s x 5.6 kills/s = 1,518 kills at the pre-Mote value of 5 gives 38,753 against the tape's 39,105 —
+// a ratio of 0.99. And gate 5 at 54,000 works out to 1,570 kills at Epoch V, sitting on that same 1,518.
+// So "gate 5 corresponds to a run reaching Epoch V" is now OBSERVED rather than assumed. Gates 2-4 are
+// not: 10,500 is 378 kills, about a minute of combat, and whether a real run is at Epoch II by then is
+// the open question this model cannot answer.
 //   ⚠️ WHAT WOULD FALSIFY IT, since nobody can re-measure this today — the session holding the rig and
 // the pickup log ended. (1) "Gate a corresponds to a run ending at Epoch a" is how the ladder was BUILT,
 // from the 39,105-at-Epoch-V tape; it is not something anyone has observed. If real runs cross 22,500 at
@@ -2389,7 +2401,7 @@ const START_ACT_CAP=5;
 // recommendation on record was to stop correcting and re-cut the anchor; the author's call was to track
 // the change, which is defensible — the drift is real and shipped. But the next person to reach for a
 // fourth multiplier should re-read this paragraph first: ONE HUMAN RUN TO EPOCH V retires all of it.
-const START_ACT_REQ=[0,0,10250,23500,37250,51500];  // index IS the act; [1] is 0, the free cold start
+const START_ACT_REQ=[0,0,10500,24250,38750,54000];  // index IS the act; [1] is 0, the free cold start
 const startActFor=best=>{ let n=1; for(let a=2;a<=START_ACT_CAP;a++) if(best>=START_ACT_REQ[a]) n=a; return n; };
 const store={
   // ⚠️ KEY BUMPED to _best2. Deleting the Collapse tally removed ~71% of a run's score, so every score
@@ -3446,7 +3458,26 @@ const KILL_SCORE=20, MOTE_SCORE=5;
 // drift stacked on that one, and nothing downstream will catch it.
 //   Boss Rush pins `act=2`, so a Mote is worth 6 there for the whole mode. The purge and the Bounty are
 // pinned by that same line, so this is consistent with them rather than an oversight.
-const MOTE_DEPTH=0.25;
+// ⚠️ ADDITIVE, AND RENAMED OFF `MOTE_DEPTH` WHICH NAMED A FRACTION. Author: *"change it to
+// 5 + (act - 1) x 2"*, then *"i want Mote be more important than now — mote collecting must be
+// important for chasing score."* A Mote pays `MOTE_SCORE + (act-1)*MOTE_STEP`: 5 at Epoch I, 7 at II,
+// 9 at III, 13 at V, 29 at XIII. The multiplicative form gave 6.25 / 7.5 / 10 / 20 at those depths.
+//   A STEP, NOT A RATE, so the payout is a whole number before the combo curve touches it. The old form
+// leaned on `Math.round` to land on one — 6.25 at Epoch II rounding to 6 — and a value you have to round
+// to read is a value nobody can check against the screen.
+//   ⚠️ THE EXCESS OVER THE FLAT 5 IS EXACTLY 1.6x THE OLD FORM AT EVERY DEPTH: `2(act-1)` against
+// `1.25(act-1)`. That is why the gate arithmetic upstream could be RESCALED rather than re-measured —
+// score inflation scales by 1.6 uniformly in `act`, which is arithmetic rather than an estimate.
+//   ⚠️ IT IS STILL NOT `MOTE_SCORE*act`, AND THE REASON `046cbfd` GAVE STILL HOLDS — that form reaches
+// 65 a Mote at Epoch XIII. But this walks a long way toward the wall that argument drew, and the numbers
+// belong here rather than being rediscovered. At the measured 5.6 kills/s and 6.2 Motes/s, the Mote's
+// share of FLAT income runs 21.7% at Epoch I -> 41.8% at V -> 61.6% at XIII, against 35.6% / 52.5%
+// under the old form, and a single Mote out-pays a single kill from EPOCH IX where the old form did not
+// get there until XIV. That is the intended direction and it was asked for explicitly — but it means
+// the deep game is now substantially a collection game, and that is what to look at if this is retuned.
+//   THE EARLY GAME IS UNTOUCHED. Epoch I is still 5, because only the step moved; a player who never
+// leaves the first two Epochs sees 5 and 7, which is the same shape v1 had.
+const MOTE_STEP=2;
 let score=0;                           // no XP, no levels, no multiplier — survival and annihilations ARE the score
 let trauma=0, hitstop=0, flash=0, flashCol='#fff';
 let lowHullT=0;   // wall-clock phase for the low-hull pulse; see drawLowHull()
@@ -7270,12 +7301,12 @@ function stepMotes(dt){
       // of the loop that stops mattering as you play better.
       //   ⚠️ AND THAT ARGUMENT WAS ONLY EVER APPLIED TO ONE AXIS. It is written about COMBO, and it is
       // exactly as true of DEPTH, where nobody applied it — measured, the Mote's share of income halves
-      // between Epoch I and XIII. `MOTE_DEPTH` is this same sentence turned on the other axis; the
+      // between Epoch I and XIII. `MOTE_STEP` is this same sentence turned on the other axis; the
       // reasoning for the fix was already sitting here, aimed one way.
       //   ⚠️ SO THE TWO NO LONGER RIDE THE SAME CURVE, and the word above is now load-bearing. The Mote
-      // carries an Epoch term; the kill does not. That asymmetry is chosen — see MOTE_DEPTH for why the
+      // carries an Epoch term; the kill does not. That asymmetry is chosen — see MOTE_STEP for why the
       // kill was left flat — so do not "restore symmetry" by adding `act` to KILL_SCORE without reading it.
-      score+=Math.round(MOTE_SCORE*(1+(act-1)*MOTE_DEPTH)*(1+Math.min(1,combo/40)));
+      score+=Math.round((MOTE_SCORE+(act-1)*MOTE_STEP)*(1+Math.min(1,combo/40)));
       // NO TEXT ON A PICKUP. The rising `mote(n)` ratchet is the whole cue — a number here would print
       // several times a second, on top of the Core, on the exact pixels the flip read happens on.
       //   BUT THAT RULED OUT TEXT, NOT A MARK, and for a long time this was the only event in the game

@@ -2596,7 +2596,7 @@ that kills faster. Whether that trade pays is a bet on your own skill, which is 
 progression this game is willing to sell. **Anything proposed here later gets held against that one line**
 — and the POLARIS fork stripped an XP/level/keystone/shop economy precisely because it failed it.
 
-**Thresholds: 10,250 · 23,500 · 37,250 · 51,500**, anchored on the one human reference tape (Epoch V at
+**Thresholds: 10,500 · 24,250 · 38,750 · 54,000**, anchored on the one human reference tape (Epoch V at
 39,105) and **not** on the bot, which reaches the same depth at 475s with ~69,000 — 1.75× the time for
 1.76× the score, and would have set every gate about twice too high. Retune after a playtest.
 
@@ -2604,12 +2604,21 @@ progression this game is willing to sell. **Anything proposed here later gets he
 gates were 8,000 · 18,000 · 28,000 · 38,000, set against the economy before `c7fc807` made combo pay
 score; the same parked protocol reads 94.3 pts/s before that commit and 117.2 after. Multiplying by 1.25
 asks for the same *play* the 39,105 tape asked for, in the currency the game now pays in.
-⚠️ **A SECOND raise, for `MOTE_DEPTH` (`046cbfd`), and it is graded rather than flat.** A Mote now pays
-`MOTE_SCORE*(1+(act-1)*MOTE_DEPTH)`, so the income rise grows with depth — +8.4% to Epoch V, +18.0% to
-Epoch XIII. A flat factor would over-correct the shallow end, so gate 2 moves 2.5% and gate 5 moves 8.4%.
+⚠️ **A SECOND raise, for the Mote depth term, and it is graded rather than flat.** A Mote pays
+`MOTE_SCORE + (act-1)*MOTE_STEP` — 5 at Epoch I, 7 at II, 13 at V, 29 at XIII. Income rises with depth, so
+a flat factor would over-correct the shallow end: gate 2 moves 4.0%, gate 5 moves 13.4%.
+⚠️ **The measurements are of the `MOTE_DEPTH=0.25` form (`046cbfd`), rescaled by 1.6.** That form measured
++8.4% to Epoch V and +18.0% to XIII. The `+2` step's excess over the flat 5 is `2(act-1)` against
+`1.25(act-1)` — exactly 1.6× at every depth, so inflation scales uniformly and the fit rescales rather
+than needing a new measurement. That step is arithmetic; what sits under it is still an estimate.
+⚠️ **The per-kill model now has an independent check.** Kill 20 flat plus 6.2/5.6 Motes per kill, against
+the one human tape: 271s × 5.6 kills/s = 1,518 kills at the old flat Mote value gives **38,753 vs the
+tape's 39,105, a ratio of 0.99**. Gate 5 at 54,000 is 1,570 kills at Epoch V, on that same 1,518 — so
+*"gate 5 ≈ a run reaching Epoch V"* is **observed**, not assumed. Gates 2–4 still are: 10,500 is 378
+kills, about a minute of combat, and nothing says a real run is at Epoch II by then.
 ⚠️ **Those four are MODELLED, not measured — only gate 5 is anchored.** Two published points plus a pin at
-zero fit `infl(A)=k(A-1)/(1+c(A-1))`, k=2.625, c=0.0625. The saturating form matters: a straight line
-predicts +25.2% at Epoch XIII against the measured 18.0%, because the Mote's share of income falls with
+zero fit `infl(A)=k(A-1)/(1+c(A-1))`, k=4.2, c=0.0625 after the rescale. The saturating form matters: a straight line
+predicts +40.3% at Epoch XIII against the rescaled 28.8%, because the Mote's share of income falls with
 depth (18.7% → 10.3%) while a linear model holds it constant. **"Gate a ≈ a run ending at Epoch a" is how
 the ladder was built, not something observed** — if runs cross 22,500 at Epoch IV rather than III, gates
 3-4 are too low. A third measurement anywhere in II–IV beats any refinement of this arithmetic.
