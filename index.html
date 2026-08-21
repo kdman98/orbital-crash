@@ -4518,6 +4518,19 @@ const cruiseSpeed=e=>e.seek*((P&&P.seekMult)||1)*CRUISE_K;
 // Star's distance from the wall: identical for every species, and ZERO at the clamp.** Entry speed
 // scales the time that gap buys (this change is ~2.7x at any D) but cannot create it. Closing D=15 needs
 // a spawn-side rule — not spawning on the edge the Star is hugging — which is a different change.
+//   ⚠️ AND THE AUTHOR'S REASON IS SHARPER THAN "TOO HARD" — IT IS THAT THE DIFFICULTY IS UNSTABLE.
+// *"game doesnt send you to middle of screen, so you might go edge - and it makes kinda unstable
+// difficulty. doesnt have to be fast at start."* Nothing recentres the Star: not a purge, not an Epoch
+// boundary, not the calm. So where you happen to be standing when a Dot spawns is uncontrolled state,
+// and `D - P.r` says the warning for ONE IDENTICAL ARRIVAL is linear in it. That is the instability,
+// and it is measurable rather than a feel:
+//     ENTRY_K   band along each wall where a Dart is unreactable (<250ms)   warning at mid-screen
+//       2.6                      105px                                          1.07s
+//       1.0                       49px                                          2.86s
+// ⚠️ NOTE WHAT DID *NOT* IMPROVE: the spread got WIDER, 0-1.07s becomes 0-2.86s, because the dependence
+// is geometric and slowing entry scales it rather than removing it. What moved is the FLOOR — the strip
+// in which no input helps is less than half as deep. Do not quote this change as "less variance"; it is
+// "the helpless band shrank", which is the part a player can act on.
 //   ⚠️ 2.661 IS STILL THE CEILING; IT IS NO LONGER THE VALUE. The old note reasoned to 2.6 as the largest
 // uniform multiple that trims nobody against the `maxsp*1.25` clamp, tightest at the Planet (98%). That
 // arithmetic is untouched and still bounds anything above. It simply stopped being the BINDING
