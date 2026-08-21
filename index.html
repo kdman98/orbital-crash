@@ -4471,7 +4471,49 @@ const cruiseSpeed=e=>e.seek*((P&&P.seekMult)||1)*CRUISE_K;
 // GROWS after act 1; and exceeding it is not a cliff — the clamp simply trims the entry, which costs
 // uniformity across the roster rather than breaking anything. Keeping the clamp switched on is the point:
 // every invariant it enforces survives entry untouched, with no bypass to reason about.
-const ENTRY_K=2.6;
+// ⚠️ 1.0 — A DOT ENTERS AT ITS OWN CRUISE SPEED, AND THE CHANGE-UP IS DELETED ON PURPOSE.
+// Author: *"all Dots should be quite slower when first entered into screen, to prevent edge instant
+// damage."* This REVERSES the 2.6 change-up the same author asked for earlier ("빠르게 날아와서 점점
+// 느려지는 Change-up?"). A reversal rather than a compromise, because the two cannot coexist — see the
+// geometry. The newer instruction supersedes; the older one is recorded, not reconciled.
+//   ⚠️ THE RUNWAY IS `EDGE_CLEAR` EXACTLY, FOR EVERY SPECIES, WHICH IS WHY THE COMPLAINT IS REAL AND NOT
+// A FEEL. The Star clamps to `P.r`=15 off a wall; a Dot spawns at `EDGE_CLEAR + r` outside; contact is at
+// `P.r + r`. The radii CANCEL — spawn to touching a wall-hugging Star is 46px whatever the body is.
+// Measured frames to cross it, old arm and new, same rig:
+//     species    2.6              1.0
+//     Dart        9.5f  0.158s    22.3f  0.371s
+//     Harrier    10.1f  0.168s    28.7f  0.478s
+//     Neutral    17.0f  0.283s    58.0f  0.967s
+//     Drifter    19.8f  0.329s    44.0f  0.734s
+//     Bomber     21.1f  0.352s    68.7f  1.145s
+//     Brute      23.3f  0.389s    72.1f  1.201s
+//     Charger    27.9f  0.464s    34.8f  0.580s   (opts out of the 0.985 window — see below)
+//     Planet     28.0f  0.467s    82.0f  1.366s
+// A Dart landed in 158ms. Visual reaction is ~200-250ms, so that arrival was not hard, it was
+// UNANSWERABLE — no input existed that could have avoided it.
+//   ⚠️ THE RESIDUAL IS GEOMETRIC AND THIS CONSTANT CANNOT CLOSE IT. Do not spend another pass here. The
+// play rect IS the viewport (`W == VW/S`, pads 0 on desktop), so the entire margin is OFF SCREEN. A
+// Dot's leading edge crosses the boundary when its centre is `r` outside — which, for a Star hard on the
+// wall, is the same frame as contact. **The visible warning is exactly `D - P.r` px, where D is the
+// Star's distance from the wall: identical for every species, and ZERO at the clamp.** Entry speed
+// scales the time that gap buys (this change is ~2.7x at any D) but cannot create it. Closing D=15 needs
+// a spawn-side rule — not spawning on the edge the Star is hugging — which is a different change.
+//   ⚠️ 2.661 IS STILL THE CEILING; IT IS NO LONGER THE VALUE. The old note reasoned to 2.6 as the largest
+// uniform multiple that trims nobody against the `maxsp*1.25` clamp, tightest at the Planet (98%). That
+// arithmetic is untouched and still bounds anything above. It simply stopped being the BINDING
+// consideration — reaction time is, and it sits far below. Keep the ceiling; do not read it as an
+// argument for going back up.
+//   ⚠️ THE 0.985 WINDOW NOW DOES THE OPPOSITE JOB, and this is the one thing here that surprised me.
+// At 2.6 it carried an EXCESS across the arena. At 1.0 there is no excess: 0.985^60 is 0.40, so a Dot
+// DECAYS to ~40% of cruise over the window and then accelerates back once seek resumes. The measured
+// crossing times above already include that, so they are the honest numbers — but if this constant is
+// ever raised toward ~1.3 the reason would be to hold the window's AVERAGE near cruise, not to restore
+// a change-up.
+//   COST, n=3 per arm, 300s runs at 1280x800: on-screen bodies 47.1 -> 43.6 (-7.4%), in transit
+// off-screen 11.5 -> 16.6, total alive 58.7 -> 60.2. Within-arm spread was 3.2-3.4%, so -7.4% is real at
+// this n. Slower entry parks more of the field in the margin, so the arena runs slightly thinner. That
+// is a genuine pressure reduction on top of the reaction-time fix, and the price of it.
+const ENTRY_K=1.0;
 // One second. Crossing the margin plus decaying back to within 10% of cruise sums to ~57 frames for every
 // species — the 0.985 entry bleed dominates, so the total is near species-invariant — and 1.0s covers that
 // with no tail left over. FLING_HOLD is 0.8 and VOLLEY_HOLD 1.75, so this sits inside the established band
@@ -4480,8 +4522,12 @@ const ENTRY_HOLD=1.0;
 // ⚠️ THE CHARGER OPTS OUT, AND NOT BY CHOICE — say so rather than leave it as a silent inconsistency.
 // It takes the launch velocity like everything else, but `stepCharger` runs on its own `continue` path
 // above the shared friction line, so it never sees the 0.985 window; its approach bleed is 0.9, which
-// burns the excess in ~10 frames and ~30px, inside its own 59px margin. So the Charger's change-up stays
-// invisible exactly as every species' used to be. That happens to suit the one Dot whose identity is
+// burns the excess in ~10 frames and ~30px, inside its own 59px margin. ⚠️ THAT OPT-OUT IS NEARLY MOOT
+// NOW: at `ENTRY_K` 1.0 there is no excess to burn, so the Charger's 0.9 bleed and the shared 0.985
+// differ only in how fast each sags BELOW cruise during the window — which is why the Charger is the one
+// species that got FASTER relative to the rest in the entry table above (0.464s -> 0.580s, where the
+// Planet went 0.467s -> 1.366s). The inconsistency is still real and still worth naming; it just costs
+// almost nothing while the launch is cruise. That happens to suit the one Dot whose identity is
 // "travels on a line of its own and the Field does not own it" — but it is a consequence of the stepper
 // split, not a decision, and if the Charger is ever wanted in the change-up its stepper must carry it.
 function spawnAtEdge(type,color){
@@ -4492,7 +4538,12 @@ function spawnAtEdge(type,color){
   else if(side===2){x=rand(-m,W+m);y=H+m;}
   else{x=-m;y=rand(-m,H+m);}
   const e=spawnEnemy(type,color,x,y);
-  // ENTER MOVING, and now enter FAST — the change-up. Author: "빠르게 날아와서 점점 느려지는 Change-up?"
+  // ENTER MOVING, AT CRUISE. The launch exists so a Dot arrives already at speed instead of accelerating
+  // from rest outside the screen — not to make it fast.
+  //   ⚠️ THIS LINE READ "and now enter FAST — the change-up" and quoted the author's "빠르게 날아와서
+  // 점점 느려지는 Change-up?". That design is GONE, reversed on the same author's later instruction; see
+  // ENTRY_K for the measurement that forced it. The Korean quote is kept as the record of a real request,
+  // not because it describes the code.
   //
   // Straight in along the EDGE NORMAL, not toward the centre and not at you. Aiming at the centre funnels
   // every side into one point, so opposite colours delete each other before reaching you (measured: live
@@ -4515,8 +4566,9 @@ function spawnAtEdge(type,color){
   // says in its own message "The clearance itself is what costs the pressure; entry speed barely moves
   // it." The number belongs to `EDGE_CLEAR`, not to the launch. Do not spend it on this line again.
   //
-  // So the launch is now a multiple of the species' OWN CRUISE, which makes the change-up proportional
-  // across the roster instead of accidental, and it is held open by `entry` (see stepEnemyForces).
+  // So the launch is a multiple of the species' OWN CRUISE, which makes entry proportional across the
+  // roster instead of accidental — at `ENTRY_K` 1.0 that multiple is one, i.e. every Dot enters at the
+  // speed it travels at. Held open by `entry` (see stepEnemyForces).
   if(e){ const sp=cruiseSpeed(e)*ENTRY_K;
          e.entry=ENTRY_HOLD;
          if(side===0) e.vy=sp; else if(side===1) e.vx=-sp;
@@ -8105,9 +8157,12 @@ function stepEnemyForces(dt){
     if(e.flung>0){ ax=0; ay=0; }   // thrown means THROWN: dead straight, no seek, no field, no curve
     e.vx+=ax; e.vy+=ay;
     // friction — FIRED ring matter keeps its speed (streaks out); ring-captured bleeds fast (settles); rest normal
-    // ENTRY shares the fling's 0.985 and nothing else. That constant is the whole reason the change-up is
-    // visible: at the ordinary 0.86 the excess is gone in ~7 frames (and ~3px), at 0.985 it takes ~66, so
-    // the deceleration happens across the arena instead of inside the spawn margin. Ordered after `flung`
+    // ENTRY shares the fling's 0.985 and nothing else. ⚠️ WHAT THAT CONSTANT IS FOR HAS INVERTED, and the
+    // old sentence here ("the whole reason the change-up is visible: at 0.86 the excess is gone in ~7
+    // frames and ~3px, at 0.985 it takes ~66") described a launch of 2.6x cruise that no longer exists.
+    // At `ENTRY_K` 1.0 there IS no excess. 0.985 now does the opposite job: seek is suppressed during
+    // entry, so this is the only thing keeping a Dot near cruise while it crosses the margin — 0.985^60
+    // is 0.40, against 0.86^60 which is ~1e-4, i.e. a dead stop off screen. Ordered after `flung`
     // only because a Dot cannot be both; the value is the same either way.
     // ⚠️ AND THE BALLISTIC BLEED IS THE WHOLE SPECIES. 0.80 is a 1/e decay in ~4.5 frames — the reason the
     // deleted Orbiter spiralled rather than orbited was that there was no momentum left to orbit WITH, and
