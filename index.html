@@ -9904,10 +9904,43 @@ function drawBoss(){
   // THE CHIP — the arc between where the gauge IS and where it WAS, so the hit shows its SIZE and not
   // merely its occurrence. It sits clockwise of the fill because the fill sweeps clockwise from twelve
   // o'clock, so the chip is always the segment that just left. Bright at the instant of the hit and
-  // settling to a dimmer receding band: the blink says "now" and the length says "how much".
+  // settling to a steady band: the blink says "now" and the length says "how much".
+  //   ⚠️ IT IS `oc`, THE ERODING COLOUR, AND EVERY OTHER HUE IN THE PALETTE IS SPOKEN FOR. It shipped
+  // white-at-0.45 — i.e. grey — and grey is what a player reads as chrome rather than as information.
+  // Going through the palette for a replacement is what makes this line worth a paragraph:
+  //     · lime  — `bomberBlast` states in caps that it "is the only thing in the play field wearing it",
+  //               and the exclusivity IS the cue. Spending it here would cost more than it buys.
+  //     · gold and violet — BOTH out, and for a reason invisible in normal play: `applyPalette` maps
+  //               gold to '#9b6bff' in colourblind mode, which is exactly `--violet`. The two collapse
+  //               into one colour for the players who most need them apart, so neither is free.
+  //     · the boss's own `c` — sits on its own same-hue halo, which is the low-contrast blend that
+  //               `bossBody` takes `source-over` to escape.
+  //   `oc` is not the leftover, it is the RIGHT answer, and `planetBlast` already uses the idiom —
+  // "drawn in the colour of what it is erasing, not its own". `bossOpp` is defined as "the colour that
+  // erodes an Anomaly of colour c", so a chip in `oc` says the true thing: this is what your
+  // opposite-coloured fire took off. It is also the complementary hue to the halo it lies on, so it is
+  // the highest-contrast choice available rather than merely a legal one.
+  //   ⚠️ THIS IS A POLARITY HUE ON A MARK THAT IS OTHERWISE NEUTRAL, which the Wind's colour law above
+  // forbids — and the exemption is that the law bans a mark STATING A FALSE POLARITY. The Wind pushes
+  // every Dot regardless of colour, so a coloured front lied. Erosion here genuinely is polarity-bound,
+  // so the claim is true. Do not read this as licence to colour the ring itself: the FILL and the TRACK
+  // stay white, because "how much is left" has no polarity.
+  //   ⚠️ KNOWN ADJACENCY, written down rather than papered over: the Anomaly's own attack rings are
+  // ALSO `oc` (seven `spawnRing(b.x,b.y,COL[bossOpp(b.color)],…)` sites — the volley, the spiral, the
+  // nova, the hunt). So `oc` near the boss already means two things. What separates them is geometry
+  // and motion rather than hue: an attack ring is a large circle at 1.9-3.2r that EXPANDS and fades
+  // inside half a second, while the chip is a thin static SEGMENT sitting exactly on the gauge at r52.
+  // If a future attack cue is ever made static or gauge-adjacent, this collision becomes real and the
+  // chip is what should move, since it is the newer claim on the colour.
+  //   Measured, brightest pixel in the band at 1280x800, chip against the halo it lies on:
+  //     red boss   normal  chip (104,168,199) cyan   on halo ( 93, 39, 66)
+  //     cyan boss  normal  chip (225, 70,110) red    on halo ( 68, 60, 86)
+  //     red boss   CB      chip (104,169,198) cyan   on halo ( 93, 46, 58)
+  //     cyan boss  CB      chip (225,107, 72) orange on halo ( 68, 60, 86)
+  //   Complementary in every one, which is the property that makes it legible rather than merely legal.
   const gf=clamp(b.hpGhost/b.maxHp,0,1);
   if(gf>frac+0.002){
-    ctx.strokeStyle=hexA('#ffffff',0.45+0.5*hurt); ctx.lineWidth=IW;
+    ctx.strokeStyle=hexA(oc,0.78+0.22*hurt); ctx.lineWidth=IW;
     ctx.beginPath(); ctx.arc(b.x,b.y,IR,-Math.PI/2+frac*TAU,-Math.PI/2+gf*TAU); ctx.stroke();
   }
   ctx.strokeStyle='#fff'; ctx.lineWidth=IW;
