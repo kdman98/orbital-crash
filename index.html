@@ -2947,7 +2947,7 @@ function T(k,v){
 // ⚠️ THE FIVE ORIGINAL ROWS ARE GONE — firstBoss, combo60, act3, redline, lancegild. They were written
 // when a row paid nothing, and it showed: four of them asked for a number ("land a 60-chain", "reach
 // Epoch III") rather than for a decision, and every one is now either trivial beside what replaced it
-// or said twice. `combo60` sat under `wombo`'s 250 on the same line of code; `act3` measures depth,
+// or said twice. `combo60` sat under `wombo`'s 250 on the same line of code; `act3` measured depth,
 // which the Epoch-start ladder now owns and prices properly; `firstBoss` fired on the first purge every
 // player makes, so it certified nothing.
 //   Old saves keep the dead ids in `store.achv` and that is harmless: Records renders from ACHV, so an
@@ -4936,7 +4936,8 @@ function advancePhase(){
 function onBossCleared(){
   act++;
   // "Advance INTO a shower", not "be in one" — so a deep start cannot own it at t=0, and an Epoch-V
-  // starter earns it at VIII like everyone else. Same reason act3 is cold-start only, one step milder.
+  // starter earns it at VIII like everyone else. Same reason `speedrunner` in die() carries an explicit
+  // `runStartAct===1`, one step milder — this row needs no guard because the ADVANCE is the condition.
   if(isShower(act)) grantAchv('makeawish');
   FEAT.epochFlips=0;   // Flappy Star is per-Epoch, so the Epoch boundary is where it resets
   const info=actInfo();
