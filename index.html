@@ -4698,7 +4698,16 @@ function enterStorm(){
   trauma=Math.min(1,trauma+0.3);
 }
 function spawnStormSurge(col,n){
-  const cx=W/2,cy=H/2, R=Math.max(W,H)*0.6;
+  // CLEAR OF THE CORNERS, NOT A FRACTION OF THE LONG SIDE. `max(W,H)*0.6` puts the ring outside the
+  // viewport only while the aspect is at least 1.508 — solve `0.6·max(W,H) ≥ ½·√(W²+H²)` and that is
+  // exactly where it turns over. Phone (2.17) and desktop (1.78) sit above it, which is why this stood
+  // for so long; every iPad sits below. At 4:3 the ring cuts INSIDE all four corners, 5.7% of a surge
+  // materialises in open space, and a 9-enemy surge therefore pops in visibly 41% of the time.
+  //   formNoose already learned this and measures from the farthest corner; this now does too. The
+  // outer `max` keeps the old radius wherever it ALREADY cleared, so phone and desktop spawn distance
+  // is untouched to the pixel — only the shapes it was failing on move. The +30 clears the sprite and
+  // not merely its centre: the largest thing spawned here is drift at r=11.
+  const cx=W/2,cy=H/2, R=Math.max(Math.max(W,H)*0.6, Math.hypot(cx,cy)+30);
   for(let i=0;i<n && enemies.length<300;i++){ const a=rand(0,TAU);
     // 0.5*DART_RARITY, NOT 0.5 — this is the second-largest Dart source in the game (25.5% of them,
     // measured over 600s) and the ONLY one below t=20, so a table-only nerf leaves the species arriving
