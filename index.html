@@ -792,7 +792,38 @@
      A bare 10/12px here would have overridden the clearance above in exactly the case that needed it,
      while the base rule went on computing correctly at every viewport a desktop check can produce. A
      later override in the same sheet does what an inline style does, only less visibly. */
-  @media (max-height:520px){ .langsel{top:max(10px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));} }
+  /* UPDATES, top-left, and it is deliberately built from `.langsel`'s parts rather than `.ref`'s. The
+     menu's standing argument is that exactly two things on it should look pressable — a patch note is
+     not one of them, so this reads as chrome in the corner opposite the language pill, not as a fifth
+     entrance next to Records. One button rather than a container plus children, so the 3px container
+     pad and the 5px/11px child pad are folded into 8px/14px to land on the same height.
+       ⚠️ IT HAS TO JOIN THE SHORT-SCREEN RULE BELOW, exactly as `.langsel` did. That override exists
+     because the base offsets are env()-aware and a 520px-tall landscape phone needs them tighter; a
+     corner element that skips it computes correctly at every viewport a desktop check produces and is
+     wrong on the only hardware this ships to. */
+  .updbtn{position:absolute;top:max(16px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));
+    pointer-events:auto;cursor:pointer;border:none;font-family:inherit;font-size:11px;font-weight:800;
+    letter-spacing:.06em;color:var(--dim2);padding:8px 14px;border-radius:100px;
+    background:rgba(255,255,255,.05);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset;
+    transition:background .12s ease,color .12s ease;}
+  .updbtn:hover{color:var(--ink);}
+  /* ⚠️ FOUR ROWS DO NOT FIT A LANDSCAPE PHONE AT THE PANEL'S DEFAULT TYPE, and `overflow-y:auto` hiding
+     the fourth one is not a pass. Measured at 568x320, the narrowest landscape this ships in: content
+     ran 386px against a 320px viewport, so "New settings" sat 56px below the fold behind a scroll cue
+     nobody looks for on a four-item list. `cc73b50` is this same bug on the death screen — Reforge,
+     Quit and Settings below the fold on the device — and it was treated as a defect there.
+       Scoped to `#updates` rather than to `.setrow`, deliberately: Settings is a long list where
+     scrolling is expected and correct, and tightening it here would change a panel this pass has no
+     business touching. 420px rather than the sheet's usual 520px breakpoint because 480-tall landscape
+     already fits; this only has to catch the short end. */
+  @media (max-height:420px){
+    #updates .final{margin-top:4px;}
+    #updates h2{font-size:clamp(20px,4.4vw,28px);margin:2px 0 8px;}
+    #updates .setrow{padding:5px 2px;}
+    #updates .setrow .sd{margin-top:2px;}
+  }
+  @media (max-height:520px){ .langsel{top:max(10px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));}
+    .updbtn{top:max(10px,env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));} }
   .refs{display:flex;gap:16px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
   /* TRUE WHITE, on the author's call, and at every viewport rather than only in the landscape branch —
      these four are the only way into RECORDS, SKINS, BESTIARY and SETTINGS, and they are read against
@@ -868,7 +899,7 @@
        ⚠️ AND THE INLINE `top`/`right` ON ALL THREE HAD TO GO WITH IT. An inline declaration outranks any
      selector in the sheet, so adding this rule while leaving them would have shipped a stylesheet
      block that computes correctly, greps correctly, and is overridden on every device. */
-  #bestiaryClose,#recordsClose,#skinsClose,#settingsClose,#melodyClose{
+  #bestiaryClose,#recordsClose,#skinsClose,#settingsClose,#melodyClose,#updatesClose{
     top:max(22px,env(safe-area-inset-top,0px));
     right:max(22px,env(safe-area-inset-right,0px));}
 
@@ -1556,6 +1587,7 @@
          ⚠️ NOT in the HUD's corner cluster with ♪ and ✺, which was the obvious home and is a trap: the
        overlay is z-index 10 over the HUD's 5, so those buttons RENDER under the menu and are dead to a
        click. Measured, not assumed — they look perfectly available in a screenshot. -->
+  <button class="updbtn" id="updatesBtn" data-t="ref.updates">Updates</button>
   <div class="langsel" id="langSel">
     <button data-lang="en">EN</button><button data-lang="ko">한국어</button>
   </div>
@@ -1595,8 +1627,16 @@
        condition that the doors went before production, and this is that condition being met rather
        than deferred again. Nothing now reaches the field except Survival and the tutorial, so there is
        no unsandboxed score left to warn about. -->
-  <!-- Three links, since the Codex was deleted. They fit one row at every width the game supports; the
-       2x2 fallback that carried four on a phone went with the fourth. -->
+  <!-- ⚠️ THIS SAID "THREE LINKS" WHILE FOUR SAT UNDER IT, and the count was the load-bearing half of the
+       claim. Four, and the fit was re-measured rather than re-assumed: at 568x320 — the narrowest
+       landscape this ships in — the row is 387px in English and 173px in Korean inside a 568px parent.
+       A fifth was tried here and measured at 490px / 247px, still one row, so the row is NOT full; that
+       is worth knowing because the next person to want a link here will assume otherwise.
+         UPDATES IS NOT IN THIS ROW ANYWAY, on the author's call — it sits top-left, opposite `.langsel`.
+       The reason the fit measurement is kept: it says the row could have held it, so "no space" is not
+       the argument and nobody should re-derive one. These four are the game; a patch note is about the
+       BUILD, and putting it here would have made the row's you -> you -> world -> machine order end on
+       something that is none of the four. -->
   <div class="refs">
     <button class="ref" id="recordsBtn" data-t="ref.records">Records</button>
     <!-- SECOND, not last: this row runs you → you → the world → the machine. Skins are earned from Feats,
@@ -1651,6 +1691,59 @@
   <div class="final" data-t="rc.kicker" style="letter-spacing:.3em;margin-top:8px;">Records</div>
   <h2 data-t="rc.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 14px;">What you have done</h2>
   <div id="recordsBody"></div>
+</div>
+
+<!-- UPDATES. A reading room, so it sits beside Records rather than inside Settings — it reports on the
+     game the way the Bestiary reports on the roster, and neither is something you adjust.
+       ⚠️ FULLY STATIC, WHICH IS WHY THERE IS NO RENDER FUNCTION. Every line is a `data-t` node, so
+     `applyLang()`'s existing `[data-t]` sweep repaints the whole panel on a language switch and this
+     file needs no entry in the re-render list at the bottom of applyLang the way records/skins/settings
+     do. The moment a row here needs a number out of `store`, that stops being true.
+       ⚠️ `z-index:20` IS THE CONTENDED VALUE AND EQUAL Z-INDEX LOSES TO DOM ORDER. bestiary/records/
+     skins/settings are all 20; `#melody` is 21 because at 20 it opened UNDERNEATH Settings, which is
+     later in the document. 20 is correct here only because this panel opens from the menu and from
+     nothing else. If it ever becomes reachable from on top of another overlay, it needs 21+ — and the
+     failure is invisible to every DOM assertion, since a rect does not know about stacking.
+       ⚠️ `#updatesClose` HAD TO JOIN THE SELECTOR LIST IN THE STYLESHEET. The Close button's inline
+     style carries only `position:absolute`; the safe-area clearance lives solely in the shared
+     `#bestiaryClose,#recordsClose,...` rule, so a copied button lands on its own content on a notched
+     phone. Three of the original four shipped with exactly that bug.
+       Rows reuse `.setrow` rather than inventing a class: the copy was written against the settings
+     register — a name and one line under it — and `.setrow` already carries `width:min(100%,470px)`,
+     which is the idiom that matters here. `max-width` on a flex item inside this centring column
+     collapses to content width. -->
+<div class="overlay hidden" id="updates" style="z-index:20;background:rgba(4,6,15,.97);">
+  <button class="btn sm ghost" id="updatesClose" data-t="ui.close" style="position:absolute;z-index:2;">✕ Close</button>
+  <div class="final" data-t="upd.kicker" style="letter-spacing:.3em;margin-top:8px;">Updates</div>
+  <h2 data-t="upd.h2" style="font-size:clamp(26px,6vw,40px);font-weight:900;margin:4px 0 16px;">What changed</h2>
+
+  <div class="setrow">
+    <div class="st">
+      <div class="sn" data-t="upd.integrity.nm">Damage is permanent</div>
+      <div class="sd" data-t="upd.integrity.ds">Purging an Anomaly is the only way back, and it returns 30.</div>
+    </div>
+  </div>
+  <div class="setrow">
+    <div class="st">
+      <div class="sn" data-t="upd.singularity.nm">The Singularity</div>
+      <div class="sd" data-t="upd.singularity.ds">A fourth Anomaly from Epoch III; it fires nothing, and instead slows
+        you and pushes the field away.</div>
+    </div>
+  </div>
+  <div class="setrow">
+    <div class="st">
+      <div class="sn" data-t="upd.depth.nm">Begin deeper</div>
+      <div class="sd" data-t="upd.depth.ds">Your best score unlocks where you can begin, up to Epoch V.</div>
+    </div>
+  </div>
+  <!-- Last row drops the rule, exactly as the Settings panel's last row does: a border under the final
+       item draws a line to nothing. -->
+  <div class="setrow" style="border-bottom:0;">
+    <div class="st">
+      <div class="sn" data-t="upd.settings.nm">New settings</div>
+      <div class="sd" data-t="upd.settings.ds">Steering, melody, larger dots, and a few more.</div>
+    </div>
+  </div>
 </div>
 
 <!-- SKINS. Its own room, on the author's call, and the room has to earn the link it took. What it earns it
@@ -2576,8 +2669,32 @@ const L={ en:{
   //  THEME, so nothing reads these. Dead strings in a table this size are how a translator ends up
   //  translating a screen that does not exist.)
   'ref.records':'Records',  'ref.bestiary':'Bestiary',  'ref.settings':'Settings',  'ref.skins':'Skins',
+  'ref.updates':'Updates',
   'menu.contact':'Contact',
   'bestiary.frame':'ORBITAL CRASH Bestiary',
+
+  // ---- updates ----
+  // FOUR ROWS, AND THE SELECTION IS THE FEATURE. `docs/PATCHNOTE.md` holds 68 entries for this release;
+  // this room holds the ones a returning player has to RELEARN, which is a different list and a much
+  // shorter one. A panel that listed everything would be a changelog, and nobody reads a changelog in a
+  // game menu. If a fifth row is ever added, the question to answer first is what it makes the player
+  // do differently — not whether it was a big change.
+  //   ⚠️ `.ds` MUST NOT RESTATE `.nm`. Both are rendered in the same row, name above description, so a
+  // description that repeats the name's claim reads as the same sentence twice. Each `.ds` here carries
+  // only what its name does not: integrity's name says the loss is permanent, so its description spends
+  // itself entirely on the one thing that heals.
+  //   ⚠️ NO NUMBERS FROM `START_ACT_REQ` IN `upd.depth.ds`. Quoting 10,000/22,500/... would put a second
+  // copy of that array in a string, and this file's record is that hardcoded figures in prose outlive
+  // the constant they were copied from. The mechanism is what a player needs; the ladder shows itself.
+  'upd.kicker':'Updates',  'upd.h2':'What changed',
+  'upd.integrity.nm':'Damage is permanent',
+  'upd.integrity.ds':'Purging an Anomaly is the only way back, and it returns 30.',
+  'upd.singularity.nm':'The Singularity',
+  'upd.singularity.ds':'A fourth Anomaly from Epoch III; it fires nothing, and instead slows you and pushes the field away.',
+  'upd.depth.nm':'Begin deeper',
+  'upd.depth.ds':'Your best score unlocks where you can begin, up to Epoch V.',
+  'upd.settings.nm':'New settings',
+  'upd.settings.ds':'Steering, melody, larger dots, and a few more.',
 
   // ---- settings ----
   'set.kicker':'Settings',  'set.h2':'Screen and sound',
@@ -2769,8 +2886,30 @@ const L={ en:{
   'skin.star.core':'코어',
   'skin.star.turret':'보루',
   'ref.records':'기록',  'ref.bestiary':'도감',  'ref.settings':'설정',  'ref.skins':'외형',
+  'ref.updates':'업데이트',
   'menu.contact':'문의',
   'bestiary.frame':'ORBITAL CRASH 도감',
+
+  // ---- 업데이트 ----
+  // 설정 설명문과 같은 말투(-습니다) — 도감의 한다체가 아니다. 이 방은 사실을 서술하는 곳이 아니라
+  // 돌아온 플레이어에게 알리는 곳이라서, `set.*D`가 기준이다.
+  //   단계는 한국어에서 아라비아 숫자, 영어에서 로마자 — `epochGlyph`가 이미 가르는 규칙이다.
+  //   '시작 단계'는 메뉴의 `menu.depth`와, '입자'는 `set.dots`와, '변이체'는 `hud.anomaly`와 글자까지
+  // 같아야 한다. 설명에서 다른 말로 부르면 찾아갈 자리를 못 찾는다.
+  //   ⚠️ `.nm`에는 마침표를 찍지 않는다. 이 줄만 `.nm`이 문장인데, '피해는 남습니다'가 너무 함축적
+  // 이라는 작성자 판단으로 풀어 쓴 것이다.
+  //   ⚠️ 특이점 줄에 '당신의'를 쓰지 않는다. 이 표 맨 위 주석이 번역투로 첫 번째로 꼽는 것이 그것이고,
+  // 여기서는 하는 일도 없다 — 문장 안에 남의 움직임이 없으니 '움직임'만으로 이미 네 움직임이다.
+  // 초안에 있던 것을 작성자가 뺐다.
+  'upd.kicker':'업데이트',  'upd.h2':'이번에 달라진 것',
+  'upd.integrity.nm':'피해가 자동으로 회복되지 않습니다',
+  'upd.integrity.ds':'변이체를 잡아야 30 회복됩니다.',
+  'upd.singularity.nm':'특이점',
+  'upd.singularity.ds':'3단계부터 나오는 네 번째 변이체로, 투사체가 없는 대신 움직임을 방해하고 입자를 밀어냅니다.',
+  'upd.depth.nm':'더 깊은 곳에서 시작',
+  'upd.depth.ds':'최고 점수에 따라 5단계까지 시작 단계를 고를 수 있습니다.',
+  'upd.settings.nm':'새 설정',
+  'upd.settings.ds':'조종 방식, 멜로디, 입자 크기 등이 새로 생겼습니다.',
 
   // ---- settings ----
   // NOT 플레이 환경, and the reason is not tone: nothing in this panel changes how the game PLAYS.
@@ -11727,6 +11866,16 @@ el('recordsClose').onclick=closeRecords;
 // either becomes reachable mid-run.
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('bestiary').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeBestiary(); }});
 addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('records').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeRecords(); }});
+
+// UPDATES. No open function worth the name — the panel is static markup and `applyLang()` has already
+// painted it in whichever language is current, so opening it is removing one class. It is written as a
+// pair anyway because every other room here is, and a lone `classList.remove` inline in a handler is
+// the shape that later grows a body nobody notices.
+function openUpdates(){ el('updates').classList.remove('hidden'); }
+function closeUpdates(){ el('updates').classList.add('hidden'); }
+el('updatesBtn').onclick=openUpdates;
+el('updatesClose').onclick=closeUpdates;
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !el('updates').classList.contains('hidden')){ e.stopImmediatePropagation(); e.preventDefault(); closeUpdates(); }});
 
 // ---- SETTINGS ----
 // NOTHING HERE OWNS STATE. Every switch reads the same source the rest of the game reads and writes
