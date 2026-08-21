@@ -2566,8 +2566,11 @@ any of the four effects or the pricing matter.
   migration, deliberately. Measured: cold-start fingerprints are **identical** across the deletion on
   three seeds, including one that had been earning `combo60` mid-run.
   - **Anything phrased as "reach" needs the cold-start guard**, or a deep start hands it over at t=0.
-    `act3` and `speedrunner` carry it; `makeawish` gets the same effect for free by keying on the
-    *advance* rather than on the Epoch you are in.
+    ⚠️ This bullet named `act3` as a carrier for some time, four lines under the sentence that deletes
+    it. The row that carries the explicit `runStartAct===1` today is **`speedrunner`**, and it carries
+    it for the mirror-image reason — a deep start would otherwise make losing the core inside 30s
+    trivial. `makeawish` is the only reach-phrased row left, and it needs no guard at all: it keys on
+    the *advance* into a shower rather than on the Epoch you are standing in.
   - **Adding or retiring a row is no longer a single line** — it moves the ladder's denominator.
   - Per-run counters live in one `FEAT` object with one reset, because a stale counter grants a row on
     the *next* run. ⚠️ It is not called `AC`: that name is the AudioContext, and both are top-level in
@@ -2613,8 +2616,10 @@ unlock the player earned must survive that button, exactly as achievements do.
 **A deep start begins with the full late roster.** The ambient table is keyed on `elapsed`, not `act`, so
 without this a cold Epoch-V start would serve the `t<20` teaching band at Epoch-V damage. `introT()`
 warps only the intro *gates* — never `elapsed` — so Time Survived stays the honest number and the sim
-keeps one clock. Reach-style achievements (`act3` today) carry a cold-start guard, because "reach Epoch
-III" has to mean you travelled there.
+keeps one clock. **Reach-style rows need a cold-start guard**, because "reach Epoch III" has to mean you
+travelled there — but no row carries an explicit one for that reason today. `makeawish` is the only
+reach-phrased row left and is protected structurally instead, by keying on the *advance* into a shower;
+the explicit `runStartAct===1` survives on `speedrunner`, which needs it for the mirror-image reason.
 
 ### Skins
 The second thing that crosses a run boundary, and the second that grants **access, never power**.
