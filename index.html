@@ -2247,8 +2247,25 @@ const list=k=>{ try{ const v=JSON.parse(LS.getItem(k)); return Array.isArray(v)?
 // this: an immortal pilot reaches Epoch V at 475s with ~69,000, where the 271s reference tape reaches
 // the same depth with 39,105 — 1.75x the time for 1.76x the score. A curve that inflated would set
 // every gate about twice too high. Retune these after a human playtest, not after another bot run.
+//   ⚠️ x1.25 ON EVERY GATE, AND IT IS A RESTORATION RATHER THAN A NEW TASTE. The tape above was cut
+// BEFORE `c7fc807` made combo pay score, so these gates were set against an economy that no longer
+// runs: the same protocol reads 94.3 pts/s before that commit and 117.2 after, x1.243. Multiplying by
+// 1.25 asks for the same PLAY the 39,105 tape asked for, priced in the currency the game now pays in.
+// The ladder's shape does not move — 8000/18000/28000/38000 becomes 10000/22500/35000/47500.
+//   ⚠️ THE RATIO IS THE BOT'S AND THE ANCHOR IS THE HUMAN'S, WHICH IS THE WEAK JOINT. 94.3 -> 117.2 is
+// the parked-bot protocol and the only A/B anyone ran on the combo change; 39,105 is a human at ~144
+// pts/s. Applying one's ratio to the other's number assumes the multiplier lifts both alike, and it
+// does not — the bot is hit constantly, every hit severs the chain, so it lives at the bottom of
+// `min(1,combo/40)` and sees the SMALLEST lift the formula can give. A human holding a chain gains more
+// than 24%, so 1.25 under-restores for exactly the players these gates are for. Left under rather than
+// over: the direction to be wrong in is the one that hands out access.
+//   ⚠️ A RETURNING v1 PLAYER'S `best` IS IN THE OLD CURRENCY AND MEETS THE NEW GATES. `_best2` was not
+// bumped across the combo change, so pre- and post-combo scores share one variable and a v1 record is
+// ~24% short of its own worth — it buys a shallower start than the run that set it earned. Conservative,
+// gone after one run on the new economy, and noted because the alternative is bumping the key and
+// erasing every record to fix an off-by-a-quarter.
 const START_ACT_CAP=5;
-const START_ACT_REQ=[0,0,8000,18000,28000,38000];   // index IS the act; [1] is 0, the free cold start
+const START_ACT_REQ=[0,0,10000,22500,35000,47500];  // index IS the act; [1] is 0, the free cold start
 const startActFor=best=>{ let n=1; for(let a=2;a<=START_ACT_CAP;a++) if(best>=START_ACT_REQ[a]) n=a; return n; };
 const store={
   // ⚠️ KEY BUMPED to _best2. Deleting the Collapse tally removed ~71% of a run's score, so every score

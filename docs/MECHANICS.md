@@ -2593,9 +2593,19 @@ that kills faster. Whether that trade pays is a bet on your own skill, which is 
 progression this game is willing to sell. **Anything proposed here later gets held against that one line**
 — and the POLARIS fork stripped an XP/level/keystone/shop economy precisely because it failed it.
 
-**Thresholds: 8,000 · 18,000 · 28,000 · 38,000**, anchored on the one human reference tape (Epoch V at
+**Thresholds: 10,000 · 22,500 · 35,000 · 47,500**, anchored on the one human reference tape (Epoch V at
 39,105) and **not** on the bot, which reaches the same depth at 475s with ~69,000 — 1.75× the time for
 1.76× the score, and would have set every gate about twice too high. Retune after a playtest.
+
+⚠️ **The tape predates combo scoring, and the ×1.25 that produced those numbers is a restoration.** The
+gates were 8,000 · 18,000 · 28,000 · 38,000, set against the economy before `c7fc807` made combo pay
+score; the same parked protocol reads 94.3 pts/s before that commit and 117.2 after. Multiplying by 1.25
+asks for the same *play* the 39,105 tape asked for, in the currency the game now pays in.
+⚠️ **The ratio is the bot's and the anchor is the human's, which is the joint to re-cut first.** The bot
+is hit constantly and every hit severs the chain, so it sits at the bottom of `min(1,combo/40)` and sees
+the smallest lift the formula gives; a human holding a chain gains more than 24%. So 1.25 *under*-restores
+for exactly the players these gates are for — left under rather than over, because the direction to be
+wrong in is the one that hands out access. A second human tape closes this and nothing else does.
 
 **`startActMax` is a high-water mark, not a derivation from `best`.** Erase Records zeroes `best`, and an
 unlock the player earned must survive that button, exactly as achievements do.
