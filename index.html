@@ -1901,7 +1901,7 @@
   <div class="setrow" id="setMode">
     <div class="st">
       <div class="sn" data-t="set.mode">Steering</div>
-      <div class="sd" data-t="set.modeD">Whether your thumb moves the star a distance, or steers it like a stick.</div>
+      <div class="sd" data-t="set.modeD">Whether your thumb moves the star in proportion to the drag, or steers it like a stick.</div>
     </div>
     <button class="sw" id="swMode">Drag</button>
   </div>
@@ -2722,7 +2722,11 @@ const L={ en:{
   'set.sens':'Movement sensitivity',
   'set.sensD':'How strongly your thumb moves the star.',
   'set.sensA':'Movement sensitivity',
-  'set.mode':'Steering', 'set.modeD':'Whether your thumb moves the star a distance, or steers it like a stick.',
+  // ⚠️ "in proportion to the drag", NOT "a distance" -- the Korean row carries the same correction and
+  //  the same reason. "A distance" was not false, only silent about the ratio, and silence next to a
+  //  slider that spans 0.2x-4x reads as "one to one". Only the first half moved: the stick clause was
+  //  never making a claim about magnitude.
+  'set.mode':'Steering', 'set.modeD':'Whether your thumb moves the star in proportion to the drag, or steers it like a stick.',
   'set.mode.abs':'Drag', 'set.mode.stick':'Stick',
   'set.melody':'Melody', 'set.melodyD':'Which notes the background music may play.',
   'set.melody.n':'{n} notes', 'set.melody.off':'Off',
