@@ -2965,7 +2965,12 @@ const L={ en:{
   'set.sens':'움직임 민감도',
   'set.sensD':'엄지 움직임이 별을 얼마나 크게 움직일지 정합니다.',
   'set.sensA':'움직임 민감도',
-  'set.mode':'조종 방식', 'set.modeD':'엄지가 움직인 만큼 별을 옮길지, 스틱처럼 밀어서 조종할지 정합니다.',
+  // ⚠️ "비례해서", NOT "움직인 만큼". Author: *"엄지가 움직인 만큼 별을 옮길지 -> 드래그한 길이에
+  //  비례해서 별을 움직일지"*. 「움직인 만큼」 promises 1:1, and the ratio is 2x at the default and
+  //  0.2x-4x across the sensitivity row -- the same claim the README's steering cell was just corrected
+  //  for. 「비례해서」 states the relationship the control actually has and leaves the constant to the
+  //  row that owns it.
+  'set.mode':'조종 방식', 'set.modeD':'드래그한 길이에 비례해서 별을 움직일지, 스틱처럼 밀어서 조종할지 정합니다.',
   'set.mode.abs':'드래그', 'set.mode.stick':'스틱',
   'set.melody':'멜로디', 'set.melodyD':'배경음이 연주할 음을 고릅니다.',
   'set.melody.n':'{n}음', 'set.melody.off':'끔',
