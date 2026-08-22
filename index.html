@@ -414,6 +414,18 @@
   #setSens,#setMode,#setSide{display:none;}
   @media (pointer:coarse){
     #setSens,#setMode,#setSide{display:flex;}
+    /* FOLLOW SPEED, WHEN IT HAS NOTHING ON THE OTHER END. Measured: with the mode on Stick, sweeping
+       the slider 100% -> 10% -> 1% moves the star 140.00 units every time -- `stepStick` writes P
+       itself and clears `pointer.has`, so `stepPlayer`'s chase, the only thing `FOLLOW.sens` touches,
+       does not run that frame. Same lie as the rows above, so the same treatment.
+         ⚠️ INSIDE THIS QUERY, AND THE NESTING IS THE ARGUMENT. A mouse rides the chase whatever
+       `touchMode` happens to say, so on a fine pointer this row is live in both modes and must never
+       be hidden -- `touchMode` is a TOUCH setting, and hiding a mouse player's knob on the strength of
+       it would be exactly the guess-about-the-device mistake the touch block below argues against.
+         ⚠️ A CLASS, NOT A QUERY, because the thing being tested is a runtime CHOICE and not a device
+       fact. `paintSettings` sets it, so the row leaves and returns as the player toggles Steering --
+       which also teaches the relationship better than a sentence could. */
+    #setFollow.inert{display:none;}
     #muteBtn,#motionBtn{display:none;}
     #pauseBtn{top:16px;bottom:auto;}
     /* (`#cbKey{display:none}` stood here — the Overdrive button's keyboard hint, which rendered
@@ -1928,6 +1940,10 @@
 
   <!-- FOLLOW SPEED. Restored on the branch merge — see the ⚠️ on `FOLLOW.sens` for the measurement
        that put it back, and the marker in the stylesheet for why it is NOT hidden on a coarse pointer.
+         ⚠️ THAT LAST CLAUSE IS NOW HALF TRUE AND THE HALF MATTERS. On a coarse pointer this row hides
+       in STICK and shows in DRAG — see `#setFollow.inert`. The clause was written when the choice was
+       read as per-device; it is per-MODE, because the chase is what Drag steers through and what Stick
+       bypasses. The stylesheet marker's reasoning is untouched; only its scope narrowed.
          ⚠️ NOT "POINTER FOLLOW", AND NOT "YOUR CURSOR". The old strings named a mouse, which was fair
        when only a mouse reached the chase; on this branch Drag mode writes `pointer` from a thumb and
        the same knob governs it. v2-ios's objection to the row — that it "named a CURSOR on a device
@@ -12534,6 +12550,11 @@ function paintSettings(){
   // The two touch models and the two sides. Not `sw()` above: that helper prints on/off, and neither of
   // these rows has an off — both print the name of the state they are IN.
   const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
+  // The follow row is a knob with nothing on the other end under the stick; `#setFollow.inert` in the
+  // coarse-pointer block is where that is argued, including why the hiding is left to CSS rather than
+  // decided here. Set unconditionally -- on a fine pointer the class is inert itself, since no rule
+  // outside that query reads it.
+  const bf=el('setFollow'); if(bf) bf.classList.toggle('inert', store.touchMode==='stick');
   const bl=el('swMelody');
   if(bl){ const n=melPool().length;
     // `.on` marks the row as moved off the shipped five, the same test the steering row makes.
