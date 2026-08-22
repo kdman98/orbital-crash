@@ -1901,15 +1901,11 @@
     <button class="sw" id="swMode">Drag</button>
   </div>
 
-  <!-- WHICH SIDE STEERS. Mirrors the zones AND the words that name them; see `sideVars`. -->
-  <div class="setrow" id="setSide">
-    <div class="st">
-      <div class="sn" data-t="set.side">Steering side</div>
-      <div class="sd" data-t="set.sideD">Which half of the screen steers, with Overdrive and flip on the other.</div>
-    </div>
-    <button class="sw" id="swSide">Left</button>
-  </div>
-
+  <!-- ⚠️ THIS ROW SITS UNDER STEERING BECAUSE IT IS THE OTHER HALF OF IT, and it used to sit two rows
+       lower with "which side" wedged in between. Author: *"movement sens should be below Steering
+       option."* The mode picks WHICH model runs and this picks HOW MUCH of it, so a player who has
+       just changed the model is one row away from the knob that makes the new one usable. Reading
+       order is the whole argument -- nothing about either control changed. -->
   <!-- MOVEMENT SENSITIVITY. Hidden on a fine pointer, because it describes a control that device
        does not have — the same rule #touchCtl and the keyboard legend already follow.
          ⚠️ NO SWITCH BESIDE IT, unlike Sound. There is no "off" for steering.
@@ -1917,6 +1913,19 @@
        The map's scale WAS the seam (`k = zoneWidth/W`), so sensitivity had to move it and moving it
        narrowed the Overdrive and flip quarters. Both surviving models scale by a free multiplier, so the
        seam is fixed at half and the corners keep a full quarter at every stop. -->
+  <div class="setrow" id="setSens">
+    <div class="st">
+      <div class="sn"><span data-t="set.sens">Movement sensitivity</span> <span class="snv" id="sensReadout">100%</span></div>
+      <div class="sd" data-t="set.sensD">How strongly your thumb moves the star.</div>
+      <!-- ⚠️ step=5 BECAUSE IT DIVIDES 190 EXACTLY. A range steps from `min`, so with min=10 any step
+           that does not divide (max-min) puts the MAXIMUM out of reach — step 15 walks 10,25,…,190 and
+           200 is unselectable. The divisors of 190 are 1,2,5,10,19,38,95,190; of those, 5 is the one
+           that also lands exactly on the 100 default. Same trap the follow row was fixed for. -->
+      <input type="range" id="sensRange" class="rng" min="10" max="200" step="5" value="100"
+             data-ta="set.sensA" aria-label="Movement sensitivity">
+    </div>
+  </div>
+
   <!-- FOLLOW SPEED. Restored on the branch merge — see the ⚠️ on `FOLLOW.sens` for the measurement
        that put it back, and the marker in the stylesheet for why it is NOT hidden on a coarse pointer.
          ⚠️ NOT "POINTER FOLLOW", AND NOT "YOUR CURSOR". The old strings named a mouse, which was fair
@@ -1937,18 +1946,15 @@
     </div>
   </div>
 
-  <div class="setrow" id="setSens">
+  <!-- WHICH SIDE STEERS. Mirrors the zones AND the words that name them; see `sideVars`. -->
+  <div class="setrow" id="setSide">
     <div class="st">
-      <div class="sn"><span data-t="set.sens">Movement sensitivity</span> <span class="snv" id="sensReadout">100%</span></div>
-      <div class="sd" data-t="set.sensD">How strongly your thumb moves the star.</div>
-      <!-- ⚠️ step=5 BECAUSE IT DIVIDES 190 EXACTLY. A range steps from `min`, so with min=10 any step
-           that does not divide (max-min) puts the MAXIMUM out of reach — step 15 walks 10,25,…,190 and
-           200 is unselectable. The divisors of 190 are 1,2,5,10,19,38,95,190; of those, 5 is the one
-           that also lands exactly on the 100 default. Same trap the follow row was fixed for. -->
-      <input type="range" id="sensRange" class="rng" min="10" max="200" step="5" value="100"
-             data-ta="set.sensA" aria-label="Movement sensitivity">
+      <div class="sn" data-t="set.side">Steering side</div>
+      <div class="sd" data-t="set.sideD">Which half of the screen steers, with Overdrive and flip on the other.</div>
     </div>
+    <button class="sw" id="swSide">Left</button>
   </div>
+
 
   <!-- ⚠️ THE POINTER FOLLOW ROW WAS DELETED HERE, AND v2 STILL HAS IT. This is now the SECOND thing in
        this block that must be removed on every v2 -> v2-ios merge; the first was the
