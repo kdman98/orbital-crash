@@ -414,18 +414,11 @@
   #setSens,#setMode,#setSide{display:none;}
   @media (pointer:coarse){
     #setSens,#setMode,#setSide{display:flex;}
-    /* FOLLOW SPEED, WHEN IT HAS NOTHING ON THE OTHER END. Measured: with the mode on Stick, sweeping
-       the slider 100% -> 10% -> 1% moves the star 140.00 units every time -- `stepStick` writes P
-       itself and clears `pointer.has`, so `stepPlayer`'s chase, the only thing `FOLLOW.sens` touches,
-       does not run that frame. Same lie as the rows above, so the same treatment.
-         ⚠️ INSIDE THIS QUERY, AND THE NESTING IS THE ARGUMENT. A mouse rides the chase whatever
-       `touchMode` happens to say, so on a fine pointer this row is live in both modes and must never
-       be hidden -- `touchMode` is a TOUCH setting, and hiding a mouse player's knob on the strength of
-       it would be exactly the guess-about-the-device mistake the touch block below argues against.
-         ⚠️ A CLASS, NOT A QUERY, because the thing being tested is a runtime CHOICE and not a device
-       fact. `paintSettings` sets it, so the row leaves and returns as the player toggles Steering --
-       which also teaches the relationship better than a sentence could. */
-    #setFollow.inert{display:none;}
+    /* (`#setFollow.inert{display:none}` stood here for about an hour: the follow row hidden on touch
+       under the stick, where it measured inert. The row itself is gone now -- see the ⚠️ on
+       `FOLLOW.sens` -- so a rule hiding it in one mode has nothing left to hide. Worth one line
+       because the reasoning was sound and answered the wrong question: it made a knob disappear
+       where it did nothing, which still left the player two knobs to tell apart everywhere else. */
     #muteBtn,#motionBtn{display:none;}
     #pauseBtn{top:16px;bottom:auto;}
     /* (`#cbKey{display:none}` stood here — the Overdrive button's keyboard hint, which rendered
@@ -1938,29 +1931,19 @@
     </div>
   </div>
 
-  <!-- FOLLOW SPEED. Restored on the branch merge — see the ⚠️ on `FOLLOW.sens` for the measurement
-       that put it back, and the marker in the stylesheet for why it is NOT hidden on a coarse pointer.
-         ⚠️ THAT LAST CLAUSE IS NOW HALF TRUE AND THE HALF MATTERS. On a coarse pointer this row hides
-       in STICK and shows in DRAG — see `#setFollow.inert`. The clause was written when the choice was
-       read as per-device; it is per-MODE, because the chase is what Drag steers through and what Stick
-       bypasses. The stylesheet marker's reasoning is untouched; only its scope narrowed.
-         ⚠️ NOT "POINTER FOLLOW", AND NOT "YOUR CURSOR". The old strings named a mouse, which was fair
-       when only a mouse reached the chase; on this branch Drag mode writes `pointer` from a thumb and
-       the same knob governs it. v2-ios's objection to the row — that it "named a CURSOR on a device
-       that has none" — was correct about the WORDS and was answered by deleting the row instead of
-       rewording it. The row is back with wording that covers both inputs. -->
-  <div class="setrow" id="setFollow">
-    <div class="st">
-      <div class="sn"><span data-t="set.follow">Follow speed</span> <span class="snv" id="followReadout">100%</span></div>
-      <div class="sd" data-t="set.followD">How fast the star closes on where you point it.</div>
-      <!-- ⚠️ step=1, NOT the volume row's 5 or this row's own former 10. A range steps from `min`, so
-           min=1 with step=10 walks 1,11,…,91 and the MAXIMUM — which is also the default — is not
-           selectable at all. Any step other than 1 has to divide 99 exactly, and 1 is the only one of
-           those a player would thank you for. -->
-      <input type="range" id="followRange" class="rng" min="1" max="100" step="1" value="100"
-             data-ta="set.followA" aria-label="Follow speed">
-    </div>
-  </div>
+  <!-- ⚠️ THE FOLLOW SPEED ROW STOOD HERE AND IS DELETED, ON A PRODUCT ARGUMENT RATHER THAN A
+       MECHANICAL ONE. Author: *"actually user doesnt have to know about that difference."*
+         Every measurement that kept it is still true and is preserved on `FOLLOW.sens`: the chase is
+       live for the mouse and for touch in Drag, and it is NOT interchangeable with Movement
+       sensitivity -- one sets where the target lands, the other how fast the star closes on it, and in
+       Drag both act at once. That was offered here as the reason two rows had to exist. It is not:
+       it is a description of OUR decomposition, and the player is not the one who has to hold it.
+         Steering is one question -- "how does my thumb move the star" -- so it gets one row. What is
+       lost is a smoothing knob nobody asked for, and the ability to make the star floatier on purpose.
+         ⚠️ AND IT LEAVES THE MOUSE WITH NO STEERING ROW AT ALL, since `#setSens` is hidden on a fine
+       pointer. That is deliberate and is the part to revisit first if this reads wrong: a cursor IS
+       the pointer, so there is nothing to calibrate between hand and star the way a thumb needs. The
+       tuning seam survives at `__orbital.FOLLOW.sens`, which is where the number was always settled. -->
 
   <!-- WHICH SIDE STEERS. Mirrors the zones AND the words that name them; see `sideVars`. -->
   <div class="setrow" id="setSide">
@@ -2520,7 +2503,6 @@ const store={
   // being ~3x the Charger dash of 9.5, which is the fastest thing that hunts you.
   //   A stored 60-100 from before is inside the new range and needs no migration.
   touchSens:clamp(num('orbitalcrash_touchsens',100),10,200),
-  followSens:clamp(num('orbitalcrash_followsens',100),1,100),
   // ON BY DEFAULT, matching the platform it runs on: iOS ships System Haptics enabled, and a feedback
   // channel nobody thinks to go looking for in a settings panel is a feature that does not exist.
   // ⚠️ THREE STATES, AND THE KEY USED TO HOLD A BOOLEAN. Anyone who has already played this build has
@@ -2652,7 +2634,6 @@ const RUNS_KEPT=10;
 // row can change it; `applyTouchSens` is what keeps them in step from then on.
 ZONE.sens=store.touchSens; resize();
 function applyTouchSens(v){ store.touchSens=clamp(Math.round(v),10,200); ZONE.sens=store.touchSens; resize(); save(); }
-function applyFollowSens(v){ store.followSens=clamp(Math.round(v),1,100); FOLLOW.sens=store.followSens/100; save(); }
 
 function save(){
   try{                                                      // Safari private mode throws on write even when reads work
@@ -2661,7 +2642,6 @@ function save(){
     LS.setItem('orbitalcrash_mute',store.mute?'1':'0');
     LS.setItem('orbitalcrash_vol',store.vol);
     LS.setItem('orbitalcrash_touchsens',store.touchSens);
-    LS.setItem('orbitalcrash_followsens',store.followSens);
     LS.setItem('orbitalcrash_haptics',store.haptics);
     LS.setItem('orbitalcrash_touchmode',store.touchMode);
     LS.setItem('orbitalcrash_plknotes',store.plkNotes.join(','));
@@ -2841,9 +2821,6 @@ const L={ en:{
   'set.motionD':'Calmer shake and flashes when something dies close to you.',
   'set.dots':'Larger Dots',
   'set.dotsD':'Only the drawn size changes; what can touch you stays the same.',
-  'set.follow':'Follow speed',
-  'set.followD':'How fast the star closes on where you point it.',
-  'set.followA':'Follow speed',
   'set.haptic':'Haptics',
   'set.haptic.on':'On', 'set.haptic.reduce':'Reduce', 'set.haptic.off':'Off',
   'set.hapticD':'A short tap for every blow you land or take.',
@@ -3063,9 +3040,6 @@ const L={ en:{
   // 입자, not 점 — it is the word the tutorial already uses for a Dot ('같은 색 입자에 가까이 가세요').
   'set.dots':'입자 크게 보기',
   'set.dotsD':'보이는 크기만 커지고, 부딪히는 범위는 그대로입니다.',
-  'set.follow':'따라오는 속도',
-  'set.followD':'별이 가리킨 지점까지 얼마나 빠르게 따라붙는지 정합니다.',
-  'set.followA':'따라오는 속도',
   'set.haptic':'진동',
   'set.haptic.on':'켬', 'set.haptic.reduce':'줄임', 'set.haptic.off':'끔',
   'set.hapticD':'주고받는 타격마다 짧게 울립니다.',
@@ -7817,11 +7791,20 @@ const FOLLOW={
   // serves and the iOS build does not. 20 frames of chase from a parked star toward a cursor 423 CSS px
   // away travel **827.72 / 720.97 / 262.35** design units at sens 1.0 / 0.5 / 0.1 — a factor of 3.2.
   // Live for every mouse player, and for every touch player in Drag mode.
-  //   `/100` restores the old scale exactly: the default 100 gives 1, bit-identical to the pinned value
-  // (`0.185*1 === 0.185`), so no existing player's chase changes and the oracle digest cannot move.
-  // `orbitalcrash_followsens` was never cleared from localStorage, so a returning player gets their own
-  // old number back rather than the default.
-  sens: store.followSens/100,
+  //   ⚠️ AND IT IS PINNED AGAIN, BECAUSE ALL OF THAT WAS THE WRONG ARGUMENT FOR A SETTING. Author:
+  // *"actually user doesnt have to know about that difference."* Every figure above stands; what does
+  // not is the inference from "this control is live" to "this control is a row". Two sliders on one
+  // panel asked the player to hold the pipeline in their head -- `touchSens` for where the target
+  // lands, this for how fast the star closes on it, both acting at once in Drag. That decomposition
+  // is ours. Steering is one question to a player, so it is one row now, and this is a constant.
+  //   1 IS THE ROW'S OWN DEFAULT, not a new taste: it stored 100 and divided by 100, so `0.185*1 ===
+  // 0.185` and nothing moves for anyone who never dragged the handle. Someone who DID lower it lands
+  // back on the shipped tune -- there is no way to honour a stored value for a control that no longer
+  // exists, and an invisible setting nobody can reach would be the worse of the two.
+  //   `orbitalcrash_followsens` is left in localStorage unread rather than cleared. It costs nothing,
+  // and clearing it would be the one irreversible half of a change that is otherwise a revert away.
+  //   Still reachable at `__orbital.FOLLOW.sens` between runs, which is what that seam is for.
+  sens: 1,
 };
 
   // ----- player follow pointer (speed-capped briefly after a resume: glide, never teleport) -----
@@ -12550,11 +12533,6 @@ function paintSettings(){
   // The two touch models and the two sides. Not `sw()` above: that helper prints on/off, and neither of
   // these rows has an off — both print the name of the state they are IN.
   const bm=el('swMode'); if(bm){ bm.classList.toggle('on', store.touchMode==='stick'); bm.textContent=T('set.mode.'+store.touchMode); }
-  // The follow row is a knob with nothing on the other end under the stick; `#setFollow.inert` in the
-  // coarse-pointer block is where that is argued, including why the hiding is left to CSS rather than
-  // decided here. Set unconditionally -- on a fine pointer the class is inert itself, since no rule
-  // outside that query reads it.
-  const bf=el('setFollow'); if(bf) bf.classList.toggle('inert', store.touchMode==='stick');
   const bl=el('swMelody');
   if(bl){ const n=melPool().length;
     // `.on` marks the row as moved off the shipped five, the same test the steering row makes.
@@ -12564,18 +12542,13 @@ function paintSettings(){
   const sr=el('sensRange');
   if(sr && document.activeElement!==sr) sr.value=store.touchSens;
   const so=el('sensReadout'); if(so) so.textContent=store.touchSens+'%';
-  // ⚠️ THIS ROW HAD NO TRACK FILL AT ALL until the range widened — the other two sliders set `--p` and
-  // this one never did, so its fill sat wherever the last painted row left it. `(v-min)/(max-min)`, the
-  // same fraction-of-track the follow row's note argues for: 190, not 200, or the fill leads the handle.
+  // ⚠️ THIS ROW HAD NO TRACK FILL AT ALL until the range widened — the other slider set `--p` and this
+  // one never did, so its fill sat wherever the last painted row left it.
+  //   ⚠️ AND `--p` IS A FRACTION OF THE TRACK, NOT THE VALUE: `(v-min)/(max-min)`, so 190 here and not
+  // 200, or the fill leads the handle. That rule was argued in the follow row's note and is restated
+  // here rather than cited, because the follow row is deleted and a pointer into a deleted comment is
+  // worse than no pointer at all.
   if(sr) sr.style.setProperty('--p',((store.touchSens-10)/1.90)+'%');
-  // The follow row, under the same active-element guard as the rows above and for the same reason: a
-  // repaint mid-drag would snap the handle back to the stored value and the control would fight you.
-  const fr=el('followRange');
-  if(fr && document.activeElement!==fr) fr.value=store.followSens;
-  const fo=el('followReadout'); if(fo) fo.textContent=store.followSens+'%';
-  // ⚠️ `--p` IS A FRACTION OF THE TRACK, NOT THE VALUE. The range ends at 100 but STARTS at 1, so the
-  // raw percentage would sit the fill about a point ahead of the handle: (v-min)/(max-min).
-  if(fr) fr.style.setProperty('--p',((store.followSens-1)/0.99)+'%');
   const r=el('volRange'), pct=Math.round(store.vol*100);
   if(document.activeElement!==r) r.value=pct;
   el('volReadout').textContent=pct+'%';
@@ -12664,7 +12637,6 @@ el('volRange').addEventListener('change',()=>{ if(gainNow()>0) sfx.buy(); });
 // the seam was fixed at half. A claim about what a STRING says is one grep from being checked, which is
 // exactly why nobody checks it — it reads as a description rather than as an assertion.
 el('sensRange').addEventListener('input',e=>{ applyTouchSens(+e.target.value); paintSettings(); });
-el('followRange').addEventListener('input',e=>{ applyFollowSens(+e.target.value); paintSettings(); });
 // `input`, not `change`: the chase changes as the slider moves, and this panel opens from the PAUSE
 // screen, so a player tuning it has their own live field behind the overlay to judge it against rather
 // than a number to commit blind. No audio cue on release — the volume row's blip is a level reference
@@ -13792,7 +13764,7 @@ window.__orbital=window.__polaris=window.__flux={
   // a harness can assert the setting reached the sim rather than only that the store holds it. On this
   // branch that matters more than it did on v2: touch rides this chase, so `lf` is the touch control's
   // response and not just the mouse's.
-  FOLLOW, applyFollowSens,
+  FOLLOW,
   get lf(){ return clamp(FOLLOW.k*FOLLOW.sens*(P?P.moveMult:1),0,FOLLOW.cap); },
   // THE TOUCH ZONES, EXPOSED BECAUSE A SIMULATOR CANNOT PINCH AND A DESKTOP BROWSER HAS NO FINGERS.
   // `zoneOf` takes CSS px and answers 'move' | 'od' | 'flip', which is the one function a harness needs
