@@ -1886,13 +1886,19 @@
        screen for ABS, `speed:14` for STICK — so 100% is the tuned figure in both and the slider trims
        down from there. One knob, two quantities, which is why it is a mode switch and not a slider.
          `.on` lights STICK rather than "the enabled one", because neither is enabled — it marks the row
-       as moved off its default, which is the only thing a two-way choice can usefully show. -->
+       as moved off its default, which is the only thing a two-way choice can usefully show.
+         ⚠️ AND THAT SENTENCE WAS FALSE FOR AS LONG AS `stick` WAS THE DEFAULT: the test never moved, so
+       the pill lit on the row that had NOT been changed, in a panel where `swSide` and `swMelody` both
+       mean the opposite by the same test. Nothing was edited to repair it — the default flipping to
+       `abs` is what makes the existing test true again. Read that as a warning, not a tidy ending: an
+       assertion about a default outlives the default, and this one sat inverted in two comments and one
+       line of paint code without ever failing anything. -->
   <div class="setrow" id="setMode">
     <div class="st">
       <div class="sn" data-t="set.mode">Steering</div>
       <div class="sd" data-t="set.modeD">Whether your thumb moves the star a distance, or steers it like a stick.</div>
     </div>
-    <button class="sw" id="swMode">Stick</button>
+    <button class="sw" id="swMode">Drag</button>
   </div>
 
   <!-- WHICH SIDE STEERS. Mirrors the zones AND the words that name them; see `sideVars`. -->
@@ -2517,11 +2523,25 @@ const store={
   // ground) and the displacement drag for drifting on every re-grip. Both objections are about being
   // unable to escape the model, and neither transfers to a choice between two. The stick's cap is now on
   // the sensitivity slider, so the complaint that retired it has a knob attached for the first time.
-  //   ⚠️ DEFAULT IS `stick`, WHICH IS NOT WHAT THIS BRANCH SHIPPED. The absolute map was the default and
-  // is now deleted, so SOMETHING had to change for an existing player; `stick` is the one the author
-  // named as the familiar control, so it is the smaller surprise of the two. A stored 'map' from the
-  // build in between falls through to 'stick' rather than to a mode that no longer exists.
-  touchMode:(LS.getItem('orbitalcrash_touchmode')==='abs')?'abs':'stick',
+  //   ⚠️ DEFAULT IS `abs`, AND THE PARAGRAPH THAT STOOD HERE ARGUED FOR THE OPPOSITE VALUE. It read:
+  // the absolute map was the default and is now deleted, so SOMETHING had to change for an existing
+  // player, and `stick` is the one the author named as the familiar control, so it is the smaller
+  // surprise of the two. Kept here rather than deleted because it is worth knowing that the old default
+  // was never a finding about which control is better — it was a choice of which way to break a forced
+  // move, and the author has now named the other one outright.
+  //   ⚠️ THIS REACHES ALMOST NOBODY WHO IS ALREADY PLAYING, WHICH IS THE POINT AND ALSO THE TESTING TRAP.
+  // `save()` writes this key on every death, every achievement grant and every settings touch, so anyone
+  // who has finished a single run has `stick` on disk and keeps it — a default must never reach in and
+  // change a control somebody is already holding. Only a fresh install, a cleared store or a new device
+  // sees `abs`. TO TEST IT, DELETE `orbitalcrash_touchmode`; a reload reads back your own stored answer
+  // and shows Stick, which looks exactly like the change not having landed.
+  //   ⚠️ THE TEST INVERTS WITH THE DEFAULT, and it has to: the singled-out string is now `stick`, so an
+  // unmatched value falls through to `abs`. Checked against every string this key has ever held rather
+  // than assumed — 'abs' and 'stick' answer for themselves, `null` is a player who never chose, and the
+  // retired 'map' now lands on `abs`, which is the nearer of the two to what it named: a thumb TRAVEL
+  // model rather than a rate. That is the trap the haptics row above spells out, and it does not bite
+  // here only because it was looked for.
+  touchMode:(LS.getItem('orbitalcrash_touchmode')==='stick')?'stick':'abs',
   // Migrates the 2026-08-20 three-way key rather than dropping it: that setting shipped, so somebody
   // may already have chosen with it, and a silent reset to default is the rudest possible upgrade.
   plkNotes:(()=>{
